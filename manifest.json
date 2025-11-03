@@ -1,0 +1,11 @@
+{
+  "name": "CMASS Sales",
+  "short_name": "CMASS",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2b6cb0",
+  "icons": [
+    { "src": "/assets/CMASS_LOGO.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
