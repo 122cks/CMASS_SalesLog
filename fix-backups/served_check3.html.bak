@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>영업일지 입력</title>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    /* Reset & layout */
+    body {
+      background: #f5f6fa;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: #111;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      -webkit-font-smoothing:antialiased;
+      font-size: 16px; /* base size increased for readability */
+    }
+    h2 { font-size: 2.2rem; margin: 2rem 0 1rem 0; font-weight: 800; color:#0b2b5a }
+
+    form {
+      width: 95vw;
+      max-width: 640px; /* allow more room for longer names */
+      background: #fff;
+      border-radius: 1.2rem;
+      box-shadow: 0 10px 30px rgba(14,30,80,0.08);
+      padding: 1.6rem 1.8rem;
+      margin-bottom: 2rem;
+    }
+
+    label { display:block; font-weight:700; margin-top:1rem; color:#333; }
+
+  input, select, textarea { width:100%; padding:0.95rem; border-radius:0.9rem; border:1px solid #d6dbe8; box-sizing:border-box; font-size:1rem; }
+
+    /* subject/activity buttons */
+    .subjects { display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem; }
+  .subject-btn { flex:1 1 45%; min-width:130px; padding:1.05rem; font-size:1.08rem; border-radius:1rem; border:none; background:#e9eefc; color:#12325a; font-weight:800; cursor:pointer }
+  .subject-btn.selected { background:#12325a; color:#fff; box-shadow:0 6px 18px rgba(18,50,90,0.14); }
+
+    /* region / school button grid: desktop 3 cols, medium 2, small 1 */
+  .btn-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:0.7rem; margin-top:0.6rem; margin-bottom:1rem; }
+  .grid-button { padding:1.05rem 1rem; font-size:1.05rem; border-radius:1rem; border:1px solid #cfd9ff; background:#fff; color:#133257; cursor:pointer; text-align:center; white-space:normal; overflow-wrap:anywhere; word-break:keep-all; min-height:56px; line-height:1.3 }
+  .grid-button:hover { background:#f5f7ff; transform:translateY(-2px); box-shadow:0 8px 22px rgba(20,40,80,0.06); }
+  .grid-button.selected { background:#0b2b5a; color:#fff; border-color:#071a36; box-shadow:0 12px 30px rgba(11,43,90,0.18); font-weight:900 }
+
+    .btn-submit, .btn-report { width:100%; padding:1.2rem; font-size:1.2rem; border-radius:1rem; border:none; background:#1e3c72; color:#fff; font-weight:700; cursor:pointer }
+    .btn-report { background:#ff9800; margin-top:0.5rem }
+
+    /* school metadata card styles (inline and step2) - more prominent */
+    #schoolMetaInline, #schoolMeta {
+      display:none;
+      padding:22px 20px;
+      border-radius:14px;
+      background:linear-gradient(180deg,#ffffff 0%, #f7f8ff 100%);
+      border:1px solid #e2e8ff;
+      box-shadow:0 18px 48px rgba(10,28,64,0.12);
+      color:#071a2e;
+      font-size:16.5px;
+      line-height:1.6;
+      margin-top:1rem;
+      position:relative;
+      overflow:visible;
+    }
+    /* accent stripe on the left (wider for better affordance) */
+    #schoolMetaInline::before, #schoolMeta::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 8px;
+      bottom: 8px;
+      width: 10px;
+      border-radius: 8px;
+      background: linear-gradient(180deg,#556ee8,#6b4bb0);
+      box-shadow: 0 4px 14px rgba(80,90,160,0.08);
+    }
+  #schoolMetaInline h4, #schoolMeta h4 { margin:0 0 .6rem 18px; font-size:19px; color:#06203f; font-weight:900 }
+  .grade-rows { display:block; margin-top:12px; }
+  /* turn each grade row into two columns: label / values -- values emphasized */
+  .grade-row { display:grid; grid-template-columns:120px 1fr; gap:12px; align-items:center; margin:8px 0; }
+  .grade-row .grade-label { font-weight:900; color:#0d304f; font-size:15px }
+  .grade-row .grade-value { color:#072042; font-size:15px; display:flex; gap:8px; align-items:baseline }
+  /* highlight numeric values much larger */
+  .grade-row .grade-value span { font-weight:900; color:#0b2b5a; font-size:17px }
+  .meta-key { font-weight:900; font-size:15px; color:#092b4a; }
+  /* small explanatory text to the right of numbers (학급 / 학생) */
+  .grade-row .small-note { color:#4e5b73; font-size:13px; margin-left:6px }
+  /* add a compact summary bar at the top of the card for quick scanning */
+  .meta-summary { display:flex; gap:14px; margin:8px 12px 6px 12px; }
+  .meta-summary .meta-pill { background:#f3f6ff; padding:.45rem .7rem; border-radius:10px; border:1px solid #e0e8ff; color:#082044; font-weight:800; font-size:14px }
+
+  @media (max-width:1000px) { .btn-grid { grid-template-columns: repeat(2,1fr); } }
+  @media (max-width:600px) { h2 { font-size:1.6rem } .btn-grid { grid-template-columns: repeat(1,1fr); } form { padding:1rem } .grid-button { font-size:1.03rem; min-height:64px } }
+  /* meeting button styles */
+  .meeting-btn { padding:.6rem .8rem; border-radius:.8rem; border:1px solid #d6dbe8; background:#fff; color:#12325a; cursor:pointer; font-weight:800; min-width:110px }
+  .meeting-btn.selected { background: linear-gradient(90deg,#6b8bff,#9e60f0); color:#fff; border-color:rgba(0,0,0,0.08); box-shadow:0 10px 26px rgba(60,70,120,0.12); }
+  /* subject block index badge */
+  .subject-index { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:50%; background:#eef3ff; color:#12325a; font-weight:800; margin-bottom:8px; border:1px solid #d6dbe8; margin-right:8px }
+  .subject-block { position:relative; padding:12px 12px 6px 12px; border-radius:10px; border:1px solid #eef2ff; background:#fff; margin-bottom:10px }
+  </style>
+</head>
+<body>
+  <h2>영업일지 입력</h2>
+  <div id="step1">
+    <form>
+  <label>방문일</label>
+  <input type="date" id="visitDate" name="visitDate" required style="padding:.7rem;border-radius:.8rem;border:1px solid #d6dbe8;margin-bottom:.6rem;" />
+      <div id="staffInfo" style="font-size:1.2rem;font-weight:bold;margin-bottom:1rem;"></div>
+  <label>지역</label>
+  <div id="regionButtons" class="btn-grid" role="listbox" aria-label="지역 선택"></div>
+    <label>학교명</label>
+    <div id="schoolButtons" class="btn-grid" role="listbox" aria-label="학교명 선택"></div>
+    <!-- inline school metadata shown immediately after selecting a school -->
+    <div id="schoolMetaInline" class="meta-card" style="display:none;">
+      <h4>학교 정보</h4>
+      <div class="meta-summary">
+        <div class="meta-pill" id="inlinePillEstablish">설립: -</div>
+        <div class="meta-pill" id="inlinePillLevel">급: -</div>
+        <div class="meta-pill" id="inlinePillStudents">총학생수: -</div>
+      </div>
+      <div class="grade-rows">
+        <div class="grade-row"><div class="grade-label">1학년:</div><div class="grade-value"><span id="inlineG1c"></span> 학급 / <span id="inlineG1s"></span> 학생</div></div>
+        <div class="grade-row"><div class="grade-label">2학년:</div><div class="grade-value"><span id="inlineG2c"></span> 학급 / <span id="inlineG2s"></span> 학생</div></div>
+        <div class="grade-row"><div class="grade-label">3학년:</div><div class="grade-value"><span id="inlineG3c"></span> 학급 / <span id="inlineG3s"></span> 학생</div></div>
+      </div>
+    </div>
+      <button type="button" id="nextStepBtn" style="width:100%;margin:1rem 0 0 0;padding:1rem;font-size:1.1rem;border-radius:1rem;background:#1e3c72;color:#fff;font-weight:bold;border:none;cursor:pointer;">다음</button>
+    </form>
+  </div>
+  <div id="step2" style="display:none;">
+  <form id="salesForm">
+      <!-- show selected region/school -->
+      <div id="selectedInfo" style="margin-bottom:1rem;font-weight:bold;font-size:1.1rem;display:none;">
+        선택된 지역: <span id="displayRegion"></span> &nbsp; | &nbsp; 학교: <span id="displaySchool"></span>
+      </div>
+      <!-- hidden fields to submit selected region/school -->
+      <input type="hidden" id="selectedRegionInput" name="region">
+      <input type="hidden" id="selectedSchoolInput" name="schoolName">
+      <!-- school metadata panel (Step2) -->
+      <div id="schoolMeta" class="meta-card">
+        <h4>학교 정보</h4>
+        <div class="meta-summary">
+          <div class="meta-pill" id="metaPillEstablish">설립: -</div>
+          <div class="meta-pill" id="metaPillLevel">급: -</div>
+          <div class="meta-pill" id="metaPillStudents">총학생수: -</div>
+        </div>
+        <div class="grade-rows">
+          <div class="grade-row"><div class="grade-label">1학년:</div><div class="grade-value"><span id="metaG1c"></span> 학급 / <span id="metaG1s"></span> 학생</div></div>
+          <div class="grade-row"><div class="grade-label">2학년:</div><div class="grade-value"><span id="metaG2c"></span> 학급 / <span id="metaG2s"></span> 학생</div></div>
+          <div class="grade-row"><div class="grade-label">3학년:</div><div class="grade-value"><span id="metaG3c"></span> 학급 / <span id="metaG3s"></span> 학생</div></div>
+        </div>
+      </div>
+      <label>방문 시작 시간</label>
+        <select id="visitStartHour" name="visitStartHour" aria-label="방문 시작 시"></select>
+        <select id="visitStartMinute" name="visitStartMinute" aria-label="방문 시작 분"></select>
+      <label>총 방문 시간(분)</label>
+      <div id="durationControls" style="margin-bottom:0.8rem;">
+        <div id="durationButtons" class="btn-grid" style="grid-template-columns:repeat(5,1fr); gap:0.5rem;">
+          <!-- buttons injected by JS -->
+        </div>
+        <div style="margin-top:0.6rem; display:flex; gap:0.6rem; align-items:center;">
+          <input type="number" id="visitDuration" placeholder="예: 80" min="1" style="flex:1; padding:.8rem; border-radius:.8rem; border:1px solid #d6dbe8;" aria-label="총 방문 시간(분) 수동 입력">
+          <button type="button" id="clearDuration" style="padding:.7rem 1rem; border-radius:.8rem; background:#f2f3f8; border:1px solid #d6dbe8; cursor:pointer;">지우기</button>
+        </div>
+      </div>
+      <input type="hidden" id="selectedDurationInput" name="durationMinutes">
+  <label style="margin-top:0.6rem;">방문 종료 시간 <small style="font-weight:600;color:#40537a">(자동 계산됨)</small></label>
+    <input type="text" id="visitEnd" name="visitEnd" readonly>
+      <div id="subjectsBlock">
+        <label>과목/선생님별 영업기록</label>
+        <div class="subject-block">
+              <input type="hidden" class="subject-name" required>
+              <div class="subjects" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:8px;">
+                <button type="button" class="grid-button subject-choice" data-subject="정보">정보</button>
+                <button type="button" class="grid-button subject-choice" data-subject="진로">진로</button>
+                <button type="button" class="grid-button subject-choice" data-subject="기술가정">기술가정</button>
+                <button type="button" class="grid-button subject-choice" data-subject="한문">한문</button>
+              </div>
+          <input type="text" class="teacher-name" placeholder="선생님 이름" required>
+              <select class="publisher">
+                <option value="">출판사 선택</option>
+                <option>씨마스</option><option>천재</option><option>비상</option><option>미래엔</option><option>동아</option><option>지학사</option><option>금성</option><option>창비</option><option>해냄</option><option>능률</option><option>삼양</option><option>이오북스</option><option>YBM</option><option>길벗</option><option>미진사</option><option>다락원</option><option>타임</option><option>채움</option>
+              </select>
+              <div style="display:flex;gap:.5rem;align-items:center;margin-top:.5rem;">
+                <label style="font-weight:700;min-width:38px;">연락처</label>
+                    <div style="display:flex;gap:.5rem;align-items:center;margin-top:.5rem;">
+                      <span style="display:inline-block;padding:.55rem .7rem;border-radius:.6rem;background:#f2f4ff;border:1px solid #d6dbe8;color:#12325a;font-weight:700;">010</span>
+                      <input type="text" class="contact-suffix" placeholder="12345678" maxlength="8" inputmode="numeric" pattern="[0-9]*" style="width:120px;padding:.55rem .6rem;border-radius:.6rem;border:1px solid #d6dbe8;">
+                      <span class="contact-formatted" style="margin-left:8px;color:#103254;font-weight:700;"></span>
+                      <button type="button" class="copy-contact" style="margin-left:6px;padding:.4rem .6rem;border-radius:.5rem;border:1px solid #d6dbe8;background:#fff;cursor:pointer;">복사</button>
+                    </div>
+              </div>
+          <div style="margin-top:16px;"></div>
+          <div class="meeting-buttons main-meeting-buttons">
+            <button class="meeting-btn" type="button">명함인사</button>
+            <button class="meeting-btn" type="button">티칭샘소개</button>
+            <button class="meeting-btn" type="button">채팅방소개</button>
+            <button class="meeting-btn" type="button">미팅불가</button>
+          </div>
+          <div class="meeting-buttons info-extra-buttons" style="display:none;">
+            <button class="meeting-btn" type="button">구글클래스룸 사용</button>
+            <button class="meeting-btn" type="button">패들렛 사용</button>
+            <button class="meeting-btn" type="button">하이러닝 사용</button>
+          </div>
+          <textarea class="conversation-detail" rows="2" placeholder="특이사항"></textarea>
+          <div style="margin-top:0.6rem;">
+            <label style="font-weight:700;display:block;margin-bottom:6px;">후속조치</label>
+            <select class="followUpSelect" style="width:100%;padding:.6rem;border-radius:.6rem;border:1px solid #d6dbe8;background:#fff;">
+              <option value="">선택하세요</option>
+              <option>채팅방 지속 관리</option>
+              <option>추가 자료 발송 예정</option>
+              <option>재방문 예정</option>
+              <option>선정 시기 연락 대기</option>
+              <option>워크북 무상지원 제안</option>
+              <option>완료 (추가 조치 없음)</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:16px;"></div>
+      </div>
+      <button type="button" id="addSubjectBtn" style="width:100%;margin:0.5rem 0 1rem 0;padding:1rem;font-size:1.1rem;border-radius:1rem;background:#e3eafc;color:#1e3c72;font-weight:bold;border:none;cursor:pointer;">과목/선생님 추가</button>
+      <!-- follow-up select is now per subject-block -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:0.6rem;">
+        <button type="button" id="backBtn" style="padding:1rem;border-radius:1rem;border:1px solid #d6dbe8;background:#fff;color:#1e3c72;font-weight:700;cursor:pointer;">뒤로 돌아가기</button>
+        <button type="submit" class="btn-submit">입력 완료</button>
+      </div>
+      <div style="margin-top:1rem;">
+        <div style="display:flex;gap:.5rem;margin-bottom:.5rem;">
+          <button type="button" id="copyKakaoBtn" style="flex:1;padding:.75rem;border-radius:1rem;border:1px solid #ffd9b3;background:#fff;color:#b25700;font-weight:800;">카톡으로 복사</button>
+        </div>
+        <div style="display:flex;gap:.5rem;margin-bottom:.5rem;">
+          <button type="button" id="saveToServerBtn" style="flex:1;padding:.75rem;border-radius:1rem;border:1px solid #cfe8ff;background:#e9f4ff;color:#0b3a72;font-weight:800;">서버에 저장</button>
+        </div>
+        <div>
+          <textarea id="generatedSummary" rows="10" readonly style="width:100%;margin-top:.6rem;padding:.8rem;border-radius:.8rem;border:1px solid #d6dbe8;display:block;">요약이 여기에 생성됩니다.</textarea>
+        </div>
+      </div>
+    </form>
+  </div>
+  <style>
+    .contact-invalid { border-color:#e05252 !important; box-shadow:0 4px 12px rgba(224,82,82,0.08); }
+  </style>
+  <script>
+    // If the page is opened via file:// the browser will block fetch requests (origin=null).
+    // Show a clear on-page message to the user instead of failing silently with CORS errors.
+    // --- Multi-visit (dayVisits) support and summary templates ---
+    const dayVisits = [];
+
+    // small utility: pad numbers to 2 digits. Defined early so other functions can use it.
+    function pad2(n){
+      const num = parseInt(n,10);
+      if (isNaN(num)) return '00';
+      return (num < 10 ? '0' : '') + String(num);
+    }
+
+    function buildCurrentVisitObject() {
+      // capture top-level visit info
+      const visitDate = (document.getElementById('visitDate') || {}).value || '';
+      const staff = (document.getElementById('staffName') || {}).value || '';
+      const region = (document.querySelector('#regionButtons .grid-button[aria-selected="true"]') || {}).dataset?.value || '';
+      const schoolBtn = document.querySelector('#schoolButtons .grid-button[aria-selected="true"]');
+      const school = schoolBtn ? (schoolBtn.dataset.value || schoolBtn.textContent.trim()) : '';
+      const meta = {};
+      const est = document.getElementById('metaPillEstablish'); if (est) meta.establish = est.textContent || '';
+      const level = document.getElementById('metaPillLevel'); if (level) meta.level = level.textContent || '';
+      const g1 = document.getElementById('metaG1c'); if (g1) meta.g1 = g1.textContent || '';
+
+      const startHour = (document.getElementById('visitStartHour')||{}).value || '08';
+      const startMinute = (document.getElementById('visitStartMinute')||{}).value || '00';
+      const visitStart = `${pad2(startHour)}:${pad2(startMinute)}`;
+      const visitEnd = (document.getElementById('visitEnd')||{}).value || '';
+
+      // subjects
+      const subjectBlocks = Array.from(document.querySelectorAll('#subjectsBlock .subject-block'));
+      const subjects = subjectBlocks.map((blk)=>{
+        const subj = (blk.querySelector('.subject-name')||{}).value || '';
+        const teacher = (blk.querySelector('.teacher-name')||{}).value || '';
+        const publisher = (blk.querySelector('.publisher')||{}).value || '';
+        const conv = (blk.querySelector('.conversation-detail')||{}).value || '';
+        const followUp = (blk.querySelector('.followUpSelect')||{}).value || '';
+        const contactSuffix = (blk.querySelector('.contact-suffix')||{}).value || '';
+        const contact = contactSuffix ? `010-${contactSuffix.slice(0,4)}-${contactSuffix.slice(4)}` : '';
+        const meetings = Array.from(blk.querySelectorAll('.meeting-btn.selected')).map(b=>b.dataset.value||b.textContent.trim());
+        return { subject:subj, teacher, publisher, conversation:conv, followUp, contact, meetings };
+      });
+
+      return { visitDate, staff, region, school, meta, visitStart, visitEnd, subjects };
+    }
+
+    function renderVisitsList() {
+      const el = document.getElementById('visitsList');
+      if (!el) return;
+      el.innerHTML = '';
+      if (dayVisits.length === 0) { el.innerHTML = '<div style="color:#666;padding:.6rem;">추가된 방문이 없습니다.</div>'; return; }
+      // render stacked cards (chronological)
+      dayVisits.forEach((v, idx) => {
+        const card = document.createElement('div');
+        card.className = 'visit-card';
+        card.style = 'border-radius:8px;border:1px solid #e6eefc;background:#fff;padding:.8rem;margin-bottom:8px;';
+        const header = document.createElement('div');
+        header.style = 'display:flex;justify-content:space-between;align-items:center;gap:.6rem;';
+        const title = document.createElement('div');
+        title.innerHTML = `<strong>${idx+1}. ${v.school || '학교 미선택'}</strong><div style="font-size:12px;color:#556">${v.visitDate || ''} ${v.visitStart || ''} ~ ${v.visitEnd || ''}</div>`;
+        const actions = document.createElement('div');
+        const editBtn = document.createElement('button'); editBtn.textContent='편집'; editBtn.style='margin-right:6px;padding:.3rem .6rem;border-radius:.5rem;'; editBtn.addEventListener('click',()=>loadVisitToForm(idx));
+        const removeBtn = document.createElement('button'); removeBtn.textContent='제거'; removeBtn.style='padding:.3rem .6rem;border-radius:.5rem;color:#c33;'; removeBtn.addEventListener('click',()=>{ if(editingVisitIndex===idx) resetEditState(); dayVisits.splice(idx,1); renderVisitsList(); });
+        actions.appendChild(editBtn); actions.appendChild(removeBtn);
+        header.appendChild(title); header.appendChild(actions);
+        card.appendChild(header);
+        // brief subjects summary
+        if (v.subjects && v.subjects.length) {
+          const ul = document.createElement('div'); ul.style='margin-top:.6rem;font-size:13px;color:#233';
+          v.subjects.forEach(s=>{
+            const line = document.createElement('div'); line.textContent = `${s.subject || '-'} ${s.teacher? '('+s.teacher+')':''} ${s.contact? '· '+s.contact : ''}`;
+            ul.appendChild(line);
+          });
+          card.appendChild(ul);
+        }
+        el.appendChild(card);
+      });
+      // auto-scroll to bottom so latest added visit is visible
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function resetFormForNextVisit() {
+      // keep visitDate and staffInfo, clear region/school selection and subject blocks (leave one blank block)
+      // clear region/school UI selection
+      document.querySelectorAll('#regionButtons .grid-button.selected').forEach(b=>b.classList.remove('selected'));
+      document.querySelectorAll('#schoolButtons .grid-button.selected').forEach(b=>b.classList.remove('selected'));
+      document.getElementById('selectedRegionInput').value = '';
+      document.getElementById('selectedSchoolInput').value = '';
+      document.getElementById('displayRegion').textContent = '';
+      document.getElementById('displaySchool').textContent = '';
+      document.getElementById('selectedInfo').style.display = 'none';
+      // reset subject blocks: keep single blank block
+  const container = document.getElementById('subjectsBlock');
+  container.innerHTML = `\n        <label>과목/선생님별 영업기록</label>\n        <div class="subject-block">\n              <input type="hidden" class="subject-name">\n              <div class="subjects" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:8px;">\n                <button type="button" class="grid-button subject-choice" data-subject="정보">정보</button>\n                <button type="button" class="grid-button subject-choice" data-subject="진로">진로</button>\n                <button type="button" class="grid-button subject-choice" data-subject="보건">보건</button>\n                <button type="button" class="grid-button subject-choice" data-subject="미술">미술</button>\n                <button type="button" class="grid-button subject-choice" data-subject="특성화">특성화</button>\n                <button type="button" class="grid-button subject-choice" data-subject="기타">기타</button>\n              </div>\n          <input type="text" class="teacher-name" placeholder="선생님 이름">\n              <select class="publisher">\n                <option value="">출판사 선택</option>\n                <option>천재</option><option>비상</option><option>동아</option><option>삼양</option><option>기타</option>\n              </select>\n              <div style="display:flex;gap:.5rem;align-items:center;margin-top:.5rem;">\n                <label style="font-weight:700;min-width:38px;">연락처</label>\n                    <div style="display:flex;gap:.5rem;align-items:center;margin-top:.5rem;">\n                      <span style="display:inline-block;padding:.55rem .7rem;border-radius:.6rem;background:#f2f4ff;border:1px solid #d6dbe8;color:#12325a;font-weight:700;">010</span>\n                      <input type="text" class="contact-suffix" placeholder="12345678" maxlength="8" inputmode="numeric" pattern="[0-9]*" style="width:120px;padding:.55rem .6rem;border-radius:.6rem;border:1px solid #d6dbe8;">\n                      <span class="contact-formatted" style="margin-left:8px;color:#103254;font-weight:700;"></span>\n                      <button type="button" class="copy-contact" style="margin-left:6px;padding:.4rem .6rem;border-radius:.5rem;border:1px solid #d6dbe8;background:#fff;cursor:pointer;">복사</button>\n                    </div>\n              </div>\n          <div style="margin-top:16px;"></div>\n          <div class="meeting-buttons" id="main-meeting-buttons">\n            <button class="meeting-btn" type="button">명함인사</button>\n            <button class="meeting-btn" type="button">티칭샘소개</button>\n            <button class="meeting-btn" type="button">채팅방소개</button>\n            <button class="meeting-btn" type="button">미팅불가</button>\n          </div>\n          <div class="meeting-buttons" id="info-extra-buttons" style="display:none;">\n            <button class="meeting-btn" type="button">구글클래스룸 사용</button>\n            <button class="meeting-btn" type="button">패들렛 사용</button>\n            <button class="meeting-btn" type="button">하이러닝 사용</button>\n          </div>\n          <textarea class="conversation-detail" rows="2" placeholder="특이사항"></textarea>\n          <div style="margin-top:0.6rem;">\n            <label style="font-weight:700;display:block;margin-bottom:6px;">후속조치</label>\n            <select class="followUpSelect" style="width:100%;padding:.6rem;border-radius:.6rem;border:1px solid #d6dbe8;background:#fff;">\n              <option value="">선택하세요</option>\n              <option>채팅방 지속 관리</option>\n              <option>추가 자료 발송 예정</option>\n              <option>재방문 예정</option>\n              <option>선정 시기 연락 대기</option>\n              <option>워크북 무상지원 제안</option>\n              <option>완료 (추가 조치 없음)</option>\n            </select>\n          </div>\n        </div>\n        <div style="margin-top:16px;"></div>\n      `;
+      if (typeof renumberSubjectBlocks === 'function') renumberSubjectBlocks();
+      // if user enabled auto-focus, focus the first region button (or school if region already selected)
+      setTimeout(()=>{
+        try{
+          const auto = document.getElementById('autoFocusNext');
+          if (auto && auto.checked) {
+            const regionFirst = document.querySelector('#regionButtons .grid-button');
+            const schoolFirst = document.querySelector('#schoolButtons .grid-button');
+            if (regionFirst) { regionFirst.focus(); }
+            else if (schoolFirst) { schoolFirst.focus(); }
+          }
+        }catch(e){/* ignore focus errors */}
+      },60);
+    }
+
+    let editingVisitIndex = -1; // -1 means not editing
+
+    function resetEditState() {
+      editingVisitIndex = -1;
+      const addBtn = document.getElementById('addVisitBtn'); if (addBtn) addBtn.textContent = '오늘 방문에 추가';
+      renderVisitsList();
+    }
+
+    function loadVisitToForm(idx) {
+      const v = dayVisits[idx];
+      if (!v) return;
+      // populate top-level
+      if (v.visitDate) {
+        const vdEl = document.getElementById('visitDate') || null;
+        try{
+          const s = String(v.visitDate || '').trim();
+          let norm = '';
+          if (/^\d{4}-\d{2}-\d{2}$/.test(s)) norm = s;
+          else {
+            const m = s.match(/^(\d{4}-\d{2}-\d{2})T/);
+            if (m && m[1]) norm = m[1];
+            else { const d = new Date(s); if (!isNaN(d.getTime())) norm = d.toISOString().slice(0,10); }
+          }
+          if (vdEl) vdEl.value = norm || '';
+        }catch(e){}
+      }
+      if (v.visitStart) {
+        const [hh, mm] = v.visitStart.split(':');
+        if (document.getElementById('visitStartHour')) document.getElementById('visitStartHour').value = hh;
+        if (document.getElementById('visitStartMinute')) document.getElementById('visitStartMinute').value = mm;
+      }
+      if (v.visitEnd) (document.getElementById('visitEnd')||{}).value = v.visitEnd;
+      // select region and school buttons if possible
+      if (v.region) {
+        const regionBtn = Array.from(document.querySelectorAll('#regionButtons .grid-button')).find(b=>b.textContent.trim()===v.region || b.dataset.region===v.region);
+        if (regionBtn) regionBtn.click();
+      }
+      if (v.school) {
+        // small delay to allow schools populated after region click
+        setTimeout(()=>{
+          const schoolBtn = Array.from(document.querySelectorAll('#schoolButtons .grid-button')).find(b=>b.textContent.trim()===v.school || b.dataset.school===v.school);
+          if (schoolBtn) schoolBtn.click();
+        }, 120);
+      }
+      // clear existing subject blocks and rebuild from v.subjects
+      const container = document.getElementById('subjectsBlock');
+      container.innerHTML = '<label>과목/선생님별 영업기록</label>';
+      v.subjects.forEach(s => {
+        const block = document.createElement('div'); block.className = 'subject-block';
+        block.innerHTML = `
+          <input type="hidden" class="subject-name" required>
+          <div class="subjects" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:8px;">
+            <button type="button" class="grid-button subject-choice" data-subject="정보">정보</button>
+            <button type="button" class="grid-button subject-choice" data-subject="진로">진로</button>
+            <button type="button" class="grid-button subject-choice" data-subject="기술가정">기술가정</button>
+                <button type="button" class="grid-button subject-choice" data-subject="한문">한문</button>
+          </div>
+          <input type="text" class="teacher-name" placeholder="선생님 이름" required>
+          <select class="publisher">
+            <option value="">출판사 선택</option>
+            <option>천재</option><option>비상</option><option>동아</option><option>삼양</option><option>기타</option>
+          </select>
+          <div style="margin-top:0.6rem;">
+            <label style="font-weight:700;display:block;margin-bottom:6px;">후속조치</label>
+            <select class="followUpSelect" style="width:100%;padding:.6rem;border-radius:.6rem;border:1px solid #d6dbe8;background:#fff;">
+              <option value="">선택하세요</option>
+              <option>채팅방 지속 관리</option>
+              <option>추가 자료 발송 예정</option>
+              <option>재방문 예정</option>
+              <option>선정 시기 연락 대기</option>
+              <option>워크북 무상지원 제안</option>
+              <option>완료 (추가 조치 없음)</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:.5rem;align-items:center;margin-top:.5rem;">
+            <label style="font-weight:700;min-width:38px;">연락처</label>
+            <div style="display:flex;gap:.5rem;align-items:center;margin-top:.5rem;">
+              <span style="display:inline-block;padding:.55rem .7rem;border-radius:.6rem;background:#f2f4ff;border:1px solid #d6dbe8;color:#12325a;font-weight:700;">010</span>
+              <input type="text" class="contact-suffix" placeholder="12345678" maxlength="8" inputmode="numeric" pattern="[0-9]*" style="width:120px;padding:.55rem .6rem;border-radius:.6rem;border:1px solid #d6dbe8;">
+              <span class="contact-formatted" style="margin-left:8px;color:#103254;font-weight:700;"></span>
+              <button type="button" class="copy-contact" style="margin-left:6px;padding:.4rem .6rem;border-radius:.5rem;border:1px solid #d6dbe8;background:#fff;cursor:pointer;">복사</button>
+            </div>
+          </div>
+          <div style="margin-top:16px;"></div>
+          <div class="meeting-buttons" id="main-meeting-buttons">
+            <button class="meeting-btn" type="button">명함인사</button>
+            <button class="meeting-btn" type="button">티칭샘소개</button>
+            <button class="meeting-btn" type="button">채팅방소개</button>
+            <button class="meeting-btn" type="button">미팅불가</button>
+          </div>
+          <div class="meeting-buttons" id="info-extra-buttons" style="display:none;">
+            <button class="meeting-btn" type="button">구글클래스룸 사용</button>
+            <button class="meeting-btn" type="button">패들렛 사용</button>
+            <button class="meeting-btn" type="button">하이러닝 사용</button>
+          </div>
+          <textarea class="conversation-detail" rows="2" placeholder="특이사항"></textarea>
+  <button type="button" class="removeSubjectBtn" style="margin:0.5rem 0 1rem 0;padding:0.5rem 1rem;font-size:1rem;border-radius:0.7rem;background:#ff9800;color:#fff;border:none;cursor:pointer;">삭제</button>
+        `;
+        // populate values
+        if (s.subject) {
+          block.querySelector('.subject-name').value = s.subject;
+          const subjectBtn = Array.from(block.querySelectorAll('.subject-choice')).find(b=>b.dataset.subject===s.subject || b.textContent.trim()===s.subject);
+          if (subjectBtn) subjectBtn.classList.add('selected');
+        }
+        if (s.teacher) block.querySelector('.teacher-name').value = s.teacher;
+        if (s.publisher) block.querySelector('.publisher').value = s.publisher;
+        if (s.followUp) block.querySelector('.followUpSelect').value = s.followUp;
+        if (s.contact) {
+          // extract suffix digits from format like 010-1234-5678
+          const digits = (s.contact || '').replace(/\D+/g,'');
+          if (digits.length === 11) block.querySelector('.contact-suffix').value = digits.slice(3);
+        }
+        if (s.conversation) block.querySelector('.conversation-detail').value = s.conversation;
+        // meetings selection
+        setTimeout(()=>{
+          if (s.meetings && s.meetings.length) {
+            Array.from(block.querySelectorAll('.meeting-btn')).forEach(btn=>{
+              if (s.meetings.includes(btn.textContent.trim())) btn.classList.add('selected');
+            });
+          }
+        }, 10);
+        block.querySelector('.removeSubjectBtn').onclick = function(){ block.remove(); if(typeof renumberSubjectBlocks==='function') renumberSubjectBlocks(); };
+        container.appendChild(block);
+      });
+      // renumber and show edit UI
+      if (typeof renumberSubjectBlocks === 'function') renumberSubjectBlocks();
+      editingVisitIndex = idx;
+      const addBtn = document.getElementById('addVisitBtn'); if (addBtn) addBtn.textContent = '편집사항 저장';
+      renderVisitsList();
+    }
+
+    document.getElementById('addVisitBtn')?.addEventListener('click',()=>{
+      const v = buildCurrentVisitObject();
+      // 방문일 필수
+      if (!v.visitDate) { alert('방문일을 선택한 뒤 방문을 추가하세요.'); const vd = document.getElementById('visitDate'); vd && vd.focus(); return; }
+      // basic validation: must have school
+      if (!v.school) { alert('학교를 선택한 뒤 추가하세요.'); return; }
+      if (editingVisitIndex >= 0) {
+        dayVisits[editingVisitIndex] = v;
+        resetEditState();
+        renderVisitsList();
+      } else {
+        dayVisits.push(v);
+        renderVisitsList();
+        // prepare form for next visit entry
+        resetFormForNextVisit();
+      }
+    });
+
+    // copy to clipboard helper
+    async function copyToClipboard(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try { await navigator.clipboard.writeText(text); return true; } catch(e){ /* fallthrough */ }
+      }
+      // fallback
+      const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); document.body.removeChild(ta); return true; } catch(e){ document.body.removeChild(ta); return false; }
+    }
+
+    document.getElementById('copySummaryBtn')?.addEventListener('click', async ()=>{
+      const txt = (document.getElementById('generatedSummary')||{}).value || '';
+      if (!txt) { alert('복사할 요약이 없습니다. 먼저 요약을 생성하세요.'); return; }
+      const ok = await copyToClipboard(txt);
+      if (ok) { alert('요약이 클립보드에 복사되었습니다.'); } else { alert('복사에 실패했습니다. 수동으로 복사해주세요.'); }
+    });
+
+    // One-click: build kakao template from dayVisits (require at least one visit) and copy to clipboard
+    document.getElementById('copyKakaoBtn')?.addEventListener('click', async ()=>{
+      if (!dayVisits || !dayVisits.length) { alert('먼저 방문을 추가하세요. (하루치 방문이 쌓여 있어야 합니다)'); return; }
+      const summary = buildAggregateSummary(dayVisits, 'kakao');
+      const ok = await copyToClipboard(summary);
+      if (ok) { alert('카카오용 요약이 클립보드에 복사되었습니다. 카톡에 붙여넣기 해주세요.'); }
+      else { alert('복사에 실패했습니다. 생성된 요약을 수동으로 복사해주세요.'); }
+    });
+
+    // POST dayVisits to backend
+    document.getElementById('saveToServerBtn')?.addEventListener('click', async ()=>{
+      if (!dayVisits || !dayVisits.length) { alert('저장할 방문 기록이 없습니다. 먼저 방문을 추가하세요.'); return; }
+      const staff = getStaffFromQuery() || (document.getElementById('staffInfo')||{}).textContent.replace(/^담당자:\s*/,'').trim();
+      const payload = { staff, visits: dayVisits };
+      try {
+        const res = await fetch('/api/visits', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        });
+        const j = await res.json();
+        if (res.ok && j && j.ok) { alert('서버에 저장되었습니다. ID: ' + j.id); }
+        else { alert('저장 실패: ' + (j && j.msg ? j.msg : res.statusText)); }
+      } catch(e){ alert('서버 저장 중 오류: ' + e.message); }
+    });
+
+    // register service worker for PWA (if available)
+    if ('serviceWorker' in navigator) {
+      try { navigator.serviceWorker.register('/sw.js'); } catch(e) { /* ignore */ }
+    }
+
+    // enhanced generateSummary: uses dayVisits if exists, otherwise single current form
+    document.getElementById('genSummaryBtn')?.addEventListener('click', ()=>{
+      const template = (document.getElementById('summaryTemplate')||{}).value || 'detailed';
+      let visits = dayVisits.length ? dayVisits : [ buildCurrentVisitObject() ];
+      const summary = buildAggregateSummary(visits, template);
+      const out = document.getElementById('generatedSummary'); if (out) writeGeneratedSummary(reportIntro() + '\n' + summary, { replace: true });
+    });
+
+    // report intro/header block to prepend to generated summaries
+    function reportIntro() {
+      // dynamic header: use URL ?user= parameter when present, otherwise fallback to staffInfo text
+      let staffName = '';
+      try {
+        staffName = getStaffFromQuery() || '';
+      } catch(e) { staffName = ''; }
+      if (!staffName) {
+        const infoEl = document.getElementById('staffInfo');
+        if (infoEl && infoEl.textContent) {
+          staffName = infoEl.textContent.replace(/^담당자:\s*/,'').trim();
+        }
+      }
+      if (!staffName) staffName = '담당자';
+      // normalize base name (remove common title suffixes if present)
+      let base = staffName.replace(/\s*(부장|차장|과장|대리|사원)\s*$/,'').trim();
+      // mapping to titled names
+      const titleMap = {
+        '송훈재': '송훈재 부장',
+        '임준호': '임준호 차장',
+        '조영환': '조영환 부장'
+      };
+      const displayName = titleMap[base] || staffName;
+      const lines = [];
+      lines.push(`(${displayName} 퇴근보고)`);
+      lines.push('');
+      return lines.join('\n');
+    }
+
+    function buildAggregateSummary(visits, template) {
+      // aggregate stats
+      const totalSchools = visits.length;
+      let contactCount = 0;
+      let additionalConfirmCount = 0;
+      visits.forEach(v => {
+        v.subjects.forEach(s => { if (s.contact) contactCount++; if (s.followUp && s.followUp.indexOf('추가선정')!==-1) additionalConfirmCount++; });
+      });
+
+      // helper: Korean ordinal labels 가, 나, 다, ... fallback to numeric if out of range
+      const korLetters = ['가','나','다','라','마','바','사','아','자','차','카','타','파','하'];
+      const getKorLabel = (i) => (korLetters[i] ? korLetters[i] + '.' : (i+1) + '.');
+
+      // treat first visit start as 출근, last visit end as 퇴근 (use insertion order)
+      const firstStart = (visits && visits.length && visits[0].visitStart) ? visits[0].visitStart : '';
+      const lastEnd = (visits && visits.length && visits[visits.length-1].visitEnd) ? visits[visits.length-1].visitEnd : '';
+
+      if (template === 'compact') {
+        // one-line per school
+        const lines = visits.map((v,i)=>{
+          const subjCount = v.subjects.length;
+          return `${getKorLabel(i)} ${v.school} ${v.visitStart || ''}-${v.visitEnd || ''} (${subjCount}과목)`;
+        });
+        lines.push(`총 방문 학교: ${totalSchools}개, 연락처 확보: ${contactCount}건, 추가선정 확인: ${additionalConfirmCount}건`);
+        return lines.join('\n');
+      }
+
+      if (template === 'paragraph') {
+        // natural paragraph
+        const parts = [];
+        parts.push(`${visits[0].visitDate || ''} 방문 보고입니다.`.trim());
+        visits.forEach((v,i)=>{
+          parts.push(`${getKorLabel(i)} ${v.school} (${v.region || ''}) 에서 ${v.visitStart || ''}부터 ${v.visitEnd || ''}까지 방문하여 ${v.subjects.length}과목을 지도했습니다.`);
+          v.subjects.forEach(s=>{
+            const m = s.meetings && s.meetings.length ? `미팅: ${s.meetings.join(', ')}.` : '';
+            parts.push(`- ${s.subject} ${s.teacher ? '('+s.teacher+')':''} ${m} ${s.conversation? '특이사항: '+s.conversation : ''}`);
+          });
+        });
+        parts.push(`총 ${totalSchools}개 학교 방문, 연락처 확보 ${contactCount}건, 추가선정 확인 ${additionalConfirmCount}건.`);
+        return parts.join('\n');
+      }
+
+      if (template === 'kakao') {
+        // Kakao-style structured report requested by user
+        const parts = [];
+        // include dynamic intro
+        parts.push(reportIntro().trim());
+        // header
+        parts.push(`방문일: ${visits[0].visitDate || ''}`);
+        parts.push(`총 방문 학교: ${totalSchools}개 · 연락처 확보: ${contactCount}건 · 추가선정 확인: ${additionalConfirmCount}건`);
+        // 1. 출근/퇴근 summary (numbered section 1)
+        parts.push('');
+        // compute 자료정리 end (lastEnd + 30min) and use it as 퇴근 when available
+        function computeEndCollect(t){ if(!t) return ''; try { return addMinutesToTime(t, 30); } catch(e){ return ''; } }
+        const lastEndTime = lastEnd || '';
+        const computedEndCollect = computeEndCollect(lastEndTime);
+        let finalEnd = lastEnd || '';
+        if (lastEnd && computedEndCollect) finalEnd = computedEndCollect;
+        // compute working duration between firstStart and finalEnd
+        let workDurationText = '';
+        if (firstStart && finalEnd) {
+          const totalMin = calcMinutesInterval(firstStart, finalEnd);
+          const hrs = Math.floor(totalMin / 60);
+          const mins = totalMin % 60;
+          workDurationText = ` (근무시간 ${hrs}h ${mins}m)`;
+        }
+        parts.push(`1. 출근: ${firstStart || '-'} · 퇴근: ${finalEnd || '-'}${workDurationText}`);
+        parts.push('');
+        // 2. 세부업무 with lettered school sections
+        parts.push('2. 세부업무');
+        parts.push('');
+        visits.forEach((v, idx) => {
+          const label = getKorLabel(idx).replace(/\.$/, ''); // '가' not '가.' for header prefix
+          // compute duration
+          let timeRange = '';
+          let durMinutes = null;
+          if (v.visitStart && v.visitEnd) {
+            timeRange = `(${v.visitStart}~${v.visitEnd})`;
+            try { durMinutes = calcMinutesInterval(v.visitStart, v.visitEnd); } catch(e){ durMinutes = null; }
+          }
+          // e.g. 가. 과천고등학교  (08:00~08:10) (10분)
+          const schoolLine = `${label}. ${v.school || '-'}  ${timeRange}${durMinutes ? ` (${durMinutes}분)` : ''}`;
+          parts.push(schoolLine);
+          parts.push('세부업무:');
+          v.subjects.forEach(s => {
+            const meetings = s.meetings && s.meetings.length ? s.meetings.join(', ') : '';
+            const follow = s.followUp ? `후속:${s.followUp}` : '';
+            const conv = s.conversation ? `특이사항:${s.conversation}` : '';
+            const teacher = s.teacher ? `(${s.teacher})` : '';
+            const publisher = s.publisher ? ` / ${s.publisher}` : '';
+            const segs = [];
+            // main subject + teacher + publisher
+            segs.push(`- ${s.subject || '-'} ${teacher}${publisher}`.trim());
+            if (meetings) segs.push(meetings);
+            if (follow) segs.push(follow);
+            if (conv) segs.push(conv);
+            parts.push(segs.join(' · '));
+          });
+          parts.push('');
+        });
+        // 3. 퇴근보고 자료 정리 — allocate a 30-minute slot after lastEnd
+        if (lastEndTime && computedEndCollect) {
+          const dur = calcMinutesInterval(lastEndTime, computedEndCollect);
+          parts.push(`3. 퇴근보고 자료 정리 (${lastEndTime}~${computedEndCollect}) (${dur}분)`);
+        } else {
+          parts.push('3. 퇴근보고 자료 정리');
+        }
+        parts.push('');
+  parts.push('- 끝.');
+        return parts.join('\n');
+      }
+
+      // detailed (default): header + per-visit block with per-subject rows
+      const lines = [];
+      lines.push(`방문일: ${visits[0].visitDate || ''}`);
+      lines.push(`총 방문 학교: ${totalSchools}개`);
+      lines.push(`출근: ${firstStart || '-'} | 퇴근: ${lastEnd || '-'}`);
+      lines.push(`연락처 확보: ${contactCount}건 | 추가선정 확인: ${additionalConfirmCount}건`);
+      lines.push('');
+      visits.forEach((v, idx)=>{
+        lines.push(`${getKorLabel(idx)} ${v.school} — ${v.region || ''} (${v.visitStart || ''} ~ ${v.visitEnd || ''})`);
+        lines.push('세부업무:');
+        v.subjects.forEach(s=>{
+          const meetings = s.meetings && s.meetings.length ? `[${s.meetings.join(', ')}] ` : '';
+          const follow = s.followUp ? `팔로업:${s.followUp} ` : '';
+          const conv = s.conversation ? `특이사항:${s.conversation}` : '';
+          lines.push(` - ${s.subject} / ${s.teacher || '-'} / ${s.publisher || '-'} ${meetings}${follow}${conv}`.trim());
+        });
+        lines.push('');
+      });
+      return lines.join('\n');
+    }
+
+    // format a single visit into a readable paragraph (used for appending to the textarea)
+    function formatVisitText(v, idx) {
+      const lines = [];
+      // plain structured per-visit representation (no emojis)
+      const timeRange = (v.visitStart || '') && (v.visitEnd || '') ? `${v.visitStart}~${v.visitEnd}` : '';
+      const duration = (v.visitStart && v.visitEnd) ? ` (${calcMinutesInterval(v.visitStart,v.visitEnd)}분)` : '';
+      lines.push(`${idx+1}. ${v.school || '-'} (${v.region || '-'}) ${timeRange}${duration}`);
+      v.subjects.forEach(s=>{
+        const segs = [];
+        segs.push(s.subject || '-');
+        if (s.teacher) segs.push(s.teacher);
+        if (s.publisher) segs.push(s.publisher);
+        if (s.meetings && s.meetings.length) segs.push(s.meetings.join('/'));
+  // do not include contact value in generated text (kept for backend only)
+        if (s.followUp) segs.push(`후속:${s.followUp}`);
+        if (s.conversation) segs.push(`특이:${s.conversation}`);
+        lines.push(' - ' + segs.join(' · '));
+      });
+      lines.push('');
+      return lines.join('\n');
+    }
+
+    // add minutes to time string 'HH:MM' and return 'HH:MM' (24-hour wrap)
+    function addMinutesToTime(timeStr, minutesToAdd) {
+      if (!timeStr || typeof timeStr !== 'string') return '';
+      const parts = timeStr.split(':');
+      if (parts.length < 2) return '';
+      const hh = parseInt(parts[0],10); const mm = parseInt(parts[1],10);
+      if (isNaN(hh) || isNaN(mm)) return '';
+      const total = hh * 60 + mm + parseInt(minutesToAdd,10);
+      const wrapped = (total + 24*60) % (24*60);
+      const newH = Math.floor(wrapped/60);
+      const newM = wrapped % 60;
+      return pad2(newH) + ':' + pad2(newM);
+    }
+
+    // robust writer for #generatedSummary: temporarily clear readonly, write (append or replace)
+    function writeGeneratedSummary(text, opts) {
+      // opts: { replace: boolean }
+      opts = opts || {};
+      const ta = document.getElementById('generatedSummary');
+      if (!ta) { console.warn('writeGeneratedSummary: textarea not found'); return; }
+      // perform write on next tick to avoid interference with other DOM updates
+      setTimeout(() => {
+        const wasReadOnly = ta.hasAttribute('readonly');
+        try {
+          if (wasReadOnly) ta.removeAttribute('readonly');
+          if (opts.replace) {
+            ta.value = text || '';
+          } else {
+            // append ensuring a trailing newline separator
+            const cur = ta.value || '';
+            ta.value = (cur && cur.trim() && !cur.endsWith('\n') ? cur + '\n' : cur) + (text || '');
+          }
+          // dispatch input event so any listeners notice the change
+          try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch(e){}
+          // scroll to bottom so new content is visible
+          ta.scrollTop = ta.scrollHeight;
+        } finally {
+          // restore readonly state if it existed
+          if (wasReadOnly) ta.setAttribute('readonly','');
+        }
+      }, 40);
+    }
+
+    (function checkProtocolAndWarn(){
+      if (window.location.protocol === 'file:') {
+        const container = document.getElementById('step1');
+        container.innerHTML = `
+          <div style="padding:1.2rem;border:2px solid #ffdcdc;background:#fff5f5;border-radius:0.8rem;">
+            <h3 style="margin:0 0 .5rem 0;color:#a33;">파일에서 직접 열려 있습니다 — CSV를 불러올 수 없습니다</h3>
+            <div style="color:#333;margin-bottom:.6rem;">이 페이지는 CSV 파일을 브라우저에서 불러오기 위해 HTTP로 서빙되어야 합니다. 현재 파일 프로토콜(file://)로 열려 있어 브라우저가 외부 리소스(fetch)를 차단합니다.</div>
+            <div style="font-size:0.95rem;color:#333;margin-bottom:.6rem;">권장: 해당 폴더에서 간단한 HTTP 서버를 켜고 아래 URL로 접속하세요:</div>
+            <pre style="background:#f6f8ff;border-radius:6px;padding:.6rem;color:#0b2b5a">python -m http.server 8000</pre>
+            <div style="margin-top:.6rem;display:flex;gap:.5rem;">
+              <button id="copyCmd" style="padding:.5rem 1rem;border-radius:.5rem;border:none;background:#1e3c72;color:#fff;cursor:pointer;">명령어 복사</button>
+              <button id="openGuide" style="padding:.5rem 1rem;border-radius:.5rem;border:1px solid #ddd;background:#fff;cursor:pointer;">서버 실행 가이드 보기</button>
+            </div>
+            <div style="margin-top:.6rem;color:#666;font-size:.9rem;">참고: 서버 실행 후 브라우저에서 <code>http://localhost:8000/sales-input.html?user=송훈재</code> 로 접속하세요.</div>
+          </div>`;
+        document.getElementById('copyCmd').addEventListener('click', () => {
+          navigator.clipboard && navigator.clipboard.writeText('python -m http.server 8000');
+          alert('명령어가 클립보드에 복사되었습니다. PowerShell에서 붙여넣기 하여 실행하세요.');
+        });
+        document.getElementById('openGuide').addEventListener('click', () => {
+          alert('PowerShell 또는 터미널에서 프로젝트 루트 폴더로 이동한 뒤:\ncd "C:\\Users\\PC\\Desktop\\조경수_업무\\flask-web-app\\cmass-sales-system"; python -m http.server 8000\n그 다음 브라우저에서 http://localhost:8000/sales-input.html?user=송훈재 로 엽니다.');
+        });
+        // Prevent the rest of the script from running (skip fetch)
+        return;
+      }
+    })();
+
+    // sales_staff.csv 기반 담당자별 지역-학교명 2단 드롭다운 (PapaParse 사용)
+    function getStaffFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('user') || '';
+    }
+    let staffData = [];
+    document.addEventListener('DOMContentLoaded', function() {
+      // utility to normalize strings: remove BOM, collapse newlines and excessive spaces but keep internal spaces
+      const clean = s => {
+        if (s === null || s === undefined) return '';
+        let str = String(s);
+        // remove leading BOM
+        str = str.replace(/^\uFEFF/, '');
+        // replace newlines/carriage returns with a single space
+        str = str.replace(/[\r\n]+/g, ' ');
+        // collapse multiple spaces/tabs into one
+        str = str.replace(/\s+/g, ' ').trim();
+        return str;
+      };
+      let staffParam = '';
+      const staff = getStaffFromQuery();
+      if (!staff) {
+        document.getElementById('step1').innerHTML = '<div style="color:red;font-size:1.2rem;">담당자 정보가 없습니다. 메인화면에서 이름을 클릭해 진입해 주세요.</div>';
+        return;
+      }
+      document.getElementById('staffInfo').textContent = '담당자: ' + staff;
+      fetch('sales_staff.csv')
+        .then(res => res.text())
+        .then(csv => {
+          // 컬럼명에 공백/줄바꿈/BOM 등 특수문자 있어도 인덱스 기반 접근
+          const parsed = Papa.parse(csv, {header: true, skipEmptyLines: true});
+          staffData = parsed.data.map(row => {
+            const keys = Object.keys(row);
+            const staffVal = clean(row['담당자'] || row[keys[keys.length-1]]);
+            const region = clean(row['지역'] || row[keys[2]]);
+            const school = clean(row['학교명'] || row[keys[4]]);
+            const establish = clean(row['설립구분'] || row['설립구분'] || row[keys.indexOf('설립구분')>-1? '설립구분' : keys[6]] || '');
+            const level = clean(row['학교급'] || row['학교급'] || row[keys.indexOf('학교급')>-1? '학교급' : keys[keys.length-2]] || '');
+            const g1_class = clean(row['1학년학급수'] || row[keys.indexOf('1학년학급수')>-1? '1학년학급수' : keys[10]] || '');
+            const g1_students = clean(row['1학년학생수'] || row[keys.indexOf('1학년학생수')>-1? '1학년학생수' : keys[11]] || '');
+            const g2_class = clean(row['2학년학급수'] || row[keys.indexOf('2학년학급수')>-1? '2학년학급수' : keys[13]] || '');
+            const g2_students = clean(row['2학년학생수'] || row[keys.indexOf('2학년학생수')>-1? '2학년학생수' : keys[14]] || '');
+            const g3_class = clean(row['3학년학급수'] || row[keys.indexOf('3학년학급수')>-1? '3학년학급수' : keys[16]] || '');
+            const g3_students = clean(row['3학년학생수'] || row[keys.indexOf('3학년학생수')>-1? '3학년학생수' : keys[17]] || '');
+            return { staff: staffVal, region, school, establish, level, g1_class, g1_students, g2_class, g2_students, g3_class, g3_students };
+          });
+          console.log('parsed rows count:', parsed.data.length);
+          console.log('staffData (sample 5):', staffData.slice(0,5));
+          console.log('staffData length:', staffData.length);
+          const regionButtons = document.getElementById('regionButtons');
+          regionButtons.innerHTML = '';
+          // staff 변수도 동일하게 정제해서 비교
+          staffParam = clean(staff);
+          console.log('staffParam:', staffParam);
+          // initialize generatedSummary textarea with report intro header
+          const gen = document.getElementById('generatedSummary');
+          if (gen) {
+            // if textarea contains the placeholder text, replace with intro
+            const cur = (gen.value || '').trim();
+            if (!cur || cur === '요약이 여기에 생성됩니다.') {
+              // use writeGeneratedSummary replace to ensure readonly handling is consistent
+              writeGeneratedSummary(reportIntro(), { replace: true });
+            }
+          }
+          const matchedRowsExact = staffData.filter(d => d.staff === staffParam);
+          let matchedRows = matchedRowsExact.slice();
+          // tolerant mappings for common latin usernames -> Korean names
+          const staffMap = {
+            'songhunje': '송훈재',
+            'joyounghwan': '조영환',
+            'imjunho': '임준호'
+          };
+          // if no exact matches, try mapping or partial contains matches
+          if (!matchedRows.length) {
+            const lowerParam = staffParam.toLowerCase();
+            if (staffMap[lowerParam]) {
+              const mapped = staffMap[lowerParam];
+              matchedRows = staffData.filter(d => d.staff === mapped);
+              if (matchedRows.length) {
+                console.log('Mapped user param', staffParam, '->', mapped);
+                staffParam = mapped;
+              }
+            }
+          }
+          if (!matchedRows.length) {
+            // partial contains match: staff names that include param or vice versa
+            matchedRows = staffData.filter(d => (d.staff && d.staff.indexOf(staffParam) > -1) || (staffParam && staffParam.indexOf(d.staff) > -1));
+            if (matchedRows.length) console.log('Partial-match rows found for', staffParam, matchedRows.length);
+          }
+          console.log('matchedRows count:', matchedRows.length);
+          let regions = [...new Set(matchedRows.map(d => d.region))];
+          // fallback: if this staff has no mapped regions, show all regions and mark as fallback
+          let usedFallback = false;
+          if (!regions.length) {
+            regions = [...new Set(staffData.map(d => d.region))];
+            usedFallback = true;
+            console.warn('No regions found for', staffParam, '- falling back to full region list');
+          }
+          console.log('regions:', regions);
+          // create region buttons
+          regions.forEach(region => {
+            if (region) {
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'grid-button';
+              btn.dataset.region = region;
+              btn.setAttribute('role','option');
+              btn.setAttribute('aria-selected','false');
+              btn.tabIndex = 0;
+              btn.textContent = region;
+              btn.title = region;
+              regionButtons.appendChild(btn);
+            }
+          });
+          if (usedFallback) {
+            const note = document.createElement('div');
+            note.style.fontSize = '0.9rem';
+            note.style.color = '#666';
+            note.style.marginTop = '0.4rem';
+            note.textContent = '※ 해당 담당자에 매핑된 학교가 없어 전체 목록을 표시합니다.';
+            regionButtons.parentNode.insertBefore(note, regionButtons.nextSibling);
+          }
+          // selection state
+          let selectedRegion = '';
+          let selectedSchool = '';
+          const schoolButtons = document.getElementById('schoolButtons');
+          // delegate region clicks
+          regionButtons.addEventListener('click', (ev) => {
+            const b = ev.target.closest('.grid-button');
+            if (!b) return;
+            selectedRegion = b.dataset.region;
+            // update selected style and aria
+            regionButtons.querySelectorAll('.grid-button').forEach(x => { x.classList.remove('selected'); x.setAttribute('aria-selected','false'); });
+            b.classList.add('selected'); b.setAttribute('aria-selected','true');
+            // populate schools for selected region
+            schoolButtons.innerHTML = '';
+            selectedSchool = '';
+            const schools = [...new Set(staffData.filter(d => d.region === selectedRegion && d.staff === staffParam).map(d => d.school))];
+            schools.forEach(school => {
+              if (school) {
+                const sb = document.createElement('button');
+                sb.type = 'button';
+                sb.className = 'grid-button';
+                sb.dataset.school = school;
+                sb.setAttribute('role','option');
+                sb.setAttribute('aria-selected','false');
+                sb.tabIndex = 0;
+                sb.textContent = school;
+                sb.title = school;
+                schoolButtons.appendChild(sb);
+              }
+            });
+          });
+          // delegate school clicks - show metadata and set hidden inputs
+          schoolButtons.addEventListener('click', (ev) => {
+            const b = ev.target.closest('.grid-button');
+            if (!b) return;
+            selectedSchool = b.dataset.school;
+            schoolButtons.querySelectorAll('.grid-button').forEach(x => { x.classList.remove('selected'); x.setAttribute('aria-selected','false'); });
+            b.classList.add('selected'); b.setAttribute('aria-selected','true');
+            // populate hidden inputs and visible display
+            document.getElementById('selectedRegionInput').value = selectedRegion;
+            document.getElementById('selectedSchoolInput').value = selectedSchool;
+            document.getElementById('displayRegion').textContent = selectedRegion;
+            document.getElementById('displaySchool').textContent = selectedSchool;
+            document.getElementById('selectedInfo').style.display = 'block';
+            // find metadata row (match by staff, region, school)
+            const meta = staffData.find(d => d.staff === staffParam && d.region === selectedRegion && d.school === selectedSchool);
+            if (meta) {
+              // Step2 metadata panel
+              document.getElementById('schoolMeta').style.display = 'block';
+              (function(){ const el1 = document.getElementById('metaEstablish'); if(el1) el1.textContent = meta.establish || ''; const el2 = document.getElementById('metaLevel'); if(el2) el2.textContent = meta.level || ''; })();
+              document.getElementById('metaG1c').textContent = meta.g1_class || '-';
+              document.getElementById('metaG1s').textContent = meta.g1_students || '-';
+              document.getElementById('metaG2c').textContent = meta.g2_class || '-';
+              document.getElementById('metaG2s').textContent = meta.g2_students || '-';
+              document.getElementById('metaG3c').textContent = meta.g3_class || '-';
+              document.getElementById('metaG3s').textContent = meta.g3_students || '-';
+              // update meta-summary pills
+              document.getElementById('metaPillEstablish').textContent = (meta.establish || '-');
+              document.getElementById('metaPillLevel').textContent = (meta.level || '-');
+              // compute total students where numeric
+              const toNum = v => { const n = parseInt((v||'').toString().replace(/[^0-9]/g,''),10); return isNaN(n)?0:n; };
+              const totalStudents = toNum(meta.g1_students) + toNum(meta.g2_students) + toNum(meta.g3_students);
+              document.getElementById('metaPillStudents').textContent = '총학생수: ' + (totalStudents > 0 ? totalStudents : '-');
+              // Inline immediate metadata
+              document.getElementById('schoolMetaInline').style.display = 'block';
+              (function(){ const i1 = document.getElementById('inlineEstablish'); if(i1) i1.textContent = meta.establish || ''; const i2 = document.getElementById('inlineLevel'); if(i2) i2.textContent = meta.level || ''; })();
+              document.getElementById('inlineG1c').textContent = meta.g1_class || '-';
+              document.getElementById('inlineG1s').textContent = meta.g1_students || '-';
+              document.getElementById('inlineG2c').textContent = meta.g2_class || '-';
+              document.getElementById('inlineG2s').textContent = meta.g2_students || '-';
+              document.getElementById('inlineG3c').textContent = meta.g3_class || '-';
+              document.getElementById('inlineG3s').textContent = meta.g3_students || '-';
+              document.getElementById('inlinePillEstablish').textContent = (meta.establish || '-');
+              document.getElementById('inlinePillLevel').textContent = (meta.level || '-');
+              document.getElementById('inlinePillStudents').textContent = '총학생수: ' + (totalStudents > 0 ? totalStudents : '-');
+            } else {
+              document.getElementById('schoolMeta').style.display = 'none';
+              document.getElementById('schoolMetaInline').style.display = 'none';
+            }
+            // focus management: move focus to Next button
+            document.getElementById('nextStepBtn').focus();
+          });
+
+          // keyboard navigation for grids (arrow keys)
+          function makeGridKeyboardNav(container) {
+            container.addEventListener('keydown', (ev) => {
+              const keys = ['ArrowRight','ArrowLeft','ArrowDown','ArrowUp'];
+              if (!keys.includes(ev.key)) return;
+              ev.preventDefault();
+              const buttons = Array.from(container.querySelectorAll('.grid-button'));
+              if (!buttons.length) return;
+              const idx = buttons.indexOf(document.activeElement);
+              let next = 0;
+              if (ev.key === 'ArrowRight' || ev.key === 'ArrowDown') next = (idx + 1) % buttons.length;
+              if (ev.key === 'ArrowLeft' || ev.key === 'ArrowUp') next = (idx - 1 + buttons.length) % buttons.length;
+              buttons[next].focus();
+            });
+          }
+          makeGridKeyboardNav(regionButtons);
+          makeGridKeyboardNav(schoolButtons);
+
+          // next step button: read selected region/school from button state
+          document.getElementById('nextStepBtn').addEventListener('click', function() {
+            // 방문일 필수 검사
+            const vd = document.getElementById('visitDate');
+            if (!vd || !vd.value) {
+              alert('방문일을 입력하세요.');
+              vd && vd.focus();
+              return;
+            }
+            // `selectedRegion` and `selectedSchool` captured in closure above
+            if (!selectedRegion || !selectedSchool) {
+              alert('지역과 학교명을 모두 선택하세요.');
+              return;
+            }
+            // set visible fields in step2 if needed (e.g., fill a display or hidden inputs)
+            const blocks = document.querySelectorAll('.subject-name');
+            if (blocks && blocks.length) {
+              // no-op now; could prefill schoolName into a hidden input if desired
+            }
+            // reset time fields each time we enter step2
+            try { resetTimeFields(); } catch(e){}
+            // hide step1 / show step2
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+            try { if (typeof window.scrollTo === 'function') window.scrollTo({ top: 0, behavior: 'auto' }); if (document.body) document.body.scrollTop = 0; if (document.documentElement) document.documentElement.scrollTop = 0; } catch(e){}
+          });
+          // --- duration buttons and time calculation ---
+          // create duration buttons 10,20,...,90
+          const durationContainer = document.getElementById('durationButtons');
+          const durationValues = [10,20,30,40,50,60,70,80,90];
+          durationValues.forEach(v => {
+            const db = document.createElement('button');
+            db.type = 'button';
+            db.className = 'grid-button';
+            db.dataset.minutes = String(v);
+            db.textContent = v + '분';
+            db.title = v + '분';
+            durationContainer.appendChild(db);
+          });
+
+          // support both old input (#visitStart) and new selects (#visitStartHour/#visitStartMinute)
+          const visitStartInput = document.getElementById('visitStart');
+          const visitStartHour = document.getElementById('visitStartHour');
+          const visitStartMinute = document.getElementById('visitStartMinute');
+          const visitEndInput = document.getElementById('visitEnd');
+          const visitDurationInput = document.getElementById('visitDuration');
+          const selectedDurationInput = document.getElementById('selectedDurationInput');
+          const clearDurationBtn = document.getElementById('clearDuration');
+
+          function pad2(n){ return (n<10? '0' : '') + n; }
+          function computeEndFromStartAndMinutes(startValue, minutes){
+            if (!startValue) return '';
+            // startValue is 'HH:MM'
+            const parts = startValue.split(':');
+            if (parts.length < 2) return '';
+            let hh = parseInt(parts[0],10);
+            let mm = parseInt(parts[1],10);
+            if (isNaN(hh) || isNaN(mm)) return '';
+            const total = hh*60 + mm + Number(minutes);
+            const endHH = Math.floor((total % (24*60)) / 60);
+            const endMM = total % 60;
+            return pad2(endHH) + ':' + pad2(endMM);
+          }
+
+          // reset time-related fields (start selects, duration buttons/inputs, end input)
+          function resetTimeFields() {
+            try {
+              const vsh = document.getElementById('visitStartHour');
+              const vsm = document.getElementById('visitStartMinute');
+              const vdur = document.getElementById('visitDuration');
+              const sdur = document.getElementById('selectedDurationInput');
+              const durContainer = document.getElementById('durationButtons');
+              const vend = document.getElementById('visitEnd');
+              if (vsh) vsh.value = pad2(8);
+              if (vsm) vsm.value = pad2(0);
+              if (vdur) vdur.value = '';
+              if (sdur) sdur.value = '';
+              if (durContainer) durContainer.querySelectorAll('.grid-button').forEach(b=>b.classList.remove('selected'));
+              if (vend) vend.value = '';
+            } catch(e) { console.warn('resetTimeFields error', e); }
+          }
+          // initialize time fields on page load
+          try { resetTimeFields(); } catch(e){}
+
+          // populate hour/minute selects (00-23, 00-59) and set default to current time
+          if (visitStartHour && visitStartMinute) {
+            // clear any existing options
+            visitStartHour.innerHTML = '';
+            visitStartMinute.innerHTML = '';
+            // start hours at 08시 (skip early-morning hours)
+            for (let h = 8; h < 24; h++){
+              const o = document.createElement('option'); o.value = pad2(h); o.textContent = pad2(h) + '시'; visitStartHour.appendChild(o);
+            }
+            for (let m = 0; m < 60; m += 5){
+              const o = document.createElement('option'); o.value = pad2(m); o.textContent = pad2(m) + '분'; visitStartMinute.appendChild(o);
+            }
+            const now = new Date();
+            // default hour set to 08 on landing
+            visitStartHour.value = pad2(8);
+            // round minutes to nearest 5-minute interval and clamp (e.g., 58 -> 55)
+            let roundedMin = Math.round(now.getMinutes() / 5) * 5;
+            if (roundedMin >= 60) roundedMin = 55;
+            visitStartMinute.value = pad2(roundedMin);
+          }
+
+          // click handler for duration buttons
+          durationContainer.addEventListener('click', (ev) => {
+            const b = ev.target.closest('.grid-button');
+            if (!b) return;
+            const minutes = Number(b.dataset.minutes || 0);
+            // style selected
+            durationContainer.querySelectorAll('.grid-button').forEach(x => x.classList.remove('selected'));
+            b.classList.add('selected');
+            // set numeric input and hidden
+            visitDurationInput.value = minutes;
+            selectedDurationInput.value = minutes;
+            // compute end time if start present (support old input or new selects)
+            const startVal = visitStartInput ? visitStartInput.value : (visitStartHour && visitStartMinute ? (visitStartHour.value + ':' + visitStartMinute.value) : '');
+            const endVal = computeEndFromStartAndMinutes(startVal, minutes);
+            if (endVal) visitEndInput.value = endVal;
+          });
+
+          // when start time changes, recompute end if duration exists
+          const onStartChange = () => {
+            const minutes = Number(selectedDurationInput.value || visitDurationInput.value || 0);
+            if (minutes > 0) {
+              const startVal = visitStartInput ? visitStartInput.value : (visitStartHour && visitStartMinute ? (visitStartHour.value + ':' + visitStartMinute.value) : '');
+              const endVal = computeEndFromStartAndMinutes(startVal, minutes);
+              if (endVal) visitEndInput.value = endVal;
+            }
+          };
+          if (visitStartInput) visitStartInput.addEventListener('change', onStartChange);
+          if (visitStartHour) visitStartHour.addEventListener('change', onStartChange);
+          if (visitStartMinute) visitStartMinute.addEventListener('change', onStartChange);
+
+          // allow manual numeric input of duration (keeps buttons unselected)
+          visitDurationInput.addEventListener('input', () => {
+            const v = Number(visitDurationInput.value || 0);
+            selectedDurationInput.value = v > 0 ? v : '';
+            // clear selected button states if not equal to a button value
+            durationContainer.querySelectorAll('.grid-button').forEach(x => x.classList.toggle('selected', Number(x.dataset.minutes) === v));
+            if (v > 0) {
+              const startVal = visitStartInput ? visitStartInput.value : (visitStartHour && visitStartMinute ? (visitStartHour.value + ':' + visitStartMinute.value) : '');
+              const endVal = computeEndFromStartAndMinutes(startVal, v);
+              if (endVal) visitEndInput.value = endVal;
+            }
+          });
+
+          clearDurationBtn.addEventListener('click', () => {
+            visitDurationInput.value = '';
+            selectedDurationInput.value = '';
+            visitEndInput.value = '';
+            durationContainer.querySelectorAll('.grid-button').forEach(x => x.classList.remove('selected'));
+          });
+          
+          // contact formatting helper: turn '12345678' -> '010-1234-5678'
+          function formatContact(suffix) {
+            const digits = (suffix || '').toString().replace(/\D+/g,'').slice(0,8);
+            if (!digits) return '';
+            if (digits.length <=4) return '010-' + digits;
+            return '010-' + digits.slice(0,4) + '-' + digits.slice(4);
+          }
+
+          // when contact inputs change, update formatted span
+          document.getElementById('subjectsBlock').addEventListener('input', function(e){
+            if (e.target && e.target.classList && e.target.classList.contains('contact-suffix')){
+              const cleaned = (e.target.value||'').replace(/\D+/g,'').slice(0,8);
+              if (cleaned !== e.target.value) e.target.value = cleaned;
+              const parent = e.target.closest('.subject-block') || e.target.parentNode;
+              const fmt = parent.querySelector('.contact-formatted');
+              if (fmt) fmt.textContent = formatContact(cleaned);
+            }
+          });
+
+          // copy-to-clipboard for contact buttons
+          document.getElementById('subjectsBlock').addEventListener('click', function(e){
+            if (e.target && e.target.classList && e.target.classList.contains('copy-contact')){
+              const sb = e.target.closest('.subject-block');
+              if (!sb) return;
+              const suffix = sb.querySelector('.contact-suffix') ? sb.querySelector('.contact-suffix').value : '';
+              const formatted = formatContact(suffix);
+              if (!formatted) { alert('연락처가 입력되어 있지 않습니다.'); return; }
+              navigator.clipboard && navigator.clipboard.writeText(formatted);
+              // small feedback
+              e.target.textContent = '복사됨';
+              setTimeout(()=> e.target.textContent = '복사', 1200);
+            }
+          });
+          // subject choice buttons: set hidden .subject-name value and toggle selected style
+          document.getElementById('subjectsBlock').addEventListener('click', function(e){
+            const btn = e.target.closest('.subject-choice');
+            if (!btn) return;
+            const sb = btn.closest('.subject-block');
+            if (!sb) return;
+            // set hidden input value
+            const hidden = sb.querySelector('.subject-name');
+            if (hidden) hidden.value = btn.dataset.subject || '';
+            // toggle selected styling among siblings
+            const parent = sb.querySelector('.subjects');
+            if (parent) parent.querySelectorAll('.subject-choice').forEach(x => x.classList.remove('selected'));
+            btn.classList.add('selected');
+            // also update info-extra-buttons visibility
+            setTimeout(updateInfoButtons, 0);
+          });
+          // number subject blocks on initial load
+          if (typeof renumberSubjectBlocks === 'function') renumberSubjectBlocks();
+        });
+    });
+    // 과목/선생님 추가 기능
+    document.getElementById('addSubjectBtn').addEventListener('click', function() {
+      const block = document.createElement('div');
+      block.className = 'subject-block';
+      block.innerHTML = `
+        <input type="hidden" class="subject-name" required>
+        <div class="subjects" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:8px;">
+          <button type="button" class="grid-button subject-choice" data-subject="정보">정보</button>
+          <button type="button" class="grid-button subject-choice" data-subject="진로">진로</button>
+          <button type="button" class="grid-button subject-choice" data-subject="기술가정">기술가정</button>
+            <button type="button" class="grid-button subject-choice" data-subject="한문">한문</button>
+            <button type="button" class="grid-button subject-choice" data-subject="특성화">특성화</button>
+            <button type="button" class="grid-button subject-choice" data-subject="기타">기타</button>
+        </div>
+        <input type="text" class="teacher-name" placeholder="선생님 이름" required>
+        <select class="publisher">
+          <option value="">출판사 선택</option>
+          <option>천재</option><option>비상</option><option>동아</option><option>삼양</option><option>기타</option>
+        </select>
+        <div style="margin-top:0.6rem;">
+          <label style="font-weight:700;display:block;margin-bottom:6px;">후속조치</label>
+          <select class="followUpSelect" style="width:100%;padding:.6rem;border-radius:.6rem;border:1px solid #d6dbe8;background:#fff;">
+            <option value="">선택하세요</option>
+            <option>채팅방 지속 관리</option>
+            <option>추가 자료 발송 예정</option>
+            <option>재방문 예정</option>
+            <option>선정 시기 연락 대기</option>
+            <option>워크북 무상지원 제안</option>
+            <option>완료 (추가 조치 없음)</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:.5rem;align-items:center;margin-top:.5rem;">
+          <label style="font-weight:700;min-width:38px;">연락처</label>
+          <div style="display:flex;gap:.5rem;align-items:center;margin-top:.5rem;">
+            <span style="display:inline-block;padding:.55rem .7rem;border-radius:.6rem;background:#f2f4ff;border:1px solid #d6dbe8;color:#12325a;font-weight:700;">010</span>
+            <input type="text" class="contact-suffix" placeholder="12345678" maxlength="8" inputmode="numeric" pattern="[0-9]*" style="width:120px;padding:.55rem .6rem;border-radius:.6rem;border:1px solid #d6dbe8;">
+            <span class="contact-formatted" style="margin-left:8px;color:#103254;font-weight:700;"></span>
+            <button type="button" class="copy-contact" style="margin-left:6px;padding:.4rem .6rem;border-radius:.5rem;border:1px solid #d6dbe8;background:#fff;cursor:pointer;">복사</button>
+          </div>
+        </div>
+        <div style="margin-top:16px;"></div>
+        <div class="meeting-buttons" id="main-meeting-buttons">
+          <button class="meeting-btn" type="button">명함인사</button>
+          <button class="meeting-btn" type="button">티칭샘소개</button>
+          <button class="meeting-btn" type="button">채팅방소개</button>
+          <button class="meeting-btn" type="button">미팅불가</button>
+        </div>
+        <div class="meeting-buttons" id="info-extra-buttons" style="display:none;">
+          <button class="meeting-btn" type="button">구글클래스룸 사용</button>
+          <button class="meeting-btn" type="button">패들렛 사용</button>
+          <button class="meeting-btn" type="button">하이러닝 사용</button>
+        </div>
+  <textarea class="conversation-detail" rows="2" placeholder="특이사항"></textarea>
+  <button type="button" class="removeSubjectBtn" style="margin:0.5rem 0 1rem 0;padding:0.5rem 1rem;font-size:1rem;border-radius:0.7rem;background:#ff9800;color:#fff;border:none;cursor:pointer;">삭제</button>
+      `;
+      block.querySelector('.removeSubjectBtn').onclick = function() {
+        block.remove();
+        // renumber after removal
+        if (typeof renumberSubjectBlocks === 'function') renumberSubjectBlocks();
+      };
+      document.getElementById('subjectsBlock').appendChild(block);
+      // renumber after adding
+      if (typeof renumberSubjectBlocks === 'function') renumberSubjectBlocks();
+    });
+    // sanitize contact input: only digits, max 8
+    document.getElementById('subjectsBlock').addEventListener('input', function(e) {
+      if (e.target && e.target.classList && e.target.classList.contains('contact-suffix')) {
+        // remove non-digits and limit to 8
+        const cleaned = (e.target.value || '').replace(/\D+/g, '').slice(0,8);
+        if (cleaned !== e.target.value) e.target.value = cleaned;
+      }
+    });
+    // 정보 과목 선택 시 추가 버튼 표시 (동적 subject-block에도 적용)
+        function updateInfoButtons() {
+            const selects = document.querySelectorAll('.subject-name');
+            let show = false;
+            selects.forEach(sel => {
+                if (sel.value === '정보') show = true;
+            });
+            document.getElementById('info-extra-buttons').style.display = show ? 'flex' : 'none';
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('subjectsBlock').addEventListener('change', function(e) {
+                if (e.target.classList.contains('subject-name')) {
+                    updateInfoButtons();
+                }
+            });
+            // 과목/선생님 추가 시에도 이벤트 적용
+            document.getElementById('addSubjectBtn').addEventListener('click', function() {
+                setTimeout(updateInfoButtons, 100);
+            });
+        });
+    // 영업일지 입력
+    // delegated handler: toggle meeting button selection (visual only)
+    document.getElementById('subjectsBlock').addEventListener('click', function(e){
+      const mb = e.target.closest('.meeting-btn');
+      if (!mb) return;
+      const block = mb.closest('.subject-block');
+      if (!block) return;
+      // toggle selected state; multiple selections allowed
+      mb.classList.toggle('selected');
+      // do NOT write markers into the conversation textarea anymore (UI only)
+      // keep visibility logic for info-extra-buttons in case a '정보' subject exists
+    });
+
+    document.getElementById('salesForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      // 방문일 필수 (최종 검사)
+      const vd = document.getElementById('visitDate');
+      if (!vd || !vd.value) { alert('방문일을 입력하세요.'); vd && vd.focus(); return; }
+      // Build a visit object from current form and add to dayVisits
+      const visitObj = buildCurrentVisitObject();
+      // must have school
+      if (!visitObj.school) { alert('학교를 선택한 뒤 저장하세요.'); return; }
+  const ta = document.getElementById('generatedSummary');
+  const defaultHint = '요약이 여기에 생성됩니다.';
+  // debug logging
+  try { console.log('submit: visitObj=', visitObj); console.log('submit: dayVisits length before=', dayVisits.length); } catch(e){}
+      if (editingVisitIndex >= 0) {
+        // update existing visit
+        dayVisits[editingVisitIndex] = visitObj;
+        resetEditState();
+        renderVisitsList();
+        // rebuild the textarea from all visits so the accumulated text stays consistent
+        if (ta) {
+          const rebuilt = dayVisits.map((v,i) => formatVisitText(v,i)).join('\n');
+          writeGeneratedSummary(rebuilt, { replace: true });
+        }
+        alert('방문 내용이 수정되어 저장되었습니다.');
+      } else {
+        dayVisits.push(visitObj);
+        renderVisitsList();
+        // append this visit's formatted text to the generatedSummary textarea
+        if (ta) {
+          // debug log
+          try { console.log('submit: textarea current value length=', (ta.value||'').length); } catch(e){}
+          // prepare formatted text and append via robust writer
+          const formatted = formatVisitText(visitObj, dayVisits.length - 1);
+          try { console.log('submit: formatted text=', formatted); } catch(e){}
+          // if default hint present, replace; otherwise append
+          if ((ta.value||'').trim() === defaultHint) writeGeneratedSummary(formatted, { replace: true });
+          else writeGeneratedSummary(formatted, { replace: false });
+        } else {
+          try { console.warn('submit: generatedSummary textarea not found'); } catch(e){}
+        }
+        // prepare the form for the next visit while keeping the date
+        resetFormForNextVisit();
+        alert('현재 방문이 저장되었습니다. 다음 방문을 입력하세요.');
+      }
+    });
+    // add a small numeric badge to each subject-block so user can distinguish blocks
+    function renumberSubjectBlocks(){
+      const blocks = Array.from(document.querySelectorAll('.subject-block'));
+      blocks.forEach((b,idx) => {
+        let badge = b.querySelector('.subject-index');
+        if (!badge) {
+          badge = document.createElement('div');
+          badge.className = 'subject-index';
+          b.insertBefore(badge, b.firstChild);
+        }
+        badge.textContent = String(idx+1);
+      });
+    }
+    // 뒤로 버튼: Step2 → Step1로 복귀
+    const backBtnEl = document.getElementById('backBtn');
+    if (backBtnEl) {
+      backBtnEl.addEventListener('click', function(){
+        const s2 = document.getElementById('step2'); if (s2) s2.style.display = 'none';
+        const s1 = document.getElementById('step1'); if (s1) s1.style.display = 'block';
+        // restore focus to Next button for quick navigation
+        const next = document.getElementById('nextStepBtn'); if (next) next.focus();
+      });
+    }
+
+    // Generate a human-friendly summary from current form state
+    function generateSummary(){
+      const date = document.getElementById('visitDate') ? document.getElementById('visitDate').value : '';
+      const staff = document.getElementById('staffInfo') ? document.getElementById('staffInfo').textContent.replace('담당자: ','') : '';
+      const region = document.getElementById('displayRegion') ? document.getElementById('displayRegion').textContent : '';
+      const school = document.getElementById('displaySchool') ? document.getElementById('displaySchool').textContent : '';
+      const start = (document.getElementById('visitStartHour') && document.getElementById('visitStartMinute')) ? (document.getElementById('visitStartHour').value + ':' + document.getElementById('visitStartMinute').value) : '';
+      const end = document.getElementById('visitEnd') ? document.getElementById('visitEnd').value : '';
+      const blocks = Array.from(document.querySelectorAll('.subject-block'));
+      let out = '';
+      out += (date ? `□ 일시: ${date}\n\n` : '');
+      out += (staff ? `담당자: ${staff}\n` : '');
+      if (region || school) out += `대상: ${region} / ${school}\n`;
+      if (start || end) out += `방문: ${start} ~ ${end} (${start && end ? calcMinutesInterval(start,end) + '분' : ''})\n\n`;
+      out += '세부업무:\n\n';
+      blocks.forEach((b, idx) => {
+        const subj = b.querySelector('.subject-name') ? b.querySelector('.subject-name').value : '';
+        const teacher = b.querySelector('.teacher-name') ? b.querySelector('.teacher-name').value : '';
+        const pub = b.querySelector('.publisher') ? b.querySelector('.publisher').value : '';
+        const meetings = Array.from(b.querySelectorAll('.meeting-btn.selected')).map(x => x.textContent.trim());
+        const follow = b.querySelector('.followUpSelect') ? b.querySelector('.followUpSelect').value : '';
+        const contact = b.querySelector('.contact-suffix') ? b.querySelector('.contact-suffix').value : '';
+        const notes = b.querySelector('.conversation-detail') ? b.querySelector('.conversation-detail').value : '';
+        out += `${idx+1}. ${subj} (${teacher}${pub? ' / '+pub : ''})\n`;
+        if (meetings.length) out += `- 진행: ${meetings.join(', ')}\n`;
+  // contact is intentionally omitted from the on-page summary; it's kept for backend only
+        if (follow) out += `- 후속조치: ${follow}\n`;
+        if (notes) out += `- 특이사항: ${notes}\n`;
+        out += '\n';
+      });
+      // summary stats
+      const totalSchools = document.querySelectorAll('#schoolButtons .grid-button.selected').length ? 1 : 0; // simple heuristic
+      out += `※ 특이사항 ※\n- 방문학교 : ${totalSchools} 개교\n`;
+      // set into textarea
+      const ta = document.getElementById('generatedSummary'); if (ta) ta.value = out;
+    }
+    function calcMinutesInterval(start, end){
+      if (!start || !end) return '';
+      const [sh, sm] = start.split(':').map(n=>parseInt(n,10));
+      const [eh, em] = end.split(':').map(n=>parseInt(n,10));
+      const s = sh*60 + sm; const e = eh*60 + em; let diff = e - s; if (diff < 0) diff += 24*60; return diff;
+    }
+  document.getElementById('genSummaryBtn')?.addEventListener('click', generateSummary);
+  </script>
+</body>
+</html>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  try{
+    const startEl = document.getElementById('filterStart');
+    const endEl = document.getElementById('filterEnd');
+    if (startEl && endEl && !startEl.value && !endEl.value){
+      function fmt(d){ const y=d.getFullYear(); const m=(d.getMonth()+1).toString().padStart(2,'0'); const day=d.getDate().toString().padStart(2,'0'); return `${y}-${m}-${day}`; }
+      function weekRangeFor(ref){ const d=new Date(ref.getFullYear(), ref.getMonth(), ref.getDate()); const dow=d.getDay(); const diffToMon=(dow===0)? -6 : (1-dow); const mon=new Date(d); mon.setDate(d.getDate()+diffToMon); const sun=new Date(mon); sun.setDate(mon.getDate()+6); return [mon,sun]; }
+      const today=new Date(); const isMonday=(today.getDay()===1); const ref=new Date(today); if(isMonday) ref.setDate(ref.getDate()-7); const [mon,sun]=weekRangeFor(ref); startEl.value=fmt(mon); endEl.value=fmt(sun);
+    }
+  }catch(e){ console.warn('default range snippet failed', e); }
+});
+</script>

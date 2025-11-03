@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1e3c72">
+  <title>영업 활동 입력</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background:#f5f7fa; color:#12325a; padding:12px; line-height:1.5; }
+    .container { max-width:640px; margin:0 auto; background:#fff; padding:20px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); }
+    h2 { margin-bottom:1rem; color:#1e3c72; }
+    .info-box { background:#e8f4fd; padding:12px; border-radius:8px; margin-bottom:1rem; border-left:4px solid #1e88e5; }
+    label { display:block; font-weight:700; margin-top:1rem; margin-bottom:0.4rem; color:#12325a; }
+    input, select, textarea { width:100%; padding:0.7rem; border-radius:0.6rem; border:1px solid #d6dbe8; font-size:1rem; }
+    button { padding:1rem; border-radius:0.8rem; border:none; font-weight:800; cursor:pointer; font-size:1.05rem; width:100%; margin-top:0.6rem; }
+    .btn-primary { background:#1e3c72; color:#fff; }
+    .btn-secondary { background:#e3eafc; color:#1e3c72; }
+    .btn-back { background:#fff; color:#1e3c72; border:1px solid #d6dbe8; }
+    .subject-block { background:#f9fafd; padding:1.2rem; border-radius:0.8rem; border:1px solid #e0e8f5; margin-bottom:1rem; }
+    .subject-choice-group { display:grid; grid-template-columns:repeat(3,1fr); gap:0.6rem; margin-bottom:1rem; }
+    .subject-choice-btn { padding:0.8rem; border-radius:0.6rem; border:1px solid #d6dbe8; background:#fff; font-weight:700; cursor:pointer; }
+    .subject-choice-btn.is-active { background:#1e3c72; color:#fff; border-color:#1e3c72; }
+    .meeting-buttons { display:grid; grid-template-columns:repeat(3,1fr); gap:0.6rem; margin-bottom:1rem; }
+    .meeting-btn { padding:0.8rem; border-radius:0.6rem; border:1px solid #d6dbe8; background:#fff; font-weight:700; cursor:pointer; text-align:center; }
+    .meeting-btn.is-active { background:#1e3c72; color:#fff; border-color:#1e3c72; }
+    #subjectsBlock { display:flex; flex-direction:column; gap:1rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>영업 활동 입력</h2>
+    
+    <div class="info-box" id="schoolInfo">
+      <strong>학교:</strong> <span id="schoolName">-</span><br>
+      <strong>지역:</strong> <span id="regionName">-</span><br>
+      <strong>방문일:</strong> <span id="visitDateDisplay">-</span>
+    </div>
+
+    <form id="activityForm">
+      <label>방문 시작 시각</label>
+      <div style="display:flex;gap:0.6rem;">
+        <select id="visitStartHour" required>
+          <option value="">시</option>
+          <option value="06">06</option>
+          <option value="07">07</option>
+          <option value="08">08</option>
+          <option value="09">09</option>
+          <option value="10">10</option>
+          <option value="11">11</option>
+          <option value="12">12</option>
+          <option value="13">13</option>
+          <option value="14">14</option>
+          <option value="15">15</option>
+          <option value="16">16</option>
+          <option value="17">17</option>
+          <option value="18">18</option>
+          <option value="19">19</option>
+          <option value="20">20</option>
+        </select>
+        <select id="visitStartMinute" required>
+          <option value="">분</option>
+          <option value="00">00</option>
+          <option value="05">05</option>
+          <option value="10">10</option>
+          <option value="15">15</option>
+          <option value="20">20</option>
+          <option value="25">25</option>
+          <option value="30">30</option>
+          <option value="35">35</option>
+          <option value="40">40</option>
+          <option value="45">45</option>
+          <option value="50">50</option>
+          <option value="55">55</option>
+        </select>
+      </div>
+
+      <label>방문 소요 시간 (분)</label>
+      <input type="number" id="visitDuration" placeholder="예: 30" min="1" max="480" required>
+
+      <h3 style="margin-top:1.5rem;margin-bottom:0.8rem;">과목/선생님별 영업기록</h3>
+      <div id="subjectsBlock"></div>
+
+      <button type="button" id="addSubjectBtn" class="btn-secondary">과목/선생님 추가</button>
+
+      <!-- Action buttons section -->
+      <div style="background:#f8f9fa;padding:1rem;border-radius:0.8rem;margin-top:1.5rem;">
+        <h4 style="margin:0 0 0.8rem 0;font-size:1rem;color:#1e3c72;">퇴근보고 관리</h4>
+        
+        <button type="button" id="copyKakaoBtn" style="width:100%;padding:0.8rem;border-radius:0.8rem;border:1px solid #ffd9b3;background:#fff;color:#b25700;font-weight:800;margin-bottom:0.6rem;">카톡으로 복사</button>
+        
+        <button type="button" id="saveToServerBtn" style="width:100%;padding:0.8rem;border-radius:0.8rem;border:1px solid #c8e6c9;background:#fff;color:#2e7d32;font-weight:800;margin-bottom:0.6rem;">서버에 저장</button>
+        
+        <div style="display:flex;gap:0.6rem;">
+          <button type="button" id="generateSummaryBtn" style="flex:1;padding:0.8rem;border-radius:0.8rem;border:1px solid #4CAF50;background:#4CAF50;color:#fff;font-weight:800;">요약 생성</button>
+          <button type="button" id="clearSummaryBtn" style="flex:1;padding:0.8rem;border-radius:0.8rem;border:1px solid #e0e0e0;background:#f5f5f5;color:#666;font-weight:700;">내용 전체지우기</button>
+        </div>
+        
+        <div style="margin-top:0.6rem;font-size:0.85rem;color:#666;">
+          퇴근보고 시간 설정: 퇴근 시각 기준 + 30분
+        </div>
+        
+        <textarea id="generatedSummary" readonly rows="8" style="width:100%;margin-top:0.8rem;padding:0.8rem;border-radius:0.6rem;border:1px solid #d6dbe8;background:#fafafa;font-size:0.9rem;color:#333;">요약이 여기에 생성됩니다.</textarea>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:1.5rem;">
+        <button type="button" id="backBtn" class="btn-back">뒤로 돌아가기</button>
+        <button type="submit" class="btn-primary">입력 완료</button>
+      </div>
+    </form>
+  </div>
+
+  <template id="subject-template">
+    <div class="subject-block">
+      <label>과목</label>
+      <input type="hidden" class="subject-name" value="">
+      <div class="subject-choice-group">
+        <button type="button" class="subject-choice-btn" data-subject="정보">정보</button>
+        <button type="button" class="subject-choice-btn" data-subject="진로">진로</button>
+        <button type="button" class="subject-choice-btn" data-subject="보건">보건</button>
+        <button type="button" class="subject-choice-btn" data-subject="미술">미술</button>
+        <button type="button" class="subject-choice-btn" data-subject="체육">체육</button>
+        <button type="button" class="subject-choice-btn" data-subject="도서관사서">도서관사서</button>
+        <button type="button" class="subject-choice-btn" data-subject="특성화">특성화</button>
+        <button type="button" class="subject-choice-btn" data-subject="기타">기타</button>
+      </div>
+
+      <label>선생님 성함</label>
+      <input type="text" class="teacher-name" placeholder="예: 김영희">
+
+      <label>연락처 (010-XXXX-XXXX)</label>
+      <input type="text" class="contact-suffix" placeholder="뒷자리 8자리만 입력">
+
+      <label>미팅 유형 (복수 선택 가능)</label>
+      <div class="meeting-buttons">
+        <button type="button" class="meeting-btn" data-meeting="명함인사">명함인사</button>
+        <button type="button" class="meeting-btn" data-meeting="가이드북">가이드북</button>
+        <button type="button" class="meeting-btn" data-meeting="티칭샘소개">티칭샘소개</button>
+        <button type="button" class="meeting-btn" data-meeting="교구시연">교구시연</button>
+        <button type="button" class="meeting-btn" data-meeting="샘플전달">샘플전달</button>
+        <button type="button" class="meeting-btn" data-meeting="기타상담">기타상담</button>
+      </div>
+
+      <label>납품 항목</label>
+      <input type="text" class="delivery-items" placeholder="예: 교재 10권">
+
+      <label>특이사항/대화내용</label>
+      <textarea class="conversation-detail" rows="3" placeholder="특이사항이나 대화 내용을 입력하세요"></textarea>
+
+      <button type="button" class="remove-subject-btn" style="background:#ff5252;color:#fff;margin-top:0.8rem;">이 과목 삭제</button>
+    </div>
+  </template>
+
+  <script>
+    // Get URL parameters
+    const params = new URLSearchParams(window.location.search);
+    const school = params.get('school') || '';
+    const region = params.get('region') || '';
+    const visitDate = params.get('date') || '';
+    const staff = params.get('user') || '';
+
+    // Display school info
+    document.getElementById('schoolName').textContent = school || '-';
+    document.getElementById('regionName').textContent = region || '-';
+    document.getElementById('visitDateDisplay').textContent = visitDate || '-';
+
+    // Subject block management
+    function setupSubjectBlock(block) {
+      // Subject choice buttons
+      const subjectBtns = block.querySelectorAll('.subject-choice-btn');
+      const subjectHidden = block.querySelector('.subject-name');
+      
+      subjectBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          subjectBtns.forEach(b => b.classList.remove('is-active'));
+          this.classList.add('is-active');
+          if (subjectHidden) {
+            subjectHidden.value = this.dataset.subject;
+          }
+        });
+      });
+
+      // Meeting buttons
+      const meetingBtns = block.querySelectorAll('.meeting-btn');
+      meetingBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          this.classList.toggle('is-active');
+        });
+      });
+
+      // Remove subject button
+      const removeBtn = block.querySelector('.remove-subject-btn');
+      if (removeBtn) {
+        removeBtn.addEventListener('click', function() {
+          if (confirm('이 과목을 삭제하시겠습니까?')) {
+            block.remove();
+          }
+        });
+      }
+    }
+
+    // Add initial subject block
+    function addSubjectBlock() {
+      const template = document.getElementById('subject-template');
+      const container = document.getElementById('subjectsBlock');
+      
+      if (template && template.content) {
+        const clone = template.content.cloneNode(true);
+        // Append the cloned fragment first, then locate the newly-added .subject-block
+        container.appendChild(clone);
+        // Find the last appended subject-block reliably
+        const blocks = container.querySelectorAll('.subject-block');
+        const block = blocks[blocks.length - 1];
+        if (block) setupSubjectBlock(block);
+      }
+    }
+
+    // Add subject button
+    document.getElementById('addSubjectBtn').addEventListener('click', addSubjectBlock);
+
+    // Initialize with one subject block
+    addSubjectBlock();
+
+    // Collect form data
+    function collectData() {
+      const subjects = [];
+      const blocks = document.querySelectorAll('.subject-block');
+      
+      blocks.forEach(block => {
+        const subject = block.querySelector('.subject-name').value;
+        const teacher = block.querySelector('.teacher-name').value;
+        const contactSuffix = block.querySelector('.contact-suffix').value;
+        const delivery = block.querySelector('.delivery-items').value;
+        const conversation = block.querySelector('.conversation-detail').value;
+        
+        const meetings = [];
+        block.querySelectorAll('.meeting-btn.is-active').forEach(btn => {
+          meetings.push(btn.dataset.meeting);
+        });
+        
+        if (subject || teacher) {
+          subjects.push({
+            subject,
+            teacher,
+            contactSuffix,
+            contactFormatted: contactSuffix ? `010-${contactSuffix}` : '',
+            meetings,
+            delivery,
+            conversation
+          });
+        }
+      });
+
+      return {
+        school,
+        region,
+        visitDate,
+        staff,
+        visitStartHour: document.getElementById('visitStartHour').value,
+        visitStartMinute: document.getElementById('visitStartMinute').value,
+        visitDuration: document.getElementById('visitDuration').value,
+        subjects
+      };
+    }
+
+    // Generate summary
+    function generateSummary() {
+      const data = collectData();
+      if (!data.subjects || data.subjects.length === 0) {
+        return '입력된 과목/선생님 정보가 없습니다.';
+      }
+
+      const startHour = parseInt(data.visitStartHour) || 0;
+      const startMinute = parseInt(data.visitStartMinute) || 0;
+      const durationMinutes = parseInt(data.visitDuration) || 0;
+      const endHour = Math.floor((startHour * 60 + startMinute + durationMinutes) / 60);
+      const endMinute = (startHour * 60 + startMinute + durationMinutes) % 60;
+      const durationHours = Math.floor(durationMinutes / 60);
+      const remainMinutes = durationMinutes % 60;
+
+      const totalMeetings = data.subjects.reduce((sum, subj) => sum + (subj.meetings?.length || 0), 0);
+      const contactCount = data.subjects.filter(subj => subj.contactFormatted).length;
+
+      let summary = `(${data.staff || '영업사원'} 부장 퇴근보고)\n`;
+      summary += `방문일: ${data.visitDate}\n`;
+      summary += `총 방문 학교: 1개 · 총 미팅수: ${totalMeetings}건 · 연락처 확보: ${contactCount}건 · 추가선정 확인: 0건\n\n`;
+
+      summary += `1. 출근: ${String(startHour).padStart(2,'0')}:${String(startMinute).padStart(2,'0')} · `;
+      summary += `퇴근: ${String(endHour).padStart(2,'0')}:${String(endMinute).padStart(2,'0')} `;
+      summary += `(${durationHours}시간 ${remainMinutes}분)\n\n`;
+
+      summary += `2. 세부업무\n\n`;
+      summary += `가. ${data.school} (, , )\n`;
+      summary += ` ${String(startHour).padStart(2,'0')}:${String(startMinute).padStart(2,'0')}~${String(endHour).padStart(2,'0')}:${String(endMinute).padStart(2,'0')} (${durationMinutes}분)\n\n`;
+
+      data.subjects.forEach((subj, idx) => {
+        summary += `-가${idx+1}. ${subj.subject || '-'} ${subj.teacher || '-'}`;
+        if (subj.contactFormatted) summary += ` (${subj.contactFormatted})`;
+        if (subj.meetings && subj.meetings.length > 0) {
+          summary += ` · ${subj.meetings.join(' · ')}`;
+        }
+        if (subj.delivery) summary += ` · ${subj.delivery}`;
+        summary += `\n`;
+      });
+
+      summary += `\n3. 퇴근보고 자료 정리 (${String(endHour).padStart(2,'0')}:${String(endMinute).padStart(2,'0')}~${String(endHour).padStart(2,'0')}:${String(endMinute + 30).padStart(2,'0')}) (30분)\n\n`;
+      summary += `- 끝.\n\n`;
+
+      const subjectCounts = {};
+      data.subjects.forEach(subj => {
+        if (subj.subject) {
+          subjectCounts[subj.subject] = (subjectCounts[subj.subject] || 0) + 1;
+        }
+      });
+      const majorSubjects = Object.entries(subjectCounts)
+        .map(([subj, count]) => `${subj}(${count}회)`)
+        .join(', ');
+      
+      summary += `자동 태그: 주요과목: ${majorSubjects || '없음'}`;
+      if (data.school) summary += `, 재방문: ${data.school}`;
+
+      return summary.trim();
+    }
+
+    // Generate summary button
+    document.getElementById('generateSummaryBtn').addEventListener('click', function() {
+      const summary = generateSummary();
+      document.getElementById('generatedSummary').value = summary;
+    });
+
+    // Clear summary button
+    document.getElementById('clearSummaryBtn').addEventListener('click', function() {
+      if (confirm('요약 내용을 모두 지우시겠습니까?')) {
+        document.getElementById('generatedSummary').value = '요약이 여기에 생성됩니다.';
+      }
+    });
+
+    // Copy to Kakao button - produce a cleaned, icon-free text for KakaoTalk
+    document.getElementById('copyKakaoBtn').addEventListener('click', function() {
+      const summary = document.getElementById('generatedSummary').value;
+      if (!summary || summary === '요약이 여기에 생성됩니다.') {
+        alert('먼저 요약을 생성해주세요.');
+        return;
+      }
+
+      // Remove common icons/emojis and normalize middle-dots to simple separators
+      let cleaned = summary.replace(/[✅❌••·•★☆►◦●✔✖🌟🚫]/g, '');
+      cleaned = cleaned.replace(/·/g, ' - ');
+      // Collapse multiple blank lines into one
+      cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+      // Trim trailing spaces on lines
+      cleaned = cleaned.split('\n').map(s => s.trim()).join('\n');
+
+      navigator.clipboard.writeText(cleaned).then(() => {
+        alert('카카오톡에 붙여넣기 할 수 있습니다.');
+      }).catch(err => {
+        console.error('복사 실패:', err);
+        alert('복사 실패. 다시 시도해주세요.');
+      });
+    });
+
+    // Save to server button (placeholder)
+    document.getElementById('saveToServerBtn').addEventListener('click', function() {
+      alert('서버 저장 기능은 추후 구현 예정입니다.');
+    });
+
+    // Form submit
+    document.getElementById('activityForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const data = collectData();
+      console.log('[Form Submit]', data);
+      
+      // Save to session storage for parent page
+      try {
+        sessionStorage.setItem('cmass_newVisit', JSON.stringify(data));
+      } catch(e) {
+        console.error('Failed to save to sessionStorage:', e);
+      }
+      
+      alert('입력 완료!');
+      
+      // Return to input.html
+      window.location.href = '/input' + window.location.search;
+    });
+
+    // Back button
+    document.getElementById('backBtn').addEventListener('click', function() {
+      if (confirm('입력한 내용이 저장되지 않습니다. 뒤로 가시겠습니까?')) {
+        window.location.href = '/input' + window.location.search;
+      }
+    });
+  </script>
+</body>
+</html>

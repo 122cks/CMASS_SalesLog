@@ -1,0 +1,31 @@
+﻿{
+    "ok":  true,
+    "id":  "ztyWImDZhUGQf48tasK5",
+    "data":  {
+                 "staff":  "임준호 차장",
+                 "school":  "구리여자고등학교",
+                 "region":  "",
+                 "visitDate":  "2025-10-29T00:00:00.000Z",
+                 "visitDate_ts":  {
+                                      "_seconds":  1761696000,
+                                      "_nanoseconds":  0
+                                  },
+                 "source_doc":  "OM90trXNFqy5UarzmtAV",
+                 "subject":  "진로",
+                 "teacher":  "김지혜",
+                 "contact":  "",
+                 "meetings":  [
+                                  "명함인사",
+                                  "티칭샘소개",
+                                  "채팅방소개",
+                                  "단행본안내",
+                                  "워크북안내"
+                              ],
+                 "conversation":  "단톡방은 거부하셨고 학업설계 설명드림, 구매처를 물어보셔서 큐알코드로 진입하시면 되는점 안내, 내용에 대한 언급은 없었음",
+                 "followUp":  "완료 (추가 조치 없음)",
+                 "createdAt":  {
+                                   "_seconds":  1761738233,
+                                   "_nanoseconds":  533000000
+                               }
+             }
+}

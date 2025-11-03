@@ -1,0 +1,14 @@
+// Simple Firestore rules for internal use
+// Allows authenticated users to write visits; denies reads/writes to unauthenticated.
+// For company-internal use you may relax auth but this is safer.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /visits/{docId} {
+      allow create: if request.auth != null && request.resource.data.keys().hasAll(['created_at','payload']);
+      allow read: if request.auth != null;
+      allow update, delete: if false; // do not allow updates/deletes from clients
+    }
+  }
+}

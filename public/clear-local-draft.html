@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>로컬 임시본 삭제</title></head><body style="font-family:Segoe UI,Arial,sans-serif;padding:24px;max-width:680px;margin:0 auto;">
+  <h1>로컬 임시본 삭제</h1>
+  <p>이 도구는 이 브라우저에 저장된 CMASS 임시본(localStorage / Service Worker / Cache Storage)을 삭제합니다. 삭제 후 페이지를 새로고침하면 최신 서버 콘텐츠가 보입니다.</p>
+  <button id="doClear" style="padding:12px 18px;border-radius:8px;border:none;background:#ff7043;color:#fff;font-weight:800;cursor:pointer">로컬 임시본 삭제 실행</button>
+  <div id="result" style="margin-top:16px;color:#12325a"></div>
+  <script>
+    async function clearCmassLocalData(){
+      const resEl = document.getElementById('result');
+      try{
+        const removed = [];
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (!k) continue;
+          if (k.indexOf('cmass_') === 0 || k.indexOf('cmass') === 0) {
+            try{ localStorage.removeItem(k); removed.push(k); }catch(e){}
+          }
+        }
+        // unregister service workers
+        if ('serviceWorker' in navigator) {
+          try{
+            const regs = await navigator.serviceWorker.getRegistrations().catch(()=>[]);
+            for (const r of (regs||[])) { try{ await r.unregister(); }catch(e){} }
+          }catch(e){}
+        }
+        // clear caches
+        if (window.caches && caches.keys) {
+          try{
+            const keys = await caches.keys().catch(()=>[]);
+            await Promise.all((keys||[]).map(k => caches.delete(k))).catch(()=>{});
+          }catch(e){}
+        }
+        resEl.textContent = '완료: 삭제된 키들: ' + (removed.join(', ') || '(없음)') + '. 페이지를 새로고침하세요.';
+      }catch(err){ console.error('clear failed', err); resEl.textContent = '오류 발생: 콘솔을 확인하세요.'; }
+    }
+    document.getElementById('doClear').addEventListener('click', async function(){ this.disabled = true; await clearCmassLocalData(); this.disabled = false; });
+  </script>
+</body></html>

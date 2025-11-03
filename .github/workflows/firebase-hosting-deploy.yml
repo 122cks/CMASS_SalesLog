@@ -1,0 +1,38 @@
+name: Firebase Hosting Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy to Firebase Hosting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies (if package.json exists)
+        run: |
+          if [ -f package.json ]; then npm ci; else echo 'no package.json, skipping npm install'; fi
+
+      - name: Build (if build script exists)
+        run: |
+          if [ -f package.json ] && npm run | grep -q " build"; then npm run build; else echo 'no build script, skipping'; fi
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"
+          # Optional: specify project via secret FIREBASE_PROJECT or configure firebase.json/.firebaserc
+          projectId: "${{ secrets.FIREBASE_PROJECT }}"

@@ -1,0 +1,29 @@
+﻿{
+    "ok":  true,
+    "id":  "wEe27bOnuG8SCXfoOphb",
+    "data":  {
+                 "staff":  "송훈재 부장",
+                 "school":  "한광중학교",
+                 "region":  "",
+                 "visitDate":  "2025-10-29T00:00:00.000Z",
+                 "visitDate_ts":  {
+                                      "_seconds":  1761696000,
+                                      "_nanoseconds":  0
+                                  },
+                 "source_doc":  "8tKcdf7tdKkKhYP8L2kK",
+                 "subject":  "진로",
+                 "teacher":  "김재균",
+                 "contact":  "",
+                 "meetings":  [
+                                  "명함인사",
+                                  "단행본안내",
+                                  "워크북안내"
+                              ],
+                 "conversation":  "지학사 집필진으로 씨마스에 우호적인분. 리플릿 전달했으며 워크북에 관심이 많은 분으로 검토해서 연락하기로 함",
+                 "followUp":  "완료 (추가 조치 없음)",
+                 "createdAt":  {
+                                   "_seconds":  1761728453,
+                                   "_nanoseconds":  580000000
+                               }
+             }
+}

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>영업일지 입력</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: #f5f7fa;
+      font-family: 'Noto Sans KR', 'Montserrat', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 32px auto;
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      padding: 32px 24px 24px 24px;
+    }
+    .title {
+      text-align: center;
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #22304a;
+      margin-bottom: 24px;
+      letter-spacing: -2px;
+    }
+    .section {
+      margin-bottom: 28px;
+    }
+    .label {
+      font-weight: 700;
+      color: #22304a;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .info-row {
+      margin-bottom: 12px;
+      color: #22304a;
+      font-weight: 500;
+    }
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .btn-select {
+      flex: 1 1 30%;
+      min-width: 120px;
+      background: #f5f7fa;
+      border: 2px solid #e0e6ed;
+      border-radius: 12px;
+      padding: 12px 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #22304a;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-select.selected {
+      background: #22304a;
+      color: #fff;
+      border-color: #22304a;
+    }
+    .school-info-card {
+      background: #f5f7fa;
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 8px rgba(34,48,74,0.04);
+    }
+    .school-info-title {
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+      color: #22304a;
+    }
+    .school-info-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 1rem;
+      color: #22304a;
+    }
+    .school-info-table th, .school-info-table td {
+      padding: 4px 8px;
+      text-align: left;
+    }
+    .school-info-table th {
+      font-weight: 700;
+      color: #22304a;
+    }
+    .input-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .input-row select, .input-row input {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1.5px solid #e0e6ed;
+      font-size: 1rem;
+    }
+    .visit-time-btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .visit-time-btn {
+      background: #fff;
+      border: 1.5px solid #e0e6ed;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 1rem;
+      color: #22304a;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .visit-time-btn.selected {
+      background: #22304a;
+      color: #fff;
+      border-color: #22304a;
+    }
+    .tab-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .tab-btn {
+      flex: 1;
+      background: #f5f7fa;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      padding: 10px 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #22304a;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn.selected {
+      background: #22304a;
+      color: #fff;
+    }
+    .input-block {
+      margin-bottom: 10px;
+    }
+    .input-block input, .input-block select, .input-block textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1.5px solid #e0e6ed;
+      font-size: 1rem;
+      margin-top: 4px;
+      resize: none;
+    }
+    .input-block textarea {
+      min-height: 48px;
+    }
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 8px 0 0 0;
+    }
+    .chip {
+      background: #f5f7fa;
+      border: 1.5px solid #e0e6ed;
+      border-radius: 16px;
+      padding: 6px 14px;
+      font-size: 0.95rem;
+      color: #22304a;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .chip.selected {
+      background: #22304a;
+      color: #fff;
+      border-color: #22304a;
+    }
+    .btn-main {
+      width: 100%;
+      background: #22304a;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 16px 0;
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-top: 18px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-main:hover {
+      background: #1a2536;
+    }
+    .btn-sub {
+      width: 48%;
+      background: #f5f7fa;
+      color: #22304a;
+      border: 2px solid #e0e6ed;
+      border-radius: 12px;
+      padding: 14px 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-top: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-sub:hover {
+      background: #e0e6ed;
+    }
+    .btn-row {
+      display: flex;
+      gap: 16px;
+      margin-top: 10px;
+      justify-content: space-between;
+    }
+    @media (max-width: 700px) {
+      .container { max-width: 98vw; padding: 10px; }
+      .btn-group, .visit-time-btns { gap: 6px; }
+      .btn-select, .visit-time-btn { min-width: 80px; font-size: 0.95rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title">영업일지 입력</div>
+    <div class="section">
+      <div class="info-row"><b>담당자:</b> 송훈제</div>
+      <span class="label">지역</span>
+      <div class="btn-group">
+        <button class="btn-select selected">경기도과천시</button>
+        <button class="btn-select">경기도광명시</button>
+        <button class="btn-select">경기도군포시</button>
+      </div>
+      <div class="btn-group">
+        <button class="btn-select">경기도수원시권선구</button>
+        <button class="btn-select">경기도수원시영통구</button>
+        <button class="btn-select">경기도수원시장안구</button>
+      </div>
+      <div class="btn-group">
+        <button class="btn-select">경기도수원시팔달구</button>
+        <button class="btn-select">경기도시흥시</button>
+        <button class="btn-select">경기도안산시단원구</button>
+      </div>
+      <div class="btn-group">
+        <button class="btn-select">경기도안산시상록구</button>
+        <button class="btn-select">경기도안성시</button>
+        <button class="btn-select">경기도안양시동안구</button>
+      </div>
+      <div class="btn-group">
+        <button class="btn-select">경기도안양시만안구</button>
+        <button class="btn-select">경기도오산시</button>
+        <button class="btn-select">경기도용인시기흥구</button>
+      </div>
+      <div class="btn-group">
+        <button class="btn-select">경기도용인시수지구</button>
+        <button class="btn-select">경기도용인시처인구</button>
+        <button class="btn-select">경기도의왕시</button>
+      </div>
+      <div class="btn-group">
+        <button class="btn-select">경기도평택시</button>
+        <button class="btn-select">경기도화성시</button>
+      </div>
+      <span class="label">학교명</span>
+      <div class="btn-group">
+        <button class="btn-select">과천고등학교</button>
+        <button class="btn-select">과천문원중학교</button>
+        <button class="btn-select selected">과천여자고등학교</button>
+      </div>
+      <div class="btn-group">
+        <button class="btn-select">과천외국어고등학교</button>
+        <button class="btn-select">과천물목중학교</button>
+        <button class="btn-select">과천중앙고등학교</button>
+      </div>
+      <div class="btn-group">
+        <button class="btn-select">과천중학교</button>
+      </div>
+      <div class="school-info-card">
+        <div class="school-info-title">학교 정보</div>
+        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+          <button class="tab-btn selected">사립</button>
+          <button class="tab-btn">고등</button>
+          <span style="font-size:0.98rem; color:#22304a; font-weight:600;">총학생수: 303</span>
+        </div>
+        <table class="school-info-table">
+          <tr><th>1학년:</th><td>6 학급 / 97 학생</td></tr>
+          <tr><th>2학년:</th><td>6 학급 / 108 학생</td></tr>
+          <tr><th>3학년:</th><td>6 학급 / 98 학생</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="section">
+      <div class="label">방문 시작 시간</div>
+      <div class="input-row">
+        <select><option>08시</option><option>09시</option><option>10시</option></select>
+        <select><option>45분</option><option>00분</option><option>15분</option><option>30분</option></select>
+      </div>
+      <div class="label">총 방문 시간(분)</div>
+      <div class="visit-time-btns">
+        <button class="visit-time-btn">10분</button>
+        <button class="visit-time-btn">20분</button>
+        <button class="visit-time-btn">30분</button>
+        <button class="visit-time-btn">40분</button>
+        <button class="visit-time-btn">50분</button>
+        <button class="visit-time-btn">60분</button>
+        <button class="visit-time-btn">70분</button>
+        <button class="visit-time-btn">80분</button>
+        <button class="visit-time-btn">90분</button>
+      </div>
+      <div class="input-block">
+        <input type="text" placeholder="예: 80">
+        <button style="margin-left:8px; padding:8px 16px; border-radius:8px; border:1.5px solid #e0e6ed; background:#fff; color:#22304a; cursor:pointer;">지우기</button>
+      </div>
+      <div class="input-block">
+        <input type="text" placeholder="방문 종료 시간 (자동 계산됨)" readonly>
+      </div>
+    </div>
+    <div class="section">
+      <div class="label">과목/선생님별 영업기록</div>
+      <div class="tab-group">
+        <button class="tab-btn selected">정보</button>
+        <button class="tab-btn">진로</button>
+        <button class="tab-btn">기술가정</button>
+        <button class="tab-btn">체육</button>
+      </div>
+      <div class="input-block">
+        <input type="text" placeholder="선생님 이름">
+      </div>
+      <div class="input-block">
+        <select>
+          <option>출판사 선택</option>
+          <option>출판사A</option>
+          <option>출판사B</option>
+        </select>
+      </div>
+      <div class="input-row">
+        <input type="text" value="010" style="max-width:60px;">
+        <input type="text" placeholder="12345678">
+        <button style="padding:8px 12px; border-radius:8px; border:1.5px solid #e0e6ed; background:#fff; color:#22304a; cursor:pointer;">복사</button>
+      </div>
+      <div class="chip-group">
+        <div class="chip">명함인사</div>
+        <div class="chip">티칭방소개</div>
+        <div class="chip">채팅방소개</div>
+        <div class="chip">미팅불가</div>
+        <div class="chip">구글클래스룸 사용</div>
+        <div class="chip">패들렛 사용</div>
+      </div>
+      <div class="input-block">
+        <textarea placeholder="특이사항"></textarea>
+      </div>
+      <div class="input-block">
+        <select>
+          <option>후속조치</option>
+          <option>자료전달</option>
+          <option>추가방문</option>
+        </select>
+      </div>
+      <button class="btn-sub" style="width:100%; margin-top:8px;">과목/선생님 추가</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn-sub">뒤로 돌아가기</button>
+      <button class="btn-main">입력 완료</button>
+    </div>
+  </div>
+</body>
+</html>

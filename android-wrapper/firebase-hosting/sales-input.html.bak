@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e3c72">
+  <title>영업일지 입력</title>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    /* Reset & layout */
+    body {
+      background: #f5f6fa;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: #111;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      -webkit-font-smoothing:antialiased;
+      font-size: 16px; /* base size increased for readability */
+    }
+    h2 { font-size: 2.2rem; margin: 2rem 0 1rem 0; font-weight: 800; color:#0b2b5a }
+
+    form {
+      width: 95vw;
+      max-width: 640px; /* allow more room for longer names */
+      background: #fff;
+      border-radius: 1.2rem;
+      box-shadow: 0 10px 30px rgba(14,30,80,0.08);
+      padding: 1.6rem 1.8rem;
+      margin-bottom: 2rem;
+    }
+
+    label { display:block; font-weight:700; margin-top:1rem; color:#333; }
+
+  input, select, textarea { width:100%; padding:0.95rem; border-radius:0.9rem; border:1px solid #d6dbe8; box-sizing:border-box; font-size:1rem; }
+
+    /* subject/activity buttons */
+    .subjects { display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem; }
+  .subject-btn { flex:1 1 45%; min-width:130px; padding:1.05rem; font-size:1.08rem; border-radius:1rem; border:none; background:#e9eefc; color:#12325a; font-weight:800; cursor:pointer }
+  .subject-btn.selected { background:#12325a; color:#fff; box-shadow:0 6px 18px rgba(18,50,90,0.14); }
+
+    /* region / school button grid: desktop 3 cols, medium 2, small 1 */
+  .btn-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:0.7rem; margin-top:0.6rem; margin-bottom:1rem; }
+  .grid-button { padding:1.05rem 1rem; font-size:1.05rem; border-radius:1rem; border:1px solid #cfd9ff; background:#fff; color:#133257; cursor:pointer; text-align:center; white-space:normal; overflow-wrap:anywhere; word-break:keep-all; min-height:56px; line-height:1.3 }
+  .grid-button:hover { background:#f5f7ff; transform:translateY(-2px); box-shadow:0 8px 22px rgba(20,40,80,0.06); }
+  .grid-button.selected { background:#0b2b5a; color:#fff; border-color:#071a36; box-shadow:0 12px 30px rgba(11,43,90,0.18); font-weight:900 }
+
+    .btn-submit, .btn-report { width:100%; padding:1.2rem; font-size:1.2rem; border-radius:1rem; border:none; background:#1e3c72; color:#fff; font-weight:700; cursor:pointer }
+    .btn-report { background:#ff9800; margin-top:0.5rem }
+
+    /* school metadata card styles (inline and step2) - more prominent */
+    #schoolMetaInline, #schoolMeta {
+      display:none;
+      padding:22px 20px;
+      border-radius:14px;
+      background:linear-gradient(180deg,#ffffff 0%, #f7f8ff 100%);
+      border:1px solid #e2e8ff;
+      box-shadow:0 18px 48px rgba(10,28,64,0.12);
+      color:#071a2e;
+      font-size:16.5px;
+      line-height:1.6;
+      margin-top:1rem;
+      position:relative;
+      overflow:visible;
+    }
+    /* accent stripe on the left (wider for better affordance) */
+    #schoolMetaInline::before, #schoolMeta::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 8px;
+      bottom: 8px;
+      width: 10px;
+      border-radius: 8px;
+      background: linear-gradient(180deg,#556ee8,#6b4bb0);
+      box-shadow: 0 4px 14px rgba(80,90,160,0.08);
+    }
+  #schoolMetaInline h4, #schoolMeta h4 { margin:0 0 .6rem 18px; font-size:19px; color:#06203f; font-weight:900 }
+  .grade-rows { display:block; margin-top:12px; }
+  /* turn each grade row into two columns: label / values -- values emphasized */
+  .grade-row { display:grid; grid-template-columns:120px 1fr; gap:12px; align-items:center; margin:8px 0; }
+  .grade-row .grade-label { font-weight:900; color:#0d304f; font-size:15px }
+  .grade-row .grade-value { color:#072042; font-size:15px; display:flex; gap:8px; align-items:baseline }
+  /* highlight numeric values much larger */
+  .grade-row .grade-value span { font-weight:900; color:#0b2b5a; font-size:17px }
+  .meta-key { font-weight:900; font-size:15px; color:#092b4a; }
+  /* small explanatory text to the right of numbers (학급 / 학생) */
+  .grade-row .small-note { color:#4e5b73; font-size:13px; margin-left:6px }
+  /* add a compact summary bar at the top of the card for quick scanning */
+  .meta-summary { display:flex; gap:14px; margin:8px 12px 6px 12px; }
+  .meta-summary .meta-pill { background:#f3f6ff; padding:.45rem .7rem; border-radius:10px; border:1px solid #e0e8ff; color:#082044; font-weight:800; font-size:14px }
+
+  @media (max-width:1000px) { .btn-grid { grid-template-columns: repeat(2,1fr); } }
+  /* Keep 3 columns even on narrow screens when used inside APK/webview per request */
+  @media (max-width:600px) { h2 { font-size:1.6rem } .btn-grid { grid-template-columns: repeat(3,1fr); } form { padding:1rem } .grid-button { font-size:1.03rem; min-height:64px } }
+  /* meeting button styles */
+  .meeting-btn { padding:.6rem .8rem; border-radius:.8rem; border:1px solid #d6dbe8; background:#fff; color:#12325a; cursor:pointer; font-weight:800; min-width:110px }
+  .meeting-btn.selected { background: linear-gradient(90deg,#6b8bff,#9e60f0); color:#fff; border-color:rgba(0,0,0,0.08); box-shadow:0 10px 26px rgba(60,70,120,0.12); }
+  /* subject block index badge */
+  .subject-index { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:50%; background:#eef3ff; color:#12325a; font-weight:800; margin-bottom:8px; border:1px solid #d6dbe8; margin-right:8px }
+  .subject-block { position:relative; padding:12px 12px 6px 12px; border-radius:10px; border:1px solid #eef2ff; background:#fff; margin-bottom:10px }
+  </style>
+</head>
+<body>
+  <script>
+    // Register service worker for offline support and PWA install
+    if ('serviceWorker' in navigator) {
+      // register using relative path so it works from the hosting root
+      navigator.serviceWorker.register('service-worker.js').then(() => console.log('SW registered')).catch(e=>console.warn('SW reg failed',e));
+    }
+  </script>
+  <h2>영업일지 입력</h2>
+  <div id="step1">
+    <form>
+  <label>방문일</label>
+  <input type="date" id="visitDate" name="visitDate" required style="padding:.7rem;border-radius:.8rem;border:1px solid #d6dbe8;margin-bottom:.6rem;" />
+      <div id="staffInfo" style="font-size:1.2rem;font-weight:bold;margin-bottom:1rem;">담당자: 송훈재 부장</div>
+  <label>지역</label>
+  <div id="regionButtons" class="btn-grid" role="listbox" aria-label="지역 선택"></div>
+    <label>학교명</label>
+    <div id="schoolButtons" class="btn-grid" role="listbox" aria-label="학교명 선택"></div>
+    <!-- inline school metadata shown immediately after selecting a school -->
+    <div id="schoolMetaInline" class="meta-card" style="display:none;">
+      <h4>학교 정보</h4>
+      <div class="meta-summary">
+        <div class="meta-pill" id="inlinePillEstablish">설립: -</div>
+        <div class="meta-pill" id="inlinePillLevel">급: -</div>
+        <div class="meta-pill" id="inlinePillStudents">총학생수: -</div>
+      </div>
+      <div class="grade-rows">
+        <div class="grade-row"><div class="grade-label">1학년:</div><div class="grade-value"><span id="inlineG1c"></span> 학급 / <span id="inlineG1s"></span> 학생</div></div>
+        <div class="grade-row"><div class="grade-label">2학년:</div><div class="grade-value"><span id="inlineG2c"></span> 학급 / <span id="inlineG2s"></span> 학생</div></div>
+        <div class="grade-row"><div class="grade-label">3학년:</div><div class="grade-value"><span id="inlineG3c"></span> 학급 / <span id="inlineG3s"></span> 학생</div></div>
+      </div>
+    </div>
+      <button type="button" id="nextStepBtn" style="width:100%;margin:1rem 0 0 0;padding:1rem;font-size:1.1rem;border-radius:1rem;background:#1e3c72;color:#fff;font-weight:bold;border:none;cursor:pointer;">다음</button>
+    </form>
+  </div>
+  <div id="step2" style="display:none;">
+  <form id="salesForm">
+      <!-- show selected region/school -->
+      <div id="selectedInfo" style="margin-bottom:1rem;font-weight:bold;font-size:1.1rem;display:none;">
+        선택된 지역: <span id="displayRegion"></span> &nbsp; | &nbsp; 학교: <span id="displaySchool"></span>
+      </div>
+      <!-- hidden fields to submit selected region/school -->
+      <input type="hidden" id="selectedRegionInput" name="region">
+      <input type="hidden" id="selectedSchoolInput" name="schoolName">
+      <!-- school metadata panel (Step2) -->
+      <div id="schoolMeta" class="meta-card">
+        <h4>학교 정보</h4>
+        <div class="meta-summary">
+          <div class="meta-pill" id="metaPillEstablish">설립: -</div>
+          <div class="meta-pill" id="metaPillLevel">급: -</div>
+          <div class="meta-pill" id="metaPillStudents">총학생수: -</div>
+        </div>
+        <div class="grade-rows">
+          <div class="grade-row"><div class="grade-label">1학년:</div><div class="grade-value"><span id="metaG1c"></span> 학급 / <span id="metaG1s"></span> 학생</div></div>
+          <div class="grade-row"><div class="grade-label">2학년:</div><div class="grade-value"><span id="metaG2c"></span> 학급 / <span id="metaG2s"></span> 학생</div></div>
+          <div class="grade-row"><div class="grade-label">3학년:</div><div class="grade-value"><span id="metaG3c"></span> 학급 / <span id="metaG3s"></span> 학생</div></div>
+        </div>
+      </div>
+      <label>방문 시작 시간</label>
+        <select id="visitStartHour" name="visitStartHour" aria-label="방문 시작 시"></select>
+        <select id="visitStartMinute" name="visitStartMinute" aria-label="방문 시작 분"></select>
+      <label>총 방문 시간(분)</label>
+      <div id="durationControls" style="margin-bottom:0.8rem;">
+        <div id="durationButtons" class="btn-grid" style="grid-template-columns:repeat(5,1fr); gap:0.5rem;">
+          <!-- buttons injected by JS -->
+        </div>
+        <div style="margin-top:0.6rem; display:flex; gap:0.6rem; align-items:center;">
+          <input type="number" id="visitDuration" placeholder="예: 80" min="1" style="flex:1; padding:.8rem; border-radius:.8rem; border:1px solid #d6dbe8;" aria-label="총 방문 시간(분) 수동 입력">
+          <button type="button" id="clearDuration" style="padding:.7rem 1rem; border-radius:.8rem; background:#f2f3f8; border:1px solid #d6dbe8; cursor:pointer;">지우기</button>
+        </div>
+      </div>
+      <input type="hidden" id="selectedDurationInput" name="durationMinutes">
+  <label style="margin-top:0.6rem;">방문 종료 시간 <small style="font-weight:600;color:#40537a">(자동 계산됨)</small></label>
+    <input type="text" id="visitEnd" name="visitEnd" readonly>
+      <div id="subjectsBlock">
+        <label>과목/선생님별 영업기록</label>
+        <div class="subject-block">
+              <input type="hidden" class="subject-name" required>
+              <div class="subjects" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px;">
+                <button type="button" class="grid-button subject-choice" data-subject="정보">정보</button>
+                <button type="button" class="grid-button subject-choice" data-subject="진로">진로</button>
+                <button type="button" class="grid-button subject-choice" data-subject="기술가정">기술가정</button>
+                <button type="button" class="grid-button subject-choice" data-subject="한문">한문</button>
+              </div>
+      <input type="text" class="teacher-name" placeholder="선생님 이름" required>
+      <input type="text" class="teacher-location" placeholder="선생님 위치 (예: 1층 본교무실)" style="margin-top:8px;">
+        <select class="publisher">
+                <option value="">출판사 선택</option>
+                <option>천재</option><option>비상</option><option>동아</option><option>삼양</option><option>기타</option>
+              </select>
+              <div style="display:flex;gap:.5rem;align-items:center;margin-top:.5rem;">
+                <label style="font-weight:700;min-width:38px;">연락처</label>
+                    <div style="display:flex;gap:.5rem;align-items:center;margin-top:.5rem;">
+                      <span style="display:inline-block;padding:.55rem .7rem;border-radius:.6rem;background:#f2f4ff;border:1px solid #d6dbe8;color:#12325a;font-weight:700;">010</span>
+                      <input type="text" class="contact-suffix" placeholder="12345678" maxlength="8" inputmode="numeric" pattern="[0-9]*" style="width:120px;padding:.55rem .6rem;border-radius:.6rem;border:1px solid #d6dbe8;">
+                      <span class="contact-formatted" style="margin-left:8px;color:#103254;font-weight:700;"></span>
+                      <button type="button" class="copy-contact" style="margin-left:6px;padding:.4rem .6rem;border-radius:.5rem;border:1px solid #d6dbe8;background:#fff;cursor:pointer;">복사</button>
+                    </div>
+              </div>
+          <div style="margin-top:16px;"></div>
+          <div class="meeting-buttons" id="main-meeting-buttons">
+            <button class="meeting-btn" type="button">명함인사</button>
+            <button class="meeting-btn" type="button">티칭샘소개</button>
+            <button class="meeting-btn" type="button">채팅방소개</button>
+            <button class="meeting-btn" type="button">자료거부</button>
+            <button class="meeting-btn" type="button">미팅불가</button>
+          </div>
+              <button class="meeting-btn" type="button">브로슈어</button>
+              <button class="meeting-btn" type="button">가이드북</button>
+              <button class="meeting-btn" type="button">자료거부</button>
+              <button class="meeting-btn" type="button">미팅불가</button>
+          </div>
+          <textarea class="conversation-detail" rows="2" placeholder="특이사항"></textarea>
+          <div style="margin-top:0.6rem;">
+            <label style="font-weight:700;display:block;margin-bottom:6px;">후속조치</label>
+            <select class="followUpSelect" style="width:100%;padding:.6rem;border-radius:.6rem;border:1px solid #d6dbe8;background:#fff;">
+              <option value="">선택하세요</option>
+              <option>채팅방 지속 관리</option>
+              <option>추가 자료 발송 예정</option>
+              <option>재방문 예정</option>
+              <option>선정 시기 연락 대기</option>
+              <option>워크북 무상지원 제안</option>
+              <option>완료 (추가 조치 없음)</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:16px;"></div>
+      </div>
+      <button type="button" id="addSubjectBtn" style="width:100%;margin:0.5rem 0 1rem 0;padding:1rem;font-size:1.1rem;border-radius:1rem;background:#e3eafc;color:#1e3c72;font-weight:bold;border:none;cursor:pointer;">과목/선생님 추가</button>
+      <!-- follow-up select is now per subject-block -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:0.6rem;">
+        <button type="button" id="backBtn" style="padding:1rem;border-radius:1rem;border:1px solid #d6dbe8;background:#fff;color:#1e3c72;font-weight:700;cursor:pointer;">뒤로 돌아가기</button>
+        <button type="submit" class="btn-submit">입력 완료</button>
+      </div>
+      <div style="margin-top:1rem;">
+        <div style="display:flex;gap:.5rem;margin-bottom:.5rem;align-items:center;">
+          <div style="display:flex;gap:.5rem;align-items:center;">
+            <label style="font-size:13px;display:flex;align-items:center;gap:.4rem;"><input type="checkbox" id="optHumanLine" checked>한글 라인</label>
+            <label style="font-size:13px;display:flex;align-items:center;gap:.4rem;"><input type="checkbox" id="optHashtags">해시태그 포함</label>
+            <label style="font-size:13px;display:flex;align-items:center;gap:.4rem;">최대태그수 <input id="optMaxTags" type="number" min="1" max="20" value="8" style="width:56px;padding:.2rem .4rem;border-radius:.4rem;border:1px solid #d6dbe8;margin-left:.4rem;"></label>
+          </div>
+          <button type="button" id="copyKakaoBtn" style="flex:1;padding:.75rem;border-radius:1rem;border:1px solid #ffd9b3;background:#fff;color:#b25700;font-weight:800;">카톡으로 복사</button>
+        </div>
+        <div style="display:flex;gap:.5rem;margin-bottom:.5rem;">
+          <button type="button" id="saveToServerBtn" style="flex:1;padding:.75rem;border-radius:1rem;border:1px solid #cfe8ff;background:#e9f4ff;color:#0b3a72;font-weight:800;">서버에 저장</button>
+        </div>
+        <div>
+          <textarea id="generatedSummary" rows="10" readonly style="width:100%;margin-top:.6rem;padding:.8rem;border-radius:.8rem;border:1px solid #d6dbe8;display:block;">요약이 여기에 생성됩니다.</textarea>
+        </div>
+      </div>
+    </form>
+  </div>
+  <style>
+    .contact-invalid { border-color:#e05252 !important; box-shadow:0 4px 12px rgba(224,82,82,0.08); }
+  </style>
+</body>
+</html>

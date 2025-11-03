@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CMASS Sales Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body{font-family:Segoe UI, Arial, sans-serif;padding:18px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .card{background:#fff;border-radius:8px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
+    .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  </style>
+</head>
+<body>
+  <div class="top">
+    <h2>CMASS Sales Dashboard</h2>
+    <div>
+      <a id="downloadCsv" href="/sales/export.csv" class="btn">Download CSV</a>
+    </div>
+  </div>
+  <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
+    <label>From: <input type="date" id="filterFrom"></label>
+    <label>To: <input type="date" id="filterTo"></label>
+    <label>Manager: <input type="text" id="filterManager" placeholder="Exact manager"></label>
+    <label>Region: <input type="text" id="filterRegion" placeholder="Exact region"></label>
+    <button id="applyFilters">Apply</button>
+    <button id="clearFilters">Clear</button>
+  </div>
+  <div id="summary" style="margin-bottom:12px"></div>
+  <div class="grid">
+    <div class="card">
+      <h3>By Manager</h3>
+      <canvas id="managerChart"></canvas>
+    </div>
+    <div class="card">
+      <h3>By Region</h3>
+      <canvas id="regionChart"></canvas>
+    </div>
+    <div class="card" style="grid-column:1 / -1">
+      <h3>By Date</h3>
+      <canvas id="dateChart"></canvas>
+    </div>
+  </div>
+
+  <script>
+    let managerChart, regionChart, dateChart;
+    function makeUrl(){
+      const params = new URLSearchParams();
+      const f = document.getElementById('filterFrom').value;
+      const t = document.getElementById('filterTo').value;
+      const m = document.getElementById('filterManager').value;
+      const r = document.getElementById('filterRegion').value;
+      if(f) params.set('from', f);
+      if(t) params.set('to', t);
+      if(m) params.set('manager', m);
+      if(r) params.set('region', r);
+      return '/api/stats?' + params.toString();
+    }
+
+    async function loadStats(){
+      const res = await fetch(makeUrl());
+      const data = await res.json();
+      document.getElementById('summary').textContent = `Total records: ${data.total}`;
+      // Manager chart
+      const mLabels = Object.keys(data.by_manager);
+      const mValues = mLabels.map(k=>data.by_manager[k]);
+      if(managerChart) managerChart.destroy();
+      managerChart = new Chart(document.getElementById('managerChart'), {type:'bar',data:{labels:mLabels,datasets:[{label:'Visits',data:mValues,backgroundColor:'#4b7bff'}]}});
+      // Region chart
+      const rLabels = Object.keys(data.by_region);
+      const rValues = rLabels.map(k=>data.by_region[k]);
+      if(regionChart) regionChart.destroy();
+      regionChart = new Chart(document.getElementById('regionChart'), {type:'pie',data:{labels:rLabels,datasets:[{label:'Visits',data:rValues,backgroundColor:['#6b8bff','#f6b26b','#9ee08d','#f08080']} ]}});
+      // Date chart (sorted)
+      const dKeys = Object.keys(data.by_date).sort();
+      const dValues = dKeys.map(k=>data.by_date[k]);
+      if(dateChart) dateChart.destroy();
+      dateChart = new Chart(document.getElementById('dateChart'), {type:'line',data:{labels:dKeys,datasets:[{label:'Visits',data:dValues,fill:false,borderColor:'#2d62ff'}]}});
+      // update CSV link
+      const csvLink = document.getElementById('downloadCsv');
+      const params = new URLSearchParams();
+      const f = document.getElementById('filterFrom').value;
+      const t = document.getElementById('filterTo').value;
+      const m = document.getElementById('filterManager').value;
+      const r = document.getElementById('filterRegion').value;
+      if(f) params.set('from', f);
+      if(t) params.set('to', t);
+      if(m) params.set('manager', m);
+      if(r) params.set('region', r);
+      csvLink.href = '/sales/export.csv' + (params.toString() ? ('?' + params.toString()) : '');
+    }
+    document.getElementById('applyFilters').addEventListener('click', loadStats);
+    document.getElementById('clearFilters').addEventListener('click', ()=>{document.getElementById('filterFrom').value='';document.getElementById('filterTo').value='';document.getElementById('filterManager').value='';document.getElementById('filterRegion').value='';loadStats();});
+    loadStats();
+  </script>
+</body>
+</html>

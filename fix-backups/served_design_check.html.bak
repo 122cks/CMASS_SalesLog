@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CMASS 영업일지 시스템</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    :root{
+      --bg1:#0f2a4a;
+      --bg2:#26529a;
+      --card-grad:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.02));
+      --white-90:rgba(255,255,255,0.9);
+      --btn-bg:#fff;
+      --btn-color:#123a62;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:'Segoe UI','Malgun Gothic',sans-serif;background:linear-gradient(180deg,var(--bg1),var(--bg2));display:flex;align-items:center;justify-content:center;padding:28px;color:var(--white-90)}
+    .wrap{width:100%;max-width:460px}
+    .card{background:var(--card-grad);padding:34px;border-radius:14px;box-shadow:0 18px 50px rgba(6,16,40,0.6);text-align:center}
+    .logo-wrap{width:140px;height:84px;margin:0 auto 12px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(0,0,0,0.24)}
+    .logo{max-width:100%;max-height:72px}
+    h1{margin:8px 0 6px;font-size:24px;color:#fff}
+    p.lead{margin:0 0 18px;color:rgba(255,255,255,0.88);font-weight:700}
+    .btn{display:block;background:var(--btn-bg);color:var(--btn-color);padding:14px 18px;border-radius:12px;margin:10px auto;width:320px;max-width:94%;text-decoration:none;font-weight:700;font-size:16px;box-shadow:0 8px 28px rgba(10,30,70,0.18)}
+    .btn:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(10,30,70,0.22)}
+    .muted-note{margin-top:18px;color:rgba(255,255,255,0.78);font-size:14px}
+    .version{position:fixed;right:12px;bottom:10px;color:rgba(255,255,255,0.65);font-size:12px}
+    @media (max-width:420px){.logo-wrap{width:110px;height:64px}.btn{width:100%}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="logo-wrap">
+        <img class="logo" src="/assets/CMASS_LOGO.png" alt="CMASS" onerror="this.style.display='none'" />
+      </div>
+      <h1>CMASS 영업일지 시스템</h1>
+      <p class="lead">간편한 영업일지 입력과 내보내기</p>
+
+  <a class="btn" href="/sales-input.html?user=SongHoonjae">송훈재 영업일지</a>
+  <a class="btn" href="/sales-input.html?user=LimJunHo">임준호 영업일지</a>
+  <a class="btn" href="/sales-input.html?user=ChoYounghwan">조영환 영업일지</a>
+
+      <div class="muted-note">목록에서 기록을 확인하거나, 관리자는 대시보드를 사용하세요.</div>
+    </div>
+  </div>
+  <div class="version">build: 2025-10-22-06</div>
+</body>
+</html>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  try{
+    const startEl = document.getElementById('filterStart');
+    const endEl = document.getElementById('filterEnd');
+    if (startEl && endEl && !startEl.value && !endEl.value){
+      function fmt(d){ const y=d.getFullYear(); const m=(d.getMonth()+1).toString().padStart(2,'0'); const day=d.getDate().toString().padStart(2,'0'); return `${y}-${m}-${day}`; }
+      function weekRangeFor(ref){ const d=new Date(ref.getFullYear(), ref.getMonth(), ref.getDate()); const dow=d.getDay(); const diffToMon=(dow===0)? -6 : (1-dow); const mon=new Date(d); mon.setDate(d.getDate()+diffToMon); const sun=new Date(mon); sun.setDate(mon.getDate()+6); return [mon,sun]; }
+      const today=new Date(); const isMonday=(today.getDay()===1); const ref=new Date(today); if(isMonday) ref.setDate(ref.getDate()-7); const [mon,sun]=weekRangeFor(ref); startEl.value=fmt(mon); endEl.value=fmt(sun);
+    }
+  }catch(e){ console.warn('default range snippet failed', e); }
+});
+</script>

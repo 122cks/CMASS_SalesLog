@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1e3c72">
+  <title>영업일지 입력</title>
+  <!-- cmass-deploy-marker: 2025-11-02T00:00:00Z -->
+  <!-- Load external deps. PapaParse removed in favor of a small in-file toCSV helper. -->
+  <script src="/neis_grid.js" defer></script>
+  <!-- Early removal of any legacy redirect banners or links to the input page.
+    This runs immediately in the head and observes DOM mutations to remove
+    any nodes (or anchors) that mention deprecated URLs so users don't see
+    stray "Redirecting to input(.html)" messages even briefly. -->
+  <script>
+    // Lightweight, robust debug + meta helper (rewritten to avoid syntax issues).
+    (function(){
+      function updateDebugOverlay(){
+        try{
+          const ov = document.getElementById('cmass-debug-overlay');
+          if (!ov) return;
+          const s = document.getElementById('dbgStaff'); if (s) s.textContent = (window._cmass_staffParam || (typeof getStaffFromQuery === 'function' ? getStaffFromQuery() : '')) || '-';
+          const r = document.getElementById('dbgRegion'); if (r) r.textContent = (window.selectedRegion || window.selectedRegion || '-') ;
+          const sc = document.getElementById('dbgSchool'); if (sc) sc.textContent = (window.selectedSchool || (document.getElementById('selectedSchoolInput')||{}).value || '-') ;
+          const pm = document.getElementById('dbgMeta');
+          const meta = window._cmass_lastFoundMeta || null;
+          if (pm) pm.textContent = meta ? JSON.stringify(meta, null, 2) : '(없음)';
+          ov.style.display = 'block';
+        }catch(e){ console.warn('updateDebugOverlay failed', e); }
+      }
+
+      document.addEventListener('click', function(ev){ if (ev.target && ev.target.id === 'dbgHide'){ const el = document.getElementById('cmass-debug-overlay'); if(el) el.style.display='none'; } });
+
+      // Remove common legacy redirects if present
+      function removeLegacyRedirects(){
+        try{
+          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+          const toRemove = [];
+          while(walker.nextNode()){
+            const t = walker.currentNode;
+            if(/Redirecting to\s*input(\.html)?/i.test(t.nodeValue || '')) toRemove.push(t);
+          }
+          toRemove.forEach(n => n.parentNode && n.parentNode.removeChild(n));
+          const anchors = Array.from(document.querySelectorAll('a[href*="/input"]'));
+          anchors.forEach(a => a.remove());
+        }catch(e){ /* tolerate */ }
+      }
+
+      // Apply meta when available: normalize keys and write to small span ids.
+      function applyMeta(meta){
+        try{
+          if(!meta) return;
+          window._cmass_lastFoundMeta = meta;
+          // Ensure inline/detailed meta panels are visible when we have meta
+          try{
+            const inline = document.getElementById('schoolMetaInline');
+            const full = document.getElementById('schoolMeta');
+            if(inline) inline.style.display = 'block';
+            if(full) full.style.display = 'block';
+          }catch(e){}
+
+          // helper to resolve multiple possible key names for a value
+          function pickMeta(obj, candidates){
+            if(!obj) return null;
+            for(const k of candidates){ if(typeof obj[k] !== 'undefined' && obj[k] !== null && String(obj[k]).trim() !== '') return obj[k]; }
+            return null;
+          }
+
+          // populate summary pills (establish / level / students / feature)
+          try{
+            const est = pickMeta(meta, ['설립','establish','established','establishment','설립형태']);
+            const lvl = pickMeta(meta, ['급','level','schoolLevel','급별']);
+            const tot = pickMeta(meta, ['총학생수','studentsTotal','totalStudents','총학생']);
+            const feat = pickMeta(meta, ['특성','feature','special','특성화']);
+            const inlineEst = document.getElementById('inlinePillEstablish'); if(inlineEst) inlineEst.textContent = est ? ('설립: ' + String(est)) : '설립: -';
+            const inlineLvl = document.getElementById('inlinePillLevel'); if(inlineLvl) inlineLvl.textContent = lvl ? ('급: ' + String(lvl)) : '급: -';
+            const inlineTot = document.getElementById('inlinePillStudents'); if(inlineTot) inlineTot.textContent = tot ? ('총학생수: ' + String(tot)) : '총학생수: -';
+            const inlineFeat = document.getElementById('inlinePillFeature'); if(inlineFeat) { inlineFeat.style.display = feat ? '' : 'none'; if(feat) inlineFeat.textContent = '특성: ' + String(feat); }
+
+            const midEst = document.getElementById('metaPillEstablish'); if(midEst) midEst.textContent = est ? ('설립: ' + String(est)) : '설립: -';
+            const midLvl = document.getElementById('metaPillLevel'); if(midLvl) midLvl.textContent = lvl ? ('급: ' + String(lvl)) : '급: -';
+            const midTot = document.getElementById('metaPillStudents'); if(midTot) midTot.textContent = tot ? ('총학생수: ' + String(tot)) : '총학생수: -';
+            const midFeat = document.getElementById('metaPillFeature'); if(midFeat) { midFeat.style.display = feat ? '' : 'none'; if(feat) midFeat.textContent = '특성: ' + String(feat); }
+          }catch(e){}
+          const grades = [1,2,3];
+          grades.forEach(g => {
+            const classKeys = [ `${g}학년학급수`, `${g}학년_학급수`, `${g}학급수`, `${g}학급`, `${g}GradeClassCount` ];
+            const studentKeys = [ `${g}학년학생수`, `${g}학년_학생수`, `${g}학생수`, `${g}학생`, `${g}GradeStudentCount` ];
+            const avgKeys = [ `${g}학년학급당학생수`, `${g}학급당학생수`, `${g}학급당`, `${g}AvgStudentsPerClass` ];
+
+            let c = null, s = null, avg = null;
+            for(const k of classKeys) if(meta[k] !== undefined){ c = Number(meta[k]) || c; break; }
+            for(const k of studentKeys) if(meta[k] !== undefined){ s = Number(meta[k]) || s; break; }
+            for(const k of avgKeys) if(meta[k] !== undefined){ avg = Number(meta[k]) || avg; break; }
+
+            // If class count missing but students+avg present, estimate
+            if((c === null || Number.isNaN(c)) && (s !== null && avg !== null && avg > 0)){
+              c = Math.max(1, Math.round(s / avg));
+            }
+
+            const idClass = 'inlineG' + g + 'c';
+            const idStudent = 'inlineG' + g + 's';
+            const elc = document.getElementById(idClass);
+            const els = document.getElementById(idStudent);
+            if(elc) elc.textContent = (c === null || Number.isNaN(c)) ? '-' : String(c);
+            if(els) els.textContent = (s === null || Number.isNaN(s)) ? '-' : String(s);
+            // also populate metaG* ids for the detailed panel if present
+            const midc = document.getElementById('metaG' + g + 'c');
+            const mids = document.getElementById('metaG' + g + 's');
+            if(midc) midc.textContent = (c === null || Number.isNaN(c)) ? '-' : String(c);
+            if(mids) mids.textContent = (s === null || Number.isNaN(s)) ? '-' : String(s);
+          });
+          // ensure debug overlay also updates visibility
+          updateDebugOverlay();
+        }catch(e){ console.warn('applyMeta error', e); }
+      }
+
+      // Watch for dbgMeta content changes (some code writes JSON there)
+      function watchDbgMeta(){
+        try{
+          const dbg = document.getElementById('dbgMeta');
+          if(!dbg) return;
+          const mo = new MutationObserver(()=>{
+            try{
+              const txt = (dbg.textContent || '').trim();
+              if(txt && txt !== '(없음)'){
+                try{ const parsed = JSON.parse(txt); if(parsed) applyMeta(parsed); }catch(e){}
+              }
+            }catch(e){}
+          });
+          mo.observe(dbg, { childList: true, characterData: true, subtree: true });
+        }catch(e){}
+      }
+
+      // initialize when DOM ready
+      document.addEventListener('DOMContentLoaded', function(){ removeLegacyRedirects(); watchDbgMeta(); if(window._cmass_lastFoundMeta) applyMeta(window._cmass_lastFoundMeta); });
+
+      // expose for tests / external code
+      window.applyMeta = applyMeta;
+      window.updateDebugOverlay = updateDebugOverlay;
+    })();
+  </script>
+
+  <style>
+    /* moved inline CSS into a style block to avoid parser errors */
+    #schoolMetaInline, #schoolMeta {
+      display:none;
+      padding:22px 20px;
+      border-radius:14px;
+      background:linear-gradient(180deg,#ffffff 0%, #f7f8ff 100%);
+      border:1px solid #e2e8ff;
+      box-shadow:0 18px 48px rgba(10,28,64,0.12);
+      color:#071a2e;
+      font-size:16.5px;
+      line-height:1.6;
+      margin-top:1rem;
+      position:relative;
+      overflow:visible;
+    }
+    /* accent stripe on the left (wider for better affordance) */
+    #schoolMetaInline::before, #schoolMeta::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 8px;
+      bottom: 8px;
+      width: 10px;
+      border-radius: 8px;
+      background: linear-gradient(180deg,#556ee8,#6b4bb0);
+      box-shadow: 0 4px 14px rgba(80,90,160,0.08);
+    }
+    #schoolMetaInline h4, #schoolMeta h4 { margin:0 0 .6rem 18px; font-size:19px; color:#06203f; font-weight:900 }
+    .grade-rows { display:block; margin-top:12px; }
+    .grade-row { display:grid; grid-template-columns:120px 1fr; gap:12px; align-items:center; margin:8px 0; }
+    .grade-row .grade-label { font-weight:900; color:#0d304f; font-size:15px }
+    .grade-row .grade-value { color:#072042; font-size:15px; display:flex; gap:8px; align-items:baseline }
+    .grade-row .grade-value span { font-weight:900; color:#0b2b5a; font-size:17px }
+    .meta-key { font-weight:900; font-size:15px; color:#092b4a; }
+    .grade-row .small-note { color:#4e5b73; font-size:13px; margin-left:6px }
+    .meta-summary { display:flex; gap:14px; margin:8px 12px 6px 12px; }
+    .meta-summary .meta-pill { background:#f3f6ff; padding:.45rem .7rem; border-radius:10px; border:1px solid #e0e8ff; color:#082044; font-weight:800; font-size:14px }
+  </style>
+  <style>
+  table.timetable { border-collapse:collapse; width:100%; font-size:11px; line-height:1.12; }
+  /* compact cells to reduce wrapping in timetable; use !important to override inline JS styles */
+  .timetable-wrapper table.timetable th,
+  .timetable-wrapper table.timetable td { border:1px solid #e6eefc; padding:4px 6px !important; font-size:11px !important; vertical-align:top; }
+  /* Force single-line cells: prevent wrapping, show ellipsis when truncated, allow horizontal scroll */
+  .timetable-wrapper table.timetable th,
+  .timetable-wrapper table.timetable td {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 260px; /* reasonable cap to help ellipsis; adjust as needed */
+  }
+  /* For narrow mobile screens, cap width tighter */
+  @media (max-width:600px) {
+    .timetable-wrapper table.timetable th,
+    .timetable-wrapper table.timetable td { max-width: 140px; }
+  }
+  /* sticky header row and sticky first column (반/학급 or 교시) within the scroll wrapper */
+  .timetable-wrapper table.timetable thead th { position:sticky; top:0; background:#f7fbff; z-index:3; }
+  .timetable-wrapper table.timetable th:first-child,
+  .timetable-wrapper table.timetable td:first-child { position:sticky; left:0; background:#f7fbff; z-index:2; }
+  /* ensure the top-left corner cell stays above both header and first column */
+  .timetable-wrapper table.timetable thead th:first-child { z-index:4; }
+  /* Mobile tweaks: slightly smaller font and tighter padding for narrow screens */
+  @media (max-width:600px) {
+    .timetable-wrapper table.timetable { font-size:10px; }
+    .timetable-wrapper table.timetable th,
+    .timetable-wrapper table.timetable td { padding:3px 5px !important; font-size:10px !important; }
+    .timetable-wrapper { max-height:60vh; }
+  }
+  .current-period { background:#ffeaa7 !important; border:1px solid #f1c40f !important; }
+  </style>
+  <!-- Portrait-lock overlay styles and element -->
+  <style id="cmass-landscape-style">
+    #cmass-landscape-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(8,12,30,0.92); color:#fff; z-index:99999; text-align:center; padding:2rem; -webkit-user-select:none; user-select:none; }
+    #cmass-landscape-overlay .card { max-width:420px; background:transparent; }
+    #cmass-landscape-overlay h3 { font-size:1.4rem; margin-bottom:0.6rem }
+    #cmass-landscape-overlay p { opacity:0.95; line-height:1.4 }
+  </style>
+  <div id="cmass-landscape-overlay" aria-hidden="true"><div class="card"><h3>세로 모드에서만 사용하세요</h3><p>기기를 세로로 돌려주세요. 화면을 가로로 돌리는 동안 입력이 사라지는 문제를 막기 위해 잠시 사용을 제한합니다.</p>
+    <div style="margin-top:12px;text-align:center">
+      <button id="cmass-overlay-lock-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px;margin-right:8px">세로로 전환</button>
+      <button id="cmass-overlay-retry-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px">다시 시도</button>
+      <div style="margin-top:8px;font-size:12px;opacity:0.95;color:#eef">(버튼을 누르면 가능하면 화면을 세로로 고정합니다)</div>
+      <div id="cmass-overlay-ios-help" style="margin-top:8px;font-size:13px;opacity:0.95;color:#eef;display:none">
+        iOS/Safari에서는 자동 고정이 지원되지 않을 수 있습니다. 기기를 직접 세로로 돌려주시거나, 아래 '다시 시도'를 눌러보세요.
+      </div>
+    </div></div></div>
+  <script>
+    (function(){
+      // Only show the portrait-lock overlay on mobile-like devices.
+      // Desktop users (large screens / non-mobile UA) should not see this overlay.
+      function isMobileDevice(){
+        try{
+          const ua = navigator.userAgent || '';
+          const mobileUA = /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i;
+          const hasTouch = (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || ('ontouchstart' in window);
+          const narrowScreen = (typeof screen !== 'undefined' && screen.width) ? screen.width <= 1024 : false;
+          return mobileUA.test(ua) || (hasTouch && narrowScreen);
+        }catch(e){ return false; }
+      }
+      function updatePortraitOverlay(){
+        try{
+          const overlay = document.getElementById('cmass-landscape-overlay');
+          try{ if (sessionStorage && sessionStorage.getItem && sessionStorage.getItem('cmass_overlay_dismissed')){ if (overlay) overlay.style.display = 'none'; return; } }catch(e){}
+          const mobile = isMobileDevice();
+          // Determine landscape using reliable sources (prefer matchMedia / screen.orientation)
+          let isLandscape = false;
+          try{
+            if (window.matchMedia && window.matchMedia('(orientation: landscape)').matches) isLandscape = true;
+            else if (screen && screen.orientation && typeof screen.orientation.type === 'string') isLandscape = screen.orientation.type.indexOf('landscape') === 0;
+            else if (typeof screen !== 'undefined' && screen.width && screen.height) isLandscape = screen.width > screen.height;
+          }catch(e){ /* fallback below */ }
+
+          if (mobile && isLandscape) {
+            if (overlay) overlay.style.display = 'flex';
+            try{ document.documentElement.style.overflow = 'hidden'; }catch(e){}
+            try{ if (screen.orientation && screen.orientation.lock) screen.orientation.lock('portrait').catch(()=>{}); }catch(e){}
+          } else {
+            if (overlay) overlay.style.display = 'none';
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+          }
+        }catch(e){/* ignore */}
+      }
+      window.addEventListener('resize', updatePortraitOverlay);
+      window.addEventListener('orientationchange', updatePortraitOverlay);
+      document.addEventListener('DOMContentLoaded', function(){
+          updatePortraitOverlay();
+          // show iOS help text when appropriate
+          try{
+            const isiOS = /iP(hone|od|ad)/i.test(navigator.userAgent || '');
+            const help = document.getElementById('cmass-overlay-ios-help');
+            if (isiOS && help) help.style.display = '';
+          }catch(e){}
+        // wire up the manual lock/dismiss button
+        try{
+          const btn = document.getElementById('cmass-overlay-lock-btn');
+          if (btn) btn.addEventListener('click', async function(){
+            const overlay = document.getElementById('cmass-landscape-overlay');
+            try{
+              if (screen && screen.orientation && typeof screen.orientation.lock === 'function'){
+                await screen.orientation.lock('portrait');
+              }
+            }catch(e){ /* locking may fail in some browsers, ignore */ }
+            try{ if (overlay) overlay.style.display = 'none'; }catch(e){}
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+            try{ sessionStorage.setItem('cmass_overlay_dismissed','1'); }catch(e){}
+          });
+          // retry button: useful for iOS/Safari where lock may fail; hide overlay and prompt user
+          const retryBtn = document.getElementById('cmass-overlay-retry-btn');
+          if (retryBtn) retryBtn.addEventListener('click', async function(){
+            const overlay = document.getElementById('cmass-landscape-overlay');
+            try{
+              if (screen && screen.orientation && typeof screen.orientation.lock === 'function'){
+                await screen.orientation.lock('portrait');
+              } else {
+                // show a brief guidance toast/alert for iOS users
+                try{ alert('이 브라우저에서는 자동 고정이 지원되지 않을 수 있습니다. 기기를 직접 세로로 돌려주세요.'); }catch(e){}
+              }
+            }catch(e){ try{ alert('세로 고정 시도에 실패했습니다. 기기를 직접 세로로 돌려주세요.'); }catch(er){} }
+            try{ if (overlay) overlay.style.display = 'none'; }catch(e){}
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+            try{ sessionStorage.setItem('cmass_overlay_dismissed','1'); }catch(e){}
+          });
+          // hide overlay automatically while typing: when any focusable text input is focused, hide overlay
+          document.addEventListener('focusin', function(ev){
+            try{
+              const t = ev.target;
+              if (!t) return;
+              const tag = (t.tagName || '').toLowerCase();
+              const type = (t.type || '').toLowerCase();
+              const isTextInput = tag === 'input' && (type === 'text' || type === 'search' || type === 'tel' || type === 'email' || type === 'number' || type === 'password') || tag === 'textarea' || (t.isContentEditable);
+              if (isTextInput){ const overlay = document.getElementById('cmass-landscape-overlay'); if (overlay) overlay.style.display = 'none'; }
+            }catch(e){}
+          });
+          // when input blur, re-evaluate overlay after short delay
+          document.addEventListener('focusout', function(){ setTimeout(updatePortraitOverlay, 300); });
+        }catch(e){}
+      });
+    })();
+  </script>
+  <style id="pinProceed-style">#pinProceed{margin-top:12px;padding:.7rem 1rem;border-radius:.8rem;border:none;background:#1e3c72;color:#fff;font-weight:800;cursor:pointer}</style>
+  <script>
+    // Lightweight modal confirm and toast helpers to replace native confirm/alert
+    (function(){
+      function ensureModal() {
+        if (document.getElementById('cmass-confirm-modal')) return;
+        const tpl = document.createElement('div');
+        tpl.id = 'cmass-confirm-modal';
+        tpl.style.display = 'none';
+        tpl.innerHTML = '\n          <div class="cmass-modal-backdrop" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);z-index:99999">\n            <div class="cmass-modal-card" style="background:#fff;color:#072042;padding:18px;border-radius:10px;max-width:420px;width:92%;box-shadow:0 12px 30px rgba(2,6,23,0.35);text-align:center">\n              <div id="cmass-modal-msg" style="margin-bottom:14px;white-space:pre-wrap;text-align:left"></div>\n              <div style="text-align:right">\n                <button id="cmass-modal-no" class="alt-btn" style="margin-right:8px;padding:8px 12px;border-radius:8px">취소</button>\n                <button id="cmass-modal-yes" style="padding:8px 12px;border-radius:8px;background:#1e88e5;color:#fff;border:none">확인</button>\n              </div>\n            </div>\n          </div>';
+        document.body.appendChild(tpl);
+      }
+      window.showConfirmModal = function(message){
+        ensureModal();
+        const root = document.getElementById('cmass-confirm-modal');
+        const msg = root.querySelector('#cmass-modal-msg');
+        const yes = root.querySelector('#cmass-modal-yes');
+        const no = root.querySelector('#cmass-modal-no');
+        msg.textContent = message || '';
+        root.style.display = '';
+        return new Promise((resolve)=>{
+          function cleanup(val){ root.style.display = 'none'; yes.removeEventListener('click', onYes); no.removeEventListener('click', onNo); resolve(val); }
+          function onYes(){ cleanup(true); }
+          function onNo(){ cleanup(false); }
+          yes.addEventListener('click', onYes);
+          no.addEventListener('click', onNo);
+        });
+      };
+    })();
+  </script>
+</head>
+<body>
+  <!-- Temporary: attempt to unregister any existing service-workers on first load to avoid serving stale cached HTML/assets -->
+  <script>
+    (function(){
+      try{
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(regs){ regs.forEach(r=>{ try{ r.unregister(); }catch(e){} }); }).catch(()=>{});
+        }
+      }catch(e){}
+    })();
+  </script>
+  <!-- Diagnostic error overlay: shows uncaught JS errors and offers quick actions (unregister SW / reload) -->
+  <div id="cmass-error-overlay" style="display:none;position:fixed;inset:12px;background:rgba(12,12,14,0.9);color:#fff;z-index:999999;padding:18px;border-radius:10px;overflow:auto;font-family:Segoe UI,Arial,Helvetica;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;">
+      <strong style="font-size:1.05rem">페이지 오류가 발생했습니다</strong>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="cmass-unregister-sw" style="background:#ff7043;border:none;color:#fff;padding:.5rem .7rem;border-radius:.5rem;cursor:pointer">서비스워커 해제</button>
+        <button id="cmass-reload" style="background:#2b6cff;border:none;color:#fff;padding:.5rem .7rem;border-radius:.5rem;cursor:pointer">새로고침</button>
+        <button id="cmass-hide-overlay" style="background:transparent;border:1px solid #fff;color:#fff;padding:.4rem .6rem;border-radius:.5rem;cursor:pointer">닫기</button>
+      </div>
+    </div>
+    <pre id="cmass-error-text" style="white-space:pre-wrap;color:#ffecec;background:transparent;border-radius:6px;padding:8px;font-size:0.95rem;line-height:1.35;">(오류가 표시됩니다)</pre>
+  </div>
+  <!-- Temporary debug overlay: shows staffParam, selected region/school and last found meta -->
+  <div id="cmass-debug-overlay" style="position:fixed;right:12px;bottom:12px;z-index:999999;background:rgba(255,255,255,0.95);color:#072042;border:1px solid rgba(2,18,40,0.08);padding:10px;border-radius:8px;box-shadow:0 6px 20px rgba(8,20,40,0.12);font-size:13px;max-width:360px;max-height:220px;overflow:auto;display:none;font-family:Segoe UI,Arial,Helvetica;">
+    <div style="font-weight:800;margin-bottom:6px;color:#0b2b5a">디버그 정보</div>
+    <div style="margin-bottom:6px;"><strong>담당자:</strong> <span id="dbgStaff">-</span></div>
+    <div style="margin-bottom:6px;"><strong>지역:</strong> <span id="dbgRegion">-</span></div>
+    <div style="margin-bottom:6px;"><strong>학교:</strong> <span id="dbgSchool">-</span></div>
+    <div style="margin-bottom:6px;white-space:pre-wrap;"><strong>매칭(meta):</strong>
+      <pre id="dbgMeta" style="margin:6px 0 0 0;padding:8px;background:#f6f8ff;border-radius:6px;max-height:96px;overflow:auto;font-size:12px;color:#06203f">(없음)</pre>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:6px;">
+      <div style="display:flex;gap:8px;align-items:center">
+        <strong style="font-size:0.95rem">병합 모드:</strong>
+        <button id="cmass-merge-toggle" style="padding:6px 10px;border-radius:8px;border:1px solid #d6dbe8;background:#fff;color:#12325a;cursor:pointer">매핑 우선</button>
+      </div>
+      <div style="text-align:right"><button id="dbgHide" style="background:transparent;border:none;color:#2b6cff;cursor:pointer">닫기</button></div>
+    </div>
+  </div>
+  <script>
+    // Mapping merge mode helpers: persist choice in localStorage and expose toggle UI
+    (function(){
+      function getMappingOverrides(){
+        try{
+          const stored = localStorage.getItem('cmass_mappingOverridesCsv');
+          if (stored !== null) return (stored === '1' || stored === 'true');
+        }catch(e){}
+        if (window.CMASS_OPTIONS && typeof window.CMASS_OPTIONS.mappingOverridesCsv !== 'undefined') return !!window.CMASS_OPTIONS.mappingOverridesCsv;
+        // Default: mapping 우선 (요청에 따라 기본을 매핑 우선으로 변경)
+        return true;
+      }
+      function setMappingOverrides(v){ try{ localStorage.setItem('cmass_mappingOverridesCsv', v ? '1':'0'); }catch(e){} }
+      function updateMergeToggleUI(){ const btn = document.getElementById('cmass-merge-toggle'); if(!btn) return; const val = getMappingOverrides(); btn.textContent = val ? '매핑 우선' : 'CSV 우선'; btn.setAttribute('aria-pressed', val ? 'true' : 'false'); }
+      document.addEventListener('DOMContentLoaded', function(){ try{ updateMergeToggleUI(); const btn = document.getElementById('cmass-merge-toggle'); if(btn){ btn.addEventListener('click', function(){ try{ const cur = getMappingOverrides(); setMappingOverrides(!cur); updateMergeToggleUI(); try{ if (typeof showToast === 'function') showToast('병합 모드가 변경되었습니다. 페이지를 새로고침합니다.', 1400); }catch(e){} setTimeout(()=>location.reload(), 600); }catch(e){ console.warn('merge toggle failed', e); } }); } }catch(e){} });
+      // expose getter for other scripts
+      try{ window.getCMASSMappingOverrides = getMappingOverrides; }catch(e){}
+    })();
+  </script>
+  <script>
+    // Global diagnostic error handlers: show overlay on uncaught errors / rejections
+    (function(){
+      function showError(text){
+        try{
+          const ov = document.getElementById('cmass-error-overlay');
+          const pre = document.getElementById('cmass-error-text');
+          if (pre) pre.textContent = (text && text.stack) ? (text.stack + '\n') : (typeof text === 'string' ? text : JSON.stringify(text,null,2));
+          if (ov) ov.style.display = 'block';
+          console.error('CMASS error:', text);
+        }catch(e){console.error('showError failed', e)}
+      }
+      window.addEventListener('error', function(ev){
+        try{ showError(ev.error || ev.message || ev); }catch(e){}
+      });
+      window.addEventListener('unhandledrejection', function(ev){
+        try{ showError(ev.reason || ev); }catch(e){}
+      });
+      // buttons
+      document.addEventListener('click', function(e){
+        const t = e.target;
+        if (!t) return;
+        if (t.id === 'cmass-reload') { location.reload(true); }
+        if (t.id === 'cmass-hide-overlay') { document.getElementById('cmass-error-overlay').style.display='none'; }
+        if (t.id === 'cmass-unregister-sw') {
+          try{
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function(regs){
+                regs.forEach(r=>{ r.unregister().catch(()=>{}); });
+                alert('서비스워커 등록 해제를 시도했습니다. 새로고침 후 확인하세요.');
+              }).catch(()=>alert('서비스워커 해제 실패'));
+            } else alert('이 브라우저는 서비스워커를 지원하지 않습니다.');
+          }catch(e){alert('서비스워커 해제 중 오류: '+(e && e.message));}
+        }
+      });
+    })();
+  </script>
+
+  <!-- pinProceed style moved to head as a proper <style> block to avoid HTML inside <script> -->
+
+  <div id="pinOverlay" style="display:none;">
+    <div id="pinBox" role="dialog" aria-labelledby="pinTitle" aria-modal="true">
+      <h3 id="pinTitle">영업일지 접근 인증</h3>
+      <p id="pinDesc">본인 영업일지에 접근하려면 4자리 PIN을 입력하세요.</p>
+      <div id="pinError" style="color:#a00;margin-top:8px"></div>
+      <div style="margin-top:10px;text-align:right"><button id="pinProceed">입력</button></div>
+    </div>
+  </div>
+  <script>
+    // Canonicalize legacy lowercase user tokens to canonical tokens so address bar shows consistent URLs.
+    (function canonUserParam(){
+      try{
+        const params = new URLSearchParams(window.location.search);
+        const user = params.get('user');
+        if (!user) return;
+        const canonMap = {
+          'songhunje': 'Songhoonjae',
+          'songhoonjae': 'Songhoonjae',
+          'imjunho': 'LimJunho',
+          'limjunho': 'LimJunho',
+          'joyounghwan': 'ChoYounghwan',
+          'choyounghwan': 'ChoYounghwan'
+        };
+        const lower = user.toLowerCase();
+        const mapped = canonMap[lower];
+        if (mapped && mapped !== user) {
+          params.set('user', mapped);
+          const newUrl = window.location.pathname + '?' + params.toString();
+          history.replaceState(null, '', newUrl);
+        }
+      } catch(e){ console.warn('canonUserParam error', e); }
+    })();
+  </script>
+  <div style="width:95vw;max-width:640px;margin:0 auto 8px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+  <h2 style="margin:0;flex:0 0 auto">영업일지 입력</h2>
+  <!-- single-line topline: 방문일 · 담당자 · 지역 · 학교 -->
+  <div id="cmass-topline" style="flex:1 1 auto;margin:0 12px;color:#12325a;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">&nbsp;</div>
+  <button id="goFrontBtn" type="button" style="background:#1e3c72;color:#fff;border:none;padding:.6rem .9rem;border-radius:.8rem;font-weight:800;cursor:pointer;box-shadow:0 8px 22px rgba(18,50,90,0.12);">뒤로 가기</button>
+  </div>
+  <script>
+    (function(){
+      // Remove any leftover redirect banner or links that mention the old .html legacy URL
+      function removeLegacyRedirectBanner(){
+        try{
+          const walkers = Array.from(document.querySelectorAll('a, p, div, span'));
+          walkers.forEach(el => {
+            try{
+              const txt = (el.textContent || '').toString();
+              if (/redirecting to/i.test(txt) && /input(\.html)?/i.test(txt)) {
+                el.remove();
+                return;
+              }
+              if (el.tagName.toLowerCase() === 'a' && el.getAttribute('href') && /input(\.html)?/i.test(el.getAttribute('href'))) {
+                el.remove();
+                return;
+              }
+            }catch(e){}
+          });
+          Array.from(document.body.childNodes).forEach(n => {
+            try{
+              if (n.nodeType === Node.TEXT_NODE && /Redirecting to\s+input(\.html)?/i.test(n.textContent||'')) {
+                if (n.parentNode) n.parentNode.removeChild(n);
+              }
+            }catch(e){}
+          });
+        }catch(e){/* ignore */}
+      }
+
+      function navigateBackToFront(){
+        const query = window.location.search || '';
+        const fallbackUrl = '/front' + query;
+        const cleanup = () => document.removeEventListener('visibilitychange', onVisibility, false);
+        let navigated = false;
+        const onVisibility = () => { navigated = true; cleanup(); };
+        document.addEventListener('visibilitychange', onVisibility, false);
+
+        const goFallback = () => {
+          cleanup();
+          try{ window.location.assign(fallbackUrl); }catch(e){ window.location.href = fallbackUrl; }
+        };
+
+        try{
+          if (window.history && window.history.length > 1) {
+            history.back();
+            setTimeout(() => { if (!navigated) goFallback(); }, 450);
+          } else {
+            goFallback();
+          }
+        }catch(e){
+          goFallback();
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', function(){
+        removeLegacyRedirectBanner();
+        const btn = document.getElementById('goFrontBtn');
+        if (btn) {
+          btn.addEventListener('click', function(ev){
+            ev.preventDefault();
+            navigateBackToFront();
+          });
+        }
+      });
+    })();
+  </script>
+  <div id="step1">
+    <form>
+  <label for="visitDate">방문일</label>
+  <input type="date" id="visitDate" name="visitDate" required style="padding:.7rem;border-radius:.8rem;border:1px solid #d6dbe8;margin-bottom:.6rem;" />
+  <div id="staffInfo" style="font-size:1.2rem;font-weight:bold;margin-bottom:1rem;">담당자: -</div>
+  <label>지역</label>
+  <div style="display:flex;gap:.5rem;margin-bottom:.6rem;align-items:center;">
+    <input id="searchInput" type="search" placeholder="지역 또는 학교 검색" style="flex:1;padding:.7rem;border-radius:.8rem;border:1px solid #d6dbe8;" aria-label="지역 또는 학교 검색" />
+    <button type="button" id="searchClear" style="padding:.6rem .8rem;border-radius:.8rem;border:1px solid #d6dbe8;background:#fff;">지우기</button>
+  </div>
+  <div id="regionButtons" class="btn-grid" role="listbox" aria-label="지역 선택"></div>
+    <label>학교명</label>
+    <div id="schoolButtons" class="btn-grid" role="listbox" aria-label="학교명 선택"></div>
+    <!-- inline school metadata shown immediately after selecting a school -->
+    <div id="schoolMetaInline" class="meta-card" style="display:none;">
+      <h4>학교 정보</h4>
+      <div class="meta-summary">
+        <div class="meta-pill" id="inlinePillEstablish">설립: -</div>
+        <div class="meta-pill" id="inlinePillLevel">급: -</div>
+        <div class="meta-pill" id="inlinePillStudents">총학생수: -</div>
+        <div class="meta-pill" id="inlinePillFeature" style="display:none;">특성: -</div>
+      </div>
+      <div class="grade-rows">
+        <div class="grade-row"><div class="grade-label">1학년:</div><div class="grade-value"><span id="inlineG1c"></span> 학급 / <span id="inlineG1s"></span> 학생</div></div>
+        <div class="grade-row"><div class="grade-label">2학년:</div><div class="grade-value"><span id="inlineG2c"></span> 학급 / <span id="inlineG2s"></span> 학생</div></div>
+        <div class="grade-row"><div class="grade-label">3학년:</div><div class="grade-value"><span id="inlineG3c"></span> 학급 / <span id="inlineG3s"></span> 학생</div></div>
+      </div>
+      <!-- Inline NEIS timetable controls for quick lookup when selecting from the list -->
+      <div style="margin-top:12px;padding-top:8px;border-top:1px dashed #e6eefc;">
+        <label style="font-weight:900;display:block;margin-bottom:6px;">시간표 가져오기 (NEIS)</label>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+          <select id="inlineNeisYear" style="padding:.45rem;border-radius:.5rem;border:1px solid #d6dbe8;"> 
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+          </select>
+          <select id="inlineNeisSemester" style="padding:.45rem;border-radius:.5rem;border:1px solid #d6dbe8;">
+            <option value="1">1학기</option>
+            <option value="2" selected>2학기</option>
+          </select>
+          <button type="button" id="btnFetchSelectedTimetableInline" class="meeting-btn" style="margin-left:6px;">선택 학교 시간표 보기</button>
+          <button type="button" id="btnCloseTimetableInline" class="meeting-btn" style="margin-left:6px;background:#fff;color:#12325a;border:1px solid #d6dbe8;display:none;">시간표 닫기</button>
+        </div>
+        <div id="timetableProgressInline" style="margin-top:8px;color:#175;display:none;font-size:13px;"></div>
+        <div id="timetableContainerInline" style="margin-top:10px;"></div>
+      </div>
+    </div>
+      <button type="button" id="nextStepBtn" style="width:100%;margin:1rem 0 0 0;padding:1rem;font-size:1.1rem;border-radius:1rem;background:#1e3c72;color:#fff;font-weight:bold;border:none;cursor:pointer;">다음</button>
+    </form>
+  </div>
+  <div id="step2" style="display:none;">
+  <form id="salesForm">
+      <!-- hidden fields to submit selected region/school -->
+      <input type="hidden" id="selectedRegionInput" name="region">
+      <input type="hidden" id="selectedSchoolInput" name="schoolName">
+      <!-- school metadata panel (Step2) -->
+      <div id="schoolMeta" class="meta-card">
+        <h4>학교 정보</h4>
+        <div class="meta-summary">
+          <div class="meta-pill" id="metaPillEstablish">설립: -</div>
+          <div class="meta-pill" id="metaPillLevel">급: -</div>
+          <div class="meta-pill" id="metaPillStudents">총학생수: -</div>
+          <div class="meta-pill" id="metaPillFeature" style="display:none;">특성: -</div>
+        </div>
+        <div class="grade-rows">
+          <div class="grade-row"><div class="grade-label">1학년:</div><div class="grade-value"><span id="metaG1c"></span> 학급 / <span id="metaG1s"></span> 학생</div></div>
+          <div class="grade-row"><div class="grade-label">2학년:</div><div class="grade-value"><span id="metaG2c"></span> 학급 / <span id="metaG2s"></span> 학생</div></div>
+          <div class="grade-row"><div class="grade-label">3학년:</div><div class="grade-value"><span id="metaG3c"></span> 학급 / <span id="metaG3s"></span> 학생</div></div>
+        </div>
+      <!-- NEIS timetable controls -->
+      <div style="margin-top:12px;padding-top:8px;border-top:1px dashed #e6eefc;">
+        <label style="font-weight:900;display:block;margin-bottom:6px;">시간표 가져오기 (NEIS)</label>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+          <select id="neisYear" style="padding:.45rem;border-radius:.5rem;border:1px solid #d6dbe8;"> 
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+          </select>
+          <select id="neisSemester" style="padding:.45rem;border-radius:.5rem;border:1px solid #d6dbe8;">
+            <option value="1">1학기</option>
+            <option value="2" selected>2학기</option>
+          </select>
+          <button type="button" id="btnFetchSelectedTimetable" class="meeting-btn" style="margin-left:6px;">선택 학교 시간표 보기</button>
+          <button type="button" id="btnCloseTimetable" class="meeting-btn" style="margin-left:6px;background:#fff;color:#12325a;border:1px solid #d6dbe8;display:none;">시간표 닫기</button>
+        </div>
+        <div id="timetableProgress" style="margin-top:8px;color:#175;display:none;font-size:13px;"></div>
+        <div id="timetableContainer" style="margin-top:10px;"></div>
+
+      </div>
+      <button type="button" id="addSubjectBtn" style="width:100%;margin:0.5rem 0 1rem 0;padding:1rem;font-size:1.1rem;border-radius:1rem;background:#e3eafc;color:#1e3c72;font-weight:bold;border:none;cursor:pointer;">과목/선생님 추가</button>
+      <!-- follow-up select is now per subject-block -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:0.6rem;">
+        <button type="button" id="backBtn" style="padding:1rem;border-radius:1rem;border:1px solid #d6dbe8;background:#fff;color:#1e3c72;font-weight:700;cursor:pointer;">뒤로 돌아가기</button>
+        <button type="submit" class="btn-submit">입력 완료</button>
+      </div>
+  </form>
+  </div>
+
+  <!-- subject-block template for cloning -->
+  <template id="subject-template">
+    <div class="subject-block" style="margin-bottom:1rem;padding:1rem;background:#f9fafd;border-radius:.9rem;border:1px solid #e0e8f5;position:relative;">
+      <div class="contact-section" style="margin-bottom:1rem;">
+        <label style="font-weight:700;display:block;margin-bottom:6px;">연락처</label>
+        <div style="display:flex;gap:.5rem;align-items:center;margin-top:.5rem;">
+          <span style="display:inline-block;padding:.55rem .7rem;border-radius:.6rem;background:#f2f4ff;border:1px solid #d6dbe8;color:#12325a;font-weight:700;">010</span>
+          <input type="text" class="contact-suffix" placeholder="12345678" maxlength="8" inputmode="numeric" pattern="[0-9]*" aria-label="연락처 뒷자리 8자리 입력" style="width:120px;padding:.55rem .6rem;border-radius:.6rem;border:1px solid #d6dbe8;">
+          <input type="email" class="contact-email" placeholder="email@example.com" style="width:220px;padding:.55rem .6rem;border-radius:.6rem;border:1px solid #d6dbe8;margin-left:6px;">
+          <span class="contact-formatted" style="margin-left:8px;color:#103254;font-weight:700;"></span>
+          <button type="button" class="copy-contact" style="margin-left:6px;padding:.4rem .6rem;border-radius:.5rem;border:1px solid #d6dbe8;background:#fff;cursor:pointer;">복사</button>
+        </div>
+      </div>
+      <div style="margin-top:16px;"></div>
+      <div class="meeting-buttons main-meeting-buttons">
+            <button class="meeting-btn" type="button">명함인사</button>
+            <button class="meeting-btn" type="button">티칭샘소개</button>
+            <button class="meeting-btn" type="button">채팅방소개</button>
+            <button class="meeting-btn" type="button">브로슈어</button>
+            <button class="meeting-btn" type="button">미팅불가</button>
+            <button class="meeting-btn" type="button">포스터</button>
+          </div>
+          <div class="meeting-buttons info-extra-buttons" style="display:none;">
+            <button class="meeting-btn" type="button">가이드북</button>
+            <button class="meeting-btn" type="button">구글클래스룸 사용</button>
+            <button class="meeting-btn" type="button">패들렛 사용</button>
+            <button class="meeting-btn" type="button">하이러닝 사용</button>
+          </div>
+          <div style="margin-top:0.6rem;">
+            <label style="font-weight:700;display:block;margin-bottom:6px;">고객 요청사항</label>
+            <textarea class="customer-request" rows="2" placeholder="고객 요청사항이 있으면 입력하세요" style="width:100%;padding:.6rem;border-radius:.6rem;border:1px solid #e6eefc;background:#fff;margin-bottom:0.6rem;"></textarea>
+          </div>
+          <textarea class="conversation-detail" rows="2" placeholder="특이사항"></textarea>
+          <div style="margin-top:0.6rem;">
+            <label style="font-weight:700;display:block;margin-bottom:6px;">후속조치</label>
+            <select class="followUpSelect" style="width:100%;padding:.6rem;border-radius:.6rem;border:1px solid #d6dbe8;background:#fff;">
+              <option value="">선택하세요</option>
+              <option>채팅방 지속 관리</option>
+              <option>추가 자료 발송 예정</option>
+              <option>재방문 예정</option>
+              <option>선정 시기 연락 대기</option>
+              <option>워크북 무상지원 제안</option>
+              <option>완료 (추가 조치 없음)</option>
+            </select>
+          </div>
+          <button type="button" class="removeSubjectBtn" style="margin:0.5rem 0 1rem 0;padding:0.5rem 1rem;font-size:1rem;border-radius:0.7rem;background:#ff9800;color:#fff;border:none;cursor:pointer;">삭제</button>
+        </div>
+      </template>
+      <script>
+        // Ensure an initial subject-block exists by cloning the canonical template when the page is parsed.
+        (function ensureInitialSubjectBlock(){
+          try{
+            const container = document.getElementById('subjectsBlock');
+            if (!container) return;
+            // if there are no subject-block children, clone the template
+            if ((container.querySelectorAll('.subject-block') || []).length === 0) {
+              const tpl = document.getElementById('subject-template');
+              if (tpl && tpl.content) {
+                const proto = tpl.content.querySelector('.subject-block');
+                if (proto) {
+                  const clone = proto.cloneNode(true);
+                  container.appendChild(clone);
+                  if (typeof renumberSubjectBlocks === 'function') renumberSubjectBlocks();
+                }
+              }
+            }
+          }catch(e){ console.warn('ensureInitialSubjectBlock failed', e); }
+        })();
+      </script>
+      <div style="margin-top:1rem;">
+        <div style="display:flex;gap:.5rem;margin-bottom:.5rem;align-items:center;">
+          <div id="tagOptions" style="display:none;"> <!-- hidden: default/basic behavior applied -->
+            <label style="font-size:13px;display:flex;align-items:center;gap:.4rem;"><input type="checkbox" id="optHumanLine" checked>한글 라인</label>
+            <label style="font-size:13px;display:flex;align-items:center;gap:.4rem;"><input type="checkbox" id="optHashtags">해시태그 포함</label>
+            <label style="font-size:13px;display:flex;align-items:center;gap:.4rem;">최대태그수 <input id="optMaxTags" type="number" min="1" max="20" value="8" style="width:56px;padding:.2rem .4rem;border-radius:.4rem;border:1px solid #d6dbe8;margin-left:.4rem;"></label>
+          </div>
+          <button type="button" id="copyKakaoBtn" style="flex:1;padding:.75rem;border-radius:1rem;border:1px solid #ffd9b3;background:#fff;color:#b25700;font-weight:800;">카톡으로 복사</button>
+        </div>
+        <div style="display:flex;gap:.5rem;margin-bottom:.5rem;">
+          <button type="button" id="saveToServerBtn" style="flex:1;min-width:0;padding:.75rem;border-radius:1rem;border:1px solid #cfe8ff;background:#e9f4ff;color:#0b3a72;font-weight:800;">서버에 저장</button>
+        </div>
+        <div style="display:flex;gap:.5rem;align-items:center;margin-top:.6rem;">
+          <button type="button" id="summaryEditToggleBtn" style="flex:1;min-width:0;padding:.6rem;border-radius:.6rem;border:1px solid #cfe8ff;background:#fff;color:#0b3a72;font-weight:800;">수정</button>
+          <button type="button" id="summaryRegenerateBtn" style="flex:1;min-width:0;padding:.6rem;border-radius:.6rem;border:1px solid #e6eefc;background:#f8fbff;color:#0b3a72;font-weight:700;">내용 전체지우기</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.5rem;">
+            <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
+            <button type="button" id="chooseCollectTimeBtn" style="padding:.5rem .8rem;border-radius:.6rem;border:1px solid #d6dbe8;background:#fff;color:#0b3a72;font-weight:700;">퇴근보고 시간 설정</button>
+            <div id="collectTimeDisplay" style="font-size:13px;color:#3b4b63">기본: 퇴근 시각 기준 + 30분</div>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+              <div id="draftStatus" style="font-size:0.95rem;color:#175;font-weight:700;">드래프트 상태: 없음</div>
+              <button type="button" id="forceSaveDraftBtn" style="padding:.4rem .6rem;border-radius:.5rem;border:1px solid #d6dbe8;background:#fff;cursor:pointer;">강제저장</button>
+              <button type="button" id="forceLoadDraftBtn" style="padding:.4rem .6rem;border-radius:.5rem;border:1px solid #d6dbe8;background:#fff;cursor:pointer;">강제복원</button>
+              <button type="button" id="clearLocalDraftBtn" style="padding:.4rem .6rem;border-radius:.5rem;border:1px solid #e05252;background:#ff7043;color:#fff;cursor:pointer;margin-left:6px;">로컬 임시본 삭제</button>
+              <!-- cmass-deploy-marker: 20251102T000000Z - ensure deployed file updated -->
+            </div>
+          </div>
+          <input type="hidden" id="customCollectStart" value="">
+          <input type="hidden" id="customCollectMinutes" value="30">
+          <textarea id="generatedSummary" rows="10" readonly style="width:100%;margin-top:.6rem;padding:.8rem;border-radius:.8rem;border:1px solid #d6dbe8;display:block;">요약이 여기에 생성됩니다.</textarea>
+          </div>
+      </div>
+    </form>
+  </div>
+    <script>
+      // Fragment removed - this was orphaned code from a previous edit
+      // The full script content should be in a proper context elsewhere
+    </script>
+    <script>
+      (function(){
+        function handleNextStepClick(){
+          const blocks = document.querySelectorAll('.subject-name');
+          if (blocks && blocks.length) {
+            // placeholder for potential future logic (prefill hidden inputs etc.)
+          }
+          try { resetTimeFields(); } catch(e){}
+          const step1 = document.getElementById('step1');
+          const step2 = document.getElementById('step2');
+          if (step1) step1.style.display = 'none';
+          if (step2) step2.style.display = 'block';
+          try {
+            if (typeof window.scrollTo === 'function') window.scrollTo({ top: 0, behavior: 'auto' });
+            if (document.body) document.body.scrollTop = 0;
+            if (document.documentElement) document.documentElement.scrollTop = 0;
+          } catch (e) { /* ignore scroll failures */ }
+        }
+
+        function loadNeisHelpers(){
+          (async function(){
+            try{
+              const resp = await fetch('neis_grid.js', { cache: 'no-store' });
+              if (!resp || !resp.ok) return;
+              const ctype = resp.headers && resp.headers.get ? (resp.headers.get('content-type')||'') : '';
+              const text = await resp.text();
+              if (ctype.toLowerCase().includes('text/html') || (text && text.trim().startsWith('<'))) {
+                console.warn('Skipping neis_grid.js because response looks like HTML');
+                return;
+              }
+              const s = document.createElement('script');
+              s.type = 'text/javascript';
+              s.text = text;
+              document.head.appendChild(s);
+            }catch(e){ console.warn('Failed to load neis_grid.js', e); }
+          })();
+        }
+
+        const NEIS_KEY = '94bb8b0dc511401387d36eb3f6d10905'; // user-provided key
+        const regionToAtptCode = { '서울':'B10', '인천':'I10', '경기':'J10', '서울특별시':'B10', '인천광역시':'I10', '경기도':'J10' };
+        function resolveAtptCodeForRegion(regionLabel){
+          if (!regionLabel) return '';
+          try{
+            const csvMap = window.atptCsvMap || {};
+            if (csvMap[regionLabel]) return csvMap[regionLabel];
+          } catch(e){ /* ignore csv map errors */ }
+          if (regionToAtptCode[regionLabel]) return regionToAtptCode[regionLabel];
+          const keys = Object.keys(regionToAtptCode).sort((a,b)=>b.length-a.length);
+          for (const k of keys){ if (regionLabel.indexOf(k) !== -1) return regionToAtptCode[k]; }
+          if (regionLabel.indexOf('경기') !== -1) return regionToAtptCode['경기'];
+          if (regionLabel.indexOf('서울') !== -1) return regionToAtptCode['서울'];
+          if (regionLabel.indexOf('인천') !== -1) return regionToAtptCode['인천'];
+          return '';
+        }
+
+        document.addEventListener('DOMContentLoaded', function(){
+          const nextBtn = document.getElementById('nextStepBtn');
+          if (nextBtn) nextBtn.addEventListener('click', handleNextStepClick);
+          loadNeisHelpers();
+        });
+
+        try{ window.NEIS_KEY = NEIS_KEY; }catch(e){}
+        try{ window.resolveAtptCodeForRegion = resolveAtptCodeForRegion; }catch(e){}
+        // NOTE: If additional NEIS timetable integration is required, implement using these helpers.
+      })();
+    </script>
+    // 과목/선생님 추가 기능
+    document.getElementById('addSubjectBtn').addEventListener('click', function() {
+      // create new subject-block by cloning the canonical template when available
+      const tpl = document.getElementById('subject-template');
+      let block;
+      if (tpl && tpl.content) {
+        block = tpl.content.querySelector('.subject-block').cloneNode(true);
+      } else if (tpl && tpl.innerHTML) {
+        // If template exists but content isn't available (edge case), clone from its innerHTML to preserve exact structure
+        try {
+          const tmp = document.createElement('div');
+          tmp.innerHTML = tpl.innerHTML;
+          const candidate = tmp.querySelector('.subject-block');
+          if (candidate) block = candidate.cloneNode(true);
+        } catch(e) { /* fall through to programmatic builder below */ }
+      }
+      if (!block) {
+        // final fallback: build a simple block programmatically to avoid relying on innerHTML when template is missing
+        block = document.createElement('div');
+        block.className = 'subject-block';
+      }
+      const subjectsContainer = document.getElementById('subjectsBlock');
+      const firstBlock = subjectsContainer.querySelector('.subject-block');
+      if (firstBlock && firstBlock.parentNode === subjectsContainer) {
+        firstBlock.insertAdjacentElement('afterend', block);
+      } else {
+        subjectsContainer.appendChild(block);
+      }
+      // renumber after adding
+      if (typeof renumberSubjectBlocks === 'function') renumberSubjectBlocks();
+    });
+    // sanitize contact input: only digits, max 8
+    document.getElementById('subjectsBlock').addEventListener('input', function(e) {
+      if (e.target && e.target.classList && e.target.classList.contains('contact-suffix')) {
+        // remove non-digits and limit to 8
+        const cleaned = (e.target.value || '').replace(/\D+/g, '').slice(0,8);
+        if (cleaned !== e.target.value) e.target.value = cleaned;
+      }
+    });
+    // 정보 과목 선택 시 추가 버튼 표시 (동적 subject-block에도 적용)
+    function updateInfoButtons() {
+      // Toggle the 'info' extra buttons per subject-block so each added teacher shows the same UI as the first block.
+      document.querySelectorAll('.subject-block').forEach(block => {
+        try {
+          const sel = block.querySelector('.subject-name');
+          const extra = block.querySelector('.info-extra-buttons');
+          if (!extra) return;
+          const val = sel ? (sel.value || '').trim() : '';
+          extra.style.display = (val === '정보') ? 'flex' : 'none';
+          // If the subject is '진로', ensure a '브로슈어' meeting button exists in the primary meeting-buttons container
+          try{
+            const primary = block.querySelector('.meeting-buttons');
+            if(primary){
+              if(val === '진로'){
+                const hasBrochure = Array.from(primary.querySelectorAll('.meeting-btn')).some(b => (b.textContent||'').trim() === '브로슈어');
+                if(!hasBrochure){
+                  const btn = document.createElement('button'); btn.type='button'; btn.className='meeting-btn brochure-added'; btn.textContent='브로슈어';
+                  primary.appendChild(btn);
+                }
+              }
+            }
+          }catch(e){}
+        } catch(e) { /* ignore per-block errors */ }
+      });
+    }
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('subjectsBlock').addEventListener('change', function(e) {
+                if (e.target.classList.contains('subject-name')) {
+                    updateInfoButtons();
+                }
+            });
+            // 과목/선생님 추가 시에도 이벤트 적용
+            document.getElementById('addSubjectBtn').addEventListener('click', function() {
+                setTimeout(updateInfoButtons, 100);
+            });
+        });
+          // Special meeting buttons: ensure 단행본안내 exists (no duplicates), 캠프안내 shows only for '진로'
+          // and add 교구재안내 next to 단행본안내 when '정보' exists; add 워크북안내 for '진로'.
+          function updateSpecialMeetingButtons(){
+            try{
+              const subjects = Array.from(document.querySelectorAll('.subject-name')).map(s => (s.value||'').trim());
+              const hasJinro = subjects.some(v => v === '진로');
+              const hasInfo = subjects.some(v => v === '정보');
+              // For each subject-block, ensure its primary .meeting-buttons container has a single 단행본안내 and additional buttons as needed.
+              // This prevents duplicating the same buttons in the 'info-extra-buttons' area which is a secondary container.
+              document.querySelectorAll('.subject-block').forEach(block => {
+                const container = block.querySelector('.meeting-buttons'); // first/primary meeting-buttons within the block
+                if (!container) return;
+                // normalize existing '단행본안내' buttons: keep first, remove duplicates and ensure it has class book-btn
+                const existingBooks = Array.from(container.querySelectorAll('.meeting-btn')).filter(x=>x.textContent && x.textContent.trim() === '단행본안내');
+                if (existingBooks.length > 1){
+                  // keep first, remove rest
+                  for (let i=1;i<existingBooks.length;i++){ existingBooks[i].remove(); }
+                }
+                let book = container.querySelector('.meeting-btn.book-btn');
+                if (!book) book = container.querySelector('.meeting-btn') && Array.from(container.querySelectorAll('.meeting-btn')).find(x=>x.textContent.trim()==='단행본안내');
+                if (!book){
+                  book = document.createElement('button'); book.type='button'; book.className='meeting-btn book-btn'; book.textContent='단행본안내';
+                  const chat = Array.from(container.querySelectorAll('.meeting-btn')).find(x=>x.textContent.trim()==='채팅방소개');
+                  if (chat && chat.parentNode === container) chat.insertAdjacentElement('afterend', book);
+                  else container.appendChild(book);
+                } else {
+                  // ensure correct class
+                  book.classList.add('book-btn');
+                }
+                // TODO: Add logic for 캠프안내, 교구재안내, 워크북안내 buttons as needed
+              });
+            }catch(e){ console.warn('updateSpecialMeetingButtons error', e); }
+          }
+    // add a small numeric badge to each subject-block so user can distinguish blocks
+    function renumberSubjectBlocks(){
+          const blocks = Array.from(document.querySelectorAll('.subject-block'));
+          blocks.forEach((b,idx) => {
+            try {
+              // numeric badge
+              let badge = b.querySelector('.subject-index');
+              if (!badge) {
+                badge = document.createElement('div');
+                badge.className = 'subject-index';
+                b.insertBefore(badge, b.firstChild);
+              }
+              badge.textContent = String(idx+1);
+            } catch (e) { /* non-fatal: continue numbering even if label wiring fails */ }
+          });
+    }
+    // 뒤로 버튼: Step2 → Step1로 복귀
+    const backBtnEl = document.getElementById('backBtn');
+    if (backBtnEl) {
+      backBtnEl.addEventListener('click', function(){
+        const s2 = document.getElementById('step2'); if (s2) s2.style.display = 'none';
+        const s1 = document.getElementById('step1'); if (s1) s1.style.display = 'block';
+        // restore focus to Next button for quick navigation
+        const next = document.getElementById('nextStepBtn'); if (next) next.focus();
+      });
+    }
+    // Orphaned code fragments removed (generateSummary fragments without function declaration)
+    function calcMinutesInterval(start, end){
+      if (!start || !end) return '';
+      const [sh, sm] = start.split(':').map(n=>parseInt(n,10));
+      const [eh, em] = end.split(':').map(n=>parseInt(n,10));
+      const s = sh*60 + sm; const e = eh*60 + em; let diff = e - s; if (diff < 0) diff += 24*60; return diff;
+    }
+  document.getElementById('genSummaryBtn')?.addEventListener('click', generateSummary);
+
+  // - ISO strings like '2025-10-25T00:00:00.000Z' (returns '2025-10-25')
+  // - other parseable date formats (falls back to constructing a Date and using UTC ISO date)
+  function normalizeDateForInput(val){
+    if (!val && val !== 0) return '';
+    try{
+      const s = String(val).trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      // common ISO with time component
+      const m = s.match(/^(\d{4}-\d{2}-\d{2})T/);
+      if (m && m[1]) return m[1];
+      // fallback: try Date parsing and return UTC yyyy-mm-dd
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) return d.toISOString().slice(0,10);
+    }catch(e){}
+    return '';
+  }
+  // Orphaned code removed: editBtn/regenBtn event listeners without variable declarations
+    // Ensure canonical subject buttons exist in all subject rows and normalize grid columns to 7.
+    (function ensureCanonicalSubjectsAndGrid(){
+      function ensure() {
+        try{
+          document.querySelectorAll('.subjects').forEach(s => {
+            try{
+              const st = s.getAttribute('style') || '';
+              // normalize older 4- and 5-column definitions to 7 columns
+              if (st.indexOf('repeat(4,1fr)') !== -1) {
+                s.setAttribute('style', st.replace('repeat(4,1fr)', 'repeat(7,1fr)'));
+              }
+              if (st.indexOf('repeat(5,1fr)') !== -1) {
+                s.setAttribute('style', st.replace('repeat(5,1fr)', 'repeat(7,1fr)'));
+              }
+              // ensure canonical subjects: 정보, 진로, 보건, 미술, 체육, 특성화, 기타
+              const subjectsNeeded = [
+                { key: '정보', label: '정보' },
+                { key: '진로', label: '진로' },
+                { key: '보건', label: '보건' },
+                { key: '미술', label: '미술' },
+                { key: '체육', label: '체육' },
+                { key: '특성화', label: '특성화' },
+                { key: '기타', label: '기타' }
+              ];
+              // add missing buttons in canonical order if absent
+              subjectsNeeded.forEach(sub => {
+                if (!s.querySelector('[data-subject="' + sub.key + '"]')){
+                  const btn = document.createElement('button');
+                  btn.type = 'button'; btn.className = 'grid-button subject-choice'; btn.dataset.subject = sub.key; btn.textContent = sub.label;
+                  s.appendChild(btn);
+                }
+              });
+            }catch(e){/* ignore per-row errors */}
+          });
+          }catch(e){console.warn('ensureCanonicalSubjectsAndGrid failed', e);}    
+        }
+      // run once on load and observe DOM changes to keep it consistent
+      setTimeout(ensure, 80);
+      const mo = new MutationObserver(() => { setTimeout(ensure, 40); });
+      mo.observe(document.body, { childList: true, subtree: true });
+    })();
+  </script>
+  <script>
+    // Runtime fix: convert any lingering duplicate-meeting-button IDs into classes to avoid duplicate IDs
+    (function normalizeMeetingButtonIds(){
+      try{
+        document.addEventListener('DOMContentLoaded', ()=>{
+          ['main-meeting-buttons','info-extra-buttons'].forEach(id => {
+            try{
+              const nodes = Array.from(document.querySelectorAll('#' + id));
+              nodes.forEach(n => {
+                n.classList.add(id);
+                n.removeAttribute('id');
+              });
+            }catch(e){}
+          });
+        });
+      }catch(e){/* ignore */}
+    })();
+  </script>
+  <script>
+    (function(){
+      'use strict';
+      async function loadMapping(){
+        try{
+          if (window._cmass_mapping !== undefined) return window._cmass_mapping;
+          const res = await fetch('/sales_staff_mapping.json', { cache: 'no-store' }).catch(()=>null);
+          if (!res || !res.ok) { window._cmass_mapping = null; return null; }
+          try{ window._cmass_mapping = await res.json(); }catch(e){ window._cmass_mapping = null; }
+          return window._cmass_mapping;
+        }catch(e){ console.warn('loadMapping failed', e); window._cmass_mapping = null; return null; }
+      }
+
+      function findMapping(region, school){
+        try{
+          const map = window._cmass_mapping || null;
+          if (!map) return null;
+          const r = region || '';
+          const block = map[r] || map[r.trim()] || null;
+          if (!block) return null;
+          if (school && block[school]) return block[school];
+          for (const s of Object.keys(block)){
+            if (!school) break;
+            if (s === school || s.indexOf(school) !== -1 || school.indexOf(s) !== -1) return block[s];
+          }
+          return null;
+        }catch(e){ return null; }
+      }
+
+      async function applyMappingIfPresent(region, school){
+        try{
+          await loadMapping();
+          const found = findMapping(region, school);
+          if (!found) return false;
+
+          // If mapping entry appears to be a plain staff list (Array or string)
+          // rather than a rich meta object with grade counts, still apply
+          // staff info but attempt to fetch CSV-based metadata as a fallback
+          window._cmass_lastFoundMeta = found;
+
+          // If found looks like a meta object (has keys like '1학년' or numeric fields), apply directly
+          const looksLikeMeta = (obj => {
+            if(!obj || typeof obj !== 'object') return false;
+            // flat meta or nested grade structure acceptable
+            for(const k of Object.keys(obj)){
+              if(/^\d학년|학급|학생|Grade/.test(k) || /1학년|2학년|3학년/.test(k)) return true;
+            }
+            if (obj.grades && typeof obj.grades === 'object') return true;
+            return false;
+          })(found);
+
+          try{ if (looksLikeMeta && typeof window.applyMeta === 'function') window.applyMeta(found); }catch(e){}
+
+          // Always try to enrich using CSV metadata if available. This will not overwrite
+          // explicit numeric values already discovered by the mapping but will fill missing ones.
+          try{ await fetchCsvAndApplyMeta(region, school); }catch(e){ /* ignore CSV fallback errors */ }
+
+          return true;
+        }catch(e){ return false; }
+      }
+
+      // --- CSV fallback parser + applier ---
+      async function fetchCsvAndApplyMeta(region, school){
+        if (!school) return null;
+        // try a few common CSV names; prefer a deployed CSV if present
+        const candidates = ['/sales_staff.deployed.csv','/sales_staff.csv','/sales_staff_live.csv'];
+        let text = null;
+        for(const p of candidates){
+          try{
+            const r = await fetch(p, { cache: 'no-cache' }).catch(()=>null);
+            if (!r || !r.ok) continue;
+            text = await r.text();
+            if (text && text.trim().length>0) break;
+          }catch(e){ continue; }
+        }
+        if (!text) return null;
+
+        const rows = simpleCsvParse(text);
+        // look for a row that matches the school (exact or contains)
+        const lcSchool = (school||'').trim().toLowerCase();
+        for(const row of rows){
+          for(const cell of row){
+            if (!cell) continue;
+            const c = String(cell).trim().toLowerCase();
+            if (!c) continue;
+            if (c === lcSchool || c.indexOf(lcSchool) !== -1 || lcSchool.indexOf(c) !== -1){
+              // attempt to extract grade triplets near the school name index
+              const meta = extractMetaFromRow(row);
+              if (meta){
+                // merge with any existing last-found meta (do not clobber numeric values)
+                const existing = window._cmass_lastFoundMeta || {};
+                const merged = Object.assign({}, existing, meta);
+                window._cmass_lastFoundMeta = merged;
+                try{ if (typeof window.applyMeta === 'function') window.applyMeta(merged); }catch(e){}
+                return merged;
+              }
+            }
+          }
+        }
+        return null;
+      }
+
+      // Minimal CSV parser handling quoted fields and newlines.
+      function simpleCsvParse(text){
+        const rows = [];
+        let cur = [];
+        let field = '';
+        let inQuotes = false;
+        for(let i=0;i<text.length;i++){
+          const ch = text[i];
+          const nxt = text[i+1];
+          if (inQuotes){
+            if (ch === '"'){
+              if (nxt === '"'){ field += '"'; i++; continue; }
+              inQuotes = false; continue;
+            }
+            field += ch; continue;
+          }
+          if (ch === '"'){ inQuotes = true; continue; }
+          if (ch === ','){ cur.push(field); field = ''; continue; }
+          if (ch === '\r') continue;
+          if (ch === '\n') { cur.push(field); rows.push(cur); cur = []; field = ''; continue; }
+          field += ch;
+        }
+        // trailing
+        if (field !== '' || cur.length>0) { cur.push(field); rows.push(cur); }
+        return rows;
+      }
+
+      // Heuristic: find repeating numeric triplets (classes, students, avg) in a row and map to grades 1..3
+      function extractMetaFromRow(row){
+        if (!Array.isArray(row)) return null;
+        // convert cells to trimmed values
+        const cells = row.map(c => (c===undefined || c===null)?'':String(c).trim());
+        // search for sequences of three numeric-looking values
+        const numIdx = [];
+        for(let i=0;i<cells.length;i++){
+          const v = cells[i];
+          if (/^\d+$/.test(v) || /^\d+\.\d+$/.test(v)) numIdx.push(i);
+        }
+        // scan windows for triplets
+        for(let start=0; start+2<cells.length; start++){
+          const a = cells[start], b = cells[start+1], c = cells[start+2];
+          if (isSmallInt(a) && isIntLike(b) && isNumberLike(c)){
+            // found candidate; take this and next two triplets if present
+            const grades = {};
+            for(let g=0; g<3; g++){
+              const si = start + g*3;
+              if (si+1 >= cells.length) break;
+              const cl = parseIntSafe(cells[si]);
+              const st = parseIntSafe(cells[si+1]);
+              const avg = parseFloatSafe(cells[si+2]);
+              if (cl === null && st === null && avg === null) break;
+              grades[String(g+1)] = {};
+              if (cl !== null) grades[String(g+1)][`${g+1}학년학급수`] = cl;
+              if (st !== null) grades[String(g+1)][`${g+1}학년학생수`] = st;
+              if (avg !== null) grades[String(g+1)][`${g+1}학년학급당학생수`] = avg;
+            }
+            if (Object.keys(grades).length>0){
+              // flatten into meta object
+              const meta = {};
+              for(const k of Object.keys(grades)){
+                const gobj = grades[k];
+                for(const kk of Object.keys(gobj)) meta[kk] = gobj[kk];
+              }
+              return meta;
+            }
+          }
+        }
+        return null;
+      }
+      function isSmallInt(s){ try{ const n = parseInt(s,10); return !isNaN(n) && n>0 && n<200; }catch(e){return false;} }
+      function isIntLike(s){ return /^\d+$/.test(s); }
+      function isNumberLike(s){ return /^\d+(?:\.\d+)?$/.test(s); }
+      function parseIntSafe(s){ if(!s) return null; const n = parseInt(s.replace(/[,\s]/g,''),10); return isNaN(n)?null:n; }
+      function parseFloatSafe(s){ if(!s) return null; const n = parseFloat(s.replace(/[,\s]/g,'')); return isNaN(n)?null:n; }
+
+      document.addEventListener('DOMContentLoaded', function(){
+        function tryApply(){
+          try{
+            const selInput = document.getElementById('selectedSchoolInput');
+            const school = selInput && selInput.value ? selInput.value.trim() : (window.selectedSchool || '');
+            const region = window.selectedRegion || '';
+            if (!school) return;
+            applyMappingIfPresent(region, school).then(applied=>{
+              if (applied){ try{ if (typeof updateDebugOverlay === 'function') updateDebugOverlay(); }catch(e){} }
+            });
+          }catch(e){}
+        }
+        const sel = document.getElementById('selectedSchoolInput');
+        if (sel){ sel.addEventListener('change', tryApply); sel.addEventListener('input', tryApply); }
+        let tries = 0; const iv = setInterval(()=>{ tries++; tryApply(); if (tries>20) clearInterval(iv); }, 200);
+      });
+    })();
+  </script>
+</body>
+
+  <script>
+  (function(){
+    // Update the compact topline with visitDate, staff, region, school
+    function updateTopline(){
+      try{
+        const visit = document.getElementById('visitDate') ? (document.getElementById('visitDate').value || '') : '';
+        let staffText = '';
+        try{ staffText = (document.getElementById('staffInfo') && document.getElementById('staffInfo').textContent) ? document.getElementById('staffInfo').textContent.replace(/^담당자:\s*/,'').trim() : (window._cmass_staffParam || ''); }catch(e){}
+        const region = (document.getElementById('selectedRegionInput') && document.getElementById('selectedRegionInput').value) || window.selectedRegion || '';
+        const school = (document.getElementById('selectedSchoolInput') && document.getElementById('selectedSchoolInput').value) || window.selectedSchool || '';
+        const parts = [];
+        if(visit) parts.push('방문일: ' + visit);
+        if(staffText) parts.push('담당자: ' + staffText);
+        if(region) parts.push('지역: ' + region);
+        if(school) parts.push('학교: ' + school);
+        const top = document.getElementById('cmass-topline');
+        if(top) top.textContent = parts.length ? parts.join(' · ') : '\u00A0';
+      }catch(e){ /* ignore */ }
+    }
+
+    document.addEventListener('DOMContentLoaded', function(){
+      try{
+        updateTopline();
+        // wire listeners
+        const selSch = document.getElementById('selectedSchoolInput'); if(selSch) { selSch.addEventListener('input', updateTopline); selSch.addEventListener('change', updateTopline); }
+        const visit = document.getElementById('visitDate'); if(visit) visit.addEventListener('change', updateTopline);
+        const staffEl = document.getElementById('staffInfo'); if(staffEl){ const mo = new MutationObserver(updateTopline); mo.observe(staffEl, { childList:true, characterData:true, subtree:true }); }
+        // also periodically refresh in case values are set by external scripts
+        setInterval(updateTopline, 1200);
+
+        // Move / ensure draft-status is visible near collect time controls and hide temporary buttons
+        try{
+          const chooseBtn = document.getElementById('chooseCollectTimeBtn');
+          const draftStatus = document.getElementById('draftStatus');
+          const fsb = document.getElementById('forceSaveDraftBtn');
+          const flb = document.getElementById('forceLoadDraftBtn');
+          // hide the force-save/load buttons per request
+          if(fsb) fsb.style.display = 'none';
+          if(flb) flb.style.display = 'none';
+          // ensure draftStatus sits next to chooseCollectTimeBtn
+          if(chooseBtn && draftStatus){
+            // try to place draftStatus immediately after the choose button's parent
+            const parent = chooseBtn.parentElement;
+            if(parent && draftStatus.parentElement !== parent){
+              try{ parent.appendChild(draftStatus); }catch(e){}
+            }
+            draftStatus.style.display = 'inline-block';
+          }
+        }catch(e){}
+      }catch(e){}
+    });
+
+    // expose for debugging
+    try{ window.updateCMASSTopline = updateTopline; }catch(e){}
+  })();
+  </script>
+  <script>
+    // Clear CMASS local drafts / caches on user request
+    (function(){
+      async function clearCmassLocalData(){
+        try{
+          const removed = [];
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i);
+            if (!k) continue;
+            if (k.indexOf('cmass_') === 0 || k.indexOf('cmass') === 0) {
+              try{ localStorage.removeItem(k); removed.push(k); }catch(e){}
+            }
+          }
+          // unregister service workers
+          if ('serviceWorker' in navigator) {
+            try{
+              const regs = await navigator.serviceWorker.getRegistrations().catch(()=>[]);
+              for (const r of (regs||[])) { try{ await r.unregister(); }catch(e){} }
+            }catch(e){}
+          }
+          // clear caches
+          if (window.caches && caches.keys) {
+            try{
+              const keys = await caches.keys().catch(()=>[]);
+              await Promise.all((keys||[]).map(k => caches.delete(k))).catch(()=>{});
+            }catch(e){}
+          }
+          try{ if (typeof showToast === 'function') showToast('로컬 임시본이 삭제되었습니다. 새로고침하세요.', 3000); else alert('로컬 임시본이 삭제되었습니다. 새로고침하세요.'); }catch(e){}
+          try{ if (typeof updateDraftStatus === 'function') updateDraftStatus(); }catch(e){}
+        }catch(err){ console.error('clearCmassLocalData failed', err); alert('임시본 삭제 중 오류가 발생했습니다. 콘솔을 확인하세요.'); }
+      }
+
+      document.addEventListener('DOMContentLoaded', function(){
+        const btn = document.getElementById('clearLocalDraftBtn');
+        if (!btn) return;
+        btn.addEventListener('click', async function(){
+          try{
+            const ok = await (typeof showConfirmModal === 'function' ? showConfirmModal('로컬에 저장된 모든 CMASS 임시본을 삭제합니다. 계속하시겠습니까?') : Promise.resolve(confirm('로컬에 저장된 모든 CMASS 임시본을 삭제합니다. 계속하시겠습니까?')));
+            if (!ok) return;
+            await clearCmassLocalData();
+          }catch(e){ console.error('clear button handler failed', e); }
+        });
+      });
+    })();
+  </script>

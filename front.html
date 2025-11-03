@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CMASS - 시작</title>
+  <!-- Version: 2025-11-01-v2 Clean URLs -->
+  <style>
+    :root{ --bg:#f5f6fa; --card-bg:#fff; --muted:#556; --brand-1:#12325a; --brand-2:#1e3c72; --accent:#6b8bff }
+    body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:#071a2e;margin:0;padding:20px 16px}
+    .container{max-width:1100px;margin:0 auto}
+    h1{text-align:center;color:var(--brand-1);margin:6px 0 14px 0;font-size:28px}
+    .hero{background:var(--card-bg);border-radius:14px;padding:18px 20px;box-shadow:0 12px 40px rgba(10,20,60,0.06);margin-bottom:14px}
+    .btn-row{display:flex;gap:12px;align-items:center;justify-content:center;margin:14px 0}
+    .big-btn{padding:12px 18px;border-radius:12px;border:none;background:linear-gradient(90deg,var(--brand-1),var(--brand-2));color:#fff;font-weight:800;font-size:15px;cursor:pointer}
+    .alt-btn{padding:10px 14px;border-radius:12px;border:1px solid #e1e7f6;background:var(--card-bg);color:var(--brand-1);font-weight:800;cursor:pointer}
+    .card{background:var(--card-bg);border-radius:12px;padding:14px;margin-top:12px;box-shadow:0 10px 30px rgba(10,20,60,0.04)}
+    /* stats grid: responsive auto-fit */
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:12px}
+    .stat{background:#f7fbff;border-radius:10px;padding:12px;border:1px solid #e6eefc;display:flex;flex-direction:column;justify-content:center}
+    .stat div { line-height:1 }
+    .stat .small{margin-top:6px;color:var(--muted);font-size:13px}
+  table{width:100%;border-collapse:collapse;margin-top:8px;background:transparent}
+  th,td{padding:.5rem .6rem;border:1px solid #eef2ff;text-align:left;font-size:13px}
+  /* notes table: fixed layout, wrap long text and sticky header for better UX */
+  .notes-table{table-layout:fixed;width:100%;border-collapse:collapse}
+  .notes-table th{position:sticky;top:0;background:var(--card-bg);z-index:3}
+  /* make the table denser: smaller padding and font-size for compactness */
+  .notes-table th, .notes-table td{padding:.28rem .4rem;border:1px solid #eef2ff;text-align:left;font-size:12px;vertical-align:top}
+  /* allow long notes to wrap and preserve line breaks; make notes column the most flexible */
+  .notes-table td{word-break:break-word;white-space:normal}
+  /* column width suggestions:
+    1) 방문일 - short
+    2) 방문시간 - short
+    3) 선생님명 - medium-short
+    4) 과목명 - short
+    5) 영업활동 - slightly wider
+    6) 특이사항 - flexible / remaining space (wide)
+  */
+  /* Make first columns compact and give more room to activity/note columns */
+  .notes-table th:nth-child(1), .notes-table td:nth-child(1){width:70px}   /* 방문일 */
+  .notes-table th:nth-child(2), .notes-table td:nth-child(2){width:140px}  /* 학교 */
+  .notes-table th:nth-child(3), .notes-table td:nth-child(3){width:70px}   /* 방문시간 */
+  .notes-table th:nth-child(4), .notes-table td:nth-child(4){width:90px}   /* 선생님명 */
+  .notes-table th:nth-child(5), .notes-table td:nth-child(5){width:90px}   /* 과목명 */
+  .notes-table th:nth-child(6), .notes-table td:nth-child(6){width:220px}  /* 영업활동 - wider */
+  .notes-table th:nth-child(7), .notes-table td:nth-child(7){width:auto}    /* 특이사항 - flexible */
+    .small{font-size:13px;color:var(--muted)}
+  /* charts responsive height */
+  canvas{width:100% !important; height:220px !important}
+    /* card sections */
+    #dashboardArea > div { margin-top:8px }
+    /* top teachers list styling */
+    #topTeachers div{padding:6px 8px;border-bottom:1px solid #f1f5ff;font-size:14px}
+    /* follow-up badges grid */
+    #followUpSummary div{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+
+    /* mobile tweaks */
+    @media (max-width:720px){
+      body{padding:12px}
+      h1{font-size:20px}
+      .hero{padding:12px}
+      .big-btn{padding:10px 12px;font-size:14px}
+      canvas{height:180px !important}
+      .card{padding:12px}
+    }
+
+    /* Mobile-specific dashboard tweaks: compact buttons, horizontal scroll for button bars,
+       denser table cells, and responsive chart sizes for small screens */
+    @media (max-width:720px){
+      /* make school/subject button rows scrollable horizontally */
+      #schoolButtons, #subjectButtons { overflow-x:auto; -webkit-overflow-scrolling:touch; gap:8px; flex-wrap:nowrap; white-space:nowrap; padding-bottom:6px }
+      #schoolButtons .alt-btn, #subjectButtons .alt-btn { padding:6px 8px; font-size:13px; white-space:nowrap; border-radius:8px }
+
+      /* reduce stats card density */
+      .stat { padding:10px 8px }
+
+      /* table tweaks: denser and mobile-friendly */
+      .notes-table th, .notes-table td { font-size:11px; padding:.25rem .35rem }
+      .notes-table th { position:sticky; top:0; z-index:4; background:var(--card-bg) }
+      #schoolVisitsTableContainer { max-height:320px }
+
+      /* charts: give more vertical room on mobile but keep them compact */
+      #subjectsChart, #actionsPieChart { height:90px !important }
+    /* make action and monthly charts larger for readability */
+    #actionsChart { height:200px !important }
+    #monthlyChart { height:240px !important }
+
+      /* reduce margins for compactness */
+      .hero, .card { padding:10px }
+    }
+
+    /* additional mobile tweaks for visit tables: avoid extreme wrapping by
+       making the table horizontally scrollable when needed. Use a fixed
+       table-layout with a reasonable min-width so columns keep their shape. */
+    @media (max-width:720px){
+      /* container is the scroll viewport for sticky header to work */
+      #schoolVisitsTableContainer { overflow:auto; -webkit-overflow-scrolling:touch; padding:4px }
+      /* give the table a min-width so columns don't collapse into a thin vertical strip */
+      .notes-table { table-layout:fixed !important; min-width:720px; width:100% }
+      .notes-table th, .notes-table td { padding:.2rem .35rem; font-size:11px }
+      .notes-table td { white-space:normal; word-break:break-word }
+      /* reduce header height impact */
+      .notes-table thead th { font-size:12px }
+      /* keep last column flexible for long notes */
+  .notes-table th:nth-child(1), .notes-table td:nth-child(1){width:80px}
+  .notes-table th:nth-child(2), .notes-table td:nth-child(2){width:140px}
+  .notes-table th:nth-child(3), .notes-table td:nth-child(3){width:70px}
+  .notes-table th:nth-child(4), .notes-table td:nth-child(4){width:100px}
+  .notes-table th:nth-child(5), .notes-table td:nth-child(5){width:80px}
+  .notes-table th:nth-child(6), .notes-table td:nth-child(6){width:120px}
+  .notes-table th:nth-child(7), .notes-table td:nth-child(7){width:auto}
+    }
+    /* personal map styling */
+    #personalMap{width:100%;height:420px;border-radius:8px;border:1px solid #eef2ff;margin-top:8px}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <!-- Leaflet map for per-user geocode distribution -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="" crossorigin="" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>CMASS 영업일지</h1>
+    <div class="hero">
+      <div style="text-align:center">
+        <div class="btn-row">
+          <button id="goInput" class="big-btn">영업일지 입력</button>
+          <button id="btnForceRefresh" class="alt-btn" title="서비스워커 강제 업데이트 / 페이지 새로고침">새로고침(최신)</button>
+            <button id="clearLocalDraftFrontBtn" class="alt-btn" title="로컬 임시본 삭제 및 최신 로드" style="background:#ff7043;color:#fff;border:1px solid #e05252;margin-left:6px">로컬 임시본 삭제 (강력)</button>
+        </div>
+
+        <!-- map moved into the visit-summary section (rendered below) -->
+        <div id="staffLabel" class="small" style="margin-top:6px;font-weight:800"></div>
+        <div class="small" id="heroNote">아래는 본인의 저장된 방문기록 요약입니다.</div>
+      </div>
+    </div>
+
+    <div id="personalCard" class="card">
+      <h3>내 방문 기록 요약</h3>
+      <div id="noAuth" class="small" style="display:none;color:#a33;margin-bottom:.6rem;">사용자 정보가 URL에 없습니다. 예: <code>?user=LimJunho</code></div>
+  <div id="loading" class="small">데이터를 불러오는 중...</div>
+  <div id="loadingSpinner" style="display:none;margin-top:6px" class="small">🔄 처리중...</div>
+      <div id="dashboardArea" style="display:none">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <label class="small" style="font-weight:700">기간:</label>
+            <input type="date" id="filterStart" style="padding:.4rem;border-radius:.5rem;border:1px solid #e6eefc">
+            <span class="small">~</span>
+            <input type="date" id="filterEnd" style="padding:.4rem;border-radius:.5rem;border:1px solid #e6eefc">
+            <!-- Quick range buttons -->
+            <div id="quickRanges" style="display:flex;gap:6px;align-items:center;margin-left:8px;flex-wrap:wrap">
+              <button id="btnYesterday" class="alt-btn" title="어제">어제</button>
+              <button id="btnToday" class="alt-btn" title="오늘">오늘</button>
+              <button id="btnLastWeek" class="alt-btn" title="지난주 (월~일)">지난주</button>
+              <button id="btnThisWeek" class="alt-btn" title="이번주 (월~일)">이번주</button>
+              <button id="btnLastMonth" class="alt-btn" title="지난달 (1일~말일)">지난달</button>
+              <button id="btnThisMonth" class="alt-btn" title="이번달 (1일~말일)">이번달</button>
+            </div>
+            <button id="filterApply" class="alt-btn">적용</button>
+            <button id="filterClear" class="alt-btn">초기화</button>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <label class="small" style="font-weight:700">과목 필터:</label>
+            <select id="subjectFilter" style="padding:.4rem;border-radius:.5rem;border:1px solid #e6eefc;background:#fff">
+              <option value="">전체</option>
+            </select>
+            <button id="loadMoreBtn" class="alt-btn" style="margin-left:8px;display:none">더 불러오기</button>
+            <button id="exportCsvBtn" class="alt-btn" style="margin-left:6px;display:none">CSV 내보내기</button>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="totalVisits">-</div><div class="small">총 저장 미팅 수</div></div>
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="uniqueSchools">-</div><div class="small">방문한 학교 수</div></div>
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="totalTime">-</div><div class="small">학교에 있었던 총 방문 시간(분)</div></div>
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="avgDuration">-</div><div class="small">평균 방문 시간(분) (학교당)</div></div>
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="contactsCount">-</div><div class="small">수집된 연락처</div></div>
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="followUpsCount">-</div><div class="small">후속 조치 항목 수</div></div>
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="recentDate">-</div><div class="small">최근 방문일</div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="width:100%">
+            <div style="font-weight:800;margin-bottom:.4rem">방문한 학교별 기록</div>
+            <!-- 방문일 필터 버튼 (전체 / YYYY-MM-DD / ...) -->
+            <div id="dateButtons" style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px"></div>
+            <div id="schoolButtons" style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px"></div>
+            <!-- subject buttons appear under the school buttons for quick filtering -->
+            <div id="subjectButtons" style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"></div>
+            <div id="schoolVisitsTableContainer" style="max-height:420px;overflow:auto;border:1px solid #eef2ff;padding:6px;border-radius:6px;background:#fff"></div>
+          </div>
+
+          <div style="width:100%">
+            <div style="display:flex;flex-direction:column;gap:12px">
+                  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start">
+                    <div style="flex:1 1 320px;min-width:220px">
+                      <div style="font-weight:800;margin-bottom:.4rem">과목 분포</div>
+                      <canvas id="subjectsChart" style="max-width:100%;height:90px"></canvas>
+                    </div>
+                    <div style="flex:1 1 320px;min-width:220px">
+                      <div style="font-weight:800;margin-bottom:.4rem">영업활동 분포</div>
+                      <canvas id="actionsPieChart" style="max-width:100%;height:90px"></canvas>
+                    </div>
+                  </div>
+                  <!-- monthlyChart moved below behavior/keywords per layout change -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Reordered sections: 후속조치 요약 + 특이사항 분석 first, then 행동 분석, monthly timeline, then personal map -->
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1rem">
+          <div style="flex:1 1 360px">
+            <div style="font-weight:800;margin-bottom:.4rem">후속조치 요약</div>
+            <div id="followUpSummary"></div>
+          </div>
+          <div style="flex:1 1 360px">
+            <div style="font-weight:800;margin-bottom:.4rem">특이사항 키워드 분석</div>
+            <div id="noteKeywords" style="min-height:120px;padding:.6rem;border-radius:8px;border:1px solid #eef2ff;background:#fbfdff"></div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:1rem">
+          <div style="flex:1 1 720px">
+            <div style="font-weight:800;margin-bottom:.4rem">행동(명함인사/티칭샘소개/채팅방소개 등) 분석</div>
+            <canvas id="actionsChart" style="max-width:100%;height:200px"></canvas>
+          </div>
+        </div>
+
+        <!-- monthly timeline follows the behavior analysis -->
+        <div style="font-weight:800;margin:14px 0 .4rem">월별 방문 추이 (연간)</div>
+        <canvas id="monthlyChart" style="max-width:100%;height:260px"></canvas>
+
+        <!-- personal map placed at the bottom -->
+        <div id="mapCard" class="card" style="margin-top:12px">
+          <div style="font-weight:800;margin-bottom:.4rem">내 지역 방문 지도</div>
+          <div id="personalMap"></div>
+          <div class="small" style="margin-top:6px">지도는 서버의 사전 계산된 <code>geocodes.json</code>를 사용합니다. 일부 학교는 좌표가 없어 표시되지 않을 수 있습니다.</div>
+        </div>
+      </div>
+    </div>
+    <div style="height:40px"></div>
+  </div>
+
+  <script>
+    // small helper: map user token to display staff (same mapping used elsewhere)
+    function getStaffFromQuery(){
+      try{
+        const params = new URLSearchParams(window.location.search);
+        const user = params.get('user') || '';
+        if (!user) return '';
+        const lower = user.toLowerCase();
+        // canonical lowercase/legacy mapping
+        const map = {
+          'songhoonjae': '송훈재 부장',
+          'songhunje': '송훈재 부장',
+          'limjunho': '임준호 차장',
+          'imjunho': '임준호 차장',
+          'choyounghwan': '조영환 부장',
+          'joyounghwan': '조영환 부장'
+        };
+        if (map[lower]) return map[lower];
+  // Accept exact-case tokens used by the index select and input pages
+        if (user === 'SongHoonjae' || user === 'Songhoonjae') return '송훈재 부장';
+        if (user === 'LimJunho') return '임준호 차장';
+        if (user === 'ChoYounghwan' || user === 'ChoYoungHwan') return '조영환 부장';
+        return user;
+      }catch(e){return ''}
+    }
+
+    document.getElementById('goInput').addEventListener('click', ()=>{
+      // preserve user token if present
+      try{
+        const qs = window.location.search || '';
+        const origin = (location && location.origin) ? location.origin : (location.protocol + '//' + location.host);
+  const target = origin + '/input' + qs;
+        // debug log to help diagnose in TWA/webview environments
+        try{ console.log('goInput -> navigating to', target); }catch(e){}
+
+        // Try multiple navigation strategies in order of reliability across webviews/TWAs.
+        // 1) assign
+        try{ window.location.assign(target); }catch(e){ /* ignore */ }
+  // 2) replace (avoid adding to back history)
+  // NOTE: calling replace() here after assign() removed the originating
+  // page from the session history which prevented the browser back
+  // button from returning to the front page. Remove the unconditional
+  // replace() call so the previous page remains in the history.
+  // If a webview requires replace semantics we can enable it behind a
+  // feature-flag later, but for normal browsers retain assign()/href.
+  // try{ window.location.replace(target); }catch(e){ /* ignore */ }
+        // 3) href fallback
+        try{ window.location.href = target; }catch(e){ /* ignore */ }
+        // 4) synthetic anchor click (some webviews handle anchor clicks differently)
+        try{
+          let a = document.getElementById('__goInputAnchor');
+          if (!a){ a = document.createElement('a'); a.id='__goInputAnchor'; a.style.display='none'; document.body.appendChild(a); }
+          a.href = target; a.target = '_self'; a.click();
+        }catch(e){ /* ignore */ }
+
+        // 5) as a last resort, attempt opening in same origin via window.open
+        try{ window.open(target, '_self'); }catch(e){ /* ignore */ }
+
+        // If nothing happened (some webviews swallow navigation), surface a visible fallback link
+        try{
+          setTimeout(()=>{
+            const msgId = '__goInputFallbackMsg';
+            if (!document.getElementById(msgId)){
+              const div = document.createElement('div'); div.id = msgId; div.style.marginTop='8px'; div.style.textAlign='center';
+              div.innerHTML = '자동 이동이 되지 않았습니다. <a href="'+ target +'" onclick="return true;">여기</a>를 누르면 이동합니다.';
+              const hero = document.querySelector('.hero') || document.body;
+              hero.parentNode.insertBefore(div, hero.nextSibling);
+            }
+          }, 300);
+        }catch(e){ /* ignore */ }
+
+      }catch(e){ console.warn('goInput navigation failed', e); }
+    });
+
+    // Force-refresh helper: try to update service worker and activate it, then reload
+    async function forceServiceWorkerUpdate(){
+      const addCacheBuster = () => {
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.set('fresh', Date.now().toString());
+          return url.toString();
+        } catch (e) {
+          const sep = window.location.search && window.location.search.length ? '&' : '?';
+          return window.location.href.split('#')[0] + sep + 'fresh=' + Date.now();
+        }
+      };
+
+      try {
+        if ('serviceWorker' in navigator) {
+          try {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(async (reg) => {
+              try { await reg.unregister(); } catch (err) { console.warn('sw unregister failed', err); }
+            }));
+          } catch (err) {
+            console.warn('serviceWorker cleanup failed', err);
+          }
+        }
+
+        if (window.caches && caches.keys) {
+          try {
+            const keys = await caches.keys();
+            await Promise.all(keys.map((key) => caches.delete(key)));
+          } catch (err) {
+            console.warn('cache delete failed', err);
+          }
+        }
+      } catch (err) {
+        console.warn('forceServiceWorkerUpdate encountered an error', err);
+      } finally {
+        const target = addCacheBuster();
+        try { window.location.replace(target); }
+        catch (err) {
+          console.warn('location.replace failed', err);
+          try { window.location.href = target; }
+          catch (e) { window.location.reload(); }
+        }
+      }
+    }
+
+    const btnForce = document.getElementById('btnForceRefresh');
+    if (btnForce) btnForce.addEventListener('click', ()=>{
+      btnForce.disabled = true; btnForce.textContent = '업데이트 중...';
+      forceServiceWorkerUpdate().finally(()=>{ setTimeout(()=>{ btnForce.disabled=false; btnForce.textContent='새로고침(최신)'; }, 1600); });
+    });
+
+    // no visible fallback link — only the left button remains
+
+    // Defensive: remove accidental plain-text CSS snippets accidentally rendered at top
+    (function removeStrayCssText(){
+      try{
+        const children = Array.from(document.body.childNodes);
+        for (const node of children){
+          if (node.nodeType === Node.TEXT_NODE){
+            const txt = (node.textContent||'').trim();
+            if (!txt) continue;
+            // heuristic: if text looks like CSS rules, remove it
+            if (txt.indexOf('.stat{') !== -1 || txt.indexOf('table{') !== -1 || txt.indexOf('.small{') !== -1){
+              node.parentNode && node.parentNode.removeChild(node);
+            }
+          }
+        }
+      }catch(e){ /* ignore */ }
+    })();
+
+    async function loadPersonalVisits(){
+      const staff = getStaffFromQuery();
+      try { const lbl = document.getElementById('staffLabel'); if (lbl) lbl.textContent = staff ? ('담당자: ' + staff) : ''; } catch(e){}
+      if (!staff){ document.getElementById('noAuth').style.display='block'; document.getElementById('loading').style.display='none'; return; }
+
+      // UI hooks
+      const startEl = document.getElementById('filterStart');
+      const endEl = document.getElementById('filterEnd');
+  const btnYesterday = document.getElementById('btnYesterday');
+  const btnToday = document.getElementById('btnToday');
+  const btnLastWeek = document.getElementById('btnLastWeek');
+  const btnThisWeek = document.getElementById('btnThisWeek');
+  const btnLastMonth = document.getElementById('btnLastMonth');
+  const btnThisMonth = document.getElementById('btnThisMonth');
+      const subjectFilterEl = document.getElementById('subjectFilter');
+      const loadMoreBtn = document.getElementById('loadMoreBtn');
+      const exportCsvBtn = document.getElementById('exportCsvBtn');
+      const loadingEl = document.getElementById('loading');
+      const loadingSpinner = document.getElementById('loadingSpinner');
+
+      function showLoading(msg){ if (loadingEl) { loadingEl.style.display='block'; loadingEl.textContent = msg || '데이터를 불러오는 중...'; } if (loadingSpinner) loadingSpinner.style.display = '' }
+      function hideLoading(){ if (loadingEl) loadingEl.style.display='none'; if (loadingSpinner) loadingSpinner.style.display = 'none' }
+
+      // helper: format Date -> yyyy-mm-dd
+      function fmt(d){ if (!d) return ''; const y = d.getFullYear(); const m = (d.getMonth()+1).toString().padStart(2,'0'); const day = d.getDate().toString().padStart(2,'0'); return `${y}-${m}-${day}`; }
+
+      // compute week (Mon-Sun) for date 'ref'
+      function weekRangeFor(ref){ const d = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate()); const dow = d.getDay(); // 0=Sun..6=Sat
+        const diffToMon = (dow === 0) ? -6 : (1 - dow); const mon = new Date(d); mon.setDate(d.getDate() + diffToMon); const sun = new Date(mon); sun.setDate(mon.getDate() + 6); return [mon, sun]; }
+
+      // compute month range for year,month index
+      function monthRangeFor(year, monthIndex){ const start = new Date(year, monthIndex, 1); const end = new Date(year, monthIndex + 1, 0); return [start, end]; }
+
+      // set inputs and optionally reload data
+      function setRangeAndReload(sDate, eDate, reload=true){ if (!startEl || !endEl) return; startEl.value = sDate; endEl.value = eDate; if (reload) { renderAndReload(); } }
+
+      // renderAndReload: call loadPersonalVisits again by re-invoking fetch flow
+      function renderAndReload(){ try{ // call the existing fetch by re-running loadPersonalVisits's inner fetch path: easiest is to call loadPersonalVisits() again
+          // remove old dashboard and call loadPersonalVisits to re-fetch
+          // Note: loadPersonalVisits is attached to window via DOMContentLoaded; ensure it's accessible
+          if (typeof loadPersonalVisits === 'function') { loadPersonalVisits(); }
+        }catch(e){ console.warn('reload failed', e); } }
+
+      // wire quick buttons
+      if (btnToday) btnToday.addEventListener('click', ()=>{ const t = new Date(); setRangeAndReload(fmt(t), fmt(t)); });
+      if (btnYesterday) btnYesterday.addEventListener('click', ()=>{ const t = new Date(); t.setDate(t.getDate() - 1); setRangeAndReload(fmt(t), fmt(t)); });
+      if (btnThisWeek) btnThisWeek.addEventListener('click', ()=>{ const [mon, sun] = weekRangeFor(new Date()); setRangeAndReload(fmt(mon), fmt(sun)); });
+      if (btnLastWeek) btnLastWeek.addEventListener('click', ()=>{ const ref = new Date(); ref.setDate(ref.getDate() - 7); const [mon, sun] = weekRangeFor(ref); setRangeAndReload(fmt(mon), fmt(sun)); });
+      if (btnThisMonth) btnThisMonth.addEventListener('click', ()=>{ const now = new Date(); const [s,e] = monthRangeFor(now.getFullYear(), now.getMonth()); setRangeAndReload(fmt(s), fmt(e)); });
+      if (btnLastMonth) btnLastMonth.addEventListener('click', ()=>{ const now = new Date(); const [s,e] = monthRangeFor(now.getFullYear(), now.getMonth()-1); setRangeAndReload(fmt(s), fmt(e)); });
+
+      // wire apply/clear buttons to reload
+      const filterApplyBtn = document.getElementById('filterApply');
+      const filterClearBtn = document.getElementById('filterClear');
+      if (filterApplyBtn) filterApplyBtn.addEventListener('click', ()=>{ renderAndReload(); });
+      if (filterClearBtn) filterClearBtn.addEventListener('click', ()=>{ if (startEl) startEl.value=''; if (endEl) endEl.value=''; renderAndReload(); });
+
+      // base staff name without title suffix
+  const base = staff.replace(/\s*(부장|차장|과장|대리|사원|팀장|선생님|선생)$/,'').trim();
+
+      // Build initial query params
+      const userToken = (new URLSearchParams(window.location.search)).get('user') || '';
+      const buildUrl = (cursor) => {
+        const params = new URLSearchParams();
+        params.set('useEntries','true');
+        params.set('pageSize','100');
+        // send both a human-friendly staff base (Korean) and the original user token
+  // send the full staff label (including title) when available so Firestore equality matches stored docs
+  if (staff) params.set('staff', staff);
+        if (userToken) params.set('user', userToken);
+        const sVal = startEl && startEl.value ? startEl.value : '';
+        const eVal = endEl && endEl.value ? endEl.value : '';
+        const subj = subjectFilterEl && subjectFilterEl.value ? subjectFilterEl.value : '';
+        if (sVal) params.set('start', sVal);
+        if (eVal) params.set('end', eVal);
+        if (subj) params.set('subject', subj);
+        if (cursor) params.set('cursor', cursor);
+        return '/api/visits?' + params.toString();
+      };
+
+      try{
+        // Default date range: this week (Mon-Sun). Exception: if today is Monday,
+        // default to last week instead.
+        try{
+          if (startEl && endEl && !startEl.value && !endEl.value){
+            const today = new Date();
+            const isMonday = (today.getDay() === 1);
+            const ref = new Date(today);
+            if (isMonday){ ref.setDate(ref.getDate() - 7); }
+            const [dMon, dSun] = weekRangeFor(ref);
+            startEl.value = fmt(dMon);
+            endEl.value = fmt(dSun);
+          }
+        }catch(e){ console.warn('default range calc failed', e); }
+
+        showLoading('데이터를 불러오는 중...');
+        // reset accumulators
+        window._visitsAccum = [];
+        window._visitsNextCursor = null;
+
+        // fetch first page
+        const url = buildUrl(null);
+        const res = await fetch(url);
+        const j = await res.json();
+        if (!j || !j.ok) { hideLoading(); loadingEl.textContent = '데이터를 가져오지 못했습니다.'; return; }
+        const rows = Array.isArray(j.rows) ? j.rows : [];
+        // Debug: surface fetched row count so users can see whether API returned data
+        try{
+          const params = new URLSearchParams(window.location.search);
+          const debug = params.get('debug');
+          if (loadingEl) loadingEl.textContent = '가져온 행 수: ' + rows.length;
+          if (debug === '1'){
+            let dbg = document.getElementById('__fetch_debug');
+            if (!dbg){ dbg = document.createElement('pre'); dbg.id = '__fetch_debug'; dbg.style.maxHeight = '220px'; dbg.style.overflow = 'auto'; dbg.style.padding = '.6rem'; dbg.style.background = '#fbfdff'; dbg.style.border = '1px solid #eef2ff'; dbg.style.marginTop = '8px'; loadingEl.parentNode && loadingEl.parentNode.insertBefore(dbg, loadingEl.nextSibling); }
+            dbg.textContent = JSON.stringify(j, null, 2);
+          }
+        }catch(e){ console.warn('debug UI update failed', e); }
+        window._visitsAccum = rows.slice();
+        window._visitsNextCursor = j.nextCursor || null;
+
+        // show load more/export controls if applicable
+        if (window._visitsNextCursor) { loadMoreBtn.style.display = ''; loadMoreBtn.disabled = false; }
+        else { loadMoreBtn.style.display = 'none'; }
+        if (window._visitsAccum.length) exportCsvBtn.style.display = ''; else exportCsvBtn.style.display = 'none';
+
+        // wire load more
+        if (!loadMoreBtn.dataset.bound){ loadMoreBtn.addEventListener('click', async ()=>{
+          if (!window._visitsNextCursor) return; loadMoreBtn.disabled = true; loadMoreBtn.textContent = '불러오는 중...';
+          try{
+            const moreUrl = buildUrl(window._visitsNextCursor);
+            const r2 = await fetch(moreUrl); const j2 = await r2.json(); if (j2 && j2.ok && Array.isArray(j2.rows)){
+              window._visitsAccum = window._visitsAccum.concat(j2.rows);
+              window._visitsNextCursor = j2.nextCursor || null;
+              if (!window._visitsNextCursor) { loadMoreBtn.style.display = 'none'; }
+            }
+          }catch(e){ console.warn('load more failed', e); }
+          loadMoreBtn.disabled = false; loadMoreBtn.textContent = '더 불러오기';
+          // re-render with new data
+          renderFromVisitEntries(window._visitsAccum);
+        }); loadMoreBtn.dataset.bound = '1'; }
+
+        // CSV export
+        if (!exportCsvBtn.dataset.bound){ exportCsvBtn.addEventListener('click', ()=>{
+          const notes = collectNotesFromEntries(window._visitsAccum);
+          if (!notes.length){ alert('내보낼 특이사항이 없습니다.'); return; }
+          const csvRows = [['일자','학교','과목','선생님','특이사항']].concat(notes.map(r=>[r.date||'', r.school||'', r.subject||'', r.teacher||'', (r.note||'').replace(/\n/g,' ')]));
+          const csv = csvRows.map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""') }"`).join(',')).join('\n');
+          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = url; a.download = 'notes_export.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+        }); exportCsvBtn.dataset.bound = '1'; }
+
+        // render
+        renderFromVisitEntries(window._visitsAccum);
+      }catch(e){ console.warn('loadPersonalVisits failed', e); document.getElementById('loading').textContent = '불러오기 중 오류: ' + (e && e.message); }
+      finally{ hideLoading(); document.getElementById('dashboardArea').style.display='block'; }
+
+      // helper to collect notes array from per-entry rows
+      function collectNotesFromEntries(entries){
+        const out = [];
+        (entries||[]).forEach(r => { const note = (r.conversation || r.conversation || '').toString().trim(); if (note) out.push({ date: r.visitDate || '', school: r.school || '', subject: r.subject || '', teacher: r.teacher || '', note }); });
+        return out;
+      }
+
+      // Map helpers: create map, load precomputed geocodes and plot markers for the current user's visits
+      function createPersonalMap(){
+        try{
+          // If Leaflet isn't available yet, bail out
+          if (typeof L === 'undefined') { console.warn('Leaflet (L) is not loaded'); return null; }
+          // If window.personalMap exists and looks like a Leaflet map (has setView), return it
+          if (window.personalMap && typeof window.personalMap.setView === 'function') return window.personalMap;
+
+          const map = L.map('personalMap', { preferCanvas: true }).setView([37.5665,126.9780], 10);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+          window.personalMap = map;
+          try{ window.personalMarkerCluster = L.markerClusterGroup({ chunkedLoading: true }); window.personalMap.addLayer(window.personalMarkerCluster); }catch(e){ console.warn('marker cluster init failed', e); }
+          // simple control to show mapped count
+          try{
+            const info = L.control({ position: 'topright' });
+            info.onAdd = function(){ const div = L.DomUtil.create('div','small'); div.style.background = 'rgba(255,255,255,0.95)'; div.style.padding = '6px 8px'; div.style.borderRadius = '8px'; div.style.boxShadow = '0 6px 18px rgba(10,20,60,0.06)'; div.id = 'personalMapInfo'; div.innerHTML = '지도 로딩 중...'; return div; };
+            info.addTo(map);
+          }catch(e){ console.warn('personalMapInfo control init failed', e); }
+          return map;
+        }catch(e){ console.warn('createPersonalMap failed', e); return null; }
+      }
+
+      async function loadGeocodes(){
+        if (window._geocodeCache) return window._geocodeCache;
+        try{
+          const r = await fetch('/geocodes.json');
+          if (!r.ok) { window._geocodeCache = {}; return window._geocodeCache; }
+          const j = await r.json(); window._geocodeCache = j || {}; return window._geocodeCache;
+        }catch(e){ console.warn('loadGeocodes failed', e); window._geocodeCache = {}; return window._geocodeCache; }
+      }
+
+      // Try to geocode an address with Nominatim (OpenStreetMap). Results are cached in-memory and in localStorage
+      async function geocodeAddress(address){
+        if (!address) return null;
+        try{
+          // use local cache first
+          const cacheKey = 'cmass_geocode_cache_v1';
+          let cache = {};
+          try{ cache = JSON.parse(localStorage.getItem(cacheKey) || '{}'); }catch(e){ cache = {}; }
+          if (cache[address]) return cache[address];
+
+          // Respect polite usage: include format=json and limit=1
+          const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(address + ', 대한민국');
+          const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+          if (!resp.ok) return null;
+          const arr = await resp.json();
+          if (!Array.isArray(arr) || !arr.length) return null;
+          const one = arr[0];
+          const res = { lat: Number(one.lat), lon: Number(one.lon), display_name: one.display_name };
+          cache[address] = res;
+          try{ localStorage.setItem(cacheKey, JSON.stringify(cache)); }catch(e){}
+          return res;
+        }catch(e){ console.warn('geocodeAddress failed', e); return null; }
+      }
+
+      async function updateMapFromVisits(visits){
+        try{
+          if (!Array.isArray(visits)) visits = window._visitsAccum || [];
+          const map = createPersonalMap();
+          // Defensive: if map wasn't created (Leaflet not loaded or createPersonalMap failed), bail out
+          if (!map || typeof map.setView !== 'function'){
+            console.warn('map not ready or createPersonalMap failed', map);
+            return;
+          }
+          const geos = await loadGeocodes();
+          if (!window.personalMarkerCluster) window.personalMarkerCluster = L.markerClusterGroup();
+          window.personalMarkerCluster.clearLayers();
+          const schoolSet = new Set((visits||[]).map(v => (v.school||'').trim()).filter(Boolean));
+          let plotted = 0;
+          const bounds = [];
+          // iterate schools and attempt to plot; if coords missing try to geocode from NEIS address
+          for (const school of Array.from(schoolSet)){
+            let g = geos[school];
+            // if no geocode entry, skip for now
+            if (!g) continue;
+            let lat = Number(g.lat || g.latitude || g.y || (Array.isArray(g) && g[0]));
+            let lon = Number(g.lon || g.longitude || g.x || (Array.isArray(g) && g[1]));
+            // If coords missing but NEIS address exists, try client geocoding and update cache
+            if ((!lat || !lon || isNaN(lat) || isNaN(lon)) && g && g.neis && g.neis.ORG_RDNMA){
+              try{
+                const addr = (g.neis.ORG_RDNMA || '').toString().trim();
+                if (addr){
+                  const geo = await geocodeAddress(addr);
+                  if (geo){
+                    lat = Number(geo.lat); lon = Number(geo.lon);
+                    // persist into geos object for this session
+                    try{ g.lat = lat; g.lon = lon; geos[school] = g; window._geocodeCache = geos; }catch(e){}
+                    // also try to persist into localStorage cache for quicker future loads
+                    try{ const storeKey = 'cmass_geocode_cache_v1'; const ls = JSON.parse(localStorage.getItem(storeKey)||'{}'); ls[school] = { lat, lon, source: 'neis-nominatim' }; localStorage.setItem(storeKey, JSON.stringify(ls)); }catch(e){}
+                  }
+                }
+              }catch(e){ console.warn('geocode fallback failed for', school, e); }
+            }
+            if (!lat || !lon || isNaN(lat) || isNaN(lon)) continue;
+            const visitsForSchool = (visits||[]).filter(v=> (v.school||'').trim() === school ).slice(0,10);
+            const dates = visitsForSchool.map(v=> v.visitDate || '').filter(Boolean).slice(0,5).join('<br/>');
+            const safeSchool = String(school).replace(/'/g, "\\'");
+            const popup = `<div style="min-width:160px"><strong>${school}</strong><div class="small">방문 수: ${g.count||visitsForSchool.length||1}</div><div style="margin-top:6px">최근:<br/>${dates||'(기록없음)'}</div><div style="margin-top:8px"><button class="alt-btn" onclick="(function(s){ try{ if(window.scrollToSchool) window.scrollToSchool(s); else alert('목록 기능을 찾을 수 없습니다.'); }catch(e){ console.warn(e); } })('${safeSchool}')">목록에서 보기</button></div></div>`;
+            const marker = L.marker([lat,lon]);
+            marker.bindPopup(popup);
+            window.personalMarkerCluster.addLayer(marker);
+            bounds.push([lat,lon]); plotted++;
+          }
+          if (plotted){ try{ const b = L.latLngBounds(bounds); map.fitBounds(b.pad(0.2)); }catch(e){}
+            const infoEl = document.getElementById('personalMapInfo'); if (infoEl) { infoEl.innerText = '표시된 학교: ' + plotted; } else { console.warn('personalMapInfo element not found when setting plotted count'); }
+          }
+          else {
+            const infoEl = document.getElementById('personalMapInfo'); if (infoEl) { infoEl.innerText = '지도에 표시된 학교가 없습니다.'; } else { console.warn('personalMapInfo element not found when clearing plotted count'); }
+            map.setView([37.5665,126.9780], 10);
+          }
+        }catch(e){ console.warn('updateMapFromVisits failed', e); }
+      }
+
+      // scroll helper: find notes table row for a school and scroll it into view
+      function scrollToSchool(school){
+        try{
+          if (!school) return;
+          // find notes table body
+          const tbody = document.querySelector('#notesTableContainer .notes-table tbody');
+          if (!tbody){ alert('목록을 찾을 수 없습니다.'); return; }
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+          const idx = rows.findIndex(tr => (tr.cells[1] && tr.cells[1].textContent && tr.cells[1].textContent.trim()) === school);
+          if (idx === -1){ alert(school + '에 해당하는 항목을 찾을 수 없습니다.'); return; }
+          const row = rows[idx];
+          row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // brief highlight
+          const orig = row.style.backgroundColor;
+          row.style.backgroundColor = '#fff4d6';
+          setTimeout(()=>{ row.style.backgroundColor = orig; }, 2000);
+        }catch(e){ console.warn('scrollToSchool failed', e); }
+      }
+
+      // expose globally so other pieces can call after load
+      window.updateMapFromVisits = updateMapFromVisits;
+
+      // render logic shared with legacy renderer but adapted to per-entry items
+      function renderFromVisitEntries(entries){
+        try{
+          // Defensive normalization: accept multiple date field names and formats
+          const raw = Array.isArray(entries) ? entries.slice() : [];
+          const visits = raw.map(v => {
+            try{
+              const copy = Object.assign({}, v);
+              // prefer visitDate, then visit_date, then createdAt/created_at, then payload.visitDate
+              let dateStr = copy.visitDate || copy.visit_date || copy.createdAt || copy.created_at || (copy.payload && (copy.payload.visitDate || copy.payload.visit_date || copy.payload.createdAt)) || '';
+              // If createdAt/visitDate came as Firestore-like object with _seconds, handle it
+              if (dateStr && typeof dateStr === 'object'){
+                if (dateStr._seconds){ dateStr = new Date(Number(dateStr._seconds)*1000).toISOString(); }
+                else if (dateStr.toDate && typeof dateStr.toDate === 'function'){ try{ dateStr = dateStr.toDate().toISOString(); }catch(e){ dateStr = '' } }
+              }
+              // If visitDate_ts exists as object with toDate(), use that
+              if ((!dateStr || dateStr === '') && copy.visitDate_ts && typeof copy.visitDate_ts.toDate === 'function'){
+                try{ dateStr = copy.visitDate_ts.toDate().toISOString(); }catch(e){}
+              }
+              copy.visitDate = dateStr || '';
+              // normalize visitStart / visitEnd from multiple possible field names and timestamp shapes
+              function normTimeField(val){
+                if (!val && val !== 0) return '';
+                // Firestore timestamp-like
+                if (typeof val === 'object'){
+                  if (val._seconds){ try{ return new Date(Number(val._seconds)*1000).toISOString().substring(11,16); }catch(e){} }
+                  if (val.toDate && typeof val.toDate === 'function'){ try{ return val.toDate().toISOString().substring(11,16); }catch(e){} }
+                }
+                // strings: if ISO datetime -> extract HH:MM; if contains HH:MM -> return first match; else return trimmed
+                if (typeof val === 'string'){
+                  const isoMatch = val.match(/\d{4}-\d{2}-\d{2}T(\d{2}:\d{2})/);
+                  if (isoMatch) return isoMatch[1];
+                  const pm = val.match(/(\d{1,2}:\d{2})/);
+                  if (pm) return pm[1];
+                  return val.trim();
+                }
+                return '';
+              }
+              // common candidate keys for start/end
+              const startCandidates = [copy.visitStart, copy.visit_start, copy.start, copy.visit_time_start, (copy.payload && (copy.payload.visitStart || copy.payload.visit_start || copy.payload.start)), copy.visitStart_ts, copy.start_ts];
+              const endCandidates = [copy.visitEnd, copy.visit_end, copy.end, copy.visit_time_end, (copy.payload && (copy.payload.visitEnd || copy.payload.visit_end || copy.payload.end)), copy.visitEnd_ts, copy.end_ts];
+              let sVal = '';
+              for (const c of startCandidates){ const n = normTimeField(c); if (n) { sVal = n; break; } }
+              let eVal = '';
+              for (const c of endCandidates){ const n = normTimeField(c); if (n) { eVal = n; break; } }
+              // if we found ISO visitDate and start/end are HH:MM, prefer to store full ISO local-ish datetimes? Keep as HH:MM for display/parse
+              copy.visitStart = sVal || '';
+              copy.visitEnd = eVal || '';
+              return copy;
+            }catch(e){ return v; }
+          });
+
+          // sort by visitDate (newest first). Fallback to createdAt if missing.
+          visits.sort((a,b)=>{
+            const ad = a.visitDate || a.createdAt || '';
+            const bd = b.visitDate || b.createdAt || '';
+            const at = ad ? new Date(ad).getTime() : 0;
+            const bt = bd ? new Date(bd).getTime() : 0;
+            return bt - at;
+          });
+          document.getElementById('totalVisits').textContent = visits.length;
+          const uniq = Array.from(new Set(visits.map(m=> (m.school||'').toString().trim() ).filter(Boolean)));
+          document.getElementById('uniqueSchools').textContent = uniq.length;
+          // recentDate: show the most recent visit date in readable YYYY-MM-DD
+          const recentShown = visits.length ? (visits[0].visitDate || visits[0].createdAt || '-') : '-';
+          document.getElementById('recentDate').textContent = recentShown ? (recentShown.substring(0,10)) : '-';
+
+          // small helper: show placeholder when chart has no data
+          function setChartVisibility(canvasId, hasData, message){
+            const c = document.getElementById(canvasId);
+            if (!c) return;
+            let ph = document.getElementById(canvasId + '_placeholder');
+            if (!ph){ ph = document.createElement('div'); ph.id = canvasId + '_placeholder'; ph.className = 'small'; ph.style.padding = '.8rem'; ph.style.color = 'var(--muted)'; ph.style.minHeight = '60px'; c.parentNode.insertBefore(ph, c.nextSibling); }
+            if (!hasData){ c.style.display = 'none'; ph.style.display = ''; ph.textContent = message || '데이터가 없습니다.'; }
+            else { c.style.display = ''; ph.style.display = 'none'; }
+          }
+
+          // schools chart removed per user request
+
+          // build school buttons and per-school visits table + subject quick-filter
+          const buttonsEl = document.getElementById('schoolButtons');
+          const subjectBtnsEl = document.getElementById('subjectButtons');
+          const tableCont = document.getElementById('schoolVisitsTableContainer');
+          // standard subject list (includes '도서관사서' and 기타)
+          const standardSubjects = ['정보','진로','보건','미술','체육','도서관사서','특성화','기타'];
+          let currentSchool = null;
+          let currentSubject = '';
+          let currentDate = '';
+
+          // build school buttons with counts
+          const schoolCounts = {};
+          visits.forEach(v => { const s = (v.school||'').toString().trim(); if (!s) return; schoolCounts[s] = (schoolCounts[s]||0) + 1; });
+          if (buttonsEl) {
+            buttonsEl.innerHTML = '';
+            const allBtn = document.createElement('button'); allBtn.className='alt-btn'; allBtn.textContent = '전체'; allBtn.dataset.school = ''; allBtn.onclick = ()=>{ currentSchool = null; renderSchoolVisits(null, currentSubject, currentDate); };
+            buttonsEl.appendChild(allBtn);
+            uniq.forEach(sch => {
+              const cnt = schoolCounts[sch] || 0;
+              const b = document.createElement('button'); b.className = 'alt-btn'; b.textContent = `${sch}(${cnt})`; b.dataset.school = sch; b.onclick = ()=>{ currentSchool = sch; renderSchoolVisits(sch, currentSubject, currentDate); };
+              buttonsEl.appendChild(b);
+            });
+          }
+
+          // render subject quick-buttons (show counts per subject)
+          if (subjectBtnsEl){
+            subjectBtnsEl.innerHTML = '';
+            // compute counts for subjects (including 기타)
+            const subjCountsMap = {};
+            visits.forEach(v => { const key = (v.subject || '미지정').toString().trim() || '미지정'; subjCountsMap[key] = (subjCountsMap[key]||0) + 1; });
+            const allS = document.createElement('button'); allS.className = 'alt-btn'; allS.textContent = '전체'; allS.dataset.subject = ''; allS.onclick = ()=>{ currentSubject=''; renderSchoolVisits(currentSchool, currentSubject, currentDate); };
+            subjectBtnsEl.appendChild(allS);
+            standardSubjects.forEach(sb => {
+              const cnt = subjCountsMap[sb] || 0;
+              const btn = document.createElement('button'); btn.className='alt-btn'; btn.textContent = `${sb}(${cnt})`; btn.dataset.subject = sb; btn.onclick = ()=>{ currentSubject = sb; renderSchoolVisits(currentSchool, currentSubject, currentDate); };
+              subjectBtnsEl.appendChild(btn);
+            });
+            // also add 기타 count for non-standard subjects — avoid duplicating if '기타' is already a standard subject
+            const otherCount = Object.keys(subjCountsMap).reduce((acc,k)=> acc + ((standardSubjects.indexOf(k)===-1)? subjCountsMap[k]:0), 0);
+            if (standardSubjects.indexOf('기타') === -1) {
+              const 기타Btn = document.createElement('button');
+              기타Btn.className='alt-btn';
+              기타Btn.textContent = `기타(${otherCount})`;
+              기타Btn.dataset.subject = '기타';
+              기타Btn.onclick = ()=>{ currentSubject = '기타'; renderSchoolVisits(currentSchool, currentSubject, currentDate); };
+              subjectBtnsEl.appendChild(기타Btn);
+            } else {
+              // If '기타' already exists in the standardSubjects buttons, update its label to include otherCount
+              try {
+                const existing = Array.from(subjectBtnsEl.querySelectorAll('button')).find(b => b.dataset && b.dataset.subject === '기타');
+                if (existing) {
+                  const baseCount = subjCountsMap['기타'] || 0;
+                  const total = baseCount + (otherCount || 0);
+                  existing.textContent = `기타(${total})`;
+                }
+              } catch(e) { /* ignore */ }
+            }
+          }
+
+          // helper: update charts based on filtered rows
+          function updateCharts(rows){
+            // subjects distribution
+            const subjCounts = {}; rows.forEach(v=>{ const key = (v.subject || '미지정').toString().trim() || '미지정'; subjCounts[key] = (subjCounts[key]||0) + 1; });
+            const subjLabels = Object.keys(subjCounts).sort((a,b)=>subjCounts[b]-subjCounts[a]).slice(0,8);
+            const subjData = subjLabels.map(l=>subjCounts[l]);
+            setChartVisibility('subjectsChart', subjLabels.length>0, '과목 분포 데이터가 없습니다.');
+            if (subjLabels.length>0){
+              const sctx = document.getElementById('subjectsChart').getContext('2d');
+              try { if (window._subjectsChart && typeof window._subjectsChart.destroy === 'function') window._subjectsChart.destroy(); } catch(e){}
+              const subjTotal = subjData.reduce((a,b)=>a+(b||0),0) || 1;
+              const subjLabelsPct = subjLabels.map((l,i)=> `${l} ${Math.round(((subjData[i]||0)/subjTotal)*100)}%`);
+              window._subjectsChart = new Chart(sctx, {
+                type: 'doughnut', data: { labels: subjLabelsPct, datasets:[{ data: subjData, backgroundColor: ['#6b8bff','#8ec3ff','#a7bfff','#f6c07b','#c7d8ff','#b0e0d3','#ffd1e0','#d9c8ff'] }] },
+                options: { responsive:true, maintainAspectRatio:false, cutout: '40%', plugins:{ legend:{ display:true, position:'right', align:'start', labels:{ boxWidth:12, padding:6 } }, tooltip:{ callbacks:{ label: function(ctx){ const v = ctx.parsed; const pct = Math.round((v/subjTotal)*100); return ctx.label + ': ' + v + ' (' + pct + '%)'; } } } }, layout: { padding: { right: 8 } } }
+              });
+            }
+
+            // monthly timeline
+            const monthCounts = {}; const pad = n => n<10? '0'+n : ''+n;
+            rows.forEach(v=>{ const d = v.visitDate ? new Date(v.visitDate) : null; if (!d || isNaN(d.getTime())) return; const key = d.getFullYear() + '-' + pad(d.getMonth()+1); monthCounts[key] = (monthCounts[key]||0) + 1; });
+            const now = new Date(); const months = []; for (let i=11;i>=0;i--){ const dt = new Date(now.getFullYear(), now.getMonth()-i, 1); months.push(dt.getFullYear()+'-'+pad(dt.getMonth()+1)); }
+            const monthData = months.map(m => monthCounts[m]||0);
+            setChartVisibility('monthlyChart', monthData.some(n=>n>0), '월별 방문 데이터가 없습니다.');
+            if (monthData.some(n=>n>0)){
+              const mctx = document.getElementById('monthlyChart').getContext('2d');
+              try { if (window._monthlyChart && typeof window._monthlyChart.destroy === 'function') window._monthlyChart.destroy(); } catch(e){}
+              window._monthlyChart = new Chart(mctx, {
+                type: 'line',
+                data: {
+                  labels: months,
+                  datasets: [{ label: '방문수', data: monthData, fill: true, backgroundColor: 'rgba(107,139,255,0.18)', borderColor: '#6b8bff', tension: 0.3 }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: { titleFont: { size: 14 }, bodyFont: { size: 13 } }
+                  },
+                  scales: {
+                    x: { ticks: { color: '#334', font: { size: 13 } }, grid: { display: false } },
+                    y: { ticks: { color: '#334', font: { size: 13 }, beginAtZero: true }, grid: { color: 'rgba(200,210,230,0.6)' } }
+                  },
+                  elements: { point: { radius: 4 } }
+                }
+              });
+            }
+
+            // actions distribution
+            const actionCounts = {};
+            rows.forEach(v => { (v.meetings||[]).forEach(m => { const key = (m||'').trim(); if (!key) return; actionCounts[key] = (actionCounts[key]||0)+1; }); });
+            const labels = Object.keys(actionCounts).sort((a,b)=>actionCounts[b]-actionCounts[a]);
+            const data = labels.map(l=>actionCounts[l]);
+            setChartVisibility('actionsChart', labels.length>0, '행동 분석 데이터가 없습니다.');
+            if (labels.length>0){ const actCtx = document.getElementById('actionsChart').getContext('2d'); try { if (window._actionsChart && typeof window._actionsChart.destroy === 'function') window._actionsChart.destroy(); } catch(e){} window._actionsChart = new Chart(actCtx, { type:'bar', data:{ labels, datasets:[{ label:'행동수', data, backgroundColor:'#8ec3ff' }] }, options:{ responsive:true, plugins:{ legend:{ display:false } } } }); }
+
+            // small pie for actions (positive-only)
+            try{
+              const positiveLabels = []; const positiveData = []; const positiveBg = []; const bgPalette = ['#6b8bff','#8ec3ff','#a7bfff','#f6c07b','#c7d8ff','#b0e0d3','#ffd1e0','#d9c8ff'];
+              for (let i=0;i<labels.length;i++){ if ((data[i]||0) > 0){ positiveLabels.push(labels[i]); positiveData.push(data[i]); positiveBg.push(bgPalette[i%bgPalette.length]); } }
+              setChartVisibility('actionsPieChart', positiveLabels.length>0, '영업활동 데이터가 없습니다.');
+              if (positiveLabels.length>0){ const apCtx = document.getElementById('actionsPieChart').getContext('2d'); try{ if (window._actionsPieChart && typeof window._actionsPieChart.destroy === 'function') window._actionsPieChart.destroy(); }catch(e){}
+                const actionTotal = positiveData.reduce((a,b)=>a+(b||0),0) || 1;
+                const labelsPct = positiveLabels.map((l,i)=> `${l} ${Math.round(((positiveData[i]||0)/actionTotal)*100)}%`);
+                window._actionsPieChart = new Chart(apCtx, { type: 'doughnut', data: { labels: labelsPct, datasets: [{ data: positiveData, backgroundColor: positiveBg }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '40%', plugins: { legend: { display:true, position:'right', align:'start', labels:{ boxWidth:12, padding:6 } }, tooltip: { callbacks: { label: function(ctx){ const v = ctx.parsed; const pct = Math.round((v/actionTotal)*100); return ctx.label + ': ' + v + ' (' + pct + '%)'; } } } }, layout: { padding: { right: 8 } } } });
+              }
+            }catch(e){ console.warn('renderActionsPie failed', e); }
+          }
+
+          // build date buttons (unique visit dates) with counts
+          try{
+            const dateBtnEl = document.getElementById('dateButtons');
+            if (dateBtnEl){
+              // collect dates (YYYY-MM-DD) and counts
+              const dateCounts = {};
+              visits.forEach(v => { const d = (v.visitDate || v.createdAt || '').toString().substring(0,10); if (!d) return; dateCounts[d] = (dateCounts[d]||0) + 1; });
+              const dates = Object.keys(dateCounts).sort((a,b)=> (a<b?1:-1)); // descending
+              dateBtnEl.innerHTML = '';
+              const allD = document.createElement('button'); allD.className='alt-btn'; allD.textContent = '전체'; allD.dataset.date = ''; allD.onclick = ()=>{ currentDate = ''; renderSchoolVisits(currentSchool, currentSubject, currentDate); };
+              dateBtnEl.appendChild(allD);
+              dates.forEach(dt => { const btn = document.createElement('button'); btn.className='alt-btn'; btn.textContent = `${dt}(${dateCounts[dt]||0})`; btn.dataset.date = dt; btn.onclick = ()=>{ currentDate = dt; renderSchoolVisits(currentSchool, currentSubject, currentDate); }; dateBtnEl.appendChild(btn); });
+            }
+          }catch(e){ console.warn('date buttons render failed', e); }
+
+          function renderSchoolVisits(school, subject, dateFilter){
+            // highlight active school button
+            try{
+              if (buttonsEl){ Array.from(buttonsEl.querySelectorAll('button')).forEach(btn => {
+                try{
+                  const bs = btn.dataset && btn.dataset.school !== undefined ? btn.dataset.school : '';
+                  if ((school === null && bs === '') || (school !== null && bs === school)) {
+                    btn.style.background = '#dfeaff'; btn.style.border = '1px solid #a7c2ff'; btn.style.color = '#0b2b5a';
+                  } else { btn.style.background = ''; btn.style.border = ''; btn.style.color = ''; }
+                }catch(e){}
+              }); }
+            }catch(e){}
+            // highlight active subject button
+            try{
+              if (subjectBtnsEl){ Array.from(subjectBtnsEl.querySelectorAll('button')).forEach(btn => {
+                try{ const bs = btn.dataset && btn.dataset.subject !== undefined ? btn.dataset.subject : ''; if ((subject === '' && bs === '') || (subject !== '' && bs === subject)) { btn.style.background = '#dfeaff'; btn.style.border = '1px solid #a7c2ff'; btn.style.color = '#0b2b5a'; } else { btn.style.background = ''; btn.style.border = ''; btn.style.color = ''; } }catch(e){}
+              }); }
+            }catch(e){}
+            // highlight active date button
+            try{
+              const dateEl = document.getElementById('dateButtons');
+              if (dateEl){ Array.from(dateEl.querySelectorAll('button')).forEach(btn => { try{ const d = btn.dataset && btn.dataset.date !== undefined ? btn.dataset.date : ''; if ((dateFilter === '' && d === '') || (dateFilter && d === dateFilter)) { btn.style.background = '#dfeaff'; btn.style.border = '1px solid #a7c2ff'; btn.style.color = '#0b2b5a'; } else { btn.style.background=''; btn.style.border=''; btn.style.color=''; } }catch(e){} }); }
+            }catch(e){}
+
+            if (!tableCont) return;
+            tableCont.innerHTML = '';
+            let rows = school ? visits.filter(v=> (v.school||'').toString().trim() === school) : visits.slice();
+            // apply date filter if provided (YYYY-MM-DD)
+            if (dateFilter && dateFilter !== ''){
+              rows = rows.filter(v => { const d = (v.visitDate || v.createdAt || '').toString().substring(0,10); return d === dateFilter; });
+            }
+            // apply subject filter if provided
+            if (subject && subject !== ''){
+              if (subject === '기타'){
+                rows = rows.filter(r => { const s = (r.subject||'').toString().trim(); return !standardSubjects.includes(s) || s === '' || s === '기타'; });
+              } else {
+                rows = rows.filter(r => ((r.subject||'').toString().trim()) === subject);
+              }
+            }
+            if (!rows.length){ tableCont.innerHTML = '<div class="small">해당 조건의 방문 기록이 없습니다.</div>'; return; }
+            const t = document.createElement('table'); t.className = 'notes-table';
+            const th = document.createElement('thead'); th.innerHTML = '<tr><th>방문일</th><th>학교</th><th>방문시간</th><th>선생님명</th><th>과목명</th><th>영업활동</th><th>특이사항</th></tr>'; t.appendChild(th);
+            const tb = document.createElement('tbody');
+            rows.forEach(r=>{
+              const date = r.visitDate ? (r.visitDate.substring(0,19).replace('T',' ')) : (r.createdAt && typeof r.createdAt === 'string' ? r.createdAt.substring(0,19).replace('T',' ') : '');
+              const visitDateOnly = r.visitDate ? (r.visitDate.substring(0,10)) : (r.createdAt && typeof r.createdAt === 'string' ? r.createdAt.substring(0,10) : '');
+              let timeDisplay = '-';
+              if (r.durationMinutes) timeDisplay = String(r.durationMinutes) + '분';
+              else if (r.visitStart && r.visitEnd) timeDisplay = (r.visitStart||'') + ' - ' + (r.visitEnd||'');
+              const teacher = r.teacher || '';
+              const subjectVal = r.subject || '';
+              const activity = Array.isArray(r.meetings) ? r.meetings.join(', ') : (r.meetings || r.activity || '');
+              const note = (r.conversation || r.note || '').toString().replace(/</g,'&lt;');
+              const tr = document.createElement('tr');
+              const schoolCell = (r.school || '').toString().replace(/</g,'&lt;');
+              tr.innerHTML = `<td>${visitDateOnly}</td><td>${schoolCell}</td><td>${timeDisplay}</td><td>${teacher}</td><td>${subjectVal}</td><td>${activity}</td><td>${note}</td>`;
+              tb.appendChild(tr);
+            });
+            t.appendChild(tb);
+            // place table directly; tableCont is the scroll container so sticky headers work relative to it
+            const wrapper = document.createElement('div'); wrapper.style.width='100%'; wrapper.style.overflow='visible'; wrapper.appendChild(t);
+            tableCont.appendChild(wrapper);
+            // update charts to reflect the currently displayed rows (subjects/actions/monthly)
+            try{ if (typeof updateCharts === 'function') updateCharts(rows); } catch(e){ console.warn('updateCharts failed', e); }
+            // update keyword extraction for the currently displayed rows (per-school / per-subject)
+            try{ if (typeof updateKeywords === 'function') updateKeywords(rows); } catch(e){ console.warn('updateKeywords failed', e); }
+          }
+          // show all by default
+          try{ renderSchoolVisits(null, '', currentDate); }catch(e){}
+          // initialize charts and keywords with full dataset
+          try{ if (typeof updateCharts === 'function') updateCharts(visits); }catch(e){}
+          try{ if (typeof updateKeywords === 'function') updateKeywords(visits); }catch(e){}
+
+          // subjects distribution
+          const subjCounts = {};
+          visits.forEach(v => { const key = (v.subject || '미지정').trim(); if (!key) return; subjCounts[key] = (subjCounts[key]||0) + 1; });
+          const subjLabels = Object.keys(subjCounts).sort((a,b)=>subjCounts[b]-subjCounts[a]).slice(0,8);
+          const subjData = subjLabels.map(l=>subjCounts[l]);
+          setChartVisibility('subjectsChart', subjLabels.length>0, '과목 분포 데이터가 없습니다.');
+          if (subjLabels.length>0){
+            const sctx = document.getElementById('subjectsChart').getContext('2d');
+            try { if (window._subjectsChart && typeof window._subjectsChart.destroy === 'function') window._subjectsChart.destroy(); } catch(e){}
+            // compute percentage labels so they are visible alongside legend
+            const subjTotal = subjData.reduce((a,b)=>a+(b||0),0) || 1;
+            const subjLabelsPct = subjLabels.map((l,i)=> `${l} ${Math.round(((subjData[i]||0)/subjTotal)*100)}%`);
+            window._subjectsChart = new Chart(sctx, {
+              type: 'doughnut',
+              data: { labels: subjLabelsPct, datasets:[{ data: subjData, backgroundColor: ['#6b8bff','#8ec3ff','#a7bfff','#f6c07b','#c7d8ff','#b0e0d3','#ffd1e0','#d9c8ff'] }] },
+              options: {
+                responsive:true,
+                maintainAspectRatio:false,
+                cutout: '40%',
+                plugins:{
+                  // place legend vertically on the right so entries read top->bottom
+                  legend:{ display:true, position:'right', align:'start', labels:{ boxWidth:12, padding:6 } },
+                  tooltip:{ callbacks:{ label: function(ctx){ const v = ctx.parsed; const pct = Math.round((v/subjTotal)*100); return ctx.label + ': ' + v + ' (' + pct + '%)'; } } }
+                },
+                layout: { padding: { right: 8 } }
+              }
+            });
+          }
+
+          // monthly timeline
+          const monthCounts = {}; const pad = n => n<10? '0'+n : ''+n;
+          visits.forEach(v=>{ const d = v.visitDate ? new Date(v.visitDate) : null; if (!d || isNaN(d.getTime())) return; const key = d.getFullYear() + '-' + pad(d.getMonth()+1); monthCounts[key] = (monthCounts[key]||0) + 1; });
+          const now = new Date(); const months = []; for (let i=11;i>=0;i--){ const dt = new Date(now.getFullYear(), now.getMonth()-i, 1); months.push(dt.getFullYear()+'-'+pad(dt.getMonth()+1)); }
+          const monthData = months.map(m => monthCounts[m]||0);
+          setChartVisibility('monthlyChart', monthData.some(n=>n>0), '월별 방문 데이터가 없습니다.');
+          if (monthData.some(n=>n>0)){
+            const mctx = document.getElementById('monthlyChart').getContext('2d');
+            try { if (window._monthlyChart && typeof window._monthlyChart.destroy === 'function') window._monthlyChart.destroy(); } catch(e){}
+            window._monthlyChart = new Chart(mctx, {
+              type: 'line',
+              data: {
+                labels: months,
+                datasets: [{ label: '방문수', data: monthData, fill: true, backgroundColor: 'rgba(107,139,255,0.18)', borderColor: '#6b8bff', tension: 0.3 }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: false },
+                  tooltip: { titleFont: { size: 14 }, bodyFont: { size: 13 } }
+                },
+                scales: {
+                  x: { ticks: { color: '#334', font: { size: 13 } }, grid: { display: false } },
+                  y: { ticks: { color: '#334', font: { size: 13 }, beginAtZero: true }, grid: { color: 'rgba(200,210,230,0.6)' } }
+                },
+                elements: { point: { radius: 4 } }
+              }
+            });
+          }
+
+          // actions
+          const actionCounts = {};
+          visits.forEach(v => { (v.meetings||[]).forEach(m => { const key = (m||'').trim(); if (!key) return; actionCounts[key] = (actionCounts[key]||0)+1; }); });
+          const likelyActions = ['명함인사','티칭샘소개','채팅방소개','단행본안내','캠프안내','구글클래스룸 사용','패들렛 사용','하이러닝 사용','미팅불가'];
+          likelyActions.forEach(k => { if (!actionCounts[k]) actionCounts[k] = 0; });
+          try{ const labels = Object.keys(actionCounts).sort((a,b)=>actionCounts[b]-actionCounts[a]); const data = labels.map(l=>actionCounts[l]);
+            // existing bar chart (kept) for detailed action counts
+            setChartVisibility('actionsChart', labels.length>0, '행동 분석 데이터가 없습니다.');
+            if (labels.length>0){ const actCtx = document.getElementById('actionsChart').getContext('2d'); try { if (window._actionsChart && typeof window._actionsChart.destroy === 'function') window._actionsChart.destroy(); } catch(e){} window._actionsChart = new Chart(actCtx, { type:'bar', data:{ labels, datasets:[{ label:'행동수', data, backgroundColor:'#8ec3ff' }] }, options:{ responsive:true, plugins:{ legend:{ display:false } } } }); }
+
+            // render a compact pie chart in the '과목 분포' area for quick glance at 영업활동 분포
+            try{
+              // filter out zero-count items so 0% doesn't appear in the pie legend
+              const positiveLabels = [];
+              const positiveData = [];
+              const positiveBg = [];
+              const bgPalette = ['#6b8bff','#8ec3ff','#a7bfff','#f6c07b','#c7d8ff','#b0e0d3','#ffd1e0','#d9c8ff'];
+              for (let i=0;i<labels.length;i++){
+                if ((data[i]||0) > 0){ positiveLabels.push(labels[i]); positiveData.push(data[i]); positiveBg.push(bgPalette[i%bgPalette.length]); }
+              }
+              setChartVisibility('actionsPieChart', positiveLabels.length>0, '영업활동 데이터가 없습니다.');
+              if (positiveLabels.length>0){ const apCtx = document.getElementById('actionsPieChart').getContext('2d'); try{ if (window._actionsPieChart && typeof window._actionsPieChart.destroy === 'function') window._actionsPieChart.destroy(); }catch(e){}
+                // compute label percentages for clearer display using only positive data
+                const actionTotal = positiveData.reduce((a,b)=>a+(b||0),0) || 1;
+                const labelsPct = positiveLabels.map((l,i)=> `${l} ${Math.round(((positiveData[i]||0)/actionTotal)*100)}%`);
+                try{
+                  window._actionsPieChart = new Chart(apCtx, {
+                    type: 'doughnut',
+                    data: {
+                      labels: labelsPct,
+                      datasets: [{ data: positiveData, backgroundColor: positiveBg }]
+                    },
+                    options: {
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      cutout: '40%',
+                      plugins: {
+                        // vertical legend on the right; data is already sorted desc so top shows highest percent
+                        legend: { display:true, position:'right', align:'start', labels:{ boxWidth:12, padding:6 } },
+                        tooltip: { callbacks: { label: function(ctx){ const v = ctx.parsed; const pct = Math.round((v/actionTotal)*100); return ctx.label + ': ' + v + ' (' + pct + '%)'; } } }
+                      },
+                      layout: { padding: { right: 8 } }
+                    }
+                  });
+                }catch(e){ console.warn('actionsPieChart render failed', e); }
+              }
+            }catch(e){ console.warn('renderActionsPie failed', e); }
+          }catch(e){ console.warn('renderActions failed', e); }
+
+          // notes table + keywords (use server-side /api/keywords for better tokenization)
+          // build notesRows from visits (full set). We'll expose a function updateKeywords(rows) to refresh keywords for a filtered subset.
+          const notesRows = [];
+          visits.forEach(v => { const date = v.visitDate || ''; const school = v.school || ''; const subj = v.subject || ''; const teacher = v.teacher || ''; const note = (v.conversation || v.note || '').toString().trim(); if (note) notesRows.push({ date, school, subject: subj, teacher, note }); });
+          (function renderNotesTable(){ const cont = document.getElementById('notesTableContainer'); if (!cont) return; cont.innerHTML = ''; if (!notesRows.length){ cont.innerHTML = '<div class="small">특이사항이 없습니다.</div>'; return; } const tbl = document.createElement('table'); tbl.className = 'notes-table'; const thead = document.createElement('thead'); thead.innerHTML = '<tr><th>일자</th><th>학교</th><th>과목</th><th>선생님</th><th>특이사항</th></tr>'; tbl.appendChild(thead); const tbody = document.createElement('tbody'); notesRows.forEach(r => { const tr = document.createElement('tr'); const safeNote = (r.note||'').replace(/</g,'&lt;').replace(/\n/g,'\n'); tr.innerHTML = `<td>${r.date||''}</td><td>${r.school||''}</td><td>${r.subject||''}</td><td>${r.teacher||''}</td><td class="note-cell">${safeNote}</td>`; tbody.appendChild(tr); }); tbl.appendChild(tbody); // wrap table in a scrollable wrapper for better mobile handling
+            const wrapper = document.createElement('div'); wrapper.style.width='100%'; wrapper.style.overflow='auto'; wrapper.appendChild(tbl); cont.appendChild(wrapper); })();
+
+          // server-side keyword extraction helper for a given set of rows
+          async function updateKeywords(rows){ try{ const texts = (rows || []).map(r=> (r.conversation||r.note||'')).filter(Boolean); const el = document.getElementById('noteKeywords'); if (!el) return; if (!texts.length){ el.innerHTML = '<div class="small">특이사항 키워드가 없습니다.</div>'; return; } const r = await fetch('/api/keywords', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ texts, topN: 30 }) }); const j = await r.json(); if (j && j.ok && Array.isArray(j.keywords) && j.keywords.length){ el.innerHTML = ''; j.keywords.slice(0,30).forEach(it => { const span = document.createElement('span'); span.textContent = it.token + ' · ' + it.count; span.style.display = 'inline-block'; span.style.margin = '4px 6px'; span.style.padding = '6px 8px'; span.style.borderRadius = '12px'; span.style.background = '#eef5ff'; span.style.fontSize = '13px'; el.appendChild(span); }); } else { el.innerHTML = '<div class="small">특이사항 키워드가 없습니다.</div>'; } }catch(e){ console.warn('keyword fetch failed', e); } }
+
+          // topTeachers section removed by request — no UI render for top teachers
+
+          // follow-up summary
+          const followCounts = {};
+          visits.forEach(v=>{ const key = (v.followUp || '').trim() || '미지정'; followCounts[key] = (followCounts[key]||0) + 1; });
+          const fsum = document.getElementById('followUpSummary'); fsum.innerHTML=''; const fkeys = Object.keys(followCounts).sort((a,b)=>followCounts[b]-followCounts[a]); if (!fkeys.length) fsum.innerHTML = '<div class="small">후속 조치 항목이 없습니다。</div>'; else { const ul = document.createElement('div'); ul.style.display='grid'; ul.style.gap='.3rem'; fkeys.forEach(k=>{ const r = document.createElement('div'); r.textContent = k + ' · ' + followCounts[k]; r.style.padding='.25rem .3rem'; r.style.border='1px solid #eef2ff'; r.style.borderRadius='6px'; ul.appendChild(r); }); fsum.appendChild(ul); }
+
+          // total duration and average per school (best-effort from entry-level duration fields)
+          let totalDur = 0, durCount = 0;
+          // helper to extract minutes from various possible formats
+          function parseMinutes(v){
+            if (v == null) return null;
+            // numeric already
+            if (typeof v === 'number' && !isNaN(v)) return Math.round(v);
+            if (typeof v === 'string'){
+              // common forms: "30", "30분", "30 min", "약 30분"
+              const m = v.match(/(\d+)\s*(분|m|min)?/i);
+              if (m && m[1]) return Number(m[1]);
+              // fallback: remove non-digits
+              const digits = v.replace(/[^0-9]/g,'');
+              if (digits) return Number(digits);
+            }
+            return null;
+          }
+          visits.forEach(v=>{
+            // try explicit minute fields first
+            const candidates = [v.durationMinutes, v.visitDuration, v.duration, v.minutes, v.minute];
+            let found = null;
+            for (const c of candidates){ const m = parseMinutes(c); if (m != null){ found = m; break; } }
+            if (found != null){ totalDur += found; durCount++; return; }
+
+            // if no explicit duration, try deriving from start/end pairs
+            let start = v.visitStart || v.start || v.visit_time_start || '';
+            let end = v.visitEnd || v.end || v.visit_time_end || '';
+            // some records use a combined "09:00 - 09:30" in a single field
+            if ((!start || !end) && v.visitTime && typeof v.visitTime === 'string'){
+              const parts = v.visitTime.split(/[-~–—]/).map(s=>s.trim()); if (parts.length>=2){ start = parts[0]; end = parts[1]; }
+            }
+            if (start && end){
+              try{
+                // normalize ISO datetimes to HH:MM by extracting time portion
+                const norm = s => { if (!s) return ''; if (/\d{4}-\d{2}-\d{2}T/.test(s)) return s.substring(11,16); const p = s.match(/(\d{1,2}:\d{2})/); return p ? p[1] : s; };
+                const sStr = norm(String(start)); const eStr = norm(String(end));
+                const [sh, sm] = sStr.split(':').map(x=>parseInt(x,10)||0);
+                const [eh, em] = eStr.split(':').map(x=>parseInt(x,10)||0);
+                const sMin = sh*60 + sm; const eMin = eh*60 + em; let diff = eMin - sMin; if (diff < 0) diff += 24*60; if (!isNaN(diff) && diff > 0){ totalDur += diff; durCount++; }
+              }catch(_){ }
+            }
+          });
+          // total time spent at schools (minutes)
+          const totalTimeDisplay = totalDur ? String(Math.round(totalDur)) : '-';
+          const totalTimeEl = document.getElementById('totalTime'); if (totalTimeEl) totalTimeEl.textContent = totalTimeDisplay;
+          // average per-school = total time divided by unique school count
+          const avgPerSchool = (uniq.length && totalDur) ? Math.round(totalDur / uniq.length) : '-';
+          document.getElementById('avgDuration').textContent = avgPerSchool;
+
+          // contacts
+          const contacts = new Set(); visits.forEach(v=>{ const c = (v.contact||'').replace(/\D+/g,''); if (c) contacts.add(c); }); document.getElementById('contactsCount').textContent = contacts.size;
+          document.getElementById('followUpsCount').textContent = Object.values(followCounts).reduce((a,b)=>a+b,0) || 0;
+          // update personal map with current visits (if geocodes available)
+          try{ if (window.updateMapFromVisits) window.updateMapFromVisits(visits); }catch(e){ /* ignore */ }
+        }catch(e){ console.warn('renderFromVisitEntries failed', e); }
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', loadPersonalVisits);
+  </script>
+  <script>
+    async function clearCmassLocalDataAndGo(){
+      try{
+        const removed = [];
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (!k) continue;
+          if (k.startsWith('cmass_') || k.startsWith('cmass')) {
+            try{ localStorage.removeItem(k); removed.push(k); }catch(e){}
+          }
+        }
+        if ('serviceWorker' in navigator) {
+          try{
+            const regs = await navigator.serviceWorker.getRegistrations().catch(()=>[]);
+            await Promise.all((regs||[]).map(r=>r.unregister().catch(()=>{})));
+          }catch(e){}
+        }
+        if (window.caches && caches.keys) {
+          try{
+            const keys = await caches.keys().catch(()=>[]);
+            await Promise.all((keys||[]).map(k=>caches.delete(k).catch(()=>{})));
+          }catch(e){}
+        }
+        try{ alert('로컬 임시본이 삭제되었습니다. 최신 페이지로 이동합니다.'); }catch(e){}
+  location.href = '/input';
+      }catch(err){ console.error('clearLocalDraftFront failed', err); alert('임시본 삭제 중 오류가 발생했습니다. 콘솔을 확인하세요.'); }
+    }
+    document.addEventListener('DOMContentLoaded', function(){ const b = document.getElementById('clearLocalDraftFrontBtn'); if(b) b.addEventListener('click', clearCmassLocalDataAndGo); });
+  </script>
+</body>
+</html>

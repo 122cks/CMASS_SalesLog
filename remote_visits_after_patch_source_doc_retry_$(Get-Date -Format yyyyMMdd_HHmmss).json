@@ -1,0 +1,397 @@
+﻿{
+    "ok":  true,
+    "rows":  [
+                 {
+                     "id":  "2ZSdTv2V4lwAKk9dt2Gn",
+                     "staff":  "송훈재 부장",
+                     "visits":  [
+                                    {
+                                        "visitDate":  "2025-10-30",
+                                        "staff":  "",
+                                        "region":  "",
+                                        "school":  "철산중학교",
+                                        "meta":  {
+                                                     "establish":  "공립",
+                                                     "level":  "중등",
+                                                     "g1":  "14"
+                                                 },
+                                        "visitStart":  "14:00",
+                                        "visitEnd":  "15:00",
+                                        "subjects":  [
+                                                         {
+                                                             "subject":  "정보",
+                                                             "teacher":  "김본님",
+                                                             "teacherLocation":  "",
+                                                             "publisher":  "씨마스",
+                                                             "conversation":  "인공지능",
+                                                             "followUp":  "완료 (추가 조치 없음)",
+                                                             "contact":  "",
+                                                             "meetings":  ""
+                                                         }
+                                                     ]
+                                    }
+                                ],
+                     "summary":  "",
+                     "createdAt":  "2025-10-30T00:12:07.516Z"
+                 },
+                 {
+                     "id":  "8tKcdf7tdKkKhYP8L2kK",
+                     "staff":  "송훈재 부장",
+                     "visits":  [
+                                    {
+                                        "visitDate":  "2025-10-29",
+                                        "staff":  "",
+                                        "region":  "",
+                                        "school":  "양진중학교",
+                                        "meta":  {
+                                                     "establish":  "공립",
+                                                     "level":  "중등",
+                                                     "g1":  "5"
+                                                 },
+                                        "visitStart":  "09:30",
+                                        "visitEnd":  "10:20",
+                                        "subjects":  [
+                                                         {
+                                                             "subject":  "정보",
+                                                             "teacher":  "양명이",
+                                                             "teacherLocation":  "",
+                                                             "publisher":  "천재",
+                                                             "conversation":  "",
+                                                             "followUp":  "채팅방 지속 관리",
+                                                             "contact":  "",
+                                                             "meetings":  "단행본안내 교구재안내 포스터 연수안내"
+                                                         }
+                                                     ]
+                                    },
+                                    {
+                                        "visitDate":  "2025-10-29",
+                                        "staff":  "",
+                                        "region":  "",
+                                        "school":  "양진중학교",
+                                        "meta":  {
+                                                     "establish":  "공립",
+                                                     "level":  "중등",
+                                                     "g1":  "5"
+                                                 },
+                                        "visitStart":  "09:30",
+                                        "visitEnd":  "10:20",
+                                        "subjects":  [
+                                                         {
+                                                             "subject":  "진로",
+                                                             "teacher":  "강경수",
+                                                             "teacherLocation":  "",
+                                                             "publisher":  "기타",
+                                                             "conversation":  "진로탐색워크북 가격문의 후 삼양에 비해 가격이 비싸다고 함. 가격절충 가능하다고 알려 드렸음",
+                                                             "followUp":  "선정 시기 연락 대기",
+                                                             "contact":  "",
+                                                             "meetings":  "단행본안내 워크북안내"
+                                                         }
+                                                     ]
+                                    },
+                                    {
+                                        "visitDate":  "2025-10-29",
+                                        "staff":  "",
+                                        "region":  "",
+                                        "school":  "양진중학교",
+                                        "meta":  {
+                                                     "establish":  "공립",
+                                                     "level":  "중등",
+                                                     "g1":  "5"
+                                                 },
+                                        "visitStart":  "09:30",
+                                        "visitEnd":  "10:20",
+                                        "subjects":  [
+                                                         {
+                                                             "subject":  "보건",
+                                                             "teacher":  "윤인영",
+                                                             "teacherLocation":  "",
+                                                             "publisher":  "기타",
+                                                             "conversation":  "포스터 및 워크북 전달 교과서 수업 없음",
+                                                             "followUp":  "완료 (추가 조치 없음)",
+                                                             "contact":  "",
+                                                             "meetings":  "명함인사"
+                                                         }
+                                                     ]
+                                    },
+                                    {
+                                        "visitDate":  "2025-10-29",
+                                        "staff":  "",
+                                        "region":  "",
+                                        "school":  "용이중학교",
+                                        "meta":  {
+                                                     "establish":  "공립",
+                                                     "level":  "중등",
+                                                     "g1":  "11"
+                                                 },
+                                        "visitStart":  "10:40",
+                                        "visitEnd":  "11:20",
+                                        "subjects":  [
+                                                         {
+                                                             "subject":  "정보",
+                                                             "teacher":  "맹삼호",
+                                                             "teacherLocation":  "",
+                                                             "publisher":  "천재",
+                                                             "conversation":  "",
+                                                             "followUp":  "완료 (추가 조치 없음)",
+                                                             "contact":  "",
+                                                             "meetings":  "단행본안내 교구재안내"
+                                                         }
+                                                     ]
+                                    },
+                                    {
+                                        "visitDate":  "2025-10-29",
+                                        "staff":  "",
+                                        "region":  "",
+                                        "school":  "용이중학교",
+                                        "meta":  {
+                                                     "establish":  "공립",
+                                                     "level":  "중등",
+                                                     "g1":  "11"
+                                                 },
+                                        "visitStart":  "10:40",
+                                        "visitEnd":  "11:20",
+                                        "subjects":  [
+                                                         {
+                                                             "subject":  "진로",
+                                                             "teacher":  "",
+                                                             "teacherLocation":  "",
+                                                             "publisher":  "",
+                                                             "conversation":  "",
+                                                             "followUp":  "완료 (추가 조치 없음)",
+                                                             "contact":  "",
+                                                             "meetings":  "단행본안내 워크북안내"
+                                                         }
+                                                     ]
+                                    },
+                                    {
+                                        "visitDate":  "2025-10-29",
+                                        "staff":  "",
+                                        "region":  "",
+                                        "school":  "용이중학교",
+                                        "meta":  {
+                                                     "establish":  "공립",
+                                                     "level":  "중등",
+                                                     "g1":  "11"
+                                                 },
+                                        "visitStart":  "10:40",
+                                        "visitEnd":  "11:20",
+                                        "subjects":  [
+                                                         {
+                                                             "subject":  "보건",
+                                                             "teacher":  "최은진",
+                                                             "teacherLocation":  "",
+                                                             "publisher":  "",
+                                                             "conversation":  "포스터 등 전달. 수업 미실시",
+                                                             "followUp":  "완료 (추가 조치 없음)",
+                                                             "contact":  "",
+                                                             "meetings":  "명함인사"
+                                                         }
+                                                     ]
+                                    },
+                                    {
+                                        "visitDate":  "2025-10-29",
+                                        "staff":  "",
+                                        "region":  "",
+                                        "school":  "용이중학교",
+                                        "meta":  {
+                                                     "establish":  "공립",
+                                                     "level":  "중등",
+                                                     "g1":  "11"
+                                                 },
+                                        "visitStart":  "10:40",
+                                        "visitEnd":  "11:20",
+                                        "subjects":  [
+                                                         {
+                                                             "subject":  "",
+                                                             "teacher":  "",
+                                                             "teacherLocation":  "",
+                                                             "publisher":  "",
+                                                             "conversation":  "",
+                                                             "followUp":  "",
+                                                             "contact":  "",
+                                                             "meetings":  ""
+                                                         },
+                                                         {
+                                                             "subject":  "기타",
+                                                             "teacher":  "이원선",
+                                                             "teacherLocation":  "",
+                                                             "publisher":  "",
+                                                             "conversation":  "3학년부장 고1학업수업 및 고교학점제 워크북 안내 및 리플릿 전달",
+                                                             "followUp":  "완료 (추가 조치 없음)",
+                                                             "contact":  "",
+                                                             "meetings":  ""
+                                                         }
+                                                     ]
+                                    },
+                                    {
+                                        "visitDate":  "2025-10-29",
+                                        "staff":  "",
+                                        "region":  "",
+                                        "school":  "배다리중학교",
+                                        "meta":  {
+                                                     "establish":  "공립",
+                                                     "level":  "중등",
+                                                     "g1":  "5"
+                                                 },
+                                        "visitStart":  "11:55",
+                                        "visitEnd":  "13:25",
+                                        "subjects":  [
+                                                         {
+                                                             "subject":  "진로",
+                                                             "teacher":  "한성수",
+                                                             "teacherLocation":  "",
+                                                             "publisher":  "기타",
+                                                             "conversation":  "창업가정신(기초)워크북 구입 결정(170부)고1학업설계 검토후 구입 진로교과서 씨마스 선정(3학년편성).교과서 주문은 내년에 할수도 있음",
+                                                             "followUp":  "워크북 무상지원 제안",
+                                                             "contact":  "",
+                                                             "meetings":  "단행본안내 워크북안내"
+                                                         }
+                                                     ]
+                                    },
+                                    {
+                                        "visitDate":  "2025-10-29",
+                                        "staff":  "",
+                                        "region":  "",
+                                        "school":  "한광중학교",
+                                        "meta":  {
+                                                     "establish":  "사립",
+                                                     "level":  "중등",
+                                                     "g1":  "10"
+                                                 },
+                                        "visitStart":  "14:25",
+                                        "visitEnd":  "14:55",
+                                        "subjects":  [
+                                                         {
+                                                             "subject":  "진로",
+                                                             "teacher":  "김재균",
+                                                             "teacherLocation":  "",
+                                                             "publisher":  "기타",
+                                                             "conversation":  "지학사 집필진으로 씨마스에 우호적인분. 리플릿 전달했으며 워크북에 관심이 많은 분으로 검토해서 연락하기로 함",
+                                                             "followUp":  "완료 (추가 조치 없음)",
+                                                             "contact":  "",
+                                                             "meetings":  "명함인사 단행본안내 워크북안내"
+                                                         },
+                                                         {
+                                                             "subject":  "정보",
+                                                             "teacher":  "미상",
+                                                             "teacherLocation":  "",
+                                                             "publisher":  "",
+                                                             "conversation":  "",
+                                                             "followUp":  "",
+                                                             "contact":  "",
+                                                             "meetings":  "명함인사 단행본안내"
+                                                         }
+                                                     ]
+                                    },
+                                    {
+                                        "visitDate":  "2025-10-29",
+                                        "staff":  "",
+                                        "region":  "",
+                                        "school":  "한광중학교",
+                                        "meta":  {
+                                                     "establish":  "사립",
+                                                     "level":  "중등",
+                                                     "g1":  "10"
+                                                 },
+                                        "visitStart":  "15:05",
+                                        "visitEnd":  "16:25",
+                                        "subjects":  [
+                                                         {
+                                                             "subject":  "정보",
+                                                             "teacher":  "권현정",
+                                                             "teacherLocation":  "",
+                                                             "publisher":  "비상",
+                                                             "conversation":  "학자시 교과서 관련하여 협의(학운위에 올려보겠음)씨마스 연수에 대해 호평하시며 관련직원들 노고 칭찬 및 개인적으로 코답 단행본 구입하였음",
+                                                             "followUp":  "채팅방 지속 관리",
+                                                             "contact":  "",
+                                                             "meetings":  "단행본안내"
+                                                         }
+                                                     ]
+                                    },
+                                    {
+                                        "visitDate":  "2025-10-29",
+                                        "staff":  "",
+                                        "region":  "",
+                                        "school":  "한광여자중학교",
+                                        "meta":  {
+                                                     "establish":  "사립",
+                                                     "level":  "중등",
+                                                     "g1":  "11"
+                                                 },
+                                        "visitStart":  "15:05",
+                                        "visitEnd":  "16:25",
+                                        "subjects":  [
+                                                         {
+                                                             "subject":  "진로",
+                                                             "teacher":  "송미영",
+                                                             "teacherLocation":  "",
+                                                             "publisher":  "기타",
+                                                             "conversation":  "워크북 무상지원 창업가정신 기초편 11월중 신청하겠음. 고1학업설계등 단행본은 중3담임들과 협의하여 도서관을 통하거나 자체구입하겠음",
+                                                             "followUp":  "워크북 무상지원 제안",
+                                                             "contact":  "",
+                                                             "meetings":  "단행본안내 워크북안내"
+                                                         }
+                                                     ]
+                                    },
+                                    {
+                                        "visitDate":  "2025-10-29",
+                                        "staff":  "",
+                                        "region":  "",
+                                        "school":  "한광여자중학교",
+                                        "meta":  {
+                                                     "establish":  "사립",
+                                                     "level":  "중등",
+                                                     "g1":  "11"
+                                                 },
+                                        "visitStart":  "15:05",
+                                        "visitEnd":  "16:25",
+                                        "subjects":  [
+                                                         {
+                                                             "subject":  "보건",
+                                                             "teacher":  "미상",
+                                                             "teacherLocation":  "",
+                                                             "publisher":  "",
+                                                             "conversation":  "자료전달",
+                                                             "followUp":  "",
+                                                             "contact":  "",
+                                                             "meetings":  "명함인사"
+                                                         }
+                                                     ]
+                                    }
+                                ],
+                     "createdAt":  "2025-10-29T09:00:53.472Z"
+                 },
+                 {
+                     "id":  "UnrTrTQyMbJdXmwfdJNZ",
+                     "staff":  "송훈재 부장",
+                     "visits":  [
+                                    {
+                                        "visitDate":  "2025-10-20",
+                                        "staff":  "",
+                                        "region":  "",
+                                        "school":  "과천고등학교",
+                                        "meta":  {
+                                                     "establish":  "공립",
+                                                     "level":  "고등",
+                                                     "g1":  "8"
+                                                 },
+                                        "visitStart":  "08:00",
+                                        "visitEnd":  "",
+                                        "subjects":  [
+                                                         {
+                                                             "subject":  "",
+                                                             "teacher":  "AA",
+                                                             "teacherLocation":  "AA",
+                                                             "publisher":  "",
+                                                             "conversation":  "",
+                                                             "followUp":  "",
+                                                             "contact":  "",
+                                                             "meetings":  ""
+                                                         }
+                                                     ]
+                                    }
+                                ],
+                     "createdAt":  "2025-10-28T02:21:56.469Z"
+                 }
+             ]
+}

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CMASS 영업일지 시스템</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    :root{--bg1:#243b6b;--bg2:#1f61a9}
+    *{box-sizing:border-box}
+    html,body{height:100%;}
+    body{margin:0;font-family:'Segoe UI','Malgun Gothic',sans-serif;background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 100%);display:flex;align-items:center;justify-content:center;padding:24px}
+    .box{width:100%;max-width:900px;text-align:center;color:#fff}
+    img.logo{width:220px;height:auto;margin:4px auto 18px;display:block}
+    h1{font-size:34px;margin:8px 0 24px;font-weight:800}
+    .btn{display:block;background:#fff;color:#123;padding:20px 22px;border-radius:18px;margin:14px auto;width:360px;max-width:90%;text-decoration:none;font-weight:800;font-size:20px;box-shadow:0 8px 30px rgba(0,0,0,0.15)}
+    .btn:hover{transform:translateY(-3px);box-shadow:0 14px 40px rgba(0,0,0,0.18)}
+    @media (max-width:600px){img.logo{width:140px}h1{font-size:22px}.btn{padding:16px;font-size:18px;width:90%;border-radius:14px}}
+    .version{position:fixed;right:10px;bottom:8px;color:#fff;opacity:.85;font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <img class="logo" src="/assets/CMASS_LOGO.png" alt="CMASS Logo" onerror="this.style.display='none'" />
+    <h1>CMASS 영업일지 시스템</h1>
+
+  <a class="btn" href="/sales-input.html?user=SongHoonjae">송훈재 영업일지</a>
+  <a class="btn" href="/sales-input.html?user=LimJunho">임준호 영업일지</a>
+  <a class="btn" href="/sales-input.html?user=ChoYounghwan">조영환 영업일지</a>
+    <!-- 관리자 대시보드 접근 버튼 제거 -->
+
+    <h2 style="margin-top:36px;color:#fff;opacity:0.95">영업일지 목록</h2>
+  </div>
+  <div class="version">build: 2025-10-22-01</div>
+</body>
+</html>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  try{
+    const startEl = document.getElementById('filterStart');
+    const endEl = document.getElementById('filterEnd');
+    if (startEl && endEl && !startEl.value && !endEl.value){
+      function fmt(d){ const y=d.getFullYear(); const m=(d.getMonth()+1).toString().padStart(2,'0'); const day=d.getDate().toString().padStart(2,'0'); return `${y}-${m}-${day}`; }
+      function weekRangeFor(ref){ const d=new Date(ref.getFullYear(), ref.getMonth(), ref.getDate()); const dow=d.getDay(); const diffToMon=(dow===0)? -6 : (1-dow); const mon=new Date(d); mon.setDate(d.getDate()+diffToMon); const sun=new Date(mon); sun.setDate(mon.getDate()+6); return [mon,sun]; }
+      const today=new Date(); const isMonday=(today.getDay()===1); const ref=new Date(today); if(isMonday) ref.setDate(ref.getDate()-7); const [mon,sun]=weekRangeFor(ref); startEl.value=fmt(mon); endEl.value=fmt(sun);
+    }
+  }catch(e){ console.warn('default range snippet failed', e); }
+});
+</script>
+      letter-spacing: 2px;
+    }
+    .btn {
+      display: block;
+      width: 80vw;
+      max-width: 400px;
+      <!doctype html>
+      <html lang="ko">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>CMASS 영업일지 시스템</title>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+        <style>
+          :root{--bg1:#243b6b;--bg2:#1f61a9}
+          *{box-sizing:border-box}
+          html,body{height:100%;}
+          body{margin:0;font-family:'Segoe UI','Malgun Gothic',sans-serif;background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 100%);display:flex;align-items:center;justify-content:center;padding:24px}
+          .box{width:100%;max-width:900px;text-align:center;color:#fff}
+          img.logo{width:220px;height:auto;margin:4px auto 18px;display:block}
+          h1{font-size:34px;margin:8px 0 24px;font-weight:800}
+          .btn{display:block;background:#fff;color:#123;padding:20px 22px;border-radius:18px;margin:14px auto;width:360px;max-width:90%;text-decoration:none;font-weight:800;font-size:20px;box-shadow:0 8px 30px rgba(0,0,0,0.15)}
+          .btn:hover{transform:translateY(-3px);box-shadow:0 14px 40px rgba(0,0,0,0.18)}
+          @media (max-width:600px){img.logo{width:140px}h1{font-size:22px}.btn{padding:16px;font-size:18px;width:90%;border-radius:14px}}
+        </style>
+      </head>
+      <body>
+        <div class="box">
+          <img class="logo" src="/assets/CMASS_LOGO.png" alt="CMASS Logo" onerror="this.style.display='none'" />
+          <h1>CMASS 영업일지 시스템</h1>
+
+          <a class="btn" href="/sales-input.html?user=SongHoonjae">송훈재 영업일지</a>
+          <a class="btn" href="/sales-input.html?user=LimJunho">임준호 영업일지</a>
+          <a class="btn" href="/sales-input.html?user=ChoYounghwan">조영환 영업일지</a>
+          <!-- 관리자 대시보드 접근 버튼 제거 -->
+
+          <h2 style="margin-top:36px;color:#fff;opacity:0.95">영업일지 목록</h2>
+        </div>
+      </body>
+      </html>

@@ -1,0 +1,2088 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>영업일지 입력</title>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+        function buildAggregateSummary(visits, template) {
+            // aggregate stats
+            const totalSchools = visits.length;
+            let contactCount = 0;
+            let additionalConfirmCount = 0;
+            visits.forEach(v => {
+                v.subjects.forEach(s => { if (s.contact) contactCount++; if (s.followUp && s.followUp.indexOf('추가선정')!==-1) additionalConfirmCount++; });
+            });
+
+            // helper: Korean ordinal labels 가, 나, 다, ... fallback to numeric if out of range
+            const korLetters = ['가','나','다','라','마','바','사','아','자','차','카','타','파','하'];
+            const getKorLabel = (i) => (korLetters[i] ? korLetters[i] + '.' : (i+1) + '.');
+
+            // treat first visit start as 출근, last visit end as 퇴근 (use insertion order)
+            const firstStart = (visits && visits.length && visits[0].visitStart) ? visits[0].visitStart : '';
+            const lastEnd = (visits && visits.length && visits[visits.length-1].visitEnd) ? visits[visits.length-1].visitEnd : '';
+
+            if (template === 'compact') {
+                // one-line per school
+                const lines = visits.map((v,i)=>{
+                    const subjCount = v.subjects.length;
+                    return `${getKorLabel(i)} ${v.school} ${v.visitStart || ''}-${v.visitEnd || ''} (${subjCount}과목)`;
+                });
+                lines.push(`총 방문 학교: ${totalSchools}개, 연락처 확보: ${contactCount}건, 추가선정 확인: ${additionalConfirmCount}건`);
+                return lines.join('\n');
+            }
+
+            if (template === 'paragraph') {
+                // natural paragraph
+                const parts = [];
+                parts.push(`${visits[0].visitDate || ''} 방문 보고입니다.`.trim());
+                visits.forEach((v,i)=>{
+                    parts.push(`${getKorLabel(i)} ${v.school} (${v.region || ''}) 에서 ${v.visitStart || ''}부터 ${v.visitEnd || ''}까지 방문하여 ${v.subjects.length}과목을 지도했습니다.`);
+                    v.subjects.forEach(s=>{
+                        const m = s.meetings && s.meetings.length ? `미팅: ${s.meetings.join(', ')}.` : '';
+                        parts.push(`- ${s.subject} ${s.teacher ? '('+s.teacher+')':''} ${m} ${s.conversation? '특이사항: '+s.conversation : ''}`);
+                    });
+                });
+                parts.push(`총 ${totalSchools}개 학교 방문, 연락처 확보 ${contactCount}건, 추가선정 확인 ${additionalConfirmCount}건.`);
+                return parts.join('\n');
+            }
+
+            if (template === 'kakao') {
+                // Kakao-style structured report requested by user
+                const parts = [];
+                // include dynamic intro
+                parts.push(reportIntro().trim());
+                // header
+                function fmtDateForHeader(raw) {
+                    if (!raw) return '';
+                    try {
+                        const d = new Date(raw);
+                        if (!isNaN(d.getTime())) {
+                            return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+                        }
+                    } catch (e) {}
+                    const m = String(raw).match(/(\d{4}-\d{2}-\d{2})/);
+                    if (m) return m[1];
+                    return String(raw).slice(0,10);
+                }
+                parts.push(`방문일: ${fmtDateForHeader(visits[0].visitDate || '')}`);
+                parts.push(`총 방문 학교: ${totalSchools}개 · 연락처 확보: ${contactCount}건 · 추가선정 확인: ${additionalConfirmCount}건`);
+                // 1. 출근/퇴근 summary (numbered section 1)
+                parts.push('');
+                // compute 자료정리 end (lastEnd + 30min) and use it as 퇴근 when available
+                function computeEndCollect(t){
+                    try{
+                        const fixedStartEl = document.getElementById('customCollectStart');
+                        const fixedMinEl = document.getElementById('customCollectMinutes');
+                        const fixedStart = fixedStartEl ? (fixedStartEl.value||'').trim() : (customCollectStart || '');
+                        const fixedMin = fixedMinEl ? parseInt(fixedMinEl.value||'') : (customCollectMinutes || 30);
+                        if (fixedStart) {
+                            return addMinutesToTime(fixedStart, isNaN(fixedMin) ? 30 : fixedMin);
+                        }
+                        if (!t) return '';
+                        return addMinutesToTime(t, (isNaN(customCollectMinutes) ? 30 : customCollectMinutes));
+                    }catch(e){ return ''; }
+                }
+                const lastEndTime = lastEnd || '';
+                const computedEndCollect = computeEndCollect(lastEndTime);
+                let finalEnd = lastEnd || '';
+                if (lastEnd && computedEndCollect) finalEnd = computedEndCollect;
+                // compute working duration between firstStart and finalEnd
+                let workDurationText = '';
+                if (firstStart && finalEnd) {
+                    const totalMin = calcMinutesInterval(firstStart, finalEnd);
+                    const hrs = Math.floor(totalMin / 60);
+                    const mins = totalMin % 60;
+                    workDurationText = ` (근무시간 ${hrs}h ${mins}m)`;
+                }
+                parts.push(`1. 출근: ${firstStart || '-'} · 퇴근: ${finalEnd || '-'}${workDurationText}`);
+                parts.push('');
+                // 2. 세부업무 with lettered school sections
+                parts.push('2. 세부업무');
+                parts.push('');
+                // Group visits by school (preserve first-seen order)
+                const schoolOrder = [];
+                const schoolGroups = {};
+                visits.forEach(v => {
+                    const key = (v.school || '-').trim();
+                    if (!Object.prototype.hasOwnProperty.call(schoolGroups, key)) {
+                        schoolGroups[key] = [];
+                        schoolOrder.push(key);
+                    }
+                    schoolGroups[key].push(v);
+                });
+
+                // For each school group, print a header (가, 나, ...) and then enumerate subjects as subitems (가1, 가2...)
+                schoolOrder.forEach((schoolName, sIdx) => {
+                    const group = schoolGroups[schoolName] || [];
+                    const label = getKorLabel(sIdx).replace(/\.$/, '');
+                    // compute a single time range for the group: earliest start -> latest end
+                    // Robustly extract HH:MM tokens from possibly concatenated visitStart/visitEnd values
+                    let earliest = null; let latest = null; let durMinutes = null;
+                    try {
+                        const extractTimes = (str) => {
+                            if (!str) return [];
+                            const parts = String(str).split(/[,;|\\/]+/).map(s=>s.trim()).filter(Boolean);
+                            const times = [];
+                            parts.forEach(p => {
+                                if (p.indexOf('~') !== -1) {
+                                    const [a,b] = p.split('~').map(x=>x.trim());
+                                    if (/^\d{1,2}:\d{2}$/.test(a)) times.push(pad2(parseInt(a.split(':')[0],10))+ ':' + pad2(parseInt(a.split(':')[1],10)));
+                                    if (/^\d{1,2}:\d{2}$/.test(b)) times.push(pad2(parseInt(b.split(':')[0],10))+ ':' + pad2(parseInt(b.split(':')[1],10)));
+                                } else {
+                                    const m = p.match(/\d{1,2}:\d{2}/g);
+                                    if (m) m.forEach(x=> times.push(pad2(parseInt(x.split(':')[0],10))+ ':' + pad2(parseInt(x.split(':')[1],10))));
+                                }
+                            });
+                            return times.filter(Boolean);
+                        };
+                        const allStarts = [];
+                        const allEnds = [];
+                        group.forEach(gv => {
+                            try {
+                                const sTokens = extractTimes(gv.visitStart);
+                                const eTokens = extractTimes(gv.visitEnd);
+                                if (sTokens && sTokens.length) allStarts.push(...sTokens);
+                                if (eTokens && eTokens.length) allEnds.push(...eTokens);
+                            } catch(e) {}
+                        });
+                        if (allStarts.length || allEnds.length) {
+                            // if we only have one side, duplicate to allow range computation
+                            const sArr = allStarts.length ? allStarts.slice().sort() : (allEnds.length ? allEnds.slice().sort() : []);
+                            const eArr = allEnds.length ? allEnds.slice().sort() : (allStarts.length ? allStarts.slice().sort() : []);
+                            earliest = sArr.length ? sArr[0] : null;
+                            latest = eArr.length ? eArr[eArr.length-1] : null;
+                            if (earliest && latest) {
+                                try { durMinutes = calcMinutesInterval(earliest, latest); } catch(e){ durMinutes = null; }
+                            }
+                        }
+                    } catch(e) { /* ignore */ }
+                    const timeStr = (earliest && latest) ? ` ${earliest}~${latest}` : '';
+                    let durStr = '';
+                    try{ if (earliest && latest) { const mins = calcMinutesInterval(earliest, latest); if (mins) durStr = ` (${mins}분)`; } }catch(e){}
+                    parts.push(`${label}. ${schoolName || '-'}${timeStr}${durStr}`);
+                    parts.push('');
+
+                    // flatten subjects across visits for this school while preserving order
+                    const flatSubjects = [];
+                    group.forEach(gv => {
+                        (gv.subjects || []).forEach(s => flatSubjects.push(Object.assign({}, s, { _visitStart: gv.visitStart || '', _visitEnd: gv.visitEnd || '' })));
+                    });
+
+                    // enumerate per-subject lines with sublabels (가1, 가2, ...)
+                    flatSubjects.forEach((s, j) => {
+                        const subLabel = `${label}${j+1}.`;
+                        const meetings = s.meetings && s.meetings.length ? ` · ${s.meetings.join(', ')}` : '';
+                        const follow = s.followUp ? ` · 후속:${s.followUp}` : '';
+                        const conv = s.conversation ? ` · ${s.conversation}` : '';
+                        const teacher = s.teacher ? `(${s.teacher})` : '';
+                        const publisher = s.publisher ? ` / ${s.publisher}` : '';
+                        // example: -가1. 정보 (aa)
+                        const subjectLine = `-${subLabel} ${s.subject || '-'} ${teacher}${publisher}${meetings}${follow}${conv}`.trim();
+                        parts.push(subjectLine);
+                    });
+                    parts.push('');
+                });
+                // 3. 퇴근보고 자료 정리 — 사용자 지정 시간이 있으면 그것을 우선 사용하고, 없으면 마지막 종료 시각 기준 + customCollectMinutes
+                try{
+                    let collectStart = lastEndTime;
+                    let collectEnd = computedEndCollect;
+                    const fixedStartEl = document.getElementById('customCollectStart');
+                    const fixedMinEl = document.getElementById('customCollectMinutes');
+                    const fixedStart = fixedStartEl ? (fixedStartEl.value||'').trim() : (customCollectStart || '');
+                    const fixedMin = fixedMinEl ? parseInt(fixedMinEl.value||'') : (customCollectMinutes || 30);
+                    if (fixedStart) {
+                        collectStart = fixedStart;
+                        try{ collectEnd = addMinutesToTime(fixedStart, isNaN(fixedMin) ? 30 : fixedMin); }catch(e){ collectEnd = computedEndCollect; }
+                    }
+                    if (collectStart && collectEnd) {
+                        const dur = calcMinutesInterval(collectStart, collectEnd);
+                        parts.push(`3. 퇴근보고 자료 정리 (${collectStart}~${collectEnd}) (${dur}분)`);
+                    } else { parts.push('3. 퇴근보고 자료 정리'); }
+                }catch(e){ parts.push('3. 퇴근보고 자료 정리'); }
+                parts.push('');
+    parts.push('- 끝.');
+                return parts.join('\n');
+            }
+
+            // detailed (default): header + per-visit block with per-subject rows
+            const lines = [];
+            lines.push(`방문일: ${visits[0].visitDate || ''}`);
+            lines.push(`총 방문 학교: ${totalSchools}개`);
+            lines.push(`출근: ${firstStart || '-'} | 퇴근: ${lastEnd || '-'}`);
+            lines.push(`연락처 확보: ${contactCount}건 | 추가선정 확인: ${additionalConfirmCount}건`);
+            lines.push('');
+            visits.forEach((v, idx)=>{
+                lines.push(`${getKorLabel(idx)} ${v.school} — ${v.region || ''} (${v.visitStart || ''} ~ ${v.visitEnd || ''})`);
+                lines.push('세부업무:');
+                v.subjects.forEach(s=>{
+                    const meetings = s.meetings && s.meetings.length ? `[${s.meetings.join(', ')}] ` : '';
+                    const follow = s.followUp ? `팔로업:${s.followUp} ` : '';
+                    const conv = s.conversation ? `특이사항:${s.conversation}` : '';
+                    lines.push(` - ${s.subject} / ${s.teacher || '-'} / ${s.publisher || '-'} ${meetings}${follow}${conv}`.trim());
+                });
+                lines.push('');
+            });
+            return lines.join('\n');
+        }
+
+    </script>
+    <script>
+                    <div style="margin-top:16px;"></div>
+                    <div class="meeting-buttons main-meeting-buttons">
+                        <button class="meeting-btn" type="button">명함인사</button>
+                        <button class="meeting-btn" type="button">티칭샘소개</button>
+                        <button class="meeting-btn" type="button">채팅방소개</button>
+                        <button class="meeting-btn" type="button">미팅불가</button>
+                    </div>
+                    <div class="meeting-buttons info-extra-buttons" style="display:none;">
+                        <button class="meeting-btn" type="button">구글클래스룸 사용</button>
+                        <button class="meeting-btn" type="button">패들렛 사용</button>
+                        <button class="meeting-btn" type="button">하이러닝 사용</button>
+                    </div>
+                    <textarea class="conversation-detail" rows="2" placeholder="특이사항"></textarea>
+                    <div style="margin-top:0.6rem;">
+                        <label style="font-weight:700;display:block;margin-bottom:6px;">후속조치</label>
+                        <select class="followUpSelect" style="width:100%;padding:.6rem;border-radius:.6rem;border:1px solid #d6dbe8;background:#fff;">
+                            <option value="">선택하세요</option>
+                            <option>채팅방 지속 관리</option>
+                            <option>추가 자료 발송 예정</option>
+                            <option>재방문 예정</option>
+                            <option>선정 시기 연락 대기</option>
+                            <option>워크북 무상지원 제안</option>
+                            <option>완료 (추가 조치 없음)</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-top:16px;"></div>
+            </div>
+            <button type="button" id="addSubjectBtn" style="width:100%;margin:0.5rem 0 1rem 0;padding:1rem;font-size:1.1rem;border-radius:1rem;background:#e3eafc;color:#1e3c72;font-weight:bold;border:none;cursor:pointer;">과목/선생님 추가</button>
+            <!-- follow-up select is now per subject-block -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:0.6rem;">
+                <button type="button" id="backBtn" style="padding:1rem;border-radius:1rem;border:1px solid #d6dbe8;background:#fff;color:#1e3c72;font-weight:700;cursor:pointer;">뒤로 돌아가기</button>
+                <button type="submit" class="btn-submit">입력 완료</button>
+            </div>
+            <div style="margin-top:1rem;">
+                <div style="display:flex;gap:.5rem;margin-bottom:.5rem;">
+                    <button type="button" id="copyKakaoBtn" style="flex:1;padding:.75rem;border-radius:1rem;border:1px solid #ffd9b3;background:#fff;color:#b25700;font-weight:800;">카톡으로 복사</button>
+                </div>
+                <div style="display:flex;gap:.5rem;margin-bottom:.5rem;">
+                    <button type="button" id="saveToServerBtn" style="flex:1;padding:.75rem;border-radius:1rem;border:1px solid #cfe8ff;background:#e9f4ff;color:#0b3a72;font-weight:800;">서버에 저장</button>
+                </div>
+                <div>
+                    <textarea id="generatedSummary" rows="10" readonly style="width:100%;margin-top:.6rem;padding:.8rem;border-radius:.8rem;border:1px solid #d6dbe8;display:block;">요약이 여기에 생성됩니다.</textarea>
+                </div>
+            </div>
+        </form>
+    </div>
+    <style>
+        .contact-invalid { border-color:#e05252 !important; box-shadow:0 4px 12px rgba(224,82,82,0.08); }
+    </style>
+    <script>
+        // If the page is opened via file:// the browser will block fetch requests (origin=null).
+        // Show a clear on-page message to the user instead of failing silently with CORS errors.
+        // --- Multi-visit (dayVisits) support and summary templates ---
+        const dayVisits = [];
+
+        // small utility: pad numbers to 2 digits. Defined early so other functions can use it.
+        function pad2(n){
+            const num = parseInt(n,10);
+            if (isNaN(num)) return '00';
+            return (num < 10 ? '0' : '') + String(num);
+        }
+
+        function buildCurrentVisitObject() {
+            // capture top-level visit info
+            const visitDate = (document.getElementById('visitDate') || {}).value || '';
+            const staff = (document.getElementById('staffName') || {}).value || '';
+            const region = (document.querySelector('#regionButtons .grid-button[aria-selected="true"]') || {}).dataset?.value || '';
+            const schoolBtn = document.querySelector('#schoolButtons .grid-button[aria-selected="true"]');
+            const school = schoolBtn ? (schoolBtn.dataset.value || schoolBtn.textContent.trim()) : '';
+            const meta = {};
+            const est = document.getElementById('metaPillEstablish'); if (est) meta.establish = est.textContent || '';
+            const level = document.getElementById('metaPillLevel'); if (level) meta.level = level.textContent || '';
+            const g1 = document.getElementById('metaG1c'); if (g1) meta.g1 = g1.textContent || '';
+
+            const startHour = (document.getElementById('visitStartHour')||{}).value || '08';
+            const startMinute = (document.getElementById('visitStartMinute')||{}).value || '00';
+            const visitStart = `${pad2(startHour)}:${pad2(startMinute)}`;
+            const visitEnd = (document.getElementById('visitEnd')||{}).value || '';
+
+            // subjects
+            const subjectBlocks = Array.from(document.querySelectorAll('#subjectsBlock .subject-block'));
+            const subjects = subjectBlocks.map((blk)=>{
+                const subj = (blk.querySelector('.subject-name')||{}).value || '';
+                const teacher = (blk.querySelector('.teacher-name')||{}).value || '';
+                const publisher = (blk.querySelector('.publisher')||{}).value || '';
+                const conv = (blk.querySelector('.conversation-detail')||{}).value || '';
+                const followUp = (blk.querySelector('.followUpSelect')||{}).value || '';
+                const contactSuffix = (blk.querySelector('.contact-suffix')||{}).value || '';
+                const contact = contactSuffix ? `010-${contactSuffix.slice(0,4)}-${contactSuffix.slice(4)}` : '';
+                const meetings = Array.from(blk.querySelectorAll('.meeting-btn.selected')).map(b=>b.dataset.value||b.textContent.trim());
+                return { subject:subj, teacher, publisher, conversation:conv, followUp, contact, meetings };
+            });
+
+            return { visitDate, staff, region, school, meta, visitStart, visitEnd, subjects };
+        }
+
+        function renderVisitsList() {
+            const el = document.getElementById('visitsList');
+            if (!el) return;
+            el.innerHTML = '';
+            if (dayVisits.length === 0) { el.innerHTML = '<div style="color:#666;padding:.6rem;">추가된 방문이 없습니다.</div>'; return; }
+            // render stacked cards (chronological)
+            dayVisits.forEach((v, idx) => {
+                const card = document.createElement('div');
+                card.className = 'visit-card';
+                card.style = 'border-radius:8px;border:1px solid #e6eefc;background:#fff;padding:.8rem;margin-bottom:8px;';
+                const header = document.createElement('div');
+                header.style = 'display:flex;justify-content:space-between;align-items:center;gap:.6rem;';
+                const title = document.createElement('div');
+                title.innerHTML = `<strong>${idx+1}. ${v.school || '학교 미선택'}</strong><div style="font-size:12px;color:#556">${v.visitDate || ''} ${v.visitStart || ''} ~ ${v.visitEnd || ''}</div>`;
+                const actions = document.createElement('div');
+                const editBtn = document.createElement('button'); editBtn.textContent='편집'; editBtn.style='margin-right:6px;padding:.3rem .6rem;border-radius:.5rem;'; editBtn.addEventListener('click',()=>loadVisitToForm(idx));
+                const removeBtn = document.createElement('button'); removeBtn.textContent='제거'; removeBtn.style='padding:.3rem .6rem;border-radius:.5rem;color:#c33;'; removeBtn.addEventListener('click',()=>{ if(editingVisitIndex===idx) resetEditState(); dayVisits.splice(idx,1); renderVisitsList(); });
+                actions.appendChild(editBtn); actions.appendChild(removeBtn);
+                header.appendChild(title); header.appendChild(actions);
+                card.appendChild(header);
+                // brief subjects summary
+                if (v.subjects && v.subjects.length) {
+                    const ul = document.createElement('div'); ul.style='margin-top:.6rem;font-size:13px;color:#233';
+                    v.subjects.forEach(s=>{
+                        const line = document.createElement('div'); line.textContent = `${s.subject || '-'} ${s.teacher? '('+s.teacher+')':''} ${s.contact? '· '+s.contact : ''}`;
+                        ul.appendChild(line);
+                    });
+                    card.appendChild(ul);
+                }
+                el.appendChild(card);
+            });
+            // auto-scroll to bottom so latest added visit is visible
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function resetFormForNextVisit() {
+            // keep visitDate and staffInfo, clear region/school selection and subject blocks (leave one blank block)
+            // clear region/school UI selection
+            document.querySelectorAll('#regionButtons .grid-button.selected').forEach(b=>b.classList.remove('selected'));
+            document.querySelectorAll('#schoolButtons .grid-button.selected').forEach(b=>b.classList.remove('selected'));
+            document.getElementById('selectedRegionInput').value = '';
+            document.getElementById('selectedSchoolInput').value = '';
+            document.getElementById('displayRegion').textContent = '';
+            document.getElementById('displaySchool').textContent = '';
+            document.getElementById('selectedInfo').style.display = 'none';
+            // reset subject blocks: keep single blank block
+    const container = document.getElementById('subjectsBlock');
+        container.innerHTML = `\n        <label>과목/선생님별 영업기록</label>\n        <div class="subject-block">\n              <input type="hidden" class="subject-name">\n              <div class="subjects" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:8px;">\n                <button type="button" class="grid-button subject-choice" data-subject="정보">정보</button>\n                <button type="button" class="grid-button subject-choice" data-subject="진로">진로</button>\n                <button type="button" class="grid-button subject-choice" data-subject="보건">보건</button>\n                <button type="button" class="grid-button subject-choice" data-subject="미술">미술</button>\n                <button type="button" class="grid-button subject-choice" data-subject="특성화">특성화</button>\n                <button type="button" class="grid-button subject-choice" data-subject="기타">기타</button>\n              </div>\n          <input type="text" class="teacher-name" placeholder="선생님 이름">\n              <select class="publisher">\n                <option value="">출판사 선택</option>\n                <option>천재</option><option>비상</option><option>동아</option><option>삼양</option><option>기타</option>\n              </select>\n              <div style="display:flex;gap:.5rem;align-items:center;margin-top:.5rem;">\n                <label style="font-weight:700;min-width:38px;">연락처</label>\n                    <div style="display:flex;gap:.5rem;align-items:center;margin-top:.5rem;">\n                      <span style="display:inline-block;padding:.55rem .7rem;border-radius:.6rem;background:#f2f4ff;border:1px solid #d6dbe8;color:#12325a;font-weight:700;">010</span>\n                      <input type="text" class="contact-suffix" placeholder="12345678" maxlength="8" inputmode="numeric" pattern="[0-9]*" style="width:120px;padding:.55rem .6rem;border-radius:.6rem;border:1px solid #d6dbe8;">\n                      <span class="contact-formatted" style="margin-left:8px;color:#103254;font-weight:700;"></span>\n                      <button type="button" class="copy-contact" style="margin-left:6px;padding:.4rem .6rem;border-radius:.5rem;border:1px solid #d6dbe8;background:#fff;cursor:pointer;">복사</button>\n                    </div>\n              </div>\n          <div style="margin-top:16px;"></div>\n          <div class="meeting-buttons" id="main-meeting-buttons">\n            <button class="meeting-btn" type="button">명함인사</button>\n            <button class="meeting-btn" type="button">티칭샘소개</button>\n            <button class="meeting-btn" type="button">채팅방소개</button>\n            <button class="meeting-btn" type="button">미팅불가</button>\n          </div>\n          <div class="meeting-buttons" id="info-extra-buttons" style="display:none;">\n            <button class="meeting-btn" type="button">구글클래스룸 사용</button>\n            <button class="meeting-btn" type="button">패들렛 사용</button>\n            <button class="meeting-btn" type="button">하이러닝 사용</button>\n          </div>\n          <textarea class="conversation-detail" rows="2" placeholder="특이사항"></textarea>\n          <div style="margin-top:0.6rem;">\n            <label style="font-weight:700;display:block;margin-bottom:6px;">후속조치</label>\n            <select class="followUpSelect" style="width:100%;padding:.6rem;border-radius:.6rem;border:1px solid #d6dbe8;background:#fff;">\n              <option value="">선택하세요</option>\n              <option>채팅방 지속 관리</option>\n              <option>추가 자료 발송 예정</option>\n              <option>재방문 예정</option>\n              <option>선정 시기 연락 대기</option>\n              <option>워크북 무상지원 제안</option>\n              <option>완료 (추가 조치 없음)</option>\n            </select>\n          </div>\n        </div>\n        <div style="margin-top:16px;"></div>\n      `;
+            if (typeof renumberSubjectBlocks === 'function') renumberSubjectBlocks();
+            // if user enabled auto-focus, focus the first region button (or school if region already selected)
+            setTimeout(()=>{
+                try{
+                    const auto = document.getElementById('autoFocusNext');
+                    if (auto && auto.checked) {
+                        const regionFirst = document.querySelector('#regionButtons .grid-button');
+                        const schoolFirst = document.querySelector('#schoolButtons .grid-button');
+                        if (regionFirst) { regionFirst.focus(); }
+                        else if (schoolFirst) { schoolFirst.focus(); }
+                    }
+                }catch(e){/* ignore focus errors */}
+            },60);
+        }
+
+        let editingVisitIndex = -1; // -1 means not editing
+
+        function resetEditState() {
+            editingVisitIndex = -1;
+            const addBtn = document.getElementById('addVisitBtn'); if (addBtn) addBtn.textContent = '오늘 방문에 추가';
+            renderVisitsList();
+        }
+
+        function loadVisitToForm(idx) {
+            const v = dayVisits[idx];
+            if (!v) return;
+            // populate top-level
+                        if (v.visitDate) {
+                            const vdEl = document.getElementById('visitDate') || null;
+                            try{
+                                const s = String(v.visitDate || '').trim();
+                                let norm = '';
+                                if (/^\d{4}-\d{2}-\d{2}$/.test(s)) norm = s;
+                                else {
+                                    const m = s.match(/^(\d{4}-\d{2}-\d{2})T/);
+                                    if (m && m[1]) norm = m[1];
+                                    else { const d = new Date(s); if (!isNaN(d.getTime())) norm = d.toISOString().slice(0,10); }
+                                }
+                                if (vdEl) vdEl.value = norm || '';
+                            }catch(e){}
+                        }
+            if (v.visitStart) {
+                const [hh, mm] = v.visitStart.split(':');
+                if (document.getElementById('visitStartHour')) document.getElementById('visitStartHour').value = hh;
+                if (document.getElementById('visitStartMinute')) document.getElementById('visitStartMinute').value = mm;
+            }
+            if (v.visitEnd) (document.getElementById('visitEnd')||{}).value = v.visitEnd;
+            // select region and school buttons if possible
+            if (v.region) {
+                const regionBtn = Array.from(document.querySelectorAll('#regionButtons .grid-button')).find(b=>b.textContent.trim()===v.region || b.dataset.region===v.region);
+                if (regionBtn) regionBtn.click();
+            }
+            if (v.school) {
+                // small delay to allow schools populated after region click
+                setTimeout(()=>{
+                    const schoolBtn = Array.from(document.querySelectorAll('#schoolButtons .grid-button')).find(b=>b.textContent.trim()===v.school || b.dataset.school===v.school);
+                    if (schoolBtn) schoolBtn.click();
+                }, 120);
+            }
+            // clear existing subject blocks and rebuild from v.subjects
+            const container = document.getElementById('subjectsBlock');
+            container.innerHTML = '<label>과목/선생님별 영업기록</label>';
+            v.subjects.forEach(s => {
+                const block = document.createElement('div'); block.className = 'subject-block';
+                block.innerHTML = `
+                    <input type="hidden" class="subject-name" required>
+                    <div class="subjects" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:8px;">
+                        <button type="button" class="grid-button subject-choice" data-subject="정보">정보</button>
+                        <button type="button" class="grid-button subject-choice" data-subject="진로">진로</button>
+                        <button type="button" class="grid-button subject-choice" data-subject="기술가정">기술가정</button>
+                                <button type="button" class="grid-button subject-choice" data-subject="한문">한문</button>
+                    </div>
+                    <input type="text" class="teacher-name" placeholder="선생님 이름" required>
+                    <select class="publisher">
+                        <option value="">출판사 선택</option>
+                        <option>천재</option><option>비상</option><option>동아</option><option>삼양</option><option>기타</option>
+                    </select>
+                    <div style="margin-top:0.6rem;">
+                        <label style="font-weight:700;display:block;margin-bottom:6px;">후속조치</label>
+                        <select class="followUpSelect" style="width:100%;padding:.6rem;border-radius:.6rem;border:1px solid #d6dbe8;background:#fff;">
+                            <option value="">선택하세요</option>
+                            <option>채팅방 지속 관리</option>
+                            <option>추가 자료 발송 예정</option>
+                            <option>재방문 예정</option>
+                            <option>선정 시기 연락 대기</option>
+                            <option>워크북 무상지원 제안</option>
+                            <option>완료 (추가 조치 없음)</option>
+                        </select>
+                    </div>
+                    <div style="display:flex;gap:.5rem;align-items:center;margin-top:.5rem;">
+                        <label style="font-weight:700;min-width:38px;">연락처</label>
+                        <div style="display:flex;gap:.5rem;align-items:center;margin-top:.5rem;">
+                            <span style="display:inline-block;padding:.55rem .7rem;border-radius:.6rem;background:#f2f4ff;border:1px solid #d6dbe8;color:#12325a;font-weight:700;">010</span>
+                            <input type="text" class="contact-suffix" placeholder="12345678" maxlength="8" inputmode="numeric" pattern="[0-9]*" style="width:120px;padding:.55rem .6rem;border-radius:.6rem;border:1px solid #d6dbe8;">
+                            <span class="contact-formatted" style="margin-left:8px;color:#103254;font-weight:700;"></span>
+                            <button type="button" class="copy-contact" style="margin-left:6px;padding:.4rem .6rem;border-radius:.5rem;border:1px solid #d6dbe8;background:#fff;cursor:pointer;">복사</button>
+                        </div>
+                    </div>
+                    <div style="margin-top:16px;"></div>
+                    <div class="meeting-buttons" id="main-meeting-buttons">
+                        <button class="meeting-btn" type="button">명함인사</button>
+                        <button class="meeting-btn" type="button">티칭샘소개</button>
+                        <button class="meeting-btn" type="button">채팅방소개</button>
+                        <button class="meeting-btn" type="button">미팅불가</button>
+                    </div>
+                    <div class="meeting-buttons" id="info-extra-buttons" style="display:none;">
+                        <button class="meeting-btn" type="button">구글클래스룸 사용</button>
+                        <button class="meeting-btn" type="button">패들렛 사용</button>
+                        <button class="meeting-btn" type="button">하이러닝 사용</button>
+                    </div>
+                    <textarea class="conversation-detail" rows="2" placeholder="특이사항"></textarea>
+                `;
+                // populate values
+                if (s.subject) {
+                    block.querySelector('.subject-name').value = s.subject;
+                    const subjectBtn = Array.from(block.querySelectorAll('.subject-choice')).find(b=>b.dataset.subject===s.subject || b.textContent.trim()===s.subject);
+                    if (subjectBtn) subjectBtn.classList.add('selected');
+                }
+                if (s.teacher) block.querySelector('.teacher-name').value = s.teacher;
+                if (s.publisher) block.querySelector('.publisher').value = s.publisher;
+                if (s.followUp) block.querySelector('.followUpSelect').value = s.followUp;
+                if (s.contact) {
+                    // extract suffix digits from format like 010-1234-5678
+                    const digits = (s.contact || '').replace(/\D+/g,'');
+                    if (digits.length === 11) block.querySelector('.contact-suffix').value = digits.slice(3);
+                }
+                if (s.conversation) block.querySelector('.conversation-detail').value = s.conversation;
+                // meetings selection
+                setTimeout(()=>{
+                    if (s.meetings && s.meetings.length) {
+                        Array.from(block.querySelectorAll('.meeting-btn')).forEach(btn=>{
+                            if (s.meetings.includes(btn.textContent.trim())) btn.classList.add('selected');
+                        });
+                    }
+                }, 10);
+                block.querySelector('.removeSubjectBtn').onclick = function(){ block.remove(); if(typeof renumberSubjectBlocks==='function') renumberSubjectBlocks(); };
+                container.appendChild(block);
+            });
+            // renumber and show edit UI
+            if (typeof renumberSubjectBlocks === 'function') renumberSubjectBlocks();
+            editingVisitIndex = idx;
+            const addBtn = document.getElementById('addVisitBtn'); if (addBtn) addBtn.textContent = '편집사항 저장';
+            renderVisitsList();
+        }
+
+        document.getElementById('addVisitBtn')?.addEventListener('click',()=>{
+            const v = buildCurrentVisitObject();
+            // 방문일 필수
+            if (!v.visitDate) { alert('방문일을 선택한 뒤 방문을 추가하세요.'); const vd = document.getElementById('visitDate'); vd && vd.focus(); return; }
+            // basic validation: must have school
+            if (!v.school) { alert('학교를 선택한 뒤 추가하세요.'); return; }
+            if (editingVisitIndex >= 0) {
+                dayVisits[editingVisitIndex] = v;
+                resetEditState();
+                renderVisitsList();
+            } else {
+                dayVisits.push(v);
+                renderVisitsList();
+                // prepare form for next visit
+                resetFormForNextVisit();
+            }
+        });
+
+        // copy to clipboard helper
+        async function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                try { await navigator.clipboard.writeText(text); return true; } catch(e){ /* fallthrough */ }
+            }
+            // fallback
+            const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); document.body.removeChild(ta); return true; } catch(e){ document.body.removeChild(ta); return false; }
+        }
+
+        document.getElementById('copySummaryBtn')?.addEventListener('click', async ()=>{
+            const txt = (document.getElementById('generatedSummary')||{}).value || '';
+            if (!txt) { alert('복사할 요약이 없습니다. 먼저 요약을 생성하세요.'); return; }
+            const ok = await copyToClipboard(txt);
+            if (ok) { alert('요약이 클립보드에 복사되었습니다.'); } else { alert('복사에 실패했습니다. 수동으로 복사해주세요.'); }
+        });
+
+        // One-click: build kakao template from dayVisits (require at least one visit) and copy to clipboard
+        document.getElementById('copyKakaoBtn')?.addEventListener('click', async ()=>{
+            if (!dayVisits || !dayVisits.length) { alert('먼저 방문을 추가하세요. (하루치 방문이 쌓여 있어야 합니다)'); return; }
+            const summary = buildAggregateSummary(dayVisits, 'kakao');
+            const ok = await copyToClipboard(summary);
+            if (ok) { alert('카카오용 요약이 클립보드에 복사되었습니다. 카톡에 붙여넣기 해주세요.'); }
+            else { alert('복사에 실패했습니다. 생성된 요약을 수동으로 복사해주세요.'); }
+        });
+
+        // POST dayVisits to backend
+        document.getElementById('saveToServerBtn')?.addEventListener('click', async ()=>{
+            if (!dayVisits || !dayVisits.length) { alert('저장할 방문 기록이 없습니다. 먼저 방문을 추가하세요.'); return; }
+            const staff = getStaffFromQuery() || (document.getElementById('staffInfo')||{}).textContent.replace(/^담당자:\s*/,'').trim();
+            const payload = { staff, visits: dayVisits };
+            try {
+                const res = await fetch('/api/visits', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                });
+                const j = await res.json();
+                if (res.ok && j && j.ok) { alert('서버에 저장되었습니다. ID: ' + j.id); }
+                else { alert('저장 실패: ' + (j && j.msg ? j.msg : res.statusText)); }
+            } catch(e){ alert('서버 저장 중 오류: ' + e.message); }
+        });
+
+        // register service worker for PWA (if available)
+        if ('serviceWorker' in navigator) {
+            try { navigator.serviceWorker.register('/sw.js'); } catch(e) { /* ignore */ }
+        }
+
+        // enhanced generateSummary: uses dayVisits if exists, otherwise single current form
+        document.getElementById('genSummaryBtn')?.addEventListener('click', ()=>{
+            const template = (document.getElementById('summaryTemplate')||{}).value || 'detailed';
+            let visits = dayVisits.length ? dayVisits : [ buildCurrentVisitObject() ];
+            const summary = buildAggregateSummary(visits, template);
+            const out = document.getElementById('generatedSummary'); if (out) writeGeneratedSummary(reportIntro() + '\n' + summary, { replace: true });
+        });
+
+        // report intro/header block to prepend to generated summaries
+        function reportIntro() {
+            // dynamic header: use URL ?user= parameter when present, otherwise fallback to staffInfo text
+            let staffName = '';
+            try {
+                staffName = getStaffFromQuery() || '';
+            } catch(e) { staffName = ''; }
+            if (!staffName) {
+                const infoEl = document.getElementById('staffInfo');
+                if (infoEl && infoEl.textContent) {
+                    staffName = infoEl.textContent.replace(/^담당자:\s*/,'').trim();
+                }
+            }
+            if (!staffName) staffName = '담당자';
+            // normalize base name (remove common title suffixes if present)
+            let base = staffName.replace(/\s*(부장|차장|과장|대리|사원)\s*$/,'').trim();
+            // mapping to titled names
+            const titleMap = {
+                '송훈재': '송훈재 부장',
+                '임준호': '임준호 차장',
+                '조영환': '조영환 부장'
+            };
+            const displayName = titleMap[base] || staffName;
+            const lines = [];
+            lines.push(`(${displayName} 퇴근보고)`);
+            lines.push('');
+            return lines.join('\n');
+        }
+
+        function buildAggregateSummary(visits, template) {
+            // aggregate stats
+            const totalSchools = visits.length;
+            let contactCount = 0;
+            let additionalConfirmCount = 0;
+            visits.forEach(v => {
+                v.subjects.forEach(s => { if (s.contact) contactCount++; if (s.followUp && s.followUp.indexOf('추가선정')!==-1) additionalConfirmCount++; });
+            });
+
+            // helper: Korean ordinal labels 가, 나, 다, ... fallback to numeric if out of range
+            const korLetters = ['가','나','다','라','마','바','사','아','자','차','카','타','파','하'];
+            const getKorLabel = (i) => (korLetters[i] ? korLetters[i] + '.' : (i+1) + '.');
+
+            // treat first visit start as 출근, last visit end as 퇴근 (use insertion order)
+            const firstStart = (visits && visits.length && visits[0].visitStart) ? visits[0].visitStart : '';
+            const lastEnd = (visits && visits.length && visits[visits.length-1].visitEnd) ? visits[visits.length-1].visitEnd : '';
+
+            if (template === 'compact') {
+                // one-line per school
+                const lines = visits.map((v,i)=>{
+                    const subjCount = v.subjects.length;
+                    return `${getKorLabel(i)} ${v.school} ${v.visitStart || ''}-${v.visitEnd || ''} (${subjCount}과목)`;
+                });
+                lines.push(`총 방문 학교: ${totalSchools}개, 연락처 확보: ${contactCount}건, 추가선정 확인: ${additionalConfirmCount}건`);
+                return lines.join('\n');
+            }
+
+            if (template === 'paragraph') {
+                // natural paragraph
+                const parts = [];
+                parts.push(`${visits[0].visitDate || ''} 방문 보고입니다.`.trim());
+                visits.forEach((v,i)=>{
+                    parts.push(`${getKorLabel(i)} ${v.school} (${v.region || ''}) 에서 ${v.visitStart || ''}부터 ${v.visitEnd || ''}까지 방문하여 ${v.subjects.length}과목을 지도했습니다.`);
+                    v.subjects.forEach(s=>{
+                        const m = s.meetings && s.meetings.length ? `미팅: ${s.meetings.join(', ')}.` : '';
+                        parts.push(`- ${s.subject} ${s.teacher ? '('+s.teacher+')':''} ${m} ${s.conversation? '특이사항: '+s.conversation : ''}`);
+                    });
+                });
+                parts.push(`총 ${totalSchools}개 학교 방문, 연락처 확보 ${contactCount}건, 추가선정 확인 ${additionalConfirmCount}건.`);
+                return parts.join('\n');
+            }
+
+            if (template === 'kakao') {
+                // Kakao-style structured report requested by user
+                const parts = [];
+                // include dynamic intro
+                parts.push(reportIntro().trim());
+                // header
+                parts.push(`방문일: ${visits[0].visitDate || ''}`);
+                parts.push(`총 방문 학교: ${totalSchools}개 · 연락처 확보: ${contactCount}건 · 추가선정 확인: ${additionalConfirmCount}건`);
+                // 1. 출근/퇴근 summary (numbered section 1)
+                parts.push('');
+                // compute 자료정리 end (lastEnd + 30min) and use it as 퇴근 when available
+                function computeEndCollect(t){ if(!t) return ''; try { return addMinutesToTime(t, 30); } catch(e){ return ''; } }
+                const lastEndTime = lastEnd || '';
+                const computedEndCollect = computeEndCollect(lastEndTime);
+                let finalEnd = lastEnd || '';
+                if (lastEnd && computedEndCollect) finalEnd = computedEndCollect;
+                // compute working duration between firstStart and finalEnd
+                let workDurationText = '';
+                if (firstStart && finalEnd) {
+                    const totalMin = calcMinutesInterval(firstStart, finalEnd);
+                    const hrs = Math.floor(totalMin / 60);
+                    const mins = totalMin % 60;
+                    workDurationText = ` (근무시간 ${hrs}h ${mins}m)`;
+                }
+                parts.push(`1. 출근: ${firstStart || '-'} · 퇴근: ${finalEnd || '-'}${workDurationText}`);
+                parts.push('');
+                // 2. 세부업무 with lettered school sections
+                parts.push('2. 세부업무');
+                parts.push('');
+                visits.forEach((v, idx) => {
+                    const label = getKorLabel(idx).replace(/\.$/, ''); // '가' not '가.' for header prefix
+                    // compute duration
+                    let timeRange = '';
+                    let durMinutes = null;
+                    if (v.visitStart && v.visitEnd) {
+                        timeRange = `(${v.visitStart}~${v.visitEnd})`;
+                        try { durMinutes = calcMinutesInterval(v.visitStart, v.visitEnd); } catch(e){ durMinutes = null; }
+                    }
+                    // e.g. 가. 과천고등학교  (08:00~08:10) (10분)
+                    const schoolLine = `${label}. ${v.school || '-'}  ${timeRange}${durMinutes ? ` (${durMinutes}분)` : ''}`;
+                    parts.push(schoolLine);
+                    parts.push('세부업무:');
+                    v.subjects.forEach(s => {
+                        const meetings = s.meetings && s.meetings.length ? s.meetings.join(', ') : '';
+                        const follow = s.followUp ? `후속:${s.followUp}` : '';
+                        const conv = s.conversation ? `특이사항:${s.conversation}` : '';
+                        const teacher = s.teacher ? `(${s.teacher})` : '';
+                        const publisher = s.publisher ? ` / ${s.publisher}` : '';
+                        const segs = [];
+                        // main subject + teacher + publisher
+                        segs.push(`- ${s.subject || '-'} ${teacher}${publisher}`.trim());
+                        if (meetings) segs.push(meetings);
+                        if (follow) segs.push(follow);
+                        if (conv) segs.push(conv);
+                        parts.push(segs.join(' · '));
+                    });
+                    parts.push('');
+                });
+                // 3. 퇴근보고 자료 정리 — allocate a 30-minute slot after lastEnd
+                if (lastEndTime && computedEndCollect) {
+                    const dur = calcMinutesInterval(lastEndTime, computedEndCollect);
+                    parts.push(`3. 퇴근보고 자료 정리 (${lastEndTime}~${computedEndCollect}) (${dur}분)`);
+                } else {
+                    parts.push('3. 퇴근보고 자료 정리');
+                }
+                parts.push('');
+    parts.push('- 끝.');
+                return parts.join('\n');
+            }
+
+            // detailed (default): header + per-visit block with per-subject rows
+            // detailed (default): header + per-visit block with per-subject rows
+            const lines = [];
+            lines.push(`방문일: ${visits[0].visitDate || ''}`);
+            lines.push(`총 방문 학교: ${totalSchools}개`);
+            lines.push(`출근: ${firstStart || '-'} | 퇴근: ${lastEnd || '-'}`);
+            lines.push(`연락처 확보: ${contactCount}건 | 추가선정 확인: ${additionalConfirmCount}건`);
+            lines.push('');
+            // 세부업무: 한 번만 출력하고 같은 학교가 연속으로 나올 때는 학교명을 반복하지 않도록 그룹화
+            lines.push('세부업무:');
+            const schoolLabelMap = {}; // schoolName -> label index
+            let nextLabelIndex = 0;
+            visits.forEach((v, idx) => {
+                const schoolName = v.school || '-';
+                if (schoolLabelMap[schoolName] === undefined) {
+                    // first time we see this school: assign a label and print header
+                    schoolLabelMap[schoolName] = nextLabelIndex++;
+                    lines.push(`${getKorLabel(schoolLabelMap[schoolName])} ${schoolName} — ${v.region || ''} (${v.visitStart || ''} ~ ${v.visitEnd || ''})`);
+                } else {
+                    // repeated school: do not print new label/school name, just show time range indented
+                    lines.push(`   (${v.visitStart || ''} ~ ${v.visitEnd || ''})`);
+                }
+                // subjects (always list)
+                v.subjects.forEach(s => {
+                    const meetings = s.meetings && s.meetings.length ? `[${s.meetings.join(', ')}] ` : '';
+                    const follow = s.followUp ? `팔로업:${s.followUp} ` : '';
+                    const conv = s.conversation ? `특이사항:${s.conversation}` : '';
+                    lines.push(` - ${s.subject} / ${s.teacher || '-'} / ${s.publisher || '-'} ${meetings}${follow}${conv}`.trim());
+                });
+                lines.push('');
+            });
+            return lines.join('\n');
+        }
+        </script>
+        <script>
+                // Robust watcher/wrapper for buildAggregateSummary
+        // - If the function is already present, wrap it.
+        // - If it is defined later (by another script), detect and wrap it when assigned.
+        // - If calling the original throws the known TDZ ReferenceError about endCollectStart/endCollectEnd,
+        //   return a safe, minimal textual summary instead of letting the exception bubble.
+        (function(){
+            function safeFallback(visits, template){
+                try{
+                    if(!Array.isArray(visits)) return '';
+                    return visits.map(v => {
+                        const school = v.school || v.schoolName || v.schoolname || '';
+                        const region = v.region || v.regionName || '';
+                        const start = v.visitStart || v.visitTime || '';
+                        const dur = v.duration || v.durationMinutes || v.visitDuration || '';
+                        const subjects = (v.subjects || (v.subject? [v] : []) ).map(s => (s.subject||s.subjectName||s).toString()).filter(Boolean).join(', ');
+                        const teacher = (v.teacher || v.teacherName) || '';
+                        return [
+                            school && ('학교: ' + school),
+                            region && ('지역: ' + region),
+                            start && ('시작: ' + start),
+                            dur && ('소요: ' + dur + '분'),
+                            subjects && ('과목: ' + subjects),
+                            teacher && ('교사: ' + teacher),
+                            v.teacherFeedback && ('요청/반응: ' + v.teacherFeedback),
+                            v.additionalNotes && ('특이사항: ' + v.additionalNotes)
+                        ].filter(Boolean).join('\n');
+                    }).join('\n\n');
+                }catch(err){
+                    return '';
+                }
+            }
+
+            function makeWrapper(orig){
+                if(typeof orig !== 'function') return orig;
+                return function wrappedBuildAggregateSummary(){
+                    try{
+                        return orig.apply(this, arguments);
+                    }catch(err){
+                        try{
+                            if(err && err instanceof ReferenceError && /endCollectEnd|endCollectStart/.test(err.message)){
+                                console.warn('buildAggregateSummary threw ReferenceError, using fallback summary');
+                                return safeFallback(arguments[0], arguments[1]);
+                            }
+                        }catch(_){/* ignore */}
+                        throw err;
+                    }
+                };
+            }
+
+            try{
+                // If already defined, wrap immediately
+                if(typeof window.buildAggregateSummary === 'function'){
+                    window.buildAggregateSummary = makeWrapper(window.buildAggregateSummary);
+                    return;
+                }
+
+                // If not defined yet, watch for it. We'll poll briefly and also create a setter as a best-effort.
+                let wrapped = false;
+
+                // Polling approach (safe across environments where descriptors are non-configurable)
+                const maxAttempts = 100; // ~10s at 100ms interval
+                let attempts = 0;
+                const iv = setInterval(() => {
+                    attempts++;
+                    try{
+                        if(typeof window.buildAggregateSummary === 'function'){
+                            if(!wrapped){
+                                window.buildAggregateSummary = makeWrapper(window.buildAggregateSummary);
+                                wrapped = true;
+                            }
+                            clearInterval(iv);
+                            return;
+                        }
+                        if(attempts >= maxAttempts){ clearInterval(iv); }
+                    }catch(e){ clearInterval(iv); }
+                }, 100);
+
+                // Try to define a setter on window to catch future assignments (best-effort; may fail if not configurable)
+                try{
+                    const desc = Object.getOwnPropertyDescriptor(window, 'buildAggregateSummary');
+                    if(!desc || desc.configurable){
+                        Object.defineProperty(window, 'buildAggregateSummary', {
+                            configurable: true,
+                            enumerable: true,
+                            set(fn){
+                                try{
+                                    const val = makeWrapper(fn);
+                                    // replace with a normal value property so future accesses are fast
+                                    Object.defineProperty(window, 'buildAggregateSummary', {
+                                        configurable: true,
+                                        writable: true,
+                                        enumerable: true,
+                                        value: val
+                                    });
+                                }catch(e){
+                                    // if wrapping failed, just set the raw function
+                                    Object.defineProperty(window, 'buildAggregateSummary', {
+                                        configurable: true,
+                                        writable: true,
+                                        enumerable: true,
+                                        value: fn
+                                    });
+                                }
+                            },
+                            get(){ return undefined; }
+                        });
+                    }
+                }catch(e){ /* ignore; fallback polling will still catch it */ }
+
+                // Finally, if the function never appears, provide a safe default to avoid callers from failing
+                setTimeout(() => {
+                    if(typeof window.buildAggregateSummary !== 'function'){
+                        window.buildAggregateSummary = safeFallback;
+                    }
+                }, 1200);
+            }catch(e){
+                console.error('Failed to install robust buildAggregateSummary watcher', e);
+            }
+        })();
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 520px;
+            margin: 10px auto 60px auto;
+            background: linear-gradient(180deg, rgba(255,255,255,0.9), #ffffff);
+            border-radius: 14px;
+            padding: 22px 20px 28px 20px;
+            box-shadow: 0 6px 30px rgba(22, 23, 37, 0.08);
+            border: 1px solid rgba(99,102,241,0.06);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 18px;
+        }
+
+        .user-name {
+            font-size: 24px;
+            font-weight: 800;
+            color: #12325b;
+            margin-bottom: 6px;
+        }
+
+        .date-time {
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+
+        .form-section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title .emoji {
+            font-size: 28px;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            font-size: 16px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .required {
+            color: #f5576c;
+            margin-left: 5px;
+        }
+
+        select, input[type="text"], input[type="time"], input[type="number"], textarea {
+            width: 100%;
+            padding: 12px 14px;
+            font-size: 15px;
+            border: 1px solid rgba(99,102,241,0.15);
+            border-radius: 12px;
+            font-family: 'Malgun Gothic', sans-serif;
+            transition: all 0.18s ease;
+            background: #fff;
+        }
+
+        select:focus, input[type="text"]:focus, input[type="time"]:focus, input[type="number"]:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .button-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .subject-button {
+            padding: 10px 14px;
+            font-size: 14px;
+            font-weight: 700;
+            border: 1.5px solid rgba(99,102,241,0.18);
+            background: #fff;
+            border-radius: 18px;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            color: #0f172a;
+        }
+
+        .subject-button:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .subject-button.selected {
+            background: #0f172a;
+            color: #fff;
+            border-color: #0f172a;
+            box-shadow: 0 6px 18px rgba(15,23,42,0.08);
+        }
+
+        .submit-section {
+            margin-top: 50px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .submit-button, .back-button {
+            flex: 1;
+            padding: 25px;
+            font-size: 22px;
+            font-weight: 700;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .submit-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
+        }
+
+        .back-button {
+            margin-top: 22px;
+            display: flex;
+            gap: 12px;
+
+        .back-button:hover {
+            background: #e0e0e0;
+            flex: 1;
+            padding: 14px 20px;
+            font-size: 15px;
+            font-weight: 800;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 50px;
+            background: #0f172a;
+            color: white;
+            box-shadow: 0 6px 18px rgba(15,23,42,0.08);
+            z-index: 1000;
+        }
+
+            transform: translateY(-3px);
+            animation: popIn 0.5s ease;
+        }
+
+        @keyframes popIn {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+
+        .overlay.show {
+            display: block;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px;
+            }
+
+            .user-name {
+                font-size: 28px;
+            }
+
+            .button-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .submit-section {
+                flex-direction: column;
+            }
+        }
+    </style>
+    <!-- Firebase API 로드 -->
+    <script src="firebase-api.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="user-name" id="userName">영업사원</div>
+            <div class="date-time" id="dateTime"></div>
+            <button id="openStaffBtn" style="position:absolute;right:26px;top:28px;padding:8px 12px;border-radius:10px;border:none;background:#ffb703;color:#072042;cursor:pointer;font-weight:700;">담당자 설정</button>
+        </div>
+
+        <form id="salesForm">
+            <!-- Stepper controls for single-file SPA -->
+            <div id="stepControls" style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                <button type="button" id="stepPrev" style="padding:8px 12px;border-radius:8px;border:1px solid #d6dbe8;background:#fff;cursor:pointer;">이전</button>
+                <div style="font-weight:700;color:#072042">페이지 <span id="currentStepIndicator">1</span> / 3</div>
+                <button type="button" id="stepNext" style="padding:8px 12px;border-radius:8px;border:none;background:#1677ff;color:#fff;cursor:pointer;margin-left:8px;">다음</button>
+                <div style="margin-left:auto;color:#666;font-size:13px">진행 중인 내용은 자동 저장됩니다</div>
+            </div>
+            <!-- Step 1: 행정구역 / 학교 선택 -->
+            <div class="spa-step" data-step="1">
+            <!-- 행정구역 -->
+            <div class="form-section">
+                <div class="section-title">
+                    <span class="emoji">📍</span>
+                    행정구역
+                </div>
+                <div class="input-group">
+                    <label>시/도 <span class="required">*</span></label>
+                    <select id="region" required>
+                        <option value="">선택하세요</option>
+                        <option value="서울">서울특별시</option>
+                        <option value="부산">부산광역시</option>
+                        <option value="대구">대구광역시</option>
+                        <option value="인천">인천광역시</option>
+                        <option value="광주">광주광역시</option>
+                        <option value="대전">대전광역시</option>
+                        <option value="울산">울산광역시</option>
+                        <option value="세종">세종특별자치시</option>
+                        <option value="경기">경기도</option>
+                        <option value="강원">강원도</option>
+                        <option value="충북">충청북도</option>
+                        <option value="충남">충청남도</option>
+                        <option value="전북">전라북도</option>
+                        <option value="전남">전라남도</option>
+                        <option value="경북">경상북도</option>
+                        <option value="경남">경상남도</option>
+                        <option value="제주">제주특별자치도</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>시/군/구</label>
+                    <input type="text" id="district" placeholder="예: 강남구, 해운대구">
+                </div>
+            </div>
+            </div>
+
+            <!-- Step 2: 방문정보 / 교사 / 활동 -->
+            <div class="spa-step" data-step="2" style="display:none;">
+            <!-- 방문 시간 -->
+            <div class="form-section">
+                <div class="section-title">
+                    <span class="emoji">⏰</span>
+                    방문 시간
+                </div>
+                <div class="input-group">
+                    <label>방문 시각 <span class="required">*</span></label>
+                    <input type="time" id="visitTime" required>
+                </div>
+                <div class="input-group">
+                    <label>소요 시간 (분)</label>
+                    <input type="number" id="duration" placeholder="예: 80" min="1">
+                </div>
+            </div>
+            </div>
+
+            <!-- 학교명 -->
+            <div class="form-section">
+                <div class="section-title">
+                    <span class="emoji">🏫</span>
+                    학교 정보
+                </div>
+                <div class="input-group">
+                    <label>학교명 <span class="required">*</span></label>
+                    <input type="text" id="schoolName" placeholder="예: 문산수억중" required>
+                </div>
+                <div class="input-group">
+                    <label>위치 (상세 주소 또는 특징)</label>
+                    <input type="text" id="location" placeholder="예: 서울특별시 강남구 역삼동 123-45">
+                </div>
+            </div>
+
+            <!-- 과목 및 교사 정보 -->
+            <div class="form-section">
+                <div class="section-title">
+                    <span class="emoji">👨‍🏫</span>
+                    교사 정보
+                </div>
+                <div class="input-group">
+                    <label>과목 <span class="required">*</span></label>
+                    <select id="subject" required>
+                        <option value="">선택하세요</option>
+                        <option value="정보">정보</option>
+                        <option value="국어">국어</option>
+                        <option value="수학">수학</option>
+                        <option value="영어">영어</option>
+                        <option value="사회">사회</option>
+                        <option value="과학">과학</option>
+                        <option value="역사">역사</option>
+                        <option value="진로">진로</option>
+                        <option value="보건">보건</option>
+                        <option value="체육">체육</option>
+                        <option value="미술">미술</option>
+                        <option value="음악">음악</option>
+                        <option value="기술가정">기술가정</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>교사명</label>
+                    <input type="text" id="teacherName" placeholder="예: 위세창">
+                </div>
+                <div class="input-group">
+                    <label>연락처 확보 여부</label>
+                    <div class="button-grid" style="grid-template-columns: 1fr 1fr;">
+                        <button type="button" class="subject-button" id="contactYes" onclick="toggleContact('yes')">✅ 확보</button>
+                        <button type="button" class="subject-button" id="contactNo" onclick="toggleContact('no')">❌ 미확보</button>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+                        <button id="prevPage" style="padding:6px 8px">이전</button>
+                        <span>페이지: <span id="currentPage">1</span></span>
+                        <button id="nextPage" style="padding:6px 8px">다음</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 현재 사용 교재 -->
+            <div class="form-section">
+                <div class="section-title">
+                    <span class="emoji">📖</span>
+                    현재 사용 교재
+                </div>
+                <div class="input-group">
+                    <label>교재 출판사</label>
+                    <select id="currentPublisher">
+                        <option value="">선택하세요</option>
+                        <option value="씨마스">씨마스 ✅</option>
+                        <option value="미선정">미선정 (선정 예정)</option>
+                        <option value="천재교육">천재교육</option>
+                        <option value="비상교육">비상교육</option>
+                        <option value="금성출판사">금성출판사</option>
+                        <option value="동아출판">동아출판</option>
+                        <option value="YBM">YBM</option>
+                        <option value="성안당">성안당</option>
+                        <option value="삼양미디어">삼양미디어</option>
+                        <option value="학지사">학지사</option>
+                        <option value="해냄에듀">해냄에듀</option>
+                        <option value="없음">교재 없이 수업</option>
+                        <option value="비공개">비공개</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>선정 학년</label>
+                    <input type="text" id="gradeInfo" placeholder="예: 3학년, 전학년, 2학년">
+                </div>
+            </div>
+
+            <!-- Step 3: 미팅 내용 / 후속 조치 / 제출 (review) -->
+            <div class="spa-step" data-step="3" style="display:none;">
+            <!-- 미팅 내용 -->
+            <div class="form-section">
+                <div class="section-title">
+                    <span class="emoji">💬</span>
+                    미팅 내용
+                </div>
+                <div class="input-group">
+                    <label>진행 활동 (중복 선택 가능)</label>
+                    <div class="button-grid">
+                        <button type="button" class="subject-button activity-btn" data-activity="명함인사">명함인사</button>
+                        <button type="button" class="subject-button activity-btn" data-activity="자료전달">자료전달</button>
+                        <button type="button" class="subject-button activity-btn" data-activity="포스터전달">포스터전달</button>
+                        <button type="button" class="subject-button activity-btn" data-activity="티칭샘소개">티칭샘소개</button>
+                        <button type="button" class="subject-button activity-btn" data-activity="채팅방초대">채팅방초대</button>
+                        <button type="button" class="subject-button activity-btn" data-activity="워크북소개">워크북소개</button>
+                        <button type="button" class="subject-button activity-btn" data-activity="AIDT소개">AIDT소개</button>
+                        <button type="button" class="subject-button activity-btn" data-activity="미팅불가">미팅불가</button>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>교사 반응 및 요청사항 <span class="required">*</span></label>
+                    <textarea id="teacherFeedback" placeholder="예: 작년에 선정 마침. 서울 근무 시 씨마스 사용 경험 있어 우호적 반응. 고등 정보, 인공지능기초 자료 요청." required></textarea>
+                </div>
+                <div class="input-group">
+                    <label>특이사항 / 추가 메모</label>
+                    <textarea id="additionalNotes" placeholder="예: 출타 중, 수업 중, 거절, 출입 제한 등"></textarea>
+                </div>
+            </div>
+            </div>
+
+            <!-- 후속 조치 -->
+            <div class="form-section">
+                <div class="section-title">
+                    <span class="emoji">📌</span>
+                    후속 조치
+                </div>
+                <div class="input-group">
+                    <label>다음 액션</label>
+                    <select id="nextAction">
+                        <option value="">선택하세요</option>
+                        <option value="채팅방관리">채팅방 지속 관리</option>
+                        <option value="자료추가발송">추가 자료 발송 예정</option>
+                        <option value="재방문예정">재방문 예정</option>
+                        <option value="선정시연락">선정 시기 연락 대기</option>
+                        <option value="워크북제안">워크북 무상지원 제안</option>
+                        <option value="완료">완료 (추가 조치 없음)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 제출 버튼 -->
+            <div class="submit-section">
+                <button type="button" class="back-button" onclick="goBack()">
+                    ← 돌아가기
+                </button>
+                <button type="submit" class="submit-button">
+                    ✅ 제출하기
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Staff settings modal -->
+    <div id="staffModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1200;align-items:center;justify-content:center;">
+        <div id="staffModal" style="background:#fff;padding:20px;border-radius:14px;max-width:420px;width:92%;box-shadow:0 18px 40px rgba(10,20,40,0.3);">
+            <h3 style="margin:0 0 12px 0;color:#072042;">담당자 정보 입력</h3>
+            <p style="margin:0 0 10px 0;color:#33475b;font-size:14px;">이 페이지에서 사용할 담당자 이름을 입력하세요. 저장하면 이후 자동으로 표시됩니다.</p>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+                <input id="staffNameInput" placeholder="예: 송훈재" style="flex:1;padding:10px;border-radius:8px;border:1px solid #d6dbe8;font-size:15px;" />
+                <button id="saveStaffBtn" style="padding:10px 12px;border-radius:8px;border:none;background:#1677ff;color:#fff;font-weight:700;cursor:pointer;">저장</button>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+                <button id="closeStaffBtn" style="padding:8px 12px;border-radius:8px;border:1px solid #d6dbe8;background:#fff;cursor:pointer;">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 성공 메시지 -->
+    <div class="overlay" id="overlay"></div>
+    <div class="success-message" id="successMessage">
+        <div style="font-size: 80px; margin-bottom: 20px;">✅</div>
+        <h2 style="font-size: 32px; color: #667eea; margin-bottom: 15px;">등록 완료!</h2>
+        <p style="font-size: 18px; color: #666;">영업일지가 성공적으로 저장되었습니다.</p>
+        <button onclick="resetForm()" style="margin-top: 30px; padding: 15px 40px; font-size: 18px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 15px; cursor: pointer;">
+            새 일지 작성하기
+        </button>
+    </div>
+
+    <script type="module">
+        // Firebase 초기화 (나중에 설정)
+        // import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        // import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // URL에서 사용자 정보 가져오기
+        const urlParams = new URLSearchParams(window.location.search);
+        const userName = urlParams.get('user');
+
+        // pre-defined mapping (legacy support)
+        const userNameMap = {
+            'songhunje': '송훈재',
+            'imjunho': '임준호',
+            'joyounghwan': '조영환'
+        };
+
+        // prefer a persisted staff name in localStorage; fall back to query param mapping or default
+        function getPersistedStaff(){
+            try{ const v = localStorage.getItem('cmass_staff_name'); if(v && v.trim()) return v.trim(); }catch(e){}
+            if(userName && userNameMap[userName]) return userNameMap[userName];
+            return null;
+        }
+
+        function setDisplayedStaff(name){
+            document.getElementById('userName').textContent = name || '영업사원';
+        }
+
+        // initialize displayed user name
+        const persisted = getPersistedStaff();
+        setDisplayedStaff(persisted);
+        // If no persisted staff and no ?user= param, redirect back to the index launcher
+        try{
+            const urlParamsCheck = new URLSearchParams(window.location.search);
+            const hasUserParam = !!urlParamsCheck.get('user');
+            if(!persisted && !hasUserParam){
+                const fileIndex = 'file:///C:/Users/PC/Desktop/%EC%A1%B0%EA%B2%BD%EC%88%98_%EC%97%85%EB%AC%B4/flask-web-app/cmass-sales-system/index.html';
+                const httpIndex = (window.location.origin && window.location.origin !== 'null') ? (window.location.origin + '/index.html') : '/index.html';
+                const target = (window.location.protocol === 'file:') ? fileIndex : httpIndex;
+                window.location.replace(target);
+            }
+        }catch(e){ /* ignore and continue */ }
+
+        // 현재 날짜/시간 표시
+        function updateDateTime() {
+            const now = new Date();
+            const options = { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric', 
+                weekday: 'long',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            document.getElementById('dateTime').textContent = now.toLocaleDateString('ko-KR', options);
+        }
+        updateDateTime();
+        setInterval(updateDateTime, 60000); // 1분마다 업데이트
+
+        // 연락처 확보 여부 토글
+        let contactStatus = null;
+        window.toggleContact = function(status) {
+            contactStatus = status;
+            document.getElementById('contactYes').classList.remove('selected');
+            document.getElementById('contactNo').classList.remove('selected');
+            
+            if (status === 'yes') {
+                document.getElementById('contactYes').classList.add('selected');
+            } else {
+                document.getElementById('contactNo').classList.add('selected');
+            }
+        };
+
+        // 활동 선택 기능 (다중 선택 가능)
+        const selectedActivities = new Set();
+        
+        document.querySelectorAll('.activity-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const activity = button.dataset.activity;
+                
+                if (selectedActivities.has(activity)) {
+                    selectedActivities.delete(activity);
+                    button.classList.remove('selected');
+                } else {
+                    selectedActivities.add(activity);
+                    button.classList.add('selected');
+                }
+            });
+        });
+
+        // 폼 제출
+        document.getElementById('salesForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                // Only submit on final SPA step
+                if(currentStep !== 3){
+                    // move to next step instead
+                    goToStep(Math.min(3, currentStep+1));
+                    return;
+                }
+
+                if (selectedActivities.size === 0) {
+                    alert('진행한 활동을 최소 1개 이상 선택해주세요! 💬');
+                    return;
+                }
+
+                const formData = {
+                // 기본 정보
+                salesPerson: getPersistedStaff() || userNameMap[userName] || '',
+                date: new Date().toISOString().split('T')[0],
+                timestamp: new Date().toISOString(),
+                
+                // 방문 정보
+                visitTime: document.getElementById('visitTime').value,
+                duration: document.getElementById('duration').value,
+                
+                // 지역 정보
+                region: document.getElementById('region').value,
+                district: document.getElementById('district').value,
+                location: document.getElementById('location').value,
+                schoolName: document.getElementById('schoolName').value,
+                
+                // 교사 정보
+                subject: document.getElementById('subject').value,
+                teacherName: document.getElementById('teacherName').value,
+                contactAcquired: contactStatus,
+                
+                // 교재 정보
+                currentPublisher: document.getElementById('currentPublisher').value,
+                gradeInfo: document.getElementById('gradeInfo').value,
+                
+                // 미팅 내용
+                activities: Array.from(selectedActivities),
+                teacherFeedback: document.getElementById('teacherFeedback').value,
+                additionalNotes: document.getElementById('additionalNotes').value,
+                
+                // 후속 조치
+                nextAction: document.getElementById('nextAction').value
+            };
+
+            console.log('제출 데이터:', formData);
+
+            // Firebase에 저장
+            try {
+                const result = await API.saveSalesLog(formData);
+                console.log('저장 성공:', result);
+                showSuccess();
+            } catch (error) {
+                console.error('저장 실패:', error);
+                alert('⚠️ 저장 중 오류가 발생했습니다.\n\n' + 
+                      '인터넷 연결을 확인하거나\n' + 
+                      'Firebase가 배포되었는지 확인해주세요.\n\n' +
+                      '오류: ' + error.message);
+            }
+        });
+
+        // --- SPA navigation + autosave ---
+        let currentStep = 1;
+        const TOTAL_STEPS = 3;
+        const STORAGE_KEY = 'cmass_sales_draft_v1';
+
+        function goToStep(n){
+            currentStep = Math.max(1, Math.min(TOTAL_STEPS, n));
+            document.getElementById('currentStepIndicator').textContent = currentStep;
+            document.querySelectorAll('.spa-step').forEach(el => {
+                el.style.display = (Number(el.dataset.step) === currentStep) ? '' : 'none';
+            });
+            // focus first input
+            const first = document.querySelector('.spa-step[data-step="'+currentStep+'"] input, .spa-step[data-step="'+currentStep+'"] select, .spa-step[data-step="'+currentStep+'"] textarea');
+            if(first) first.focus();
+            saveDraft();
+        }
+
+        document.getElementById('stepNext').addEventListener('click', function(){
+            if(currentStep < TOTAL_STEPS) goToStep(currentStep+1);
+            else {
+                // submit if on last
+                document.getElementById('salesForm').requestSubmit();
+            }
+        });
+        document.getElementById('stepPrev').addEventListener('click', function(){ if(currentStep>1) goToStep(currentStep-1); else window.location.href='index.html'; });
+
+        function collectState(){
+            try{
+                return {
+                    region: document.getElementById('region').value,
+                    district: document.getElementById('district').value,
+                    visitTime: document.getElementById('visitTime').value,
+                    duration: document.getElementById('duration').value,
+                    schoolName: document.getElementById('schoolName').value,
+                    location: document.getElementById('location').value,
+                    subject: document.getElementById('subject').value,
+                    teacherName: document.getElementById('teacherName').value,
+                    contactAcquired: contactStatus,
+                    currentPublisher: document.getElementById('currentPublisher').value,
+                    gradeInfo: document.getElementById('gradeInfo').value,
+                    activities: Array.from(selectedActivities),
+                    teacherFeedback: document.getElementById('teacherFeedback').value,
+                    additionalNotes: document.getElementById('additionalNotes').value,
+                    nextAction: document.getElementById('nextAction').value
+                };
+            }catch(e){ return {}; }
+        }
+
+        function applyState(s){
+            try{
+                if(!s) return;
+                if(s.region) document.getElementById('region').value = s.region;
+                if(s.district) document.getElementById('district').value = s.district;
+                if(s.visitTime) document.getElementById('visitTime').value = s.visitTime;
+                if(s.duration) document.getElementById('duration').value = s.duration;
+                if(s.schoolName) document.getElementById('schoolName').value = s.schoolName;
+                if(s.location) document.getElementById('location').value = s.location;
+                if(s.subject) document.getElementById('subject').value = s.subject;
+                if(s.teacherName) document.getElementById('teacherName').value = s.teacherName;
+                if(s.contactAcquired) toggleContact(s.contactAcquired);
+                if(s.currentPublisher) document.getElementById('currentPublisher').value = s.currentPublisher;
+                if(s.gradeInfo) document.getElementById('gradeInfo').value = s.gradeInfo;
+                if(Array.isArray(s.activities)){
+                    selectedActivities.clear();
+                    document.querySelectorAll('.activity-btn').forEach(btn=>btn.classList.remove('selected'));
+                    s.activities.forEach(a=>{ selectedActivities.add(a); const btn = Array.from(document.querySelectorAll('.activity-btn')).find(b=>b.dataset.activity===a); if(btn) btn.classList.add('selected'); });
+                }
+                if(s.teacherFeedback) document.getElementById('teacherFeedback').value = s.teacherFeedback;
+                if(s.additionalNotes) document.getElementById('additionalNotes').value = s.additionalNotes;
+                if(s.nextAction) document.getElementById('nextAction').value = s.nextAction;
+            }catch(e){ console.error('applyState', e); }
+        }
+
+        function saveDraft(){
+            try{
+                const st = collectState();
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({step: currentStep, data: st, updated: new Date().toISOString()}));
+            }catch(e){ /* ignore */ }
+        }
+
+        function restoreDraft(){
+            try{
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if(!raw) return;
+                const parsed = JSON.parse(raw);
+                // apply saved form values but DO NOT change which step to display
+                if(parsed && parsed.data) applyState(parsed.data);
+            }catch(e){ console.error('restoreDraft', e); }
+        }
+
+        // autosave on input change
+        document.querySelectorAll('#salesForm input, #salesForm textarea, #salesForm select').forEach(el=>{
+            el.addEventListener('change', function(){ saveDraft(); });
+            el.addEventListener('input', function(){ /* debounce small */ if(this._t) clearTimeout(this._t); this._t = setTimeout(saveDraft, 400); });
+        });
+
+        // initialize: restore values but always show Step 1 by default so region/school selector is visible
+        restoreDraft();
+        goToStep(1);
+
+
+        function showSuccess() {
+            document.getElementById('overlay').classList.add('show');
+            document.getElementById('successMessage').classList.add('show');
+            try{ if(typeof refreshRecords === 'function') refreshRecords(); }catch(e){}
+        }
+
+        window.resetForm = function() {
+            document.getElementById('salesForm').reset();
+            selectedActivities.clear();
+            contactStatus = null;
+            document.querySelectorAll('.subject-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            document.querySelectorAll('.activity-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            document.getElementById('overlay').classList.remove('show');
+            document.getElementById('successMessage').classList.remove('show');
+        };
+
+        window.goBack = function() {
+            window.location.href = 'index.html';
+        };
+    </script>
+    <script>
+        // Staff modal wiring
+        (function(){
+            const openBtn = document.getElementById('openStaffBtn');
+            const overlay = document.getElementById('staffModalOverlay');
+            const closeBtn = document.getElementById('closeStaffBtn');
+            const saveBtn = document.getElementById('saveStaffBtn');
+            const input = document.getElementById('staffNameInput');
+
+            openBtn && openBtn.addEventListener('click', function(){
+                // prefill with current persisted value if any
+                try{ input.value = localStorage.getItem('cmass_staff_name') || ''; }catch(e){}
+                overlay.style.display = 'flex';
+                input.focus();
+            });
+
+            closeBtn && closeBtn.addEventListener('click', function(){ overlay.style.display = 'none'; });
+
+            saveBtn && saveBtn.addEventListener('click', function(){
+                const v = (input.value || '').trim();
+                if(!v){ alert('이름을 입력해주세요'); input.focus(); return; }
+                try{ localStorage.setItem('cmass_staff_name', v); }catch(e){ console.error(e); }
+                setDisplayedStaff(v);
+                overlay.style.display = 'none';
+                alert('담당자 이름이 저장되었습니다: ' + v);
+            });
+
+            // close when clicking outside modal
+            overlay && overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.style.display='none'; });
+        })();
+    </script>
+    <script>
+        // If no persisted staff name, show a clickable prompt in the header that opens the staff modal
+        (function(){
+            function hasStaff(){ try{ const v = localStorage.getItem('cmass_staff_name'); return !!(v && v.trim()); }catch(e){ return false; } }
+            const header = document.querySelector('.header');
+            const openBtn = document.getElementById('openStaffBtn');
+            if(!hasStaff() && header){
+                const p = document.createElement('div');
+                p.id = 'noStaffPrompt';
+                p.textContent = '담당자 정보가 없습니다. 클릭하여 담당자 정보를 입력해주세요.';
+                p.style.color = '#d62828';
+                p.style.cursor = 'pointer';
+                p.style.marginTop = '6px';
+                p.style.fontWeight = '700';
+                p.style.fontSize = '16px';
+                p.addEventListener('click', function(){
+                    try{ openBtn && openBtn.click(); }catch(e){}
+                });
+                header.appendChild(p);
+            }
+        })();
+    </script>
+    <script>
+        // Attach to any existing "카톡" / "카카오" button and copy the summary textarea to clipboard.
+        (function(){
+            function copyTextToClipboard(text){
+                if(!text) return Promise.reject(new Error('복사할 텍스트가 없습니다'));
+                if(navigator.clipboard && navigator.clipboard.writeText){
+                    return navigator.clipboard.writeText(text);
+                }
+                return new Promise(function(resolve, reject){
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    // Move off-screen
+                    ta.style.position = 'fixed';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.focus();
+                    ta.select();
+                    try{
+                        const ok = document.execCommand('copy');
+                        document.body.removeChild(ta);
+                        if(ok) resolve(); else reject(new Error('execCommand copy failed'));
+                    }catch(err){
+                        document.body.removeChild(ta);
+                        reject(err);
+                    }
+                });
+            }
+
+            function findSummaryText(){
+                // common ids/classes used for output area
+                const candidates = [
+                    document.getElementById('summaryText'),
+                    document.querySelector('textarea.summary'),
+                    document.querySelector('textarea#summary'),
+                    document.querySelector('textarea.output')
+                ];
+                for(const c of candidates){ if(c && c.value) return c.value; }
+
+                // fallback: pick the textarea with the longest content
+                const tnodes = Array.from(document.querySelectorAll('textarea'));
+                if(tnodes.length===0) return '';
+                let best = tnodes[0];
+                for(const t of tnodes){ if((t.value||'').length > (best.value||'').length) best = t; }
+                return best.value || '';
+            }
+
+            function attachCopyHandler(){
+                // find a button/link with 카톡/카카오 text
+                const all = Array.from(document.querySelectorAll('button, a'));
+                const target = all.find(el => /카톡|카카오|kakao|kakaotalk/i.test(el.textContent));
+                if(!target) return; // no button found
+
+                // avoid attaching multiple times
+                if(target.dataset.copyAttached) return;
+                target.dataset.copyAttached = '1';
+
+                // Use capture phase so we run before any page handler that may throw
+                target.addEventListener('click', async function(e){
+                    // Prevent other handlers (which may reference uninitialized variables) from running
+                    try{
+                        e.stopImmediatePropagation();
+                        e.preventDefault();
+                    } catch(_) {}
+                    try{
+                        // Wait a tick to allow any UI updates to finish (e.g., summary generation)
+                        await new Promise(r => setTimeout(r, 50));
+                        const txt = findSummaryText();
+                        if(!txt){ alert('복사할 내용이 없습니다. 요약이 보이는 텍스트 영역을 확인하세요.'); return; }
+                        await copyTextToClipboard(txt);
+                        alert('클립보드에 복사되었습니다. 카카오톡에 붙여넣기(Ctrl+V) 해주세요.');
+                    }catch(err){
+                        console.error('복사 실패:', err);
+                        alert('복사에 실패했습니다. 브라우저 권한 또는 환경을 확인해주세요.');
+                    }
+                }, /*useCapture=*/ true);
+            }
+
+            document.addEventListener('DOMContentLoaded', function(){
+                attachCopyHandler();
+                // also observe DOM changes in case the button is inserted after load
+                const obs = new MutationObserver((mutations) => { attachCopyHandler(); });
+                obs.observe(document.body, { childList: true, subtree: true });
+            });
+        })();
+    </script>
+    <script>
+        // Runtime patch: convert any non-clickable "담당자 정보가 없습니다" messages into a clickable prompt
+        (function(){
+            const openBtn = () => document.getElementById('openStaffBtn');
+            function replaceNodeWithClickable(node){
+                try{
+                    const html = '<span id="noStaffMsgInline" style="color:red;font-size:1.2rem;cursor:pointer;">담당자 정보가 없습니다. 이 문구를 클릭하여 담당자 정보를 입력하세요.</span>';
+                    node.innerHTML = html;
+                    const el = document.getElementById('noStaffMsgInline');
+                    if(el){ el.addEventListener('click', function(){ try{ const btn = openBtn(); btn && btn.click(); }catch(e){} }); }
+                }catch(e){ /* ignore */ }
+            }
+
+            function scanAndPatch(){
+                const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT, null, false);
+                let n;
+                while(n = walker.nextNode()){
+                    try{
+                        const txt = (n.textContent || '').trim();
+                        if(!txt) continue;
+                        if(txt.indexOf('담당자 정보가 없습니다') !== -1){
+                            replaceNodeWithClickable(n);
+                            // stop after first replacement
+                            return;
+                        }
+                    }catch(e){ }
+                }
+            }
+
+            // run once now
+            try{ scanAndPatch(); }catch(e){}
+            // watch for future insertions
+            const mo = new MutationObserver(() => { try{ scanAndPatch(); }catch(e){} });
+            mo.observe(document.body, { childList: true, subtree: true });
+        })();
+    </script>
+        <!-- 추가: 입력 기록 및 시각화 섹션 -->
+        <div style="max-width:1100px;margin:24px auto;padding:18px;background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.08)">
+            <h2 style="margin-bottom:12px;color:#072042">입력 기록 및 시각화</h2>
+            <p style="color:#666;margin-bottom:8px">서버에 저장된 모든 기록을 테이블로 보고 간단한 차트로 시각화합니다. 최신 데이터는 저장 직후 새로고침됩니다.</p>
+            <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+                <button id="recordsRefresh" style="padding:8px 12px;border-radius:8px;background:#1677ff;color:#fff;border:none;cursor:pointer">새로고침</button>
+                <label style="color:#666;margin-left:8px">자동 새로고침: </label>
+                <select id="recordsAutoInterval"><option value="0">수동</option><option value="15">15초</option><option value="30" selected>30초</option><option value="60">60초</option></select>
+                <label style="color:#666;margin-left:8px">필터:</label>
+                <input id="filterStaff" placeholder="담당자" style="padding:6px 8px;border-radius:6px;border:1px solid #ddd" />
+                <input id="filterSchool" placeholder="학교명" style="padding:6px 8px;border-radius:6px;border:1px solid #ddd" />
+                <input id="filterSubject" placeholder="과목" style="padding:6px 8px;border-radius:6px;border:1px solid #ddd" />
+                <input id="filterFrom" type="date" style="padding:6px 8px;border-radius:6px;border:1px solid #ddd" />
+                <input id="filterTo" type="date" style="padding:6px 8px;border-radius:6px;border:1px solid #ddd" />
+                <button id="applyFilters" style="padding:8px 12px;border-radius:8px;background:#06b6d4;color:#fff;border:none;cursor:pointer">적용</button>
+                <button id="exportFiltered" style="padding:8px 12px;border-radius:8px;background:#f97316;color:#fff;border:none;cursor:pointer">CSV 내보내기</button>
+            </div>
+
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px">
+                <div>
+                    <div style="overflow:auto;max-height:420px;border:1px solid #eee;border-radius:8px">
+                        <table id="recordsTable" style="width:100%;border-collapse:collapse">
+                            <thead style="background:#f4f6fb"><tr><th style="padding:8px;border-bottom:1px solid #eee">id</th><th style="padding:8px;border-bottom:1px solid #eee">created_at</th><th style="padding:8px;border-bottom:1px solid #eee">staff</th><th style="padding:8px;border-bottom:1px solid #eee">visit_date</th><th style="padding:8px;border-bottom:1px solid #eee">school</th><th style="padding:8px;border-bottom:1px solid #eee">location</th><th style="padding:8px;border-bottom:1px solid #eee">subject</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div>
+                    <div style="background:#fafbff;padding:8px;border-radius:8px;margin-bottom:8px">
+                        <h4 style="margin:0 0 8px 0">요약</h4>
+                        <div>총 레코드: <span id="recTotal">-</span></div>
+                        <div>고유 학교 수: <span id="recSchools">-</span></div>
+                        <div>고유 위치 수: <span id="recLocations">-</span></div>
+                    </div>
+                    <div style="background:#fff;padding:8px;border-radius:8px;margin-bottom:8px">
+                        <h4 style="margin:0 0 8px 0">방문 날짜 분포</h4>
+                        <canvas id="miniByDate" style="height:150px"></canvas>
+                    </div>
+                    <div style="background:#fff;padding:8px;border-radius:8px;margin-bottom:8px">
+                        <h4 style="margin:0 0 8px 0">방문 시간 히스토그램</h4>
+                        <canvas id="miniByHour" style="height:120px"></canvas>
+                    </div>
+                    <div style="background:#fff;padding:8px;border-radius:8px;margin-bottom:8px">
+                        <h4 style="margin:0 0 8px 0">활동 분포(Top)</h4>
+                        <canvas id="miniByActivity" style="height:120px"></canvas>
+                    </div>
+                    <div style="background:#fff;padding:8px;border-radius:8px">
+                        <h4 style="margin:0 0 8px 0">교재(퍼블리셔) 분포</h4>
+                        <canvas id="miniByPublisher" style="height:120px"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 상세 모달 -->
+        <div id="recordModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;align-items:center;justify-content:center;">
+            <div style="background:#fff;padding:18px;border-radius:8px;max-width:900px;width:95%;max-height:90vh;overflow:auto;">
+                <h3>상세 레코드</h3>
+                <pre id="recordJson" style="white-space:pre-wrap;background:#f4f6fb;padding:12px;border-radius:6px;overflow:auto;max-height:70vh"></pre>
+                <div style="text-align:right;margin-top:12px"><button id="closeRecordModal" style="padding:8px 12px;border-radius:6px;border:none;background:#667eea;color:#fff">닫기</button></div>
+            </div>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            // records visualization
+            async function fetchAllRows(limit=1000){
+                try{
+                    const r = await fetch('/api/visits?limit='+limit);
+                    if(!r.ok) throw new Error('fetch failed');
+                    const j = await r.json();
+                    return j.rows || [];
+                }catch(e){ console.error('fetchAllRows', e); return []; }
+            }
+
+            function flatten(rows){
+                const out = [];
+                for(const r of rows){
+                    const payload = (r.payload && typeof r.payload==='object')? r.payload : (r.payload? JSON.parse(r.payload||'{}') : {});
+                    const visits = Array.isArray(payload.visits)? payload.visits : (payload.visit? [payload.visit] : []);
+                    if(!visits.length){ out.push({id:r.id,created_at:r.created_at,staff:r.staff,visit_date:r.visit_date,school:'',location:''}); continue; }
+                    for(const v of visits){ out.push({id:r.id,created_at:r.created_at,staff:r.staff,visit_date:v.visitDate||r.visit_date||'',school:v.school||'',location:v.location||v.district||'' ,subject: (v.subjects? (Array.isArray(v.subjects)? v.subjects.map(s=>s.subject||s).join(', '): v.subjects) : (v.subject||''))}); }
+                }
+                return out;
+            }
+
+            let miniDateChart, miniSubjectChart;
+            async function refreshRecords(){
+                const rows = await fetchAllRows(1000);
+                const flat = flatten(rows);
+                document.getElementById('recTotal').innerText = rows.length;
+                const schools = new Set(flat.map(x=>x.school).filter(Boolean));
+                const locations = new Set(flat.map(x=>x.location).filter(Boolean));
+                document.getElementById('recSchools').innerText = schools.size;
+                document.getElementById('recLocations').innerText = locations.size;
+
+                // fill table
+                const tbody = document.querySelector('#recordsTable tbody'); tbody.innerHTML = '';
+                for(const r of flat.slice(0,500)){
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td style="padding:8px;border-bottom:1px solid #f0f0f0">${r.id}</td><td style="padding:8px;border-bottom:1px solid #f0f0f0">${r.created_at}</td><td style="padding:8px;border-bottom:1px solid #f0f0f0">${r.staff||''}</td><td style="padding:8px;border-bottom:1px solid #f0f0f0">${r.visit_date||''}</td><td style="padding:8px;border-bottom:1px solid #f0f0f0">${r.school||''}</td><td style="padding:8px;border-bottom:1px solid #f0f0f0">${r.location||''}</td><td style="padding:8px;border-bottom:1px solid #f0f0f0">${(r.subject||'').toString().replace(/</g,'&lt;')}</td>`;
+                    tbody.appendChild(tr);
+                }
+
+                // mini charts
+                const countsByDate = {};
+                for(const v of flat){ const d = (v.visit_date||v.created_at.split('T')[0]||'unknown'); countsByDate[d]=(countsByDate[d]||0)+1 }
+                const dateLabels = Object.keys(countsByDate).sort();
+                const dateVals = dateLabels.map(k=>countsByDate[k]);
+                if(miniDateChart) { miniDateChart.data = {labels:dateLabels,datasets:[{label:'visits',data:dateVals}]}; miniDateChart.update(); }
+                else miniDateChart = new Chart(document.getElementById('miniByDate').getContext('2d'), {type:'bar',data:{labels:dateLabels,datasets:[{label:'visits',data:dateVals}]},options:{plugins:{legend:{display:false}},responsive:true,maintainAspectRatio:false}});
+
+                const countsBySubject = {};
+                for(const v of flat){ (v.subject||'').toString().split(',').map(s=>s.trim()).filter(Boolean).forEach(s=> countsBySubject[s]=(countsBySubject[s]||0)+1) }
+                const subLabels = Object.keys(countsBySubject).sort((a,b)=>countsBySubject[b]-countsBySubject[a]).slice(0,10);
+                const subVals = subLabels.map(k=>countsBySubject[k]);
+                if(miniSubjectChart){ miniSubjectChart.data = {labels:subLabels,datasets:[{label:'sub',data:subVals}]}; miniSubjectChart.update(); }
+                else miniSubjectChart = new Chart(document.getElementById('miniBySubject').getContext('2d'), {type:'pie',data:{labels:subLabels,datasets:[{label:'sub',data:subVals}]},options:{responsive:true,maintainAspectRatio:false}});
+            }
+
+            // pagination and server-side fetch
+            let page = 0; const pageSize = 50;
+
+            async function fetchPage(){
+                const staffQ = document.getElementById('filterStaff').value.trim();
+                const schoolQ = document.getElementById('filterSchool').value.trim();
+                const subjectQ = document.getElementById('filterSubject').value.trim();
+                const fromQ = document.getElementById('filterFrom').value || '';
+                const toQ = document.getElementById('filterTo').value || '';
+                const url = new URL(window.location.origin + '/api/visits');
+                url.searchParams.set('limit', pageSize);
+                url.searchParams.set('offset', page * pageSize);
+                if(staffQ) url.searchParams.set('staff', staffQ);
+                if(schoolQ) url.searchParams.set('school', schoolQ);
+                if(subjectQ) url.searchParams.set('subject', subjectQ);
+                if(fromQ) url.searchParams.set('from', fromQ);
+                if(toQ) url.searchParams.set('to', toQ);
+                try{
+                    const r = await fetch(url.toString());
+                    const j = await r.json();
+                    if(!j || !j.rows) return [];
+                    return j.rows;
+                }catch(e){ console.error('fetchPage', e); return []; }
+            }
+
+            async function renderPage(){
+                const rows = await fetchPage();
+                const flat = flatten(rows);
+                document.getElementById('currentPage').innerText = (page+1);
+                // fill table
+                const tbody = document.querySelector('#recordsTable tbody'); tbody.innerHTML='';
+                for(const r of flat){
+                    const tr = document.createElement('tr');
+                    tr.style.cursor = 'pointer';
+                    tr.dataset.raw = JSON.stringify(r.payload || {});
+                    tr.innerHTML = `<td style="padding:8px;border-bottom:1px solid #f0f0f0">${r.id}</td><td style="padding:8px;border-bottom:1px solid #f0f0f0">${r.created_at}</td><td style="padding:8px;border-bottom:1px solid #f0f0f0">${r.staff||''}</td><td style="padding:8px;border-bottom:1px solid #f0f0f0">${r.visit_date||''}</td><td style="padding:8px;border-bottom:1px solid #f0f0f0">${r.school||''}</td><td style="padding:8px;border-bottom:1px solid #f0f0f0">${r.location||''}</td><td style="padding:8px;border-bottom:1px solid #f0f0f0">${(r.subject||'').toString().replace(/</g,'&lt;')}</td>`;
+                    tr.addEventListener('click', function(){
+                        try{ const raw = JSON.parse(this.dataset.raw||'{}'); document.getElementById('recordJson').textContent = JSON.stringify(raw, null, 2); document.getElementById('recordModalOverlay').style.display='flex'; }catch(e){console.error(e)}
+                    });
+                    tbody.appendChild(tr);
+                }
+
+                // update mini charts using flattened page rows
+                const countsByDate = {};
+                for(const v of flat){ const d = (v.visit_date||v.created_at.split('T')[0]||'unknown'); countsByDate[d]=(countsByDate[d]||0)+1 }
+                const dateLabels = Object.keys(countsByDate).sort();
+                const dateVals = dateLabels.map(k=>countsByDate[k]);
+                if(miniDateChart) { miniDateChart.data = {labels:dateLabels,datasets:[{label:'visits',data:dateVals}]}; miniDateChart.update(); }
+
+                const countsBySubject = {};
+                for(const v of flat){ (v.subject||'').toString().split(',').map(s=>s.trim()).filter(Boolean).forEach(s=> countsBySubject[s]=(countsBySubject[s]||0)+1) }
+                const subLabels = Object.keys(countsBySubject).sort((a,b)=>countsBySubject[b]-countsBySubject[a]).slice(0,10);
+                const subVals = subLabels.map(k=>countsBySubject[k]);
+                if(miniSubjectChart){ miniSubjectChart.data = {labels:subLabels,datasets:[{label:'sub',data:subVals}]}; miniSubjectChart.update(); }
+
+                // duration histogram (bucket by 10min)
+                const durationBuckets = {};
+                for(const v of flat){ const d = Number(v.duration || (v.visitDuration || 0)) || 0; const b = Math.floor(d/10)*10; durationBuckets[b]=(durationBuckets[b]||0)+1 }
+                const durLabels = Object.keys(durationBuckets).sort((a,b)=>Number(a)-Number(b));
+                const durVals = durLabels.map(k=>durationBuckets[k]);
+                if(window._durChart){ window._durChart.data = {labels:durLabels,datasets:[{label:'duration',data:durVals}]}; window._durChart.update(); }
+                else window._durChart = new Chart(document.getElementById('miniByHour').getContext('2d'), {type:'bar',data:{labels:durLabels,datasets:[{label:'duration',data:durVals,backgroundColor:'#f59e0b'}]},options:{plugins:{legend:{display:false}},responsive:true,maintainAspectRatio:false}});
+
+                // activities distribution
+                const actCounts = {};
+                for(const r of rows){
+                    try{
+                        const payload = (r.payload && typeof r.payload==='object')? r.payload : (r.payload? JSON.parse(r.payload||'{}') : {});
+                        const visits = Array.isArray(payload.visits)? payload.visits : (payload.visit? [payload.visit] : []);
+                        for(const v of visits){ const acts = v.meetings || v.activities || v.activities || []; (acts||[]).forEach(a=>{ actCounts[a]=(actCounts[a]||0)+1 }) }
+                    }catch(e){}
+                }
+                const actLabels = Object.keys(actCounts).sort((a,b)=>actCounts[b]-actCounts[a]).slice(0,10);
+                const actVals = actLabels.map(k=>actCounts[k]);
+                if(window._actChart){ window._actChart.data={labels:actLabels,datasets:[{label:'act',data:actVals}]}; window._actChart.update(); }
+                else window._actChart = new Chart(document.getElementById('miniByActivity').getContext('2d'), {type:'bar',data:{labels:actLabels,datasets:[{label:'act',data:actVals,backgroundColor:'#4f46e5'}]},options:{plugins:{legend:{display:false}},responsive:true,maintainAspectRatio:false}});
+
+                // publisher breakdown
+                const pubCounts = {};
+                for(const r of rows){
+                    try{
+                        const payload = (r.payload && typeof r.payload==='object')? r.payload : (r.payload? JSON.parse(r.payload||'{}') : {});
+                        const visits = Array.isArray(payload.visits)? payload.visits : (payload.visit? [payload.visit] : []);
+                        for(const v of visits){ const subs = v.subjects || []; for(const s of (subs||[])){ const pub = (s.publisher || s.publisherName) || ''; if(pub) pubCounts[pub]=(pubCounts[pub]||0)+1 } }
+                    }catch(e){}
+                }
+                const pubLabels = Object.keys(pubCounts).sort((a,b)=>pubCounts[b]-pubCounts[a]).slice(0,10);
+                const pubVals = pubLabels.map(k=>pubCounts[k]);
+                if(window._pubChart){ window._pubChart.data={labels:pubLabels,datasets:[{label:'pub',data:pubVals}]}; window._pubChart.update(); }
+                else window._pubChart = new Chart(document.getElementById('miniByPublisher').getContext('2d'), {type:'doughnut',data:{labels:pubLabels,datasets:[{label:'pub',data:pubVals}]},options:{responsive:true,maintainAspectRatio:false}});
+            }
+
+            document.getElementById('prevPage').addEventListener('click', function(){ if(page>0){ page--; renderPage(); } });
+            document.getElementById('nextPage').addEventListener('click', function(){ page++; renderPage(); });
+            document.getElementById('applyFilters').addEventListener('click', function(){ page=0; renderPage(); });
+
+            // export filtered CSV using current filter state
+            document.getElementById('exportFiltered').addEventListener('click', function(){
+                const staffQ = document.getElementById('filterStaff').value.trim();
+                const schoolQ = document.getElementById('filterSchool').value.trim();
+                const subjectQ = document.getElementById('filterSubject').value.trim();
+                const fromQ = document.getElementById('filterFrom').value || '';
+                const toQ = document.getElementById('filterTo').value || '';
+                const url = new URL(window.location.origin + '/api/visits/export');
+                if(staffQ) url.searchParams.set('staff', staffQ);
+                if(schoolQ) url.searchParams.set('school', schoolQ);
+                if(subjectQ) url.searchParams.set('subject', subjectQ);
+                if(fromQ) url.searchParams.set('from', fromQ);
+                if(toQ) url.searchParams.set('to', toQ);
+                // navigate to url to trigger download
+                window.open(url.toString(), '_blank');
+            });
+
+            // SSE listener for real-time updates
+            (function connectSSE(){
+                try{
+                    const evt = new EventSource('/api/events');
+                    evt.addEventListener('new_visit', function(e){ try{ const data = JSON.parse(e.data); console.info('SSE new_visit', data); renderPage(); }catch(e){ console.error(e); } });
+                    evt.addEventListener('error', function(ev){ console.warn('SSE error, will attempt reconnect in 3s'); evt.close(); setTimeout(connectSSE, 3000); });
+                }catch(e){ console.warn('SSE not available', e); setTimeout(connectSSE, 5000); }
+            })();
+
+            // modal close
+            document.getElementById('closeRecordModal').addEventListener('click', function(){ document.getElementById('recordModalOverlay').style.display='none'; });
+
+            // manual / auto refresh wiring
+            document.getElementById('recordsRefresh').addEventListener('click', renderPage);
+            document.getElementById('recordsAutoInterval').addEventListener('change', function(){ if(window._recordsInt) clearInterval(window._recordsInt); const v=Number(this.value); if(v>0) window._recordsInt = setInterval(renderPage, v*1000); });
+            // initial
+            renderPage();
+            window._recordsInt = setInterval(renderPage, 30*1000);
+        </script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    try{
+        const startEl = document.getElementById('filterStart');
+        const endEl = document.getElementById('filterEnd');
+        if (startEl && endEl && !startEl.value && !endEl.value){
+            function fmt(d){ const y=d.getFullYear(); const m=(d.getMonth()+1).toString().padStart(2,'0'); const day=d.getDate().toString().padStart(2,'0'); return `${y}-${m}-${day}`; }
+            function weekRangeFor(ref){ const d=new Date(ref.getFullYear(), ref.getMonth(), ref.getDate()); const dow=d.getDay(); const diffToMon=(dow===0)? -6 : (1-dow); const mon=new Date(d); mon.setDate(d.getDate()+diffToMon); const sun=new Date(mon); sun.setDate(mon.getDate()+6); return [mon,sun]; }
+            const today=new Date(); const isMonday=(today.getDay()===1); const ref=new Date(today); if(isMonday) ref.setDate(ref.getDate()-7); const [mon,sun]=weekRangeFor(ref); startEl.value=fmt(mon); endEl.value=fmt(sun);
+        }
+    }catch(e){ console.warn('default range snippet failed', e); }
+});
+</script>
+</body>
+</html>

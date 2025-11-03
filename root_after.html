@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Redirecting to front.html</title>
+  <meta http-equiv="refresh" content="0;url=/front.html">
+  <script>
+    // Fallback JS redirect to preserve behaviors in clients that ignore meta
+    (function(){ try{ window.location.replace('/front.html' + (window.location.search||'') + (window.location.hash||'')); }catch(e){} })();
+  </script>
+</head>
+<body>
+  <p>Redirecting to <a href="/front.html">front.html</a>. If you are not redirected automatically, click the link.</p>
+</body>
+</html>

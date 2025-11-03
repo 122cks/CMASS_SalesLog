@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CMASS 영업일지 시스템</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    :root{--bg1:#243b6b;--bg2:#1f61a9}
+    *{box-sizing:border-box}
+    html,body{height:100%;}
+    body{margin:0;font-family:'Segoe UI','Malgun Gothic',sans-serif;background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 100%);display:flex;align-items:center;justify-content:center;padding:24px}
+    .box{width:100%;max-width:900px;text-align:center;color:#fff}
+    img.logo{width:220px;height:auto;margin:4px auto 18px;display:block}
+    h1{font-size:34px;margin:8px 0 24px;font-weight:800}
+    .btn{display:block;background:#fff;color:#123;padding:20px 22px;border-radius:18px;margin:14px auto;width:360px;max-width:90%;text-decoration:none;font-weight:800;font-size:20px;box-shadow:0 8px 30px rgba(0,0,0,0.15)}
+    .btn:hover{transform:translateY(-3px);box-shadow:0 14px 40px rgba(0,0,0,0.18)}
+    @media (max-width:600px){img.logo{width:140px}h1{font-size:22px}.btn{padding:16px;font-size:18px;width:90%;border-radius:14px}}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <img class="logo" src="/assets/CMASS_LOGO.png" alt="CMASS Logo" onerror="this.style.display='none'" />
+    <h1>CMASS 영업일지 시스템</h1>
+
+  <a class="btn" href="/sales-input.html?user=SongHoonjae">송훈재 영업일지</a>
+  <a class="btn" href="/sales-input.html?user=LimJunho">임준호 영업일지</a>
+  <a class="btn" href="/sales-input.html?user=ChoYounghwan">조영환 영업일지</a>
+    <!-- 관리자 대시보드 접근 버튼 제거 -->
+
+    <h2 style="margin-top:36px;color:#fff;opacity:0.95">영업일지 목록</h2>
+  </div>
+</body>
+</html>
+      letter-spacing: 2px;
+    }
+    .btn {
+      display: block;
+      width: 80vw;
+      max-width: 400px;
+      margin: 1rem auto;
+      padding: 2rem;
+      font-size: 2rem;
+      border-radius: 1.5rem;
+      border: none;
+      background: #fff;
+      color: #1e3c72;
+      font-weight: bold;
+      box-shadow: 0 4px 16px rgba(30,60,114,0.2);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn:hover {
+      background: #2a5298;
+      color: #fff;
+    }
+    .admin-btn {
+      background: #ff9800;
+      color: #fff;
+    }
+    .admin-btn:hover {
+      background: #fff;
+      color: #ff9800;
+    }
+  </style>
+</head>
+<body>
+  <h1>CMASS-SALES 영업일지 시스템</h1>
+  <button class="btn" onclick="location.href='sales-input.html?user=SongHoonjae'">송훈재 영업일지</button>
+  <button class="btn" onclick="location.href='sales-input.html?user=LimJunho'">임준호 영업일지</button>
+  <button class="btn" onclick="location.href='sales-input.html?user=ChoYounghwan'">조영환 영업일지</button>
+  <button class="btn admin-btn" onclick="location.href='dashboard.html'">관리자 대시보드</button>
+  <h1>영업일지 목록</h1>
+  <ul id="sales-list"></ul>
+  <script>
+      // Flask 백엔드 API에서 영업일지 목록 불러오기
+      fetch('http://localhost:5000/sales')
+          .then(response => response.json())
+          .then(data => {
+              const list = document.getElementById('sales-list');
+              list.innerHTML = '';
+              data.forEach(item => {
+                  const li = document.createElement('li');
+                  li.textContent = `교육청: ${item.office_of_education}, 지역: ${item.region}, 본사담당자: ${item.manager}, 학생 수: ${item.student_count}`;
+                  list.appendChild(li);
+              });
+          });
+  </script>
+</body>
+</html>

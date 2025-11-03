@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>?곸뾽?쇱? ?낅젰</title>
+  <!-- papaparse loader: prefer local bundled copy under assets/libs/, fallback to CDN -->
+  <script src="libs/papaparse-loader.js"></script>
+  <style>
+    body{font-family: 'Segoe UI', Arial, sans-serif;background:#f5f6fa;margin:0;padding:18px}
+    form{max-width:860px;margin:10px auto;background:#fff;padding:16px;border-radius:12px}
+    label{font-weight:800;margin:10px 0}
+    input,select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #d6dbe8}
+    .btn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .grid-button{padding:12px;border-radius:10px;border:1px solid #dfe7ff;background:#fff;cursor:pointer}
+    /* landscape overlay styles */
+    #cmass-landscape-overlay{display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:9999}
+    #cmass-landscape-overlay .cmass-overlay-dim{position:absolute;inset:0;background:rgba(3,10,24,0.72)}
+    #cmass-landscape-overlay .cmass-overlay-card{position:relative;z-index:10000;background:#0b2746;color:#fff;padding:28px;border-radius:14px;max-width:720px;width:94%;box-shadow:0 24px 60px rgba(2,6,23,0.6);text-align:center}
+    #cmass-landscape-overlay .cmass-overlay-card h3{margin:0 0 10px;font-size:1.6rem}
+    #cmass-landscape-overlay .cmass-overlay-card p{margin:0;color:rgba(255,255,255,0.9)}
+  </style>
+</head>
+<body>
+  <!-- landscape overlay -->
+  <div id="cmass-landscape-overlay" aria-hidden="true">
+    <div class="cmass-overlay-dim" aria-hidden="true"></div>
+    <div class="cmass-overlay-card" role="dialog" aria-modal="true">
+      <h3>세로 모드에서만 사용하세요</h3>
+      <p>기기를 세로로 돌려주세요. 화면을 가로로 돌리는 동안 입력이 사라지는 문제를 막기 위해 잠시 사용을 제한합니다。</p>
+      <div style="margin-top:12px;text-align:center">
+        <button id="cmass-overlay-lock-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px;margin-right:8px">세로로 전환</button>
+        <button id="cmass-overlay-retry-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px">다시 시도</button>
+        <div style="margin-top:8px;font-size:12px;opacity:0.95;color:#eef">(버튼을 누르면 가능하면 화면을 세로로 고정합니다)</div>
+        <div id="cmass-overlay-ios-help" style="margin-top:8px;font-size:13px;opacity:0.95;color:#eef;display:none">
+          iOS/Safari에서는 자동 고정이 지원되지 않을 수 있습니다。 기기를 직접 세로로 돌려주시거나、 아래 '다시 시도'를 눌러보세요。
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function(){
+      // Only show the portrait-lock overlay on mobile-like devices.
+      // Desktop users (large screens / non-mobile UA) should not see this overlay.
+      function isMobileDevice(){
+        try{
+          const ua = navigator.userAgent || '';
+          const mobileUA = /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i;
+          const hasTouch = (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || ('ontouchstart' in window);
+          const narrowScreen = (typeof screen !== 'undefined' && screen.width) ? screen.width <= 1024 : false;
+          return mobileUA.test(ua) || (hasTouch && narrowScreen);
+        }catch(e){ return false; }
+      }
+      function updatePortraitOverlay(){ try{
+    const overlay = document.getElementById('cmass-landscape-overlay');
+    try{ if (sessionStorage && sessionStorage.getItem && sessionStorage.getItem('cmass_overlay_dismissed')){ if (overlay) overlay.style.display = 'none'; return; } }catch(e){}
+          const mobile = isMobileDevice();
+          // Determine landscape using reliable sources (prefer matchMedia / screen.orientation)
+          let isLandscape = false;
+          try{
+            if (window.matchMedia && window.matchMedia('(orientation: landscape)').matches) isLandscape = true;
+            else if (screen && screen.orientation && typeof screen.orientation.type === 'string') isLandscape = screen.orientation.type.indexOf('landscape') === 0;
+            else if (typeof screen !== 'undefined' && screen.width && screen.height) isLandscape = screen.width > screen.height;
+          }catch(e){ /* fallback below */ }
+
+          // If virtual keyboard is open (visualViewport height much smaller than screen height), avoid showing the overlay
+          let keyboardOpen = false;
+          try{
+            if (window.visualViewport && screen && screen.height){
+              const vh = window.visualViewport.height; const sh = screen.height;
+              if (vh && sh && (vh < (sh * 0.6))) keyboardOpen = true;
+            }
+          }catch(e){}
+
+          // show overlay only when device appears to be mobile/touch AND is in landscape AND keyboard is not open
+          if (mobile && isLandscape && !keyboardOpen){
+            if (overlay) overlay.style.display = 'flex';
+            try{ document.documentElement.style.overflow = 'hidden'; }catch(e){}
+            try{ if (screen.orientation && screen.orientation.lock) screen.orientation.lock('portrait').catch(()=>{}); }catch(e){}
+          }
+          else {
+            if (overlay) overlay.style.display = 'none';
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+          }
+        }catch(e){/* ignore */} }
+        window.addEventListener('resize', updatePortraitOverlay);
+        window.addEventListener('orientationchange', updatePortraitOverlay);
+        document.addEventListener('DOMContentLoaded', function(){
+            updatePortraitOverlay();
+            // show iOS help text when appropriate
+            try{
+              const isiOS = /iP(hone|od|ad)/i.test(navigator.userAgent || '');
+              const help = document.getElementById('cmass-overlay-ios-help');
+              if (isiOS && help) help.style.display = '';
+            }catch(e){}
+          // wire up the manual lock/dismiss button
+      // wire up the manual lock/dismiss button
+      // wire up the manual lock/dismiss button
+          try{
+            const btn = document.getElementById('cmass-overlay-lock-btn');
+            if (btn) btn.addEventListener('click', async function(){
+              const overlay = document.getElementById('cmass-landscape-overlay');
+              try{
+                if (screen && screen.orientation && typeof screen.orientation.lock === 'function'){
+                  await screen.orientation.lock('portrait');
+                }
+              }catch(e){ /* locking may fail in some browsers, ignore */ }
+              try{ if (overlay) overlay.style.display = 'none'; }catch(e){}
+              try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+              try{ sessionStorage.setItem('cmass_overlay_dismissed','1'); }catch(e){}
+            });
+            // retry button: useful for iOS/Safari where lock may fail; hide overlay and prompt user
+            const retryBtn = document.getElementById('cmass-overlay-retry-btn');
+            if (retryBtn) retryBtn.addEventListener('click', async function(){
+              const overlay = document.getElementById('cmass-landscape-overlay');
+              try{
+                if (screen && screen.orientation && typeof screen.orientation.lock === 'function'){
+                  await screen.orientation.lock('portrait');
+                } else {
+                  // show a brief guidance toast/alert for iOS users
+                  try{ alert('이 브라우저에서는 자동 고정이 지원되지 않을 수 있습니다. 기기를 직접 세로로 돌려주세요.'); }catch(e){}
+                }
+              }catch(e){ try{ alert('세로 고정 시도에 실패했습니다. 기기를 직접 세로로 돌려주세요.'); }catch(er){} }
+              try{ if (overlay) overlay.style.display = 'none'; }catch(e){}
+              try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+              try{ sessionStorage.setItem('cmass_overlay_dismissed','1'); }catch(e){}
+            });
+            // hide overlay automatically while typing: when any focusable text input is focused, hide overlay
+            document.addEventListener('focusin', function(ev){
+              try{
+                const t = ev.target;
+                if (!t) return;
+                const tag = (t.tagName || '').toLowerCase();
+                const type = (t.type || '').toLowerCase();
+                const isTextInput = tag === 'input' && (type === 'text' || type === 'search' || type === 'tel' || type === 'email' || type === 'number' || type === 'password') || tag === 'textarea' || (t.isContentEditable);
+                if (isTextInput){ const overlay = document.getElementById('cmass-landscape-overlay'); if (overlay) overlay.style.display = 'none'; }
+              }catch(e){}
+            });
+            // when input blur, re-evaluate overlay after short delay
+            document.addEventListener('focusout', function(){ setTimeout(updatePortraitOverlay, 300); });
+          }catch(e){}
+        });
+      })();
+  </script>
+</body>

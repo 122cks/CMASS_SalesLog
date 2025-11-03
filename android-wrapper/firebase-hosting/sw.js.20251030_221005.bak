@@ -1,0 +1,34 @@
+const CACHE_NAME = 'cmass-sales-v2';
+const ASSETS = [
+  '/sales-input.html',
+  '/manifest.json'
+];
+
+self.addEventListener('install', (e) => {
+  // Be resilient: fetch each asset and cache only successful responses.
+  e.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    for (const asset of ASSETS) {
+      try {
+        const resp = await fetch(asset, { cache: 'no-store' });
+        if (resp && resp.ok) {
+          await cache.put(asset, resp.clone());
+        } else {
+          console.warn('sw: failed to fetch asset for caching', asset, resp && resp.status);
+        }
+      } catch (err) {
+        console.warn('sw: error fetching asset', asset, err && err.message);
+      }
+    }
+  })());
+});
+self.addEventListener('fetch', (e) => {
+  e.respondWith(caches.match(e.request).then(resp => resp || fetch(e.request)));
+});
+// remove old caches on activate to force fresh fetches
+self.addEventListener('activate', (e) => {
+  e.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)));
+  })());
+});

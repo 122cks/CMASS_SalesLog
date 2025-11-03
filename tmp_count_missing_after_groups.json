@@ -1,0 +1,660 @@
+﻿{
+    "ok":  true,
+    "entriesCount":  76,
+    "visitsCount":  73,
+    "entrySamples":  [
+                         {
+                             "id":  "yt3GKJfUXEIrmHM3PpCd",
+                             "school":  "금곡중학교",
+                             "region":  "",
+                             "teacher":  "이세나",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "yk2X7Kteim1AMewVZynz",
+                             "school":  "현산중학교",
+                             "region":  "",
+                             "teacher":  "김선영 (사서)",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "xoGl9lpsTiIxMhZIul2U",
+                             "school":  "풍동중학교",
+                             "region":  "",
+                             "teacher":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "vudHh4ATIeE2b992K0Hi",
+                             "school":  "양진중학교",
+                             "region":  "",
+                             "teacher":  "강경수",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "vOubIhnIcDLsz5DLrwX2",
+                             "school":  "도농고등학교",
+                             "region":  "",
+                             "teacher":  "사서",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "uVpmdszJyM96EtNZqojl",
+                             "school":  "구리여자중학교",
+                             "region":  "",
+                             "teacher":  "신다솜",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "sxV2EOLaJFbCR6ALBztr",
+                             "school":  "양진중학교",
+                             "region":  "",
+                             "teacher":  "양명이",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "rfWjLOWLkW4rtqFK53A8",
+                             "school":  "도농고등학교",
+                             "region":  "",
+                             "teacher":  "사서",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "rVDbY9pM5Q183nTtevg8",
+                             "school":  "도농고등학교",
+                             "region":  "",
+                             "teacher":  "김태희",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "r5qOoWPIuHNhvpwp0BAP",
+                             "school":  "남양주다산중학교",
+                             "region":  "",
+                             "teacher":  "사서",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "qKXzkO8kowUpHxpWNKoS",
+                             "school":  "도농고등학교",
+                             "region":  "",
+                             "teacher":  "김태희",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "mgWf5I4uhc3HGRig39pZ",
+                             "school":  "현산중학교",
+                             "region":  "",
+                             "teacher":  "우윤정",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "lZ7D2tk6a4eqi2lM6e6B",
+                             "school":  "남양주다산중학교",
+                             "region":  "",
+                             "teacher":  "곽미진",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "lHQI0A4qK4XXtirLU26s",
+                             "school":  "안곡중학교",
+                             "region":  "",
+                             "teacher":  "이선희 (사서)",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "l2X9cbMFjEB1xDJT19ks",
+                             "school":  "구리여자중학교",
+                             "region":  "",
+                             "teacher":  "사서- 하정연",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "jTHkJNv3K4mJNG0uHDrz",
+                             "school":  "남양주다산중학교",
+                             "region":  "",
+                             "teacher":  "사서",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "i03w58AqI1MsbWO6Qjps",
+                             "school":  "덕이고등학교",
+                             "region":  "",
+                             "teacher":  "김세희",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "gN255Xs7mgRD58NW4kJj",
+                             "school":  "한광여자중학교",
+                             "region":  "",
+                             "teacher":  "송미영",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "gMRVDXDbkhIDVAQqEHdG",
+                             "school":  "남양주다산중학교",
+                             "region":  "",
+                             "teacher":  "사서",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "g7Rmy4p2TaqFfylxmBUn",
+                             "school":  "금곡중학교",
+                             "region":  "",
+                             "teacher":  "정인영",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "fjLdmR3gCDaH68yLAqi4",
+                             "school":  "남양주다산중학교",
+                             "region":  "",
+                             "teacher":  "곽미진",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "fVTrRoMx1iXuaa1uRVQU",
+                             "school":  "안곡고등학교",
+                             "region":  "",
+                             "teacher":  "추민영 (사서)",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "ed4H0bfNvkgwXtrl7yWv",
+                             "school":  "한광여자중학교",
+                             "region":  "",
+                             "teacher":  "권현정",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "dcHUCMcqwkOJbhDkx4NX",
+                             "school":  "금곡중학교",
+                             "region":  "",
+                             "teacher":  "정인영",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "cvws6CYifrqcCtGHfswb",
+                             "school":  "구리여자중학교",
+                             "region":  "",
+                             "teacher":  "신다솜",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "cgDO0rWAOgtOWrHTsKVx",
+                             "school":  "남양주다산중학교",
+                             "region":  "",
+                             "teacher":  "유미상",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "cRsqUFOeOadV36bOSqLb",
+                             "school":  "금곡중학교",
+                             "region":  "",
+                             "teacher":  "사서-진선미",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "cAgpwghQkdw378wNXY0P",
+                             "school":  "도농고등학교",
+                             "region":  "",
+                             "teacher":  "김태희",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "b5qpciZmXaYMQtgpxu6R",
+                             "school":  "풍동고등학교",
+                             "region":  "",
+                             "teacher":  "한영찬",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "a2zQ4M2LI5HOnFJFhB9M",
+                             "school":  "남양주다산중학교",
+                             "region":  "",
+                             "teacher":  "유미상",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "ZpmdbbgceoSJMs6fyQ4E",
+                             "school":  "도농고등학교",
+                             "region":  "",
+                             "teacher":  "한은경",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "ZKj42rVzMGMi0kqbrRfS",
+                             "school":  "구리여자중학교",
+                             "region":  "",
+                             "teacher":  "박경란",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "Y7TQaRD2Et2R9cFg0gzp",
+                             "school":  "배다리중학교",
+                             "region":  "",
+                             "teacher":  "한성수",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "X2cFUdelczblz2MYmZbZ",
+                             "school":  "금곡중학교",
+                             "region":  "",
+                             "teacher":  "이세나",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "WjUyPFCKN75XIf6pbgNS",
+                             "school":  "도농고등학교",
+                             "region":  "",
+                             "teacher":  "한은경",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "WiLquhNoFYGZm4Im0MRy",
+                             "school":  "금곡중학교",
+                             "region":  "",
+                             "teacher":  "사서-진선미",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "WG0dhQrR7ZuiPLMJMQ9m",
+                             "school":  "한광여자중학교",
+                             "region":  "",
+                             "teacher":  "미상",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "Vuq9IVAIgkBoV4Bo3y9V",
+                             "school":  "덕이고등학교",
+                             "region":  "",
+                             "teacher":  "이지원 (사서)",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "VfTH0ODNPo5L77TDFqZn",
+                             "school":  "안곡중학교",
+                             "region":  "",
+                             "teacher":  "정화정",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "TjmEkhOWDUxSswctID6C",
+                             "school":  "양진중학교",
+                             "region":  "",
+                             "teacher":  "윤인영",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "Rb8RHVAjm6JID20k3biU",
+                             "school":  "안곡고등학교",
+                             "region":  "",
+                             "teacher":  "곽미애",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "PALaesl8nz6cFhDJUrK5",
+                             "school":  "남양주다산중학교",
+                             "region":  "",
+                             "teacher":  "유미상",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "OlH4VU3SPVgkzhqJC3KD",
+                             "school":  "안곡중학교",
+                             "region":  "",
+                             "teacher":  "곽민경",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "OhmFmWSJjx54kwI7L5DH",
+                             "school":  "현산중학교",
+                             "region":  "",
+                             "teacher":  "이승희",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "OY4z2HppNVdPv4DnTc9W",
+                             "school":  "안곡고등학교",
+                             "region":  "",
+                             "teacher":  "원승미",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "NjVAwDBVsZyOOvsnbHCt",
+                             "school":  "도농고등학교",
+                             "region":  "",
+                             "teacher":  "한은경",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "NIkBF5jibcOSDKEHZ5V8",
+                             "school":  "풍동고등학교",
+                             "region":  "",
+                             "teacher":  "이봉은 (사서)",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "NAAKMxFHriZHQZdpkfmz",
+                             "school":  "금곡중학교",
+                             "region":  "",
+                             "teacher":  "이세나",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "MzByzIVzEm3EEQIVzF28",
+                             "school":  "남양주다산중학교",
+                             "region":  "",
+                             "teacher":  "사서",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "id":  "MGAh2C6CqSr26HZQElYe",
+                             "school":  "금곡중학교",
+                             "region":  "",
+                             "teacher":  "사서-진선미",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         }
+                     ],
+    "visitSamples":  [
+                         {
+                             "docId":  "zSmYEk0LqrVXOUhQzDXw",
+                             "school":  "가람중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-26"
+                         },
+                         {
+                             "docId":  "2ZSdTv2V4lwAKk9dt2Gn",
+                             "school":  "철산중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-30"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "구리여자고등학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "미금중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "도농고등학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "도농고등학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "남양주다산중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "도농고등학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "구리여자고등학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "미금중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "미금중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "남양주다산중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "남양주다산중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "구리여자중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "남양주다산중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "도농고등학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "구리여자중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "구리여자고등학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "도농고등학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "구리여자고등학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "구리여자고등학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "구리여자고등학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "구리여자고등학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "금곡중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "금곡중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "구리여자중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "구리여자고등학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "구리여자중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "금곡중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "도농고등학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "금곡중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "구리여자고등학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "구리여자고등학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "금곡중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "구리여자고등학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "남양주다산중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "남양주다산중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "구리여자중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "금곡중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "구리여자고등학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "미금중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "미금중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "미금중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "WFlLXbyTQSG8KxC4wYz6",
+                             "school":  "구리여자중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29T00:00:00.000Z"
+                         },
+                         {
+                             "docId":  "lp6TidnF3hnfTPhgP1d1",
+                             "school":  "구리여자고등학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29"
+                         },
+                         {
+                             "docId":  "8tKcdf7tdKkKhYP8L2kK",
+                             "school":  "양진중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29"
+                         },
+                         {
+                             "docId":  "8tKcdf7tdKkKhYP8L2kK",
+                             "school":  "양진중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29"
+                         },
+                         {
+                             "docId":  "8tKcdf7tdKkKhYP8L2kK",
+                             "school":  "양진중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29"
+                         },
+                         {
+                             "docId":  "8tKcdf7tdKkKhYP8L2kK",
+                             "school":  "용이중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29"
+                         },
+                         {
+                             "docId":  "8tKcdf7tdKkKhYP8L2kK",
+                             "school":  "용이중학교",
+                             "region":  "",
+                             "visitDate":  "2025-10-29"
+                         }
+                     ],
+    "scannedLimit":  5000
+}

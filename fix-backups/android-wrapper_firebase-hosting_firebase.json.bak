@@ -1,0 +1,11 @@
+{
+  "hosting": {
+    "public": "./",
+    "ignore": ["firebase.json","**/.*","**/node_modules/**"],
+    "rewrites": [
+      { "source": "/api/**", "run": { "serviceId": "cmass-sales-backend", "region": "us-central1" } },
+      { "source": "/", "destination": "/index.html" },
+      { "source": "**", "destination": "/sales-input.html" }
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+# Ignore local NEIS cache created by the parser
+neis_cache.json
+
+# Python cache
+__pycache__/
+
+# Virtualenv (common local dev)
+.venv/

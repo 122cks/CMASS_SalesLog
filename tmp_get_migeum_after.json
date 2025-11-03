@@ -1,0 +1,27 @@
+﻿{
+    "ok":  true,
+    "id":  "y7KMl02fd9Xydmu2r8kK",
+    "data":  {
+                 "staff":  "임준호 차장",
+                 "school":  "미금중학교",
+                 "visitDate":  "2025-10-29T00:00:00.000Z",
+                 "visitDate_ts":  {
+                                      "_seconds":  1761696000,
+                                      "_nanoseconds":  0
+                                  },
+                 "source_doc":  "wTa4qtAXxJa9zr68W779",
+                 "subject":  "기타",
+                 "teacher":  "사서",
+                 "contact":  "",
+                 "meetings":  [
+                                  "단행본안내"
+                              ],
+                 "conversation":  "도서관이 특이하게 체육관 1층에 있음, 학업설계 설명",
+                 "followUp":  "완료 (추가 조치 없음)",
+                 "createdAt":  {
+                                   "_seconds":  1761736912,
+                                   "_nanoseconds":  734000000
+                               },
+                 "region":  "???????"
+             }
+}

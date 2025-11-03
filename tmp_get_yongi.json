@@ -1,0 +1,27 @@
+﻿{
+    "ok":  true,
+    "id":  "xvwoR5Ppv8lyO4Xjd1EM",
+    "data":  {
+                 "staff":  "송훈재 부장",
+                 "school":  "용이중학교",
+                 "region":  "",
+                 "visitDate":  "2025-10-29T00:00:00.000Z",
+                 "visitDate_ts":  {
+                                      "_seconds":  1761696000,
+                                      "_nanoseconds":  0
+                                  },
+                 "source_doc":  "8tKcdf7tdKkKhYP8L2kK",
+                 "subject":  "기타",
+                 "teacher":  "이원선",
+                 "contact":  "",
+                 "meetings":  [
+
+                              ],
+                 "conversation":  "3학년부장 고1학업수업 및 고교학점제 워크북 안내 및 리플릿 전달",
+                 "followUp":  "완료 (추가 조치 없음)",
+                 "createdAt":  {
+                                   "_seconds":  1761728453,
+                                   "_nanoseconds":  580000000
+                               }
+             }
+}

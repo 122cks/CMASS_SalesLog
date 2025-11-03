@@ -1,0 +1,110 @@
+const puppeteer = require('puppeteer');
+(async ()=>{
+  const result = { ok: true, errors: [], checks: {} };
+  const url = 'https://cmass-sales.web.app/sales-input.html?user=Songhoonjae';
+  let browser = null;
+  try{
+    browser = await puppeteer.launch({ headless: true, args:['--no-sandbox','--disable-setuid-sandbox'] });
+    const page = await browser.newPage();
+    page.setDefaultTimeout(15000);
+    const consoleErrors = [];
+    page.on('console', msg => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', err => { consoleErrors.push(err.message || String(err)); });
+
+    // intercept clipboard writes
+    await page.exposeFunction('__captureClipboard', text => {
+      result.clipboard = text;
+    });
+
+    await page.goto(url, { waitUntil: 'networkidle2' });
+
+    // wait for subjects block or generated summary area
+    try{ await page.waitForSelector('#subjectsBlock, .subjects, #generatedSummary', { timeout: 5000 }); }catch(e){}
+
+    // check '기타' subject exists (either in template or injected)
+    const hasGita = await page.evaluate(()=> !!document.querySelector('[data-subject="기타"]'));
+    result.checks.hasGita = !!hasGita;
+
+    // check that '교육청 매핑 편집' string is not present
+    result.checks.atptMapPresent = await page.evaluate(()=> !!document.querySelector('#btnEditAtptMap') || !!document.getElementById('atptMapModal'));
+
+    // wait for meeting-buttons book button to be inserted (dynamic)
+    try{
+      await page.waitForSelector('.meeting-buttons .book-btn', { timeout: 4000 });
+      result.checks.bookBtnPresent = true;
+    }catch(e){ result.checks.bookBtnPresent = false; }
+
+    // check camp button hidden initially
+    result.checks.campBtnInitiallyVisible = await page.evaluate(()=>{
+      const c = document.querySelector('.meeting-buttons .camp-btn');
+      return c ? (getComputedStyle(c).display !== 'none') : false;
+    });
+
+    // try to select a subject '진로' (click the first matching button)
+    const jinroClicked = await page.evaluate(()=>{
+      const btn = document.querySelector('.subject-choice[data-subject="진로"]');
+      if (!btn) return false;
+      btn.click();
+      return true;
+    });
+    result.checks.jinroClicked = jinroClicked;
+
+    // after clicking, wait briefly for camp button to appear/be visible
+    try{
+      await page.waitForFunction(()=>{
+        const c = document.querySelector('.meeting-buttons .camp-btn');
+        return !!c && getComputedStyle(c).display !== 'none';
+      }, { timeout: 4000 });
+      result.checks.campBtnVisibleAfter = true;
+    }catch(e){ result.checks.campBtnVisibleAfter = false; }
+
+    // override navigator.clipboard.writeText to capture text
+    await page.evaluateOnNewDocument(()=>{
+      const orig = navigator.clipboard && navigator.clipboard.writeText;
+      try{
+        Object.defineProperty(navigator, 'clipboard', {
+          value: {
+            writeText: async function(t){
+              if (window.__captureClipboard) window.__captureClipboard(t);
+              return Promise.resolve();
+            }
+          }, configurable:true
+        });
+      }catch(e){ /* ignore */ }
+    });
+
+    // ensure one more reload to apply clipboard override to page scripts, then do the sequence again quickly
+    await page.reload({ waitUntil: 'networkidle2' });
+
+    // generate summary by triggering regenerate if exists
+    try{
+      // click regenerate if present
+      const regen = await page.$('#summaryRegenerateBtn');
+      if (regen) await regen.click();
+    }catch(e){}
+
+    // click copy button
+    try{
+      const copyBtn = await page.$('#copyKakaoBtn');
+      if (copyBtn){
+        await copyBtn.click();
+        // wait short while for clipboard capture
+        await page.waitForTimeout(600);
+      }
+    }catch(e){ }
+
+    // if clipboard not captured, fall back to reading generatedSummary textarea
+    if (!result.clipboard){
+      try{
+        const gen = await page.$('#generatedSummary');
+        if (gen){ result.clipboard = (await page.evaluate(el=>el.value, gen)) || null; }
+      }catch(e){}
+    }
+
+    result.errors = consoleErrors;
+
+  }catch(err){ result.ok = false; result.exception = String(err); }
+  finally{ if (browser) await browser.close(); console.log(JSON.stringify(result, null, 2)); }
+})();
