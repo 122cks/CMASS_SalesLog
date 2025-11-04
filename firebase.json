@@ -1,31 +1,22 @@
 {
   "hosting": {
     "public": "public",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "cleanUrls": true,
     "trailingSlash": false,
-    "headers": [
-      {
-        "source": "**/*.@(js|css)",
-        "headers": [ { "key": "Cache-Control", "value": "public, max-age=31536000" } ]
-      },
-      {
-        "source": "/input",
-        "headers": [ { "key": "Cache-Control", "value": "no-cache, max-age=0, must-revalidate" } ]
-      },
-      {
-        "source": "/input.html",
-        "headers": [ { "key": "Cache-Control", "value": "no-cache, max-age=0, must-revalidate" } ]
-      },
-      {
-        "source": "**/*.html",
-        "headers": [ { "key": "Cache-Control", "value": "no-cache, max-age=0, must-revalidate" } ]
-      }
-    ],
-    "redirects": [],
     "rewrites": [
-      { "source": "/front", "destination": "/front.html" },
+      { "source": "/meeting", "destination": "/meeting.html" },
+      { "source": "/meeting/**", "destination": "/meeting.html" },
       { "source": "/input", "destination": "/input.html" },
+      { "source": "/input/**", "destination": "/input.html" },
+      { "source": "/front", "destination": "/front.html" },
+      { "source": "/front/**", "destination": "/front.html" },
+      { "source": "/report", "destination": "/report.html" },
+      { "source": "/report/**", "destination": "/report.html" },
       { "source": "/", "destination": "/index.html" },
       { "source": "**", "destination": "/index.html" }
     ]
