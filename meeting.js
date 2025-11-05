@@ -447,7 +447,8 @@
       const acts = Array.isArray(s.activities) ? s.activities.join(', ') : (s.activities || '');
       lines.push(`과목: ${subj}`);
       lines.push(`활동: ${acts}`);
-      lines.push(`우호도: ${(s.favor||d.favor||'')}`);
+  // show only the session's own favor; do not fall back to top-level draft.favor
+  lines.push(`우호도: ${(s.favor||'')}`);
       lines.push(`선생님: ${s.teacher || ''}`);
       lines.push(`요청: ${s.requests || ''}`);
       lines.push(`특이사항: ${s.notes || ''}`);
