@@ -114,6 +114,17 @@
   <!-- cmass-deploy-marker: 2025-11-02T00:00:00Z -->
   <!-- Load external deps. PapaParse removed in favor of a small in-file toCSV helper. -->
   <script src="/neis_grid.js" defer></script>
+  <script src="/csv-helpers.js" defer></script>
+  <script>
+    // Lock shared CSV helpers to prevent accidental re-definition by later inline scripts.
+    (function(){
+      try{
+        if (typeof window.parseCsv === 'function') Object.defineProperty(window, 'parseCsv', { configurable: false, writable: false });
+        if (typeof window.fetchCsvRows === 'function') Object.defineProperty(window, 'fetchCsvRows', { configurable: false, writable: false });
+        if (typeof window.parseSchoolMetaCsv === 'function') Object.defineProperty(window, 'parseSchoolMetaCsv', { configurable: false, writable: false });
+      }catch(e){ /* ignore */ }
+    })();
+  </script>
   <!-- Early removal of any legacy redirect banners or links to the input page.
     This runs immediately in the head and observes DOM mutations to remove
     any nodes (or anchors) that mention deprecated URLs so users don't see
@@ -131,7 +142,8 @@
           const pm = document.getElementById('dbgMeta');
           const meta = window._cmass_lastFoundMeta || null;
           if (pm) pm.textContent = meta ? JSON.stringify(meta, null, 2) : '(없음)';
-          ov.style.display = 'block';
+          // Do NOT auto-show the debug overlay. Keep it hidden unless explicitly requested.
+          // ov.style.display = 'block';
         }catch(e){ console.warn('updateDebugOverlay failed', e); }
       }
 
@@ -287,7 +299,7 @@
        This avoids JS needing to manipulate inline styles and reduces specificity bugs */
     #schoolMetaInline, #schoolMeta {
       display:block;
-      padding:22px 20px;
+      padding:20px 18px;
       border-radius:14px;
       background:linear-gradient(180deg,#ffffff 0%, #f7f8ff 100%);
       border:1px solid #e2e8ff;
@@ -366,8 +378,11 @@
     .selector-btn.is-active { border-color:#1e3c72; background:linear-gradient(135deg,#1e3c72,#274b9f); color:#fff; box-shadow:0 12px 28px rgba(30,60,114,0.32); }
     .empty-message { padding:.85rem; border-radius:.75rem; border:1px dashed #d6dbe8; background:#f7f9ff; color:#324156; font-size:.9rem; }
     @media (max-width:520px) {
-      .btn-grid { grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); }
-      .selector-btn { min-height:58px; padding:.6rem .8rem; }
+      /* On narrow screens prefer a 3-column compact grid so regions/schools show three across.
+         Use smaller min widths so three items can fit on typical mobile widths while keeping
+         touch targets usable. */
+      .btn-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap:8px; }
+      .selector-btn { min-height:48px; padding:.45rem .6rem; font-size:13px; }
     }
     @media (min-width:720px) {
       /* Larger viewports can safely scale button typography a bit more */
@@ -483,11 +498,10 @@
     })();
   </script>
   
-  <!-- Firebase SDK -->
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-    import { getFirestore, collection, addDoc, serverTimestamp, query, where, getDocs, updateDoc, doc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-
+  <!-- Firebase SDK (CDN 방식) - using compat UMD builds so `window.firebase` is available -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyARdXNfFCUShNeFXV8cTDzFbKa4GId5EvU",
       authDomain: "cmass-sales.firebaseapp.com",
@@ -498,20 +512,20 @@
       measurementId: "G-9188JJXRWX"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
     // Export to global scope for use in other scripts
     window.firebaseDb = db;
-    window.firestoreCollection = collection;
-    window.firestoreAddDoc = addDoc;
-    window.firestoreServerTimestamp = serverTimestamp;
-    window.firestoreQuery = query;
-    window.firestoreWhere = where;
-    window.firestoreGetDocs = getDocs;
-    window.firestoreUpdateDoc = updateDoc;
-    window.firestoreDoc = doc;
-    
+    window.firestoreCollection = (ref) => db.collection(ref);
+    window.firestoreAddDoc = (ref, data) => db.collection(ref).add(data);
+    window.firestoreServerTimestamp = firebase.firestore.FieldValue.serverTimestamp;
+    window.firestoreQuery = (ref, ...args) => db.collection(ref).where(...args);
+    window.firestoreWhere = (ref, ...args) => db.collection(ref).where(...args);
+    window.firestoreGetDocs = (ref) => db.collection(ref).get();
+    window.firestoreUpdateDoc = (ref, id, data) => db.collection(ref).doc(id).update(data);
+    window.firestoreDoc = (ref, id) => db.collection(ref).doc(id);
+
     console.log('[Firebase] Initialized successfully');
   </script>
 </head>
@@ -526,6 +540,10 @@
       }catch(e){}
     })();
   </script>
+  <!-- CSV helpers are centralized in /csv-helpers.js. Removed inline fallback to avoid duplicates. -->
+
+  <!-- Top back button -->
+  <!-- top back button removed -->
   <!-- Guard against external extensions wiping the body: watch for removals and restore tracked nodes -->
   <script data-cmass-role="body-guard">
     (function(){
@@ -650,12 +668,14 @@
   </script>
   <!-- Global diagnostic handlers removed to avoid automatic error-overlay activation -->
   <script>
-    // Canonicalize legacy lowercase user tokens to canonical tokens so address bar shows consistent URLs.
-    (function canonUserParam(){
+  // Canonicalize legacy lowercase staff tokens to canonical tokens so address bar shows consistent URLs.
+    (function canonStaffParam(){
       try {
         const params = new URLSearchParams(window.location.search);
-        const user = params.get('user');
-        if (!user) return;
+    // Accept legacy ?staff= but canonicalize to canonical casing
+  // Prefer canonical 'staff' query parameter only
+  const staff = params.get('staff');
+        if (!staff) return;
 
         const canonMap = {
           'songhunje': 'Songhoonjae',
@@ -666,10 +686,12 @@
           'choyounghwan': 'ChoYounghwan'
         };
 
-        const lower = String(user).trim().toLowerCase();
+        const lower = String(staff).trim().toLowerCase();
         const mapped = canonMap[lower];
-        if (mapped && mapped !== user) {
-          params.set('user', mapped);
+        if (mapped && mapped !== staff) {
+          // set the new 'staff' param and remove legacy 'user' to avoid duplicates
+          params.set('staff', mapped);
+          params.delete('user');
           const newUrl = window.location.pathname + '?' + params.toString();
           history.replaceState(null, '', newUrl);
         }
@@ -679,7 +701,7 @@
     })();
   </script>
   <script>
-    // Derive and display staff label based on the ?user= query parameter.
+  // Derive and display staff label based on the ?staff= query parameter.
     (function initStaffLabel(){
       const legacyToCanonical = {
         'songhunje': 'Songhoonjae',
@@ -730,12 +752,13 @@
       document.addEventListener('DOMContentLoaded', function(){
         try{
           const params = new URLSearchParams(window.location.search);
-          const userParam = params.get('user') || '';
+          const userParam = params.get('staff') || '';
           const canonicalToken = normalizeToken(userParam);
           const label = resolveLabel(canonicalToken);
           window._cmass_staffToken = canonicalToken || '';
           window._cmass_staffParam = label || '';
           window._cmass_staffBase = stripTitle(label) || '';
+          try{ localStorage.setItem('cmass:staff', window._cmass_staffParam || ''); localStorage.setItem('cmass:staffToken', window._cmass_staffToken || ''); }catch(e){}
           applyStaff(label);
           if (typeof updateTopline === 'function') updateTopline();
           if (typeof window.updateDebugOverlay === 'function') window.updateDebugOverlay();
@@ -815,30 +838,10 @@
       }
 
       function navigateBackToFront(){
+        // Always navigate explicitly to front.html (preserve querystring)
         const query = window.location.search || '';
-        const fallbackUrl = '/front' + query;
-
-        const cleanup = () => document.removeEventListener('visibilitychange', onVisibility, false);
-        let navigated = false;
-        const onVisibility = () => { navigated = true; cleanup(); };
-        document.addEventListener('visibilitychange', onVisibility, false);
-
-        const goFallback = () => {
-          cleanup();
-          try{ window.location.assign(fallbackUrl); }catch(e){ window.location.href = fallbackUrl; }
-        };
-
-        try{
-          if (window.history && window.history.length > 1) {
-            history.back();
-            setTimeout(() => { if (!navigated) goFallback(); }, 450);
-          } else {
-            goFallback();
-
-          }
-        }catch(e){
-          goFallback();
-        }
+        const target = '/front.html' + query;
+        try{ window.location.assign(target); }catch(e){ window.location.href = target; }
       }
 
       document.addEventListener('DOMContentLoaded', function(){
@@ -864,7 +867,6 @@
   <!-- Visit accumulation status -->
   <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.8rem;">
     <div id="visitAccumStatus" style="flex:1;padding:0.5rem;background:#f0f7ff;border-radius:0.6rem;font-size:0.9rem;color:#1e3c72;">누적: 0개 학교</div>
-    <button type="button" id="resetVisitListBtn" style="padding:0.5rem 0.8rem;border-radius:0.6rem;border:1px solid #d6dbe8;background:#fff;color:#666;font-size:0.85rem;">새 보고서</button>
   </div>
   
   <label for="visitDate">방문일</label>
@@ -915,31 +917,11 @@
         <div id="timetableProgressInline" style="margin-top:8px;color:#175;display:none;font-size:13px;"></div>
         <div id="timetableContainerInline" style="margin-top:10px;"></div>
       </div>
-    </div>
-      
-      <!-- Action buttons section -->
-      <div style="background:#f8f9fa;padding:1.2rem;border-radius:1rem;margin-top:1.5rem;border:1px solid #e0e8f5;">
-        <h4 style="margin:0 0 0.8rem 0;font-size:1.05rem;color:#1e3c72;font-weight:800;">퇴근보고 관리</h4>
-        
-        <button type="button" id="copyKakaoBtn" style="width:100%;padding:0.8rem;border-radius:0.8rem;border:1px solid #ffd9b3;background:#fff;color:#b25700;font-weight:800;margin-bottom:0.6rem;">카톡으로 복사</button>
-        
-        <button type="button" id="saveToServerBtn" style="width:100%;padding:0.8rem;border-radius:0.8rem;border:1px solid #c8e6c9;background:#fff;color:#2e7d32;font-weight:800;margin-bottom:0.6rem;">서버에 저장</button>
-        
-        <div style="display:flex;gap:0.6rem;">
-          <button type="button" id="generateSummaryBtn" style="flex:1;padding:0.8rem;border-radius:0.8rem;border:1px solid #4CAF50;background:#4CAF50;color:#fff;font-weight:800;">요약 생성</button>
-          <button type="button" id="clearSummaryBtn" style="flex:1;padding:0.8rem;border-radius:0.8rem;border:1px solid #e0e0e0;background:#f5f5f5;color:#666;font-weight:700;">내용 전체지우기</button>
-        </div>
-        
-        <div style="margin-top:0.6rem;font-size:0.85rem;color:#666;">
-          퇴근보고 시간 설정: 퇴근 시각 기준 + 30분
-        </div>
-        
-        <textarea id="generatedSummary" readonly rows="8" style="width:100%;margin-top:0.8rem;padding:0.8rem;border-radius:0.6rem;border:1px solid #d6dbe8;background:#fafafa;font-size:0.9rem;color:#333;resize:vertical;">요약이 여기에 생성됩니다.</textarea>
       </div>
-      
+    <!-- Action buttons: Next (navigate to meeting.html with params) -->
+    <div style="margin-top:1rem;">
       <button type="button" id="nextStepBtn" style="width:100%;margin:1rem 0 0 0;padding:1rem;font-size:1.1rem;border-radius:1rem;background:#1e3c72;color:#fff;font-weight:bold;border:none;cursor:pointer;">다음</button>
-    </form>
-  </div>
+    </div>
 
   <script>
     // Step navigation: Next button (Step1 -> Step2)
@@ -956,7 +938,8 @@
             const visitDate = document.getElementById('visitDate')?.value;
             const region = window.selectedRegion || '';
             const school = window.selectedSchool || '';
-            const userParam = new URLSearchParams(window.location.search).get('user') || '';
+            // legacy 'user' removed - prefer 'staff'
+            const userParam = '';
 
             if (!visitDate) {
               alert('방문일을 선택해주세요.');
@@ -971,330 +954,37 @@
               return;
             }
 
-            // Navigate to input-next.html with parameters
+            // Navigate to meeting.html with parameters (staff, date, region, school)
+            const staffParam = window._cmass_staffParam || new URLSearchParams(window.location.search).get('staff') || '';
             const params = new URLSearchParams({
+              staff: staffParam,
               school: school,
               region: region,
-              date: visitDate,
-              user: userParam
+              date: visitDate
             });
-            
-            window.location.href = '/input-next?' + params.toString();
+            // Navigate to the explicit HTML file to avoid relying on hosting rewrites
+            window.location.href = '/meeting.html?' + params.toString();
           });
         }
 
         if (backBtn) {
           backBtn.addEventListener('click', function(){
-            console.log('[BACK] 뒤로 돌아가기 클릭');
-            
-            // Show Step1, hide Step2
-            if (step1) step1.style.display = 'block';
-            if (step2) step2.style.display = 'none';
-            
-            // Remove body class to hide step2-only content
-            document.body.classList.remove('cmass-step2');
-            
-            // Mark that we're back in Step1
-            window._isStep2Active = false;
-            console.log('[BACK] _isStep2Active = false');
-            
-            // Clear any pending draft auto-save timer
-            if (window.draftTimer) {
-              clearTimeout(window.draftTimer);
-              window.draftTimer = null;
-              console.log('[BACK] Draft auto-save timer cleared');
-            }
+            console.log('[BACK] 뒤로 돌아가기 클릭 — 네비게이트 /front');
 
-            // Scroll to top
-            window.scrollTo(0, 0);
+            // Preserve staff query param when navigating back to /front
+            // Preserve staff query param when navigating back to /front (only 'staff' supported)
+            const staffParam = window._cmass_staffParam || new URLSearchParams(window.location.search).get('staff') || '';
+            const tgtParams = new URLSearchParams(); if (staffParam) tgtParams.set('staff', staffParam);
+            const target = '/front' + (tgtParams.toString() ? ('?' + tgtParams.toString()) : '');
+
+            // Navigate to front (explicit HTML path)
+            window.location.href = target;
           });
         }
       });
     })();
   </script>
-
-  <!-- Topline copy for Step2: mirrors #cmass-topline in Step1 -->
-  <div class="cmass-topline-copy" style="margin:0 0 8px 0;color:#12325a;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">&nbsp;</div>
-      <!-- hidden fields to submit selected region/school -->
-      <input type="hidden" id="selectedRegionInput" name="region">
-      <input type="hidden" id="selectedSchoolInput" name="schoolName">
-      <!-- school metadata panel (Step2) -->
-      <div id="schoolMeta" class="meta-card">
-        <h4>학교 정보</h4>
-        <div class="meta-summary">
-          <div class="meta-pill" id="metaPillEstablish">설립: -</div>
-
-          <div class="meta-pill" id="metaPillLevel">급: -</div>
-          <div class="meta-pill" id="metaPillStudents">총학생수: -</div>
-          <div class="meta-pill" id="metaPillFeature" style="display:none;">특성: -</div>
-        </div>
-        <div class="grade-rows">
-          <div class="grade-row"><div class="grade-label">1학년:</div><div class="grade-value"><span id="metaG1c"></span> 학급 / <span id="metaG1s"></span> 학생</div></div>
-          <div class="grade-row"><div class="grade-label">2학년:</div><div class="grade-value"><span id="metaG2c"></span> 학급 / <span id="metaG2s"></span> 학생</div></div>
-
-          <div class="grade-row"><div class="grade-label">3학년:</div><div class="grade-value"><span id="metaG3c"></span> 학급 / <span id="metaG3s"></span> 학생</div></div>
-        </div>
-      <!-- NEIS timetable controls -->
-      <div style="margin-top:12px;padding-top:8px;border-top:1px dashed #e6eefc;">
-        <label style="font-weight:900;display:block;margin-bottom:6px;">시간표 가져오기 (NEIS)</label>
-        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
-          <select id="neisYear" style="padding:.45rem;border-radius:.5rem;border:1px solid #d6dbe8;"> 
-            <option value="2025">2025</option>
-            <option value="2024">2024</option>
-            <option value="2023">2023</option>
-          </select>
-          <select id="neisSemester" style="padding:.45rem;border-radius:.5rem;border:1px solid #d6dbe8;">
-            <option value="1">1학기</option>
-            <option value="2" selected>2학기</option>
-          </select>
-          <button type="button" id="btnFetchSelectedTimetable" class="meeting-btn" style="margin-left:6px;">선택 학교 시간표 보기</button>
-          <button type="button" id="btnCloseTimetable" class="meeting-btn" style="margin-left:6px;background:#fff;color:#12325a;border:1px solid #d6dbe8;display:none;">시간표 닫기</button>
-        </div>
-        <div id="timetableProgress" style="margin-top:8px;color:#175;display:none;font-size:13px;"></div>
-        <div id="timetableContainer" style="margin-top:10px;"></div>
-
-      </div>
-    </div>
-
-    <section id="visitTimeSection" style="margin-top:1.2rem;padding:1rem;border:1px solid #e6eefc;border-radius:1rem;background:#f9fbff;">
-      <h4 style="margin:0 0 0.8rem 0;font-size:1.05rem;font-weight:800;color:#12325a;">방문 일정</h4>
-      <div style="display:flex;flex-direction:column;gap:0.8rem;">
-        <div>
-          <label for="visitStartHour" style="display:block;font-weight:700;margin-bottom:0.4rem;">방문 시작 시간</label>
-          <div class="visit-start-row" style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
-            <select id="visitStartHour" name="visitStartHour" style="padding:0.65rem;border-radius:0.8rem;border:1px solid #d6dbe8;min-width:100px;">
-              <option value="">시 선택</option>
-              <option value="08">08시</option>
-              <option value="09">09시</option>
-              <option value="10">10시</option>
-              <option value="11">11시</option>
-              <option value="12">12시</option>
-              <option value="13">13시</option>
-              <option value="14">14시</option>
-              <option value="15">15시</option>
-              <option value="16">16시</option>
-              <option value="17">17시</option>
-              <option value="18">18시</option>
-            </select>
-            <select id="visitStartMinute" name="visitStartMinute" style="padding:0.65rem;border-radius:0.8rem;border:1px solid #d6dbe8;min-width:100px;">
-              <option value="">분 선택</option>
-              <option value="00">00분</option>
-              <option value="05">05분</option>
-              <option value="10">10분</option>
-              <option value="15">15분</option>
-              <option value="20">20분</option>
-              <option value="25">25분</option>
-              <option value="30">30분</option>
-              <option value="35">35분</option>
-              <option value="40">40분</option>
-              <option value="45">45분</option>
-              <option value="50">50분</option>
-              <option value="55">55분</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label style="display:block;font-weight:700;margin-bottom:0.4rem;">총 방문 시간(분)</label>
-          <div id="visitDurationButtons" style="display:flex;flex-wrap:wrap;gap:0.6rem;margin-bottom:0.4rem;">
-            <button type="button" class="duration-btn" data-duration="10" style="flex:0 0 auto;padding:0.65rem 1rem;border-radius:0.85rem;border:1px solid #d6dbe8;background:#fff;font-weight:700;color:#1e3c72;">10분</button>
-            <button type="button" class="duration-btn" data-duration="20" style="flex:0 0 auto;padding:0.65rem 1rem;border-radius:0.85rem;border:1px solid #d6dbe8;background:#fff;font-weight:700;color:#1e3c72;">20분</button>
-            <button type="button" class="duration-btn" data-duration="30" style="flex:0 0 auto;padding:0.65rem 1rem;border-radius:0.85rem;border:1px solid #d6dbe8;background:#fff;font-weight:700;color:#1e3c72;">30분</button>
-            <button type="button" class="duration-btn" data-duration="40" style="flex:0 0 auto;padding:0.65rem 1rem;border-radius:0.85rem;border:1px solid #d6dbe8;background:#fff;font-weight:700;color:#1e3c72;">40분</button>
-            <button type="button" class="duration-btn" data-duration="50" style="flex:0 0 auto;padding:0.65rem 1rem;border-radius:0.85rem;border:1px solid #d6dbe8;background:#fff;font-weight:700;color:#1e3c72;">50분</button>
-            <button type="button" class="duration-btn" data-duration="60" style="flex:0 0 auto;padding:0.65rem 1rem;border-radius:0.85rem;border:1px solid #d6dbe8;background:#fff;font-weight:700;color:#1e3c72;">60분</button>
-            <button type="button" class="duration-btn" data-duration="70" style="flex:0 0 auto;padding:0.65rem 1rem;border-radius:0.85rem;border:1px solid #d6dbe8;background:#fff;font-weight:700;color:#1e3c72;">70분</button>
-            <button type="button" class="duration-btn" data-duration="80" style="flex:0 0 auto;padding:0.65rem 1rem;border-radius:0.85rem;border:1px solid #d6dbe8;background:#fff;font-weight:700;color:#1e3c72;">80분</button>
-            <button type="button" class="duration-btn" data-duration="90" style="flex:0 0 auto;padding:0.65rem 1rem;border-radius:0.85rem;border:1px solid #d6dbe8;background:#fff;font-weight:700;color:#1e3c72;">90분</button>
-          </div>
-          <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-            <input type="number" id="visitDurationInput" name="visitDurationMinutes" min="0" step="5" placeholder="직접 입력" style="width:110px;padding:0.6rem;border-radius:0.8rem;border:1px solid #d6dbe8;" />
-            <button type="button" id="resetVisitTimeBtn" style="padding:0.55rem 0.9rem;border-radius:0.8rem;border:1px solid #d6dbe8;background:#fff;color:#1e3c72;">지우기</button>
-          </div>
-        </div>
-        <div>
-          <label for="visitEndTime" style="display:block;font-weight:700;margin-bottom:0.4rem;">방문 종료 시간 (자동 계산)</label>
-          <input type="text" id="visitEndTime" name="visitEndTime" readonly style="width:160px;padding:0.65rem;border-radius:0.8rem;border:1px solid #d6dbe8;background:#f6f9ff;font-weight:700;color:#12325a;" />
-        </div>
-      </div>
-    </section>
-
-    <section class="subject-section" style="margin-top:1.5rem;">
-      <h4 style="margin:0 0 0.8rem 0;font-size:1.05rem;font-weight:800;color:#12325a;">과목/선생님별 영업기록</h4>
-      <div id="subjectsBlock" class="subject-blocks" style="display:flex;flex-direction:column;gap:1rem;"></div>
-    </section>
-
-      <button type="button" id="addSubjectBtn" style="width:100%;margin:0.8rem 0 1rem 0;padding:1rem;font-size:1.1rem;border-radius:1rem;background:#e3eafc;color:#1e3c72;font-weight:bold;border:none;cursor:pointer;">과목/선생님 추가</button>
-      <!-- Back / Submit controls moved here so they appear between '과목/선생님 추가' and the step2-only panel -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:0.6rem;">
-        <button type="button" id="backBtn" style="padding:1rem;border-radius:1rem;border:1px solid #d6dbe8;background:#fff;color:#1e3c72;font-weight:700;cursor:pointer;">뒤로 돌아가기</button>
-        <button type="submit" class="btn-submit" style="padding:1rem;border-radius:1rem;border:1px solid #1e3c72;background:#1e3c72;color:#fff;font-weight:700;cursor:pointer;">입력 완료</button>
-      </div>
-  </form>
-  </div>
-
-  <script>
-    // Visit time and meeting buttons event handlers
-    (function(){
-      'use strict';
-      
-      document.addEventListener('DOMContentLoaded', function(){
-        // Visit duration buttons
-        const durationBtns = document.querySelectorAll('.duration-btn');
-        const durationInput = document.getElementById('visitDurationInput');
-        const visitStartHour = document.getElementById('visitStartHour');
-        const visitStartMinute = document.getElementById('visitStartMinute');
-        const visitEndTime = document.getElementById('visitEndTime');
-        const resetBtn = document.getElementById('resetVisitTimeBtn');
-
-        // Calculate end time
-        function calculateEndTime(){
-          const hour = visitStartHour?.value || '';
-          const minute = visitStartMinute?.value || '';
-          const duration = durationInput?.value || '';
-          
-          if (!hour || !minute || !duration) {
-            if (visitEndTime) visitEndTime.value = '';
-            return;
-          }
-          
-          const startMinutes = parseInt(hour) * 60 + parseInt(minute);
-          const endMinutes = startMinutes + parseInt(duration);
-          const endHour = Math.floor(endMinutes / 60);
-          const endMin = endMinutes % 60;
-          
-          if (visitEndTime) {
-            visitEndTime.value = `${String(endHour).padStart(2,'0')}:${String(endMin).padStart(2,'0')}`;
-          }
-        }
-
-        // Duration button clicks
-        durationBtns.forEach(btn => {
-          btn.addEventListener('click', function(){
-            const value = this.dataset.duration || '';
-            
-            // Toggle selection
-            const isActive = this.classList.contains('is-active');
-            durationBtns.forEach(b => {
-              b.classList.remove('is-active');
-              b.style.background = '#fff';
-              b.style.color = '#1e3c72';
-              b.style.borderColor = '#d6dbe8';
-            });
-            
-            if (!isActive) {
-              this.classList.add('is-active');
-              this.style.background = '#1e3c72';
-              this.style.color = '#fff';
-              this.style.borderColor = '#1e3c72';
-              if (durationInput) durationInput.value = value;
-            } else {
-              if (durationInput) durationInput.value = '';
-            }
-            
-            calculateEndTime();
-          });
-        });
-
-        // Duration input change
-        if (durationInput) {
-          durationInput.addEventListener('input', function(){
-            const value = this.value || '';
-            
-            // Clear button selection if manually typing
-            durationBtns.forEach(b => {
-              const btnValue = b.dataset.duration || '';
-              if (btnValue === value) {
-                b.classList.add('is-active');
-                b.style.background = '#1e3c72';
-                b.style.color = '#fff';
-                b.style.borderColor = '#1e3c72';
-              } else {
-                b.classList.remove('is-active');
-                b.style.background = '#fff';
-                b.style.color = '#1e3c72';
-                b.style.borderColor = '#d6dbe8';
-              }
-            });
-            
-            calculateEndTime();
-          });
-        }
-
-        // Time selects change
-        [visitStartHour, visitStartMinute].forEach(el => {
-          if (el) el.addEventListener('change', calculateEndTime);
-        });
-
-        // Reset button
-        if (resetBtn) {
-          resetBtn.addEventListener('click', function(){
-            if (visitStartHour) visitStartHour.value = '';
-            if (visitStartMinute) visitStartMinute.value = '';
-            if (durationInput) durationInput.value = '';
-            if (visitEndTime) visitEndTime.value = '';
-            
-            durationBtns.forEach(b => {
-              b.classList.remove('is-active');
-              b.style.background = '#fff';
-              b.style.color = '#1e3c72';
-              b.style.borderColor = '#d6dbe8';
-            });
-          });
-        }
-
-        // Meeting buttons (영업활동) - setup for each subject block
-        function setupMeetingButtons(block){
-          if (!block) return;
-          
-          const meetingBtns = block.querySelectorAll('.meeting-btn');
-          meetingBtns.forEach(btn => {
-            // Remove old listeners by cloning
-            const newBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(newBtn, btn);
-            
-            newBtn.addEventListener('click', function(){
-              const isActive = this.classList.contains('is-active');
-              
-              if (isActive) {
-                this.classList.remove('is-active');
-                this.style.background = '#fff';
-                this.style.color = '#1e3c72';
-                this.style.borderColor = '#d6dbe8';
-              } else {
-                this.classList.add('is-active');
-                this.style.background = '#1e3c72';
-                this.style.color = '#fff';
-                this.style.borderColor = '#1e3c72';
-              }
-            });
-          });
-        }
-
-        // Setup meeting buttons for all existing subject blocks
-        const subjectBlocks = document.querySelectorAll('.subject-block');
-        subjectBlocks.forEach(setupMeetingButtons);
-
-        // Watch for new subject blocks
-        const observer = new MutationObserver(function(mutations){
-          mutations.forEach(function(mutation){
-            mutation.addedNodes.forEach(function(node){
-              if (node.nodeType === 1 && node.classList.contains('subject-block')){
-                setupMeetingButtons(node);
-              }
-            });
-          });
-        });
-
-        const subjectsBlock = document.getElementById('subjectsBlock');
-        if (subjectsBlock) {
-          observer.observe(subjectsBlock, { childList: true });
-        }
-
-        // Expose setup function globally for manual calls
-        window.setupMeetingButtons = setupMeetingButtons;
-      });
-    })();
-  </script>
+  
 
   <script>
     (function(){
@@ -1349,7 +1039,33 @@
       };
 
       document.addEventListener('DOMContentLoaded', init);
+      // When the user navigates via back/forward (popstate) or the page is restored from bfcache (pageshow.persisted),
+      // re-apply region/school selections from the URL or session/local storage and re-render the state.
+      try{
+        window.addEventListener('popstate', function(){
+          try{
+            const params = new URLSearchParams(window.location.search || '');
+            const pRegion = params.get('region') || (sessionStorage.getItem && sessionStorage.getItem('cmass:last_region')) || (localStorage.getItem && localStorage.getItem('cmass:last_region')) || '';
+            const pSchool = params.get('school') || (sessionStorage.getItem && sessionStorage.getItem('cmass:last_school')) || (localStorage.getItem && localStorage.getItem('cmass:last_school')) || '';
+            if (pRegion) { window.selectedRegion = pRegion; if (hiddenRegionInput) hiddenRegionInput.value = pRegion; }
+            if (pSchool) { window.selectedSchool = pSchool; if (hiddenSchoolInput) hiddenSchoolInput.value = pSchool; }
+            try{ renderState(); }catch(e){}
+          }catch(e){ }
+        }, false);
 
+        window.addEventListener('pageshow', function(ev){
+          try{
+            if (ev && ev.persisted) {
+              const params = new URLSearchParams(window.location.search || '');
+              const pRegion = params.get('region') || (sessionStorage.getItem && sessionStorage.getItem('cmass:last_region')) || (localStorage.getItem && localStorage.getItem('cmass:last_region')) || '';
+              const pSchool = params.get('school') || (sessionStorage.getItem && sessionStorage.getItem('cmass:last_school')) || (localStorage.getItem && localStorage.getItem('cmass:last_school')) || '';
+              if (pRegion) { window.selectedRegion = pRegion; if (hiddenRegionInput) hiddenRegionInput.value = pRegion; }
+              if (pSchool) { window.selectedSchool = pSchool; if (hiddenSchoolInput) hiddenSchoolInput.value = pSchool; }
+              try{ renderState(); }catch(e){}
+            }
+          }catch(e){}
+        }, false);
+      }catch(e){}
       window.addEventListener('resize', () => {
         clearTimeout(resizeFitTimer);
         resizeFitTimer = setTimeout(fitSelectorLabels, 80);
@@ -1364,6 +1080,14 @@
         searchClearBtn = document.getElementById('searchClear');
         hiddenRegionInput = document.getElementById('selectedRegionInput');
         hiddenSchoolInput = document.getElementById('selectedSchoolInput');
+        // Apply URL / session fallbacks for region and school so Back navigation preserves selections
+        try {
+          const params = new URLSearchParams(window.location.search || '');
+          const pRegion = params.get('region') || (sessionStorage.getItem && sessionStorage.getItem('cmass:last_region')) || (localStorage.getItem && localStorage.getItem('cmass:last_region')) || '';
+          const pSchool = params.get('school') || (sessionStorage.getItem && sessionStorage.getItem('cmass:last_school')) || (localStorage.getItem && localStorage.getItem('cmass:last_school')) || '';
+          if (pRegion) { window.selectedRegion = pRegion; if (hiddenRegionInput) hiddenRegionInput.value = pRegion; }
+          if (pSchool) { window.selectedSchool = pSchool; if (hiddenSchoolInput) hiddenSchoolInput.value = pSchool; }
+        } catch (e) { /* ignore */ }
 
         staffToken = determineStaffToken();
         allRegions = await loadRegionData();
@@ -1449,79 +1173,12 @@
         return regions;
       }
 
-      async function fetchCsvRows(){
-        console.log('[fetchCsvRows] 시작');
-        try{
-          if (window._cmass_cachedCsvRows && Array.isArray(window._cmass_cachedCsvRows)){
-            console.log('[fetchCsvRows] 캐시에서 리턴:', window._cmass_cachedCsvRows.length, '행');
-            return window._cmass_cachedCsvRows.map((row) => Array.isArray(row) ? row.slice() : row);
-          }
-        }catch(cacheErr){ console.warn('[fetchCsvRows] 캐시 읽기 실패:', cacheErr); }
-        const candidates = ['/sales_staff.csv','/sales_staff.deployed.csv','/sales_staff_live.csv'];
-        console.log('[fetchCsvRows] 후보 파일:', candidates);
-        let lastError = null;
-        for (const path of candidates){
-          console.log('[fetchCsvRows] 시도:', path);
-          try{
-            const res = await fetch(path, { cache: 'no-store' }).catch(() => null);
-            console.log('[fetchCsvRows]', path, 'fetch 결과:', res ? res.ok : 'null');
-            if (!res || !res.ok){ lastError = res ? res.status : 'fetch-failed'; console.log('[fetchCsvRows]', path, '실패 - status:', lastError); continue; }
-            const ct = (res.headers.get('content-type') || '').toLowerCase();
-            console.log('[fetchCsvRows]', path, 'content-type:', ct);
-            if (!(ct.includes('csv') || ct.includes('text/plain') || ct.includes('application/octet-stream'))){
-              lastError = `unexpected-content-type:${ct}`;
-              console.log('[fetchCsvRows]', path, '실패 - 잘못된 content-type');
-              continue;
-            }
-            const text = await res.text();
-            console.log('[fetchCsvRows]', path, 'text 길이:', text ? text.length : 0, 'trim 후:', text ? text.trim().length : 0);
-            if (!text || !text.trim()){ lastError = 'empty'; console.log('[fetchCsvRows]', path, '실패 - 빈 텍스트'); continue; }
-            console.log('[fetchCsvRows]', path, 'parseCsv 호출 전...');
-            const parsed = parseCsv(text);
-            console.log('[fetchCsvRows]', path, 'parseCsv 결과:', parsed ? parsed.length + '행' : 'null');
-            if (parsed && parsed.length){
-              console.log('[fetchCsvRows] ✅ 성공!', path, '- 총', parsed.length, '행 파싱됨');
-              console.log('[fetchCsvRows] 첫 3행:', parsed.slice(0,3));
-              try{ window._cmass_cachedCsvRows = parsed; }catch(setErr){ console.warn('[fetchCsvRows] 캐시 저장 실패:', setErr); }
-              return parsed.map((row) => Array.isArray(row) ? row.slice() : row);
-            } else {
-              console.warn('[fetchCsvRows]', path, '파싱 결과 없음 또는 빈 배열');
-            }
-          }catch(err){
-            console.error('[fetchCsvRows]', path, '예외 발생:', err);
-            lastError = err;
-          }
-        }
-        console.error('[fetchCsvRows] ❌ 모든 후보 파일 실패. lastError:', lastError);
-        try{ window._cmass_lastCsvError = lastError; }catch(e){ /* ignore */ }
-        return null;
-      }
+  // CSV helper implementations are centralized in /csv-helpers.js. Removed inline
+  // fallback implementations (fetchCsvRows) to avoid duplication. The canonical
+  // functions are exposed as window.fetchCsvRows / window.parseCsv / window.parseSchoolMetaCsv.
 
-      function parseCsv(text){
-        // Remove UTF-8 BOM if present — some CSVs include \uFEFF which breaks header comparisons
-        try{ text = (text || '').replace(/^\uFEFF/, ''); }catch(e){}
-        const rows = [];
-        let cur = [];
-        let field = '';
-        let inQuotes = false;
-        for (let i = 0; i < text.length; i += 1){
-          const ch = text[i];
-          if (inQuotes){
-            if (ch === '"'){
-              if (text[i + 1] === '"'){ field += '"'; i += 1; continue; }
-              inQuotes = false; continue;
-            }
-            field += ch; continue;
-          }
-          if (ch === '"'){ inQuotes = true; continue; }
-          if (ch === ','){ cur.push(field); field = ''; continue; }
-          if (ch === '\r') continue;
-          if (ch === '\n'){ cur.push(field); rows.push(cur); cur = []; field = ''; continue; }
-          field += ch;
-        }
-        if (field !== '' || cur.length) { cur.push(field); rows.push(cur); }
-        return rows;
-      }
+  // parseCsv is provided by /csv-helpers.js. Inline fallback removed to prevent
+  // duplicate implementations and inconsistent behavior across pages.
 
       function determineStaffToken(){
         const base = (window._cmass_staffBase || '').trim();
@@ -1708,10 +1365,12 @@
         // Set flag to prevent auto-save during school selection
         if(typeof window._isSelectingSchool !== 'undefined') window._isSelectingSchool = true;
         
-        window.selectedRegion = regionName;
-        if (hiddenRegionInput) hiddenRegionInput.value = regionName;
-        window.selectedSchool = schoolName;
-        if (hiddenSchoolInput) hiddenSchoolInput.value = schoolName;
+  window.selectedRegion = regionName;
+  if (hiddenRegionInput) hiddenRegionInput.value = regionName;
+  window.selectedSchool = schoolName;
+  if (hiddenSchoolInput) hiddenSchoolInput.value = schoolName;
+  // Persist selection so other pages can recover if query params are lost
+  try { sessionStorage.setItem('cmass:last_region', regionName); sessionStorage.setItem('cmass:last_school', schoolName); } catch(e) { /* ignore storage errors */ }
         renderState();
         
         console.log('[SELECT] applyMappingIfPresent 호출 직전...');
@@ -1904,484 +1563,6 @@
         }
       };
 
-      function parseSchoolMetaCsv(csvText) {
-        if (!csvText || !csvText.trim()) return null;
-        
-        try {
-          const lines = csvText.split(/\r?\n/).filter(l => l.trim());
-          if (lines.length < 2) return null;
-          
-          const headers = lines[0].split(',').map(h => h.trim());
-          const values = lines[1].split(',').map(v => v.trim());
-          
-          const meta = {};
-          headers.forEach((header, idx) => {
-            if (values[idx]) {
-              meta[header] = values[idx];
-            }
-          });
-
-          // Create canonical alias keys and numeric per-grade totals so consumers
-          // can rely on stable names (g1c,g1s,g1avg,g2c,... totalClasses,totalStudents)
-          try{
-            function findKey(obj, patterns){
-              const keys = Object.keys(obj||{});
-              for(const p of patterns){
-                const re = (typeof p === 'string') ? new RegExp(p,'i') : p;
-                for(const k of keys){ if(re.test(k)) return k; }
-              }
-              return null;
-            }
-
-            // staff 담당자
-            const staffKey = findKey(meta, ['^staff$','담당자','담당']);
-            if (staffKey && !meta.staff) meta.staff = meta[staffKey];
-
-            // 특성화고 담당자 (specialized highschool contact)
-            const specialContactKey = findKey(meta, ['특성화.*담당자','특성화고 담당자','특성화 담당자','특성화고 담당']);
-            if (specialContactKey && !meta.specialContact) meta.specialContact = meta[specialContactKey];
-
-            // 학교 특성 / 특성화 flag
-            const specialFlagKey = findKey(meta, ['특성화','학교특성','특성화고 구분','특성화구분']);
-            if (specialFlagKey && !meta.special) meta.special = meta[specialFlagKey];
-
-            // region/code canonical keys
-            const regionKey = findKey(meta, ['^region$','지역','시도교육청','교육지원청']);
-            if (regionKey && !meta.region) meta.region = meta[regionKey];
-            const codeKey = findKey(meta, ['정보공시학교코드','school code','code','학교코드']);
-            if (codeKey && !meta.schoolCode) meta.schoolCode = meta[codeKey];
-
-            // Populate numeric canonical grade keys by scanning headers for patterns
-            const keys = headers.slice();
-            for (let i = 0; i < keys.length; i++){
-              const h = (keys[i] || '').trim();
-              const hl = h.toLowerCase();
-              const v = (values[i] || '').trim();
-              if (!v) continue;
-
-              // per-grade class counts (1학년 학급수 등.)
-              if (/1\D*학년|\b1학년\b/i.test(h) && /학급/.test(h)) meta.g1c = Number(v) || meta.g1c;
-              if (/2\D*학년|\b2학년\b/i.test(h) && /학급/.test(h)) meta.g2c = Number(v) || meta.g2c;
-              if (/3\D*학년|\b3학년\b/i.test(h) && /학급/.test(h)) meta.g3c = Number(v) || meta.g3c;
-
-              // per-grade student counts
-              if (/1\D*학년|\b1학년\b/i.test(h) && /학생/.test(h)) meta.g1s = Number(v) || meta.g1s;
-              if (/2\D*학년|\b2학년\b/i.test(h) && /학생/.test(h)) meta.g2s = Number(v) || meta.g2s;
-              if (/3\D*학년|\b3학년\b/i.test(h) && /학생/.test(h)) meta.g3s = Number(v) || meta.g3s;
-
-              // per-grade avg students per class
-              if (/1\D*학년|\b1학년\b/i.test(h) && /학급당/.test(h)) meta.g1avg = Number(v) || meta.g1avg;
-              if (/2\D*학년|\b2학년\b/i.test(h) && /학급당/.test(h)) meta.g2avg = Number(v) || meta.g2avg;
-              if (/3\D*학년|\b3학년\b/i.test(h) && /학급당/.test(h)) meta.g3avg = Number(v) || meta.g3avg;
-
-              // totals: 학급수계 / 학생수계
-              if (/학급.*계|학급수계|총학급수|학급수\s*계|학급수$/i.test(h)) meta.totalClasses = Number(v) || meta.totalClasses;
-              if (/학생.*계|학생수계|총학생수|학생수\s*계|학생수$/i.test(h)) meta.totalStudents = Number(v) || meta.totalStudents;
-            }
-
-            // As a last resort, if totals missing but per-grade present, compute totals (do not overwrite existing totals)
-            try{
-              if ((!meta.totalClasses || Number.isNaN(meta.totalClasses)) && (meta.g1c || meta.g2c || meta.g3c)){
-                meta.totalClasses = (Number(meta.g1c)||0) + (Number(meta.g2c)||0) + (Number(meta.g3c)||0);
-              }
-              if ((!meta.totalStudents || Number.isNaN(meta.totalStudents)) && (meta.g1s || meta.g2s || meta.g3s)){
-                meta.totalStudents = (Number(meta.g1s)||0) + (Number(meta.g2s)||0) + (Number(meta.g3s)||0);
-              }
-            }catch(e){}
-          }catch(e){ console.warn('[Mapping] canonicalize meta keys failed', e); }
-          
-          return meta;
-        } catch(e) {
-          console.warn('[Mapping] CSV parse error:', e);
-          return null;
-        }
-      }
-    })();
-  </script>
-  <datalist id="publisherOptions">
-    <option value="">출판사 선택</option>
-    <option value="씨마스"></option>
-    <option value="천재"></option>
-    <option value="비상"></option>
-    <option value="미래엔"></option>
-    <option value="동아"></option>
-    <option value="지학사"></option>
-    <option value="금성"></option>
-    <option value="창비"></option>
-    <option value="해냄"></option>
-    <option value="능률"></option>
-    <option value="삼양"></option>
-    <option value="이오북스"></option>
-    <option value="YBM"></option>
-    <option value="길벗"></option>
-    <option value="미진사"></option>
-    <option value="다락원"></option>
-    <option value="타임"></option>
-    <option value="채움"></option>
-  </datalist>
-
-  <!-- subject-block template for cloning -->
-  <template id="subject-template">
-    <div class="subject-block" style="margin-bottom:1rem;padding:1.1rem;background:#f9fafd;border-radius:.95rem;border:1px solid #e0e8f5;position:relative;display:flex;flex-direction:column;gap:0.9rem;">
-      <div style="display:flex;flex-direction:column;gap:0.5rem;">
-        <label style="font-weight:700;">과목</label>
-        <input type="hidden" class="subject-name" name="subject" value="">
-        <div class="subject-choice-group" role="group" aria-label="과목 선택">
-          <button type="button" class="subject-choice-btn" data-subject="정보" style="border-radius:0.85rem;border:1px solid #d6dbe8;background:#fff;font-weight:700;color:#1e3c72;">정보</button>
-          <button type="button" class="subject-choice-btn" data-subject="진로" style="border-radius:0.85rem;border:1px solid #d6dbe8;background:#fff;font-weight:700;color:#1e3c72;">진로</button>
-          <button type="button" class="subject-choice-btn" data-subject="보건" style="border-radius:0.85rem;border:1px solid #d6dbe8;background:#fff;font-weight:700;color:#1e3c72;">보건</button>
-          <button type="button" class="subject-choice-btn" data-subject="미술" style="border-radius:0.85rem;border:1px solid #d6dbe8;background:#fff;font-weight:700;color:#1e3c72;">미술</button>
-          <button type="button" class="subject-choice-btn" data-subject="체육" style="border-radius:0.85rem;border:1px solid #d6dbe8;background:#fff;font-weight:700;color:#1e3c72;">체육</button>
-          <button type="button" class="subject-choice-btn" data-subject="도서관사서" style="border-radius:0.85rem;border:1px solid #d6dbe8;background:#fff;font-weight:700;color:#1e3c72;">도서관사서</button>
-          <button type="button" class="subject-choice-btn" data-subject="특성화" style="border-radius:0.85rem;border:1px solid #d6dbe8;background:#fff;font-weight:700;color:#1e3c72;">특성화</button>
-          <button type="button" class="subject-choice-btn" data-subject="기타" style="border-radius:0.85rem;border:1px solid #d6dbe8;background:#fff;font-weight:700;color:#1e3c72;">기타</button>
-        </div>
-      </div>
-
-      <div style="display:flex;flex-direction:column;gap:0.5rem;">
-        <label style="font-weight:700;">선생님 이름</label>
-        <input type="text" class="teacher-name" name="teacher" placeholder="선생님 이름을 입력하세요" style="padding:0.65rem;border-radius:0.85rem;border:1px solid #d6dbe8;background:#fff;" />
-      </div>
-
-      <div style="display:flex;flex-direction:column;gap:0.5rem;">
-        <label style="font-weight:700;">출판사</label>
-        <input type="text" class="publisher-name" name="publisher" placeholder="출판사를 입력하거나 선택하세요" list="publisherOptions" autocomplete="off" style="padding:0.65rem;border-radius:0.85rem;border:1px solid #d6dbe8;background:#fff;" />
-      </div>
-
-      <div class="contact-section" style="display:flex;flex-direction:column;gap:0.5rem;">
-        <label style="font-weight:700;">연락처</label>
-        <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
-          <span style="display:inline-block;padding:.55rem .7rem;border-radius:.6rem;background:#f2f4ff;border:1px solid #d6dbe8;color:#12325a;font-weight:700;">010</span>
-          <input type="text" class="contact-suffix" placeholder="12345678" maxlength="8" inputmode="numeric" pattern="[0-9]*" aria-label="연락처 뒷자리 8자리 입력" autocomplete="off" style="width:120px;padding:.55rem .6rem;border-radius:.6rem;border:1px solid #d6dbe8;">
-          <input type="email" class="contact-email" placeholder="email@example.com" autocomplete="off" spellcheck="false" style="width:220px;padding:.55rem .6rem;border-radius:.6rem;border:1px solid #d6dbe8;">
-          <span class="contact-formatted" style="min-width:120px;margin-left:4px;color:#103254;font-weight:700;"></span>
-          <button type="button" class="copy-contact" style="margin-left:6px;padding:.4rem .6rem;border-radius:.5rem;border:1px solid #d6dbe8;background:#fff;cursor:pointer;">복사</button>
-        </div>
-      </div>
-
-      <!-- Friendliness (우호도) -->
-      <div class="friendliness-section" style="display:flex;flex-direction:column;gap:0.5rem;margin-top:6px;">
-        <label style="font-weight:700;">우호도</label>
-  <div class="friend-btn-row">
-    <input type="hidden" class="friendliness-input" name="friendliness" value="">
-          <button type="button" class="friend-btn" data-value="좋음" style="border-radius:.6rem;border:1px solid #d6dbe8;background:#fff;font-weight:800;color:#1e3c72;cursor:pointer;">좋음</button>
-          <button type="button" class="friend-btn" data-value="보통" style="border-radius:.6rem;border:1px solid #d6dbe8;background:#fff;font-weight:800;color:#1e3c72;cursor:pointer;">보통</button>
-          <button type="button" class="friend-btn" data-value="나쁨" style="border-radius:.6rem;border:1px solid #d6dbe8;background:#fff;font-weight:800;color:#1e3c72;cursor:pointer;">나쁨</button>
-        </div>
-      </div>
-
-      <div>
-        <label style="font-weight:700;display:block;margin-bottom:6px;">영업활동</label>
-        <div class="meeting-buttons main-meeting-buttons selector-grid">
-          <button class="selector-btn meeting-btn" type="button"><span class="selector-label">명함인사</span></button>
-          <button class="selector-btn meeting-btn" type="button"><span class="selector-label">티칭샘소개</span></button>
-          <button class="selector-btn meeting-btn" type="button"><span class="selector-label">채팅방소개</span></button>
-          <button class="selector-btn meeting-btn" type="button"><span class="selector-label">브로슈어</span></button>
-          <button class="selector-btn meeting-btn" type="button"><span class="selector-label">미팅불가</span></button>
-          <button class="selector-btn meeting-btn" type="button"><span class="selector-label">포스터</span></button>
-        </div>
-        <div class="meeting-buttons info-extra-buttons selector-grid" style="display:none;margin-top:0.6rem;">
-          <button class="selector-btn meeting-btn" type="button"><span class="selector-label">가이드북</span></button>
-          <button class="selector-btn meeting-btn" type="button"><span class="selector-label">구글클래스룸 사용</span></button>
-          <button class="selector-btn meeting-btn" type="button"><span class="selector-label">패들렛 사용</span></button>
-          <button class="selector-btn meeting-btn" type="button"><span class="selector-label">하이러닝 사용</span></button>
-        </div>
-      </div>
-
-      <div>
-        <label style="font-weight:700;display:block;margin-bottom:6px;">고객 요청사항</label>
-        <textarea class="customer-request" name="customerRequest" rows="2" placeholder="고객 요청사항이 있으면 입력하세요" style="width:100%;padding:.65rem;border-radius:.65rem;border:1px solid #d6dbe8;background:#fff;margin-bottom:0.6rem;"></textarea>
-      </div>
-
-      <div>
-        <label style="font-weight:700;display:block;margin-bottom:6px;">특이사항</label>
-        <textarea class="conversation-detail" name="specialNote" rows="2" placeholder="특이사항을 입력하세요" style="width:100%;padding:.65rem;border-radius:.65rem;border:1px solid #d6dbe8;background:#fff;"></textarea>
-      </div>
-
-      <div>
-        <label style="font-weight:700;display:block;margin-bottom:6px;">납품사항</label>
-        <textarea class="delivery-items" name="deliveryItems" rows="2" placeholder="납품 관련 내용을 입력하세요" style="width:100%;padding:.65rem;border-radius:.65rem;border:1px solid #d6dbe8;background:#fff;margin-bottom:0.6rem;"></textarea>
-      </div>
-
-      <div>
-        <label style="font-weight:700;display:block;margin-bottom:6px;">후속조치</label>
-        <select class="followUpSelect" name="followUp" style="width:100%;padding:.6rem;border-radius:.6rem;border:1px solid #d6dbe8;background:#fff;">
-          <option value="">선택하세요</option>
-          <option>완료</option>
-          <option>고객 요청사항 해소예정</option>
-          <option>중요고객 재방문예정</option>
-          <option>선정 시기 연락 대기</option>
-          <option>워크북 무상지원 제안</option>
-          <option>AIDT교육자료 체험계정 제공예정</option>
-        </select>
-      </div>
-
-      <div style="display:flex;justify-content:flex-end;">
-        <button type="button" class="removeSubjectBtn" style="margin:0.3rem 0 0 0;padding:0.55rem 1.2rem;font-size:0.95rem;border-radius:0.7rem;background:#ff9800;color:#fff;border:none;cursor:pointer;">삭제</button>
-      </div>
-    </div>
-  </template>
-      <script>
-        function updateSubjectChoiceButtons(block, value){
-          try{
-            if (!block) return;
-            const buttons = block.querySelectorAll('.subject-choice-btn');
-            buttons.forEach(function(btn){
-              const target = btn.dataset ? (btn.dataset.subject || '') : '';
-              const isActive = target === value;
-              btn.classList.toggle('is-active', isActive);
-              btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-              btn.style.background = isActive ? '#1e3c72' : '#fff';
-              btn.style.color = isActive ? '#fff' : '#1e3c72';
-              btn.style.borderColor = isActive ? '#1e3c72' : '#d6dbe8';
-            });
-          }catch(e){ console.warn('updateSubjectChoiceButtons failed', e); }
-        }
-
-        function setupSubjectChoiceBlock(block){
-          try{
-            if (!block || block.dataset.subjectChoiceInit === '1') return;
-            block.dataset.subjectChoiceInit = '1';
-            const hidden = block.querySelector('.subject-name');
-            if (!hidden) return;
-            hidden.addEventListener('change', function(){ updateSubjectChoiceButtons(block, hidden.value || ''); });
-
-            const buttons = block.querySelectorAll('.subject-choice-btn');
-            buttons.forEach(function(btn){
-              btn.addEventListener('click', function(){
-                const btnValue = (btn.dataset && btn.dataset.subject) ? btn.dataset.subject : '';
-                const current = hidden.value || '';
-                const nextValue = current === btnValue ? '' : btnValue;
-                if (hidden.value !== nextValue) hidden.value = nextValue;
-                updateSubjectChoiceButtons(block, nextValue);
-                const changeEvent = new Event('change', { bubbles: true });
-                hidden.dispatchEvent(changeEvent);
-                try{ if (typeof updateInfoButtons === 'function') updateInfoButtons(); }catch(er){ console.warn('updateInfoButtons failed', er); }
-                try{ if (typeof updateSpecialMeetingButtons === 'function') updateSpecialMeetingButtons(); }catch(er){ console.warn('updateSpecialMeetingButtons failed', er); }
-              });
-            });
-
-            updateSubjectChoiceButtons(block, hidden.value || '');
-
-            // --- Friendliness (우호도) per-block wiring ---
-            try{
-              const friendInput = block.querySelector('input[name="friendliness"]');
-              const friendBtns = Array.from(block.querySelectorAll('.friend-btn')) || [];
-              function setFriendLocal(value){
-                try{
-                  if(friendInput) friendInput.value = value || '';
-                  friendBtns.forEach(b=>{
-                    try{
-                      if(b.dataset && b.dataset.value === value){
-                        b.classList.add('is-active');
-                        b.style.background = 'linear-gradient(135deg,#1e3c72,#274b9f)';
-                        b.style.color = '#fff';
-                        b.style.border = '1px solid #1e3c72';
-                      } else {
-                        b.classList.remove('is-active');
-                        b.style.background = '#fff';
-                        b.style.color = '#1e3c72';
-                        b.style.border = '1px solid #d6dbe8';
-                      }
-                    }catch(e){}
-                  });
-                }catch(e){}
-              }
-              friendBtns.forEach(b=> b.addEventListener('click', function(){ try{ setFriendLocal(this.dataset?.value || ''); }catch(e){} }));
-              // initialize from existing hidden value if any
-              try{ const initVal = friendInput ? (friendInput.value || '') : ''; if(initVal) setFriendLocal(initVal); }catch(e){}
-            }catch(e){ /* ignore friend wiring errors */ }
-          }catch(e){ console.warn('setupSubjectChoiceBlock failed', e); }
-        }
-
-        // Show/hide additional meeting buttons (info-extra-buttons) for certain subjects
-        function updateInfoButtons(){
-          try{
-            const blocks = Array.from(document.querySelectorAll('.subject-block'));
-            blocks.forEach(block => {
-              try{
-                const subject = (block.querySelector('.subject-name')?.value || '').trim();
-                const extra = block.querySelector('.info-extra-buttons');
-                if (!extra) return;
-                // Show extra buttons for subjects that need them
-                const showFor = ['정보','진로'];
-                if (subject && showFor.includes(subject)) {
-                  extra.style.display = '';
-                } else {
-                  extra.style.display = 'none';
-                }
-              }catch(e){}
-            });
-          }catch(e){ console.warn('updateInfoButtons error', e); }
-        }
-
-        // Placeholder for future special meeting button logic; keep no-op to avoid console errors
-        function updateSpecialMeetingButtons(){ /* intentionally empty */ }
-
-        // Add Subject Button handler
-        (function setupAddSubjectBtn(){
-          try{
-            const btn = document.getElementById('addSubjectBtn');
-            if (!btn) { console.warn('addSubjectBtn not found'); return; }
-            btn.addEventListener('click', function(){
-              const container = document.getElementById('subjectsBlock');
-              const tpl = document.getElementById('subject-template');
-              if (!container || !tpl || !tpl.content) { console.warn('subjectsBlock or template missing'); return; }
-              const proto = tpl.content.querySelector('.subject-block');
-              if (!proto) { console.warn('subject-block prototype not found'); return; }
-              const clone = proto.cloneNode(true);
-              container.appendChild(clone);
-              setupSubjectChoiceBlock(clone);
-              if (typeof renumberSubjectBlocks === 'function') renumberSubjectBlocks();
-              if (typeof updateInfoButtons === 'function') updateInfoButtons();
-              if (typeof updateSpecialMeetingButtons === 'function') updateSpecialMeetingButtons();
-            });
-          }catch(e){ console.warn('setupAddSubjectBtn failed', e); }
-        })();
-
-        // Ensure an initial subject-block exists by cloning the canonical template when the page is parsed.
-        (function ensureInitialSubjectBlock(){
-          try{
-            const container = document.getElementById('subjectsBlock');
-            if (!container) return;
-            if ((container.querySelectorAll('.subject-block') || []).length === 0) {
-              const tpl = document.getElementById('subject-template');
-              if (tpl && tpl.content) {
-                const proto = tpl.content.querySelector('.subject-block');
-                if (proto) {
-                  const clone = proto.cloneNode(true);
-                  container.appendChild(clone);
-                  setupSubjectChoiceBlock(clone);
-                  if (typeof renumberSubjectBlocks === 'function') renumberSubjectBlocks();
-                  if (typeof updateInfoButtons === 'function') updateInfoButtons();
-                  if (typeof updateSpecialMeetingButtons === 'function') updateSpecialMeetingButtons();
-                }
-              }
-            }
-          }catch(e){ console.warn('ensureInitialSubjectBlock failed', e); }
-        })();
-  </script>
-  <div class="step2-only">
-        <div style="display:flex;gap:.5rem;margin-bottom:.5rem;align-items:center;">
-          <div id="tagOptions" style="display:none;"> <!-- hidden: default/basic behavior applied -->
-            <label style="font-size:13px;display:flex;align-items:center;gap:.4rem;"><input type="checkbox" id="optHumanLine" checked>한글 라인</label>
-            <label style="font-size:13px;display:flex;align-items:center;gap:.4rem;"><input type="checkbox" id="optHashtags">해시태그 포함</label>
-            <label style="font-size:13px;display:flex;align-items:center;gap:.4rem;">최대태그수 <input id="optMaxTags" type="number" min="1" max="20" value="8" style="width:56px;padding:.2rem .4rem;border-radius:.4rem;border:1px solid #d6dbe8;margin-left:.4rem;"></label>
-          </div>
-          <button type="button" id="copyKakaoBtn" style="flex:1;padding:.75rem;border-radius:1rem;border:1px solid #ffd9b3;background:#fff;color:#b25700;font-weight:800;">카톡으로 복사</button>
-        </div>
-        <div style="display:flex;gap:.5rem;margin-bottom:.5rem;">
-          <button type="button" id="saveToServerBtn" style="flex:1;min-width:0;padding:.75rem;border-radius:1rem;border:1px solid #cfe8ff;background:#e9f4ff;color:#0b3a72;font-weight:800;">서버에 저장</button>
-        </div>
-        <div style="display:flex;gap:.5rem;align-items:center;margin-top:.6rem;">
-          <button type="button" id="generateSummaryBtn" style="flex:1;min-width:0;padding:.6rem;border-radius:.6rem;border:1px solid #4CAF50;background:#4CAF50;color:#fff;font-weight:800;">요약 생성</button>
-          <button type="button" id="summaryEditToggleBtn" style="display:none;flex:1;min-width:0;padding:.6rem;border-radius:.6rem;border:1px solid #cfe8ff;background:#fff;color:#0b3a72;font-weight:800;">수정</button>
-          <button type="button" id="summaryRegenerateBtn" style="flex:1;min-width:0;padding:.6rem;border-radius:.6rem;border:1px solid #e6eefc;background:#f8fbff;color:#0b3a72;font-weight:700;">내용 전체지우기</button>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:.5rem;">
-            <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
-            <button type="button" id="chooseCollectTimeBtn" style="padding:.5rem .8rem;border-radius:.6rem;border:1px solid #d6dbe8;background:#fff;color:#0b3a72;font-weight:700;">퇴근보고 시간 설정</button>
-            <div id="collectTimeDisplay" style="font-size:13px;color:#3b4b63">기본: 퇴근 시각 기준 + 30분</div>
-            <!-- Draft controls removed for multi-school workflow -->
-          </div>
-          <input type="hidden" id="customCollectStart" value="">
-          <input type="hidden" id="customCollectMinutes" value="30">
-          <textarea id="generatedSummary" rows="10" readonly style="width:100%;margin-top:.6rem;padding:.8rem;border-radius:.8rem;border:1px solid #d6dbe8;display:block;">요약이 여기에 생성됩니다.</textarea>
-          </div>
-      <!-- follow-up select is now per subject-block -->
-      </div>
-    </form>
-  </div>
-
-  <script>
-    // Button handlers: Copy to Kakao, Generate Summary, Form Submit
-    (function(){
-      'use strict';
-
-      // Collect all form data
-      function collectFormData() {
-        try {
-          const visitDate = document.getElementById('visitDate')?.value || '';
-          const region = window.selectedRegion || '';
-          const school = window.selectedSchool || '';
-          const staff = window._cmass_staffParam || '';
-          
-          const visitStartHour = document.getElementById('visitStartHour')?.value || '';
-          const visitStartMinute = document.getElementById('visitStartMinute')?.value || '';
-          const visitDuration = document.getElementById('visitDurationInput')?.value || '';
-          const visitEndTime = document.getElementById('visitEndTime')?.value || '';
-          
-          // Collect all subject blocks
-          const subjects = [];
-          const subjectBlocks = document.querySelectorAll('.subject-block');
-          
-          subjectBlocks.forEach(block => {
-            const subject = block.querySelector('.subject-name')?.value || '';
-            const teacher = block.querySelector('.teacher-name')?.value || '';
-            const publisher = block.querySelector('.publisher-name')?.value || '';
-            const contactSuffix = block.querySelector('.contact-suffix')?.value || '';
-            const contactEmail = block.querySelector('.contact-email')?.value || '';
-            const contactFormatted = contactSuffix ? `010-${contactSuffix}` : '';
-            const friendliness = block.querySelector('.friendliness-input')?.value || '';
-            
-            // Collect active meeting buttons
-            const meetings = [];
-            const activeMeetingBtns = block.querySelectorAll('.meeting-btn.is-active');
-            activeMeetingBtns.forEach(btn => {
-              const label = btn.querySelector('.selector-label')?.textContent || btn.textContent;
-              if (label) meetings.push(label.trim());
-            });
-            
-            const customerRequest = block.querySelector('.customer-request')?.value || '';
-            const conversation = block.querySelector('.conversation-detail')?.value || '';
-            const delivery = block.querySelector('.delivery-items')?.value || '';
-            const followUp = block.querySelector('.followUpSelect')?.value || '';
-            
-            if (subject || teacher) {
-              subjects.push({
-                subject,
-                teacher,
-                publisher,
-                contactSuffix,
-                contactEmail,
-                contactFormatted,
-                friendliness,
-                meetings,
-                customerRequest,
-                conversation,
-                delivery,
-                followUp
-              });
-            }
-          });
-          
-          return {
-            visitDate,
-            region,
-            school,
-            staff,
-            visitStartHour,
-            visitStartMinute,
-            visitDuration,
-            visitEndTime,
-            subjects
-          };
-        } catch (error) {
-          console.error('[collectFormData] Error:', error);
-          return null;
-        }
-      }
-
-      // Generate summary text
-      function generateSummary() {
-        // Use accumulated visit list instead of single form data
-        const visitList = window._cmass_visitList || [];
-        
-        if (visitList.length === 0) {
-          console.warn('[Summary] No accumulated visits');
-          return '';
-        }
-
         // Use first visit for date and staff info
         const firstVisit = visitList[0];
         const staff = firstVisit.staff || '영업사원';
@@ -2446,131 +1627,6 @@
 
           summary += `${label}. ${visit.school || '-'} (${establishType}, ${studentCount}명, ${schoolType})\n`;
           summary += ` ${String(visitStartHour).padStart(2,'0')}:${String(visitStartMinute).padStart(2,'0')}~${String(visitEndHour).padStart(2,'0')}:${String(visitEndMinute).padStart(2,'0')} (${visitDuration}분)\n\n`;
-
-          // Subject details
-          visit.subjects.forEach((subj, subjIdx) => {
-            summary += `-${label}${subjIdx+1}. ${subj.subject || '-'} ${subj.teacher || '-'}`;
-            if (subj.contactFormatted) summary += ` (${subj.contactFormatted})`;
-            if (subj.meetings && subj.meetings.length > 0) {
-              summary += ` · ${subj.meetings.join(' · ')}`;
-            }
-            if (subj.delivery) summary += ` · ${subj.delivery}`;
-            summary += `\n`;
-          });
-          
-          summary += `\n`;
-        });
-
-        summary += `3. 퇴근보고 자료 정리 (${String(endHour).padStart(2,'0')}:${String(endMinute).padStart(2,'0')}~${String(endHour).padStart(2,'0')}:${String(endMinute + 30).padStart(2,'0')}) (30분)\n\n`;
-        summary += `- 끝.\n\n`;
-
-        // Auto tags - aggregate all subjects
-        const subjectCounts = {};
-        const schoolNames = [];
-        visitList.forEach(visit => {
-          if (visit.school) schoolNames.push(visit.school);
-          visit.subjects.forEach(subj => {
-            if (subj.subject) {
-              subjectCounts[subj.subject] = (subjectCounts[subj.subject] || 0) + 1;
-            }
-          });
-        });
-        
-        const majorSubjects = Object.entries(subjectCounts)
-          .map(([subj, count]) => `${subj}(${count}회)`)
-          .join(', ');
-        
-        summary += `자동 태그: 주요과목: ${majorSubjects || '없음'}`;
-        if (schoolNames.length > 0) summary += `, 재방문: ${schoolNames.join(', ')}`;
-
-        return summary.trim();
-      }
-
-      // Copy to clipboard for KakaoTalk
-      function copyToKakao() {
-        const summary = generateSummary();
-        if (!summary) {
-          alert('입력된 데이터가 없습니다.');
-          return;
-        }
-        
-        navigator.clipboard.writeText(summary).then(() => {
-          alert('✅ 카카오톡에 붙여넣기 할 수 있습니다!');
-        }).catch(err => {
-          console.error('복사 실패:', err);
-          alert('❌ 복사 실패. 다시 시도해주세요.');
-        });
-      }
-
-      // Initialize button handlers
-      document.addEventListener('DOMContentLoaded', function() {
-        // Initialize visit accumulation list
-        if (!window._cmass_visitList) {
-          window._cmass_visitList = [];
-        }
-        
-        // Check if returning from input-next.html with new visit data
-        try {
-          const newVisitData = sessionStorage.getItem('cmass_newVisit');
-          if (newVisitData) {
-            const visit = JSON.parse(newVisitData);
-            // Add school metadata if available
-            visit.schoolMeta = window._cmass_lastFoundMeta || {};
-            window._cmass_visitList.push(visit);
-            sessionStorage.removeItem('cmass_newVisit');
-            console.log('[Init] Added visit from input-next:', visit);
-          }
-        } catch(e) {
-          console.warn('[Init] Failed to load visit from session:', e);
-        }
-        
-        // Update visit accumulation status
-        function updateVisitAccumStatus() {
-          const statusEl = document.getElementById('visitAccumStatus');
-          if (statusEl) {
-            const count = (window._cmass_visitList || []).length;
-            statusEl.textContent = `누적: ${count}개 학교`;
-            statusEl.style.background = count > 0 ? '#e8f5e9' : '#f0f7ff';
-            statusEl.style.color = count > 0 ? '#2e7d32' : '#1e3c72';
-          }
-        }
-        
-        // Reset visit list button
-        const resetBtn = document.getElementById('resetVisitListBtn');
-        if (resetBtn) {
-          resetBtn.addEventListener('click', function() {
-            if (confirm('누적된 모든 방문 기록을 초기화하시겠습니까?')) {
-              window._cmass_visitList = [];
-              updateVisitAccumStatus();
-              console.log('[Reset] Visit list cleared');
-              alert('새 보고서가 시작되었습니다.');
-            }
-          });
-        }
-        
-        // Initial status update
-        updateVisitAccumStatus();
-        
-        // Expose update function globally
-        window.updateVisitAccumStatus = updateVisitAccumStatus;
-        
-        // Step1 action buttons
-        const copyKakaoBtn_step1 = document.getElementById('copyKakaoBtn_step1');
-        if (copyKakaoBtn_step1) {
-          copyKakaoBtn_step1.addEventListener('click', function() {
-            const summary = document.getElementById('generatedSummary_step1').value;
-            if (!summary || summary === '요약이 여기에 생성됩니다.') {
-              alert('먼저 요약을 생성해주세요.');
-              return;
-            }
-            navigator.clipboard.writeText(summary).then(() => {
-              alert('✅ 카카오톡에 붙여넣기 할 수 있습니다!');
-            }).catch(err => {
-              console.error('복사 실패:', err);
-              alert('❌ 복사 실패. 다시 시도해주세요.');
-            });
-          });
-        }
         
         const saveToServerBtn_step1 = document.getElementById('saveToServerBtn_step1');
         if (saveToServerBtn_step1) {
@@ -2579,22 +1635,6 @@
           });
         }
         
-        const generateSummaryBtn_step1 = document.getElementById('generateSummaryBtn_step1');
-        if (generateSummaryBtn_step1) {
-          generateSummaryBtn_step1.addEventListener('click', function() {
-            const summary = generateSummary();
-            document.getElementById('generatedSummary_step1').value = summary || '누적된 방문 기록이 없습니다.';
-          });
-        }
-        
-        const clearSummaryBtn_step1 = document.getElementById('clearSummaryBtn_step1');
-        if (clearSummaryBtn_step1) {
-          clearSummaryBtn_step1.addEventListener('click', function() {
-            if (confirm('요약 내용을 모두 지우시겠습니까?')) {
-              document.getElementById('generatedSummary_step1').value = '요약이 여기에 생성됩니다.';
-            }
-          });
-        }
         
         // Copy to KakaoTalk button (Step2)
         const copyKakaoBtn = document.getElementById('copyKakaoBtn');
@@ -2603,30 +1643,6 @@
           console.log('[Buttons] copyKakaoBtn handler attached');
         }
         
-        // Generate summary button
-        const generateSummaryBtn = document.getElementById('generateSummaryBtn');
-        const summaryTextarea = document.getElementById('generatedSummary');
-        
-        if (generateSummaryBtn && summaryTextarea) {
-          generateSummaryBtn.addEventListener('click', function() {
-            const summary = generateSummary();
-            summaryTextarea.value = summary || '요약할 데이터가 없습니다.';
-            summaryTextarea.readOnly = false;
-          });
-          console.log('[Buttons] generateSummaryBtn handler attached');
-        }
-        
-        // Summary regenerate button
-        const summaryRegenerateBtn = document.getElementById('summaryRegenerateBtn');
-        if (summaryRegenerateBtn && summaryTextarea) {
-          summaryRegenerateBtn.addEventListener('click', function() {
-            if (confirm('요약 내용을 모두 지우시겠습니까?')) {
-              summaryTextarea.value = '요약이 여기에 생성됩니다.';
-              summaryTextarea.readOnly = true;
-            }
-          });
-          console.log('[Buttons] summaryRegenerateBtn handler attached');
-        }
         
         // Form submit button
         const salesForm = document.getElementById('salesForm');
@@ -2878,8 +1894,14 @@
       document.addEventListener('DOMContentLoaded', function() {
         const saveBtn = document.getElementById('saveToServerBtn');
         if (saveBtn) {
-          saveBtn.addEventListener('click', saveToFirestore);
-          console.log('[Firestore] Save button handler attached');
+          // Idempotent binding: avoid attaching the handler multiple times
+          if (!saveBtn.dataset || saveBtn.dataset.cmassBound !== '1') {
+            saveBtn.addEventListener('click', saveToFirestore);
+            try { if (saveBtn.dataset) saveBtn.dataset.cmassBound = '1'; } catch(e){}
+            console.log('[Firestore] Save button handler attached');
+          } else {
+            console.log('[Firestore] Save button handler already attached (skipped)');
+          }
         } else {
           console.warn('[Firestore] Save button not found');
         }
@@ -3176,12 +2198,18 @@
         }
       }
 
-      // Attach event listener when DOM is ready
+      // Attach event listener when DOM is ready (idempotent)
       document.addEventListener('DOMContentLoaded', function() {
         const saveBtn = document.getElementById('saveToServerBtn');
         if (saveBtn) {
-          saveBtn.addEventListener('click', saveToFirestore);
-          console.log('[Firestore] Save button handler attached');
+          // Idempotent binding: avoid attaching the handler multiple times
+          if (!saveBtn.dataset || saveBtn.dataset.cmassBound !== '1') {
+            saveBtn.addEventListener('click', saveToFirestore);
+            try { if (saveBtn.dataset) saveBtn.dataset.cmassBound = '1'; } catch(e){}
+            console.log('[Firestore] Save button handler attached');
+          } else {
+            console.log('[Firestore] Save button handler already attached (skipped)');
+          }
         } else {
           console.warn('[Firestore] Save button not found');
         }

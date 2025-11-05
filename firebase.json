@@ -1,0 +1,24 @@
+{
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "cleanUrls": true,
+    "rewrites": [
+      { "source": "/meeting", "destination": "/meeting.html" },
+      { "source": "/meeting/**", "destination": "/meeting.html" },
+      { "source": "/input", "destination": "/input.html" },
+      { "source": "/input/**", "destination": "/input.html" },
+      { "source": "/front", "destination": "/front.html" },
+      { "source": "/front/**", "destination": "/front.html" },
+      { "source": "/report", "destination": "/report.html" },
+      { "source": "/report/**", "destination": "/report.html" },
+      
+      { "source": "/", "destination": "/front.html" },
+      { "source": "**", "destination": "/front.html" }
+    ]
+  }
+}

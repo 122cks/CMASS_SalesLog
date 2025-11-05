@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Test Draft Preview</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <style>body{font-family:Arial,Helvetica,sans-serif;padding:12px} pre{white-space:pre-wrap}</style>
+    <script>
+      // Provide minimal DOM inputs used by meeting.js so buildKey() resolves predictably
+      // and stub localStorage to return a prepared draft for any meeting:draft: key.
+      const sampleDraft = {
+        staff: '송훈재 부장',
+        date: '2025-09-29',
+        region: '경기도가평군',
+        school: '청심국제고등학교',
+        visitStart: '08:00',
+        durationMin: 60,
+        subjects: ['정보'],
+        activities: ['활동A'],
+        favor: '좋음',
+        teacher: 'aa',
+        publisher: '미래엔',
+        requests: '요청예시',
+        notes: '특이사항 예시',
+        deliveries: '납품 예시',
+        followUp: '후속 예시',
+        sessions: [
+          { subjects: ['정보'], activities: ['활동A'], favor: '좋음', teacher: 'aa', publisher: '미래엔', requests: 'aa', notes: 'aa', deliveries: 'aa', followUp: '완료(추가조치 없음)'}
+        ]
+      };
+      // Very small localStorage shim that returns the sampleDraft for meeting:draft: keys
+      window.localStorage = (function(){
+        return {
+          getItem: function(k){ try{ console.log('[TEST_LOCALSTORAGE] getItem key=', String(k)); if(k && k.indexOf('meeting:draft:')===0) return JSON.stringify(sampleDraft); return null; }catch(e){ console.log('[TEST_LOCALSTORAGE] getItem error', e && e.message); return null; } },
+          setItem: function(k,v){ try{ console.log('[TEST_LOCALSTORAGE] setItem', k, String(v).slice(0,80)); }catch(e){} },
+          removeItem:function(k){ try{ console.log('[TEST_LOCALSTORAGE] removeItem', k); }catch(e){} }, key:function(i){ return null }, length:0
+        };
+      })();
+    console.log('[TEST_LOCALSTORAGE] shim installed, typeof localStorage=', typeof window.localStorage);
+      // stub fetch to avoid network requests
+      window.fetch = function(){ return Promise.resolve({ ok:false, json: ()=>null, text: ()=>'' }); };
+      // minimal inputs required by meeting.js
+      document.addEventListener('DOMContentLoaded', function(){
+        const inputs = [
+          {id:'staff', value: sampleDraft.staff},
+          {id:'visitDate', value: sampleDraft.date},
+          {id:'regionSelect', value: sampleDraft.region},
+          {id:'schoolSelect', value: sampleDraft.school},
+          {id:'startHour', value: '08'}, {id:'startMinute', value:'00'}, {id:'duration', value: '60'}
+        ];
+        inputs.forEach(it => {
+          if(!document.getElementById(it.id)){
+            const el = document.createElement(it.id && it.id.indexOf('Select')>-1? 'select':'input');
+            el.id = it.id; el.value = it.value || '';
+            if(el.tagName.toLowerCase()==='select'){
+              const opt = document.createElement('option'); opt.textContent = it.value; opt.value = it.value; el.appendChild(opt);
+            }
+            document.body.appendChild(el);
+          }
+        });
+        // savedDraft element
+        if(!document.getElementById('savedDraft')){
+          const pre = document.createElement('pre'); pre.id = 'savedDraft'; pre.style.whiteSpace='pre-wrap'; document.body.appendChild(pre);
+        }
+        // minimal session structure: ensure #sessionContainer and a .meeting-session inside a .meeting-session-wrap
+        if(!document.getElementById('sessionContainer')){
+          const sc = document.createElement('div'); sc.id='sessionContainer';
+          const details = document.createElement('details'); details.className='meeting-session-wrap';
+          const summary = document.createElement('summary'); summary.textContent='미팅내용 1';
+          const panel = document.createElement('section'); panel.className='meeting-session';
+          // create sub-elements referenced by meeting.js
+          const ssub = document.createElement('div'); ssub.className='session-subjects'; const b = document.createElement('button'); b.className='subject-btn'; b.textContent='정보'; ssub.appendChild(b);
+          const sact = document.createElement('div'); sact.className='session-activities'; const ab = document.createElement('button'); ab.className='subject-btn'; ab.textContent='활동A'; sact.appendChild(ab);
+          const sfav = document.createElement('div'); sfav.className='session-favor'; const favb = document.createElement('button'); favb.className='favor-btn'; favb.textContent='좋음'; sfav.appendChild(favb);
+          const teacher = document.createElement('input'); teacher.className='session-teacher'; teacher.value = 'aa';
+          const pub = document.createElement('input'); pub.className='session-publisher'; pub.value = '미래엔';
+          const notes = document.createElement('input'); notes.className='session-notes'; notes.value = 'aa';
+          panel.appendChild(ssub); panel.appendChild(sact); panel.appendChild(sfav); panel.appendChild(teacher); panel.appendChild(pub); panel.appendChild(notes);
+          details.appendChild(summary); details.appendChild(panel); sc.appendChild(details); document.body.appendChild(sc);
+        }
+      });
+    </script>
+    <script src="./meeting.js"></script>
+    <script>
+      // after meeting.js runs and potentially renders the saved draft, log the savedDraft content
+      window.addEventListener('load', function(){
+        try{
+          setTimeout(function(){
+            const el = document.getElementById('savedDraft');
+            console.log('[TEST] savedDraft=' + (el ? el.textContent : '<missing>'));
+            // mark done so automation can detect
+            window._test_done = true;
+          }, 300);
+        }catch(e){ console.log('[TEST] error', e && e.message); }
+      });
+    </script>
+  </head>
+  <body>
+    <h3>Test Draft Preview</h3>
+  </body>
+</html>

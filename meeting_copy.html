@@ -1,0 +1,1278 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Meeting - 영업일지</title>
+  <link rel="manifest" href="/manifest.json">
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;margin:18px;color:#072042}
+    header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+    /* place the Back button at the far right */
+    #btnBack{margin-left:auto}
+    .topline{font-weight:800}
+    label{display:block;margin-top:10px;font-weight:700}
+    input,select,textarea,button{font-size:14px;padding:8px;border:1px solid #d6dbe8;border-radius:8px}
+    .row{display:flex;gap:8px;align-items:center}
+    .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+    .subject-btn{padding:8px 12px;border-radius:10px;border:1px solid #d6dbe8;background:#fff;cursor:pointer}
+    .subject-btn.active{background:linear-gradient(135deg,#1e3c72,#274b9f);color:#fff;border-color:#1e3c72}
+  .dur-btn{padding:6px 10px;border-radius:8px;border:1px solid #d6dbe8;background:#fff;cursor:pointer;font-weight:700}
+  .dur-btn.active{background:#1e3c72;color:#fff;border-color:#123}
+  /* Button grids: keep normal stacking order and pointer behavior (removed aggressive z-index rules) */
+  .btn-row, #subjects, #activities, .entry-subjects, .entry-activities { position: relative; }
+  .subject-btn, .entry-subject-btn, .entry-activity-btn { pointer-events: auto; position: relative; }
+    .actions{display:flex;gap:8px;margin-top:14px}
+    .muted{color:#556}
+    .small{font-size:13px}
+  /* Section styling: use a subtle divider and padding for logical groups */
+  .form-section{margin-bottom:12px;padding:10px;border:1px solid #eef6fb;border-radius:8px;background:#fbfeff}
+  .section-title{margin:0 0 8px 0;font-size:15px;font-weight:800;color:#123}
+    /* Responsive tweaks for narrow screens (<=530px) - only adjust sizes/layout, keep structure */
+    @media (max-width:530px){
+      body{margin:12px;font-size:14px}
+      header{gap:8px}
+      #schoolDisplay{font-size:15px}
+      .topline{font-weight:800;font-size:14px}
+      /* slightly smaller controls, less padding */
+      input, select, textarea, button{font-size:13px;padding:6px;border-radius:8px}
+      /* allow inputs/selects to shrink and take full width when stacked */
+      input, select, textarea{min-width:0}
+      /* stack rows vertically on mobile */
+      .row{flex-direction:column;align-items:flex-start;gap:8px}
+      .row > *{width:100%}
+      /* make time selectors a bit narrower but keep readable */
+      #startHour, #startMinute{width:76px}
+      #duration, #endTime{width:100%}
+      /* tighten button grids */
+  .btn-row{gap:6px}
+      .subject-btn{padding:6px 10px;border-radius:8px;font-size:13px}
+      .subject-btn.active{font-size:13px}
+      /* actions stack full-width */
+      .actions{flex-direction:column}
+      .actions button{width:100%}
+  /* saved draft sizing */
+  #savedDraft{font-size:13px}
+      /* reduce select dropdown visual size */
+      select{height:40px}
+
+      /* Entry collapse styling */
+      .entry-title { cursor: default; }
+      .entry-title .toggle-collapse { font-weight:700 }
+      .entry-body { transition: all 160ms ease; }
+      .entry.collapsed .entry-body { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div id="schoolDisplay" style="margin-left:12px;font-weight:900;color:#042046;">
+      <!-- school name will be shown here -->
+    </div>
+    <div class="topline" id="topline">담당자 - 방문일 - 지역</div>
+    <button id="btnBack">◀ 뒤로가기</button>
+  </header>
+
+  <main>
+    <form id="meetingForm" onsubmit="return false;">
+      <!-- Basic info section -->
+      <section class="form-section">
+        <h3 class="section-title">- 기본정보 -</h3>
+        <div class="row" style="gap:12px;align-items:center">
+          <div style="flex:1">
+            <label style="margin-top:0">담당자</label>
+            <input id="staff" type="text" placeholder="담당자 이름" style="width:100%">
+          </div>
+          <div style="flex:1">
+            <label style="margin-top:0">방문일</label>
+            <input id="visitDate" type="date" style="width:100%">
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px;gap:12px">
+          <div style="flex:1">
+            <label style="margin-top:0">지역</label>
+            <select id="regionSelect" style="width:100%"><option value="">지역 선택...</option></select>
+          </div>
+          <div style="flex:1">
+            <label style="margin-top:0">학교</label>
+            <select id="schoolSelect" style="width:100%"><option value="">학교 선택...</option></select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Visit records section -->
+      <section class="form-section">
+        <h3 class="section-title">- 방문기록 -</h3>
+        <label style="margin-top:0">방문 시작시간</label>
+        <div class="row" style="align-items:center;gap:8px">
+          <div style="display:flex;gap:6px;align-items:center">
+            <select id="startHour" style="width:80px"></select>
+            <span style="font-weight:700">시</span>
+            <select id="startMinute" style="width:80px"></select>
+            <span style="font-weight:700">분</span>
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px;align-items:center">
+          <div style="flex:0 0 150px">
+            <label style="margin-top:0">총 방문시간(분)</label>
+            <input id="duration" type="number" min="0" value="30" style="width:100%">
+          </div>
+          <div id="durationButtons" style="display:flex;gap:6px;align-items:center;margin-left:8px;flex-wrap:wrap">
+            <button type="button" class="dur-btn" data-min="10">10</button>
+            <button type="button" class="dur-btn" data-min="20">20</button>
+            <button type="button" class="dur-btn" data-min="30">30</button>
+            <button type="button" class="dur-btn" data-min="40">40</button>
+            <button type="button" class="dur-btn" data-min="50">50</button>
+            <button type="button" class="dur-btn" data-min="60">60</button>
+            <button type="button" class="dur-btn" data-min="70">70</button>
+            <button type="button" class="dur-btn" data-min="80">80</button>
+            <button type="button" class="dur-btn" data-min="90">90</button>
+          </div>
+          <div style="flex:0 0 160px;margin-left:auto">
+            <label style="margin-top:0">방문 종료시간</label>
+            <input id="endTime" type="text" readonly style="width:100%;background:#f7f8ff">
+          </div>
+        </div>
+      </section>
+
+      <!-- Meeting content section -->
+      <section class="form-section">
+        <h3 class="section-title">- 미팅내용 -</h3>
+        <label style="margin-top:0">과목 선택 (버튼형)</label>
+        <div id="subjects" class="btn-row">
+          <button type="button" class="subject-btn">정보</button>
+          <button type="button" class="subject-btn">진로</button>
+          <button type="button" class="subject-btn">보건</button>
+          <button type="button" class="subject-btn">미술</button>
+          <button type="button" class="subject-btn">체육</button>
+          <button type="button" class="subject-btn">도서관사서</button>
+          <button type="button" class="subject-btn">특성화</button>
+          <button type="button" class="subject-btn">기타</button>
+        </div>
+
+        <label style="margin-top:8px">영업활동 (버튼형)</label>
+        <div id="activities" class="btn-row">
+          <button type="button" class="subject-btn">명함인사</button>
+          <button type="button" class="subject-btn">티칭샘소개</button>
+          <button type="button" class="subject-btn">카톡방소개</button>
+          <button type="button" class="subject-btn">포스터전달</button>
+          <button type="button" class="subject-btn">브로슈어</button>
+          <button type="button" class="subject-btn">가이드북</button>
+          <button type="button" class="subject-btn">단행본소개</button>
+          <button type="button" class="subject-btn">교구재안내</button>
+          <button type="button" class="subject-btn">연수소개</button>
+          <button type="button" class="subject-btn">구글클래스룸</button>
+          <button type="button" class="subject-btn">하이러닝</button>
+          <button type="button" class="subject-btn">미팅거부</button>
+          <button type="button" class="subject-btn">자료거부</button>
+        </div>
+
+        <!-- header row: teacher / publisher (subject is selected via buttons) -->
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <input id="teacherName" type="text" placeholder="선생님 이름" style="flex:1">
+          <input id="publisher" type="text" list="publishersList" placeholder="출판사" style="flex:0 0 140px">
+        </div>
+
+        <!-- Favorability row: 우호도 (버튼형) -->
+        <label style="margin-top:8px">우호도 (버튼형)</label>
+        <div id="favors" class="btn-row" style="margin-top:6px">
+          <button type="button" class="subject-btn">좋음</button>
+          <button type="button" class="subject-btn">보통</button>
+          <button type="button" class="subject-btn">나쁨</button>
+        </div>
+
+        <datalist id="publishersList">
+          <option value="씨마스"></option>
+          <option value="천재"></option>
+          <option value="비상"></option>
+          <option value="미래엔"></option>
+          <option value="동아"></option>
+          <option value="지학사"></option>
+          <option value="금성"></option>
+          <option value="창비"></option>
+          <option value="해냄"></option>
+          <option value="능률"></option>
+          <option value="삼양"></option>
+          <option value="이오북스"></option>
+          <option value="YBM"></option>
+          <option value="길벗"></option>
+          <option value="미진사"></option>
+          <option value="다락원"></option>
+          <option value="타임"></option>
+          <option value="채움"></option>
+        </datalist>
+
+        <label style="margin-top:8px">연락처</label>
+        <div class="row">
+          <input id="phone" type="tel" placeholder="전화번호">
+          <input id="email" type="email" placeholder="이메일">
+        </div>
+
+        <label style="margin-top:8px">고객요청사항</label>
+        <textarea id="requests" rows="3"></textarea>
+
+        <label style="margin-top:8px">특이사항</label>
+        <textarea id="notes" rows="2"></textarea>
+
+        <label style="margin-top:8px">납품사항</label>
+        <textarea id="deliveries" rows="2"></textarea>
+
+        <label style="margin-top:8px">후속조치</label>
+        <div style="margin-top:6px;margin-bottom:6px">
+          <input id="followUp" type="text" list="followupList" placeholder="후속조치 선택 또는 입력" style="width:100%">
+          <datalist id="followupList">
+            <option value="완료(추가조치 없음)"></option>
+            <option value="고객요청사항 해소예정"></option>
+            <option value="재방문예정(중요고객)"></option>
+            <option value="AIDT교육자료 체험계정 지급"></option>
+            <option value="워크북 무상지원 제안"></option>
+            <option value="선정시기 연락 대기"></option>
+          </datalist>
+        </div>
+
+      </section>
+
+      <!-- Separate section for per-school additional entries (과목/선생님 추가) -->
+      <section class="form-section">
+        <h3 class="section-title">- 추가된 미팅 항목 -</h3>
+        <!-- Template for additional entry (kept hidden) -->
+        <div id="entryTemplate" style="display:none">
+          <div class="entry" style="border:1px dashed #e6eef8;padding:8px;border-radius:8px;margin-top:8px;background:#fff">
+            <!-- per-entry subject buttons (same options as main) -->
+            <label style="margin-top:0">과목 선택 (버튼형)</label>
+            <div class="btn-row entry-subjects">
+              <button type="button" class="subject-btn entry-subject-btn">정보</button>
+              <button type="button" class="subject-btn entry-subject-btn">진로</button>
+              <button type="button" class="subject-btn entry-subject-btn">보건</button>
+              <button type="button" class="subject-btn entry-subject-btn">미술</button>
+              <button type="button" class="subject-btn entry-subject-btn">체육</button>
+              <button type="button" class="subject-btn entry-subject-btn">도서관사서</button>
+              <button type="button" class="subject-btn entry-subject-btn">특성화</button>
+              <button type="button" class="subject-btn entry-subject-btn">기타</button>
+            </div>
+            <label style="margin-top:8px">영업활동 (버튼형)</label>
+            <div class="btn-row entry-activities">
+              <button type="button" class="subject-btn entry-activity-btn">명함인사</button>
+              <button type="button" class="subject-btn entry-activity-btn">티칭샘소개</button>
+              <button type="button" class="subject-btn entry-activity-btn">카톡방소개</button>
+              <button type="button" class="subject-btn entry-activity-btn">포스터전달</button>
+              <button type="button" class="subject-btn entry-activity-btn">브로슈어</button>
+              <button type="button" class="subject-btn entry-activity-btn">가이드북</button>
+              <button type="button" class="subject-btn entry-activity-btn">단행본소개</button>
+              <button type="button" class="subject-btn entry-activity-btn">교구재안내</button>
+              <button type="button" class="subject-btn entry-activity-btn">연수소개</button>
+              <button type="button" class="subject-btn entry-activity-btn">구글클래스룸</button>
+              <button type="button" class="subject-btn entry-activity-btn">하이러닝</button>
+              <button type="button" class="subject-btn entry-activity-btn">미팅거부</button>
+              <button type="button" class="subject-btn entry-activity-btn">자료거부</button>
+            </div>
+            <!-- header row: teacher / publisher + remove (subject chosen via buttons above) -->
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+              <input class="entry-teacher" type="text" placeholder="선생님 이름" style="flex:1">
+              <input class="entry-publisher" type="text" placeholder="출판사" style="flex:0 0 140px">
+              <button type="button" class="removeEntryBtn" style="padding:6px 8px">삭제</button>
+            </div>
+
+            <!-- per-entry favorability -->
+            <label style="margin-top:6px">우호도 (버튼형)</label>
+            <div class="btn-row entry-favors" style="margin-top:6px">
+              <button type="button" class="subject-btn entry-favor-btn">좋음</button>
+              <button type="button" class="subject-btn entry-favor-btn">보통</button>
+              <button type="button" class="subject-btn entry-favor-btn">나쁨</button>
+            </div>
+
+            <!-- contact row -->
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+              <input class="entry-phone" type="tel" placeholder="전화번호" style="flex:0 0 160px">
+              <input class="entry-email" type="email" placeholder="이메일" style="flex:1">
+              <!-- removed per-entry time inputs (시/분/총분) to match requested UI -->
+            </div>
+
+            <!-- notes row -->
+            <div style="margin-top:8px;display:flex;gap:8px">
+              <textarea class="entry-requests" rows="2" placeholder="고객요청사항" style="flex:1"></textarea>
+              <textarea class="entry-notes" rows="2" placeholder="특이사항" style="flex:1"></textarea>
+            </div>
+
+            <div style="margin-top:8px;display:flex;gap:8px;align-items:flex-start">
+              <textarea class="entry-deliveries" rows="2" placeholder="납품사항" style="flex:1"></textarea>
+              <input class="entry-followup" type="text" list="followupList" placeholder="후속조치" style="flex:0 0 220px">
+            </div>
+          </div>
+        </div>
+
+        <div id="entriesContainer" style="margin-top:6px;display:flex;flex-direction:column;gap:8px"></div>
+
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+          <button id="addEntryBtn" type="button" style="padding:6px 10px;border-radius:8px;border:1px solid #d6dbe8;background:#fff">과목/선생님 추가</button>
+          <div style="color:#556;font-size:13px">추가 버튼으로 같은 학교 내 여러 선생님 미팅을 입력할 수 있습니다.</div>
+        </div>
+      </section>
+
+      <div style="margin-top:10px">
+        <div style="font-weight:700;margin-bottom:6px">저장된 드래프트</div>
+  <div id="savedDraft" style="white-space:pre-wrap;padding:10px;border:1px dashed #d6dbe8;border-radius:8px;background:#fbfdff;min-height:48px;color:#123;font-family:Consolas, 'Courier New', monospace;font-size:13px;max-height:220px;overflow:auto"></div>
+      </div>
+
+      <!-- School visit history (per school + visit date) -->
+      <div id="schoolHistoryArea" style="margin-top:12px;padding:10px;border:1px solid #eef4fb;border-radius:8px;background:#fcfeff">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:800;color:#123">이 학교의 기록 (방문일 기준)</div>
+          <div style="font-size:13px;color:#556">학교 & 방문일을 선택하면 해당 날짜의 모든 입력이 보입니다.</div>
+        </div>
+        <div id="historyList" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;min-height:36px">
+          <!-- entries will be rendered here -->
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="btnSubmit" type="button">입력완료</button>
+        <button id="btnDailyReport" type="button">방문일 보고서</button>
+        <!-- Hidden placeholders for legacy JS bindings (prevent runtime errors when scripts expect these controls) -->
+        <button id="btnCopy" type="button" style="display:none"></button>
+        <button id="btnSaveServer" type="button" style="display:none"></button>
+      </div>
+
+      <!-- SUMMARY removed from meeting page per request. Summaries are handled via report page. -->
+    </form>
+  </main>
+
+  <script src="/csv-helpers.js" onerror="console.error('/csv-helpers.js failed to load')" onload="console.log('/csv-helpers.js loaded')"></script>
+  <!-- Load meeting.js normally (deferred) to preserve execution order and avoid eval-based loaders -->
+  <script src="/meeting.js" defer onerror="console.error('/meeting.js failed to load')"></script>
+  <script>
+    // Ensure Back button preserves 담당자 (as user=...) and 방문일 when navigating to /input
+    (function(){
+      document.addEventListener('DOMContentLoaded', function(){
+        // Ensure staff persists across pages: prefer explicit query param, fall back to localStorage
+        try{
+          const _params = new URLSearchParams(window.location.search || '');
+          const staffFromQs = _params.get('staff') || '';
+          if (staffFromQs) {
+            window._cmass_staffParam = staffFromQs;
+          } else if ((!window._cmass_staffParam || !window._cmass_staffParam.trim()) && localStorage.getItem('cmass:staff')){
+            window._cmass_staffParam = localStorage.getItem('cmass:staff') || '';
+          }
+          // populate staff input if empty
+          try{ const sEl = document.getElementById('staff'); if (sEl && (!sEl.value || !sEl.value.trim())) sEl.value = window._cmass_staffParam || ''; }catch(e){}
+          // populate visitDate input from query param if present and input empty
+          try{ const dEl = document.getElementById('visitDate'); const dateFromQs = _params.get('date') || ''; if (dEl && (!dEl.value || !dEl.value.trim()) && dateFromQs) dEl.value = dateFromQs; }catch(e){}
+        }catch(e){}
+        const btn = document.getElementById('btnBack');
+        if (btn) {
+          btn.addEventListener('click', function(){
+            const params = new URLSearchParams(window.location.search);
+            const staffParam = window._cmass_staffParam || params.get('staff') || '';
+            const dateParam = (document.getElementById('visitDate') && document.getElementById('visitDate').value) || params.get('date') || '';
+            let target = '/input';
+            const q = new URLSearchParams();
+            if (staffParam) q.set('staff', staffParam);
+            if (dateParam) q.set('date', dateParam);
+            const qs = q.toString();
+            if (qs) target += ('?' + qs);
+            // Navigate explicitly to hosting path
+            window.location.href = target;
+          });
+        }
+
+        // Intercept '입력완료' — keep draft display and history save, but do NOT append SUMMARY here.
+        const submitBtn = document.getElementById('btnSubmit');
+        if (submitBtn) {
+          const val = (id) => (document.getElementById(id) ? document.getElementById(id).value : '');
+          submitBtn.addEventListener('click', function(ev){
+            try { ev.preventDefault(); ev.stopImmediatePropagation(); } catch(e){}
+
+            const staff = window._cmass_staffParam || val('staff');
+            const date = val('visitDate') || new URLSearchParams(window.location.search).get('date') || '';
+            const schoolText = (document.getElementById('schoolDisplay') && document.getElementById('schoolDisplay').textContent.trim()) || (document.getElementById('schoolSelect') && document.getElementById('schoolSelect').selectedOptions[0]?.text) || '';
+            const startH = val('startHour');
+            const startM = val('startMinute');
+            const duration = val('duration');
+            const endTime = val('endTime');
+            // scope subjects to the main subjects row only (not per-entry buttons)
+            const subjects = Array.from(document.querySelectorAll('#subjects .subject-btn')).filter(b=>b.classList.contains('active')).map(b=>b.textContent.trim()).join(', ');
+            const activities = Array.from(document.querySelectorAll('#activities .subject-btn')).filter(b=>b.classList.contains('active')).map(b=>b.textContent.trim()).join(', ');
+            const teacher = val('teacherName');
+            const publisher = val('publisher');
+            const phone = val('phone');
+            const requests = val('requests');
+            const notes = val('notes');
+            const deliveries = val('deliveries');
+            const followUp = val('followUp');
+
+            const when = (date ? date + ' ' : '') + (startH ? (startH.padStart(2,'0') + ':' + (startM||'00')) : '');
+
+            // update the saved-draft display (no SUMMARY DOM changes)
+            const saved = document.getElementById('savedDraft');
+            if (saved) {
+              const lines = [];
+              if (schoolText) lines.push(schoolText + ' — ' + (staff || ''));
+              if (when) lines.push(when);
+              const parts = [];
+              if (teacher) parts.push('선생님: ' + teacher);
+              if (publisher) parts.push('출판사: ' + publisher);
+              if (phone) parts.push('연락처: ' + phone);
+              if (requests) parts.push('요청: ' + requests);
+              if (notes) parts.push('특이사항: ' + notes);
+              if (deliveries) parts.push('납품: ' + deliveries);
+              if (followUp) parts.push('후속: ' + followUp);
+              if (parts.length) lines.push(parts.join('\n'));
+              saved.textContent = lines.join('\n');
+            }
+
+            // Also append this entry to the per-school history (keyed by date+region+school)
+            try {
+              const entriesArr = [];
+              const mainEntry = {
+                subjects: subjects || '',
+                activities: activities || '',
+                favor: (Array.from(document.querySelectorAll('#favors .subject-btn')).filter(b=>b.classList.contains('active')).map(b=>b.textContent.trim()).join(', ')) || '',
+                teacher: teacher || '',
+                publisher: publisher || '',
+                phone: phone || '',
+                email: val('email') || '',
+                requests: requests || '',
+                notes: notes || '',
+                deliveries: deliveries || '',
+                followUp: followUp || '',
+                start: (startH||'') + ':' + (startM||'00'),
+                duration: duration || '',
+                endTime: endTime || ''
+              };
+              entriesArr.push(mainEntry);
+              // additional entries in entriesContainer (each entry may have button grids)
+              document.querySelectorAll('#entriesContainer .entry').forEach(el => {
+                try{
+                  // subjects: prefer entry button grid, fall back to text input
+                  let subj = '';
+                  const subjBtns = el.querySelectorAll('.entry-subject-btn');
+                  if (subjBtns && subjBtns.length) subj = Array.from(subjBtns).filter(b=>b.classList.contains('active')).map(b=>b.textContent.trim()).join(', ');
+                  else subj = (el.querySelector('.entry-subject') && el.querySelector('.entry-subject').value) || '';
+
+                  // activities (per-entry) - optional
+                  let acts = '';
+                  const actBtns = el.querySelectorAll('.entry-activity-btn');
+                  if (actBtns && actBtns.length) acts = Array.from(actBtns).filter(b=>b.classList.contains('active')).map(b=>b.textContent.trim()).join(', ');
+
+                  const e = {
+                    subjects: subj || '',
+                    activities: acts || '',
+                    favor: ( (el.querySelectorAll('.entry-favor-btn') && Array.from(el.querySelectorAll('.entry-favor-btn')).filter(b=>b.classList.contains('active')).map(b=>b.textContent.trim()).join(', ')) || '' ),
+                    teacher: (el.querySelector('.entry-teacher') && el.querySelector('.entry-teacher').value) || '',
+                    publisher: (el.querySelector('.entry-publisher') && el.querySelector('.entry-publisher').value) || '',
+                    phone: (el.querySelector('.entry-phone') && el.querySelector('.entry-phone').value) || '',
+                    email: (el.querySelector('.entry-email') && el.querySelector('.entry-email').value) || '',
+                    requests: (el.querySelector('.entry-requests') && el.querySelector('.entry-requests').value) || '',
+                    notes: (el.querySelector('.entry-notes') && el.querySelector('.entry-notes').value) || '',
+                    deliveries: (el.querySelector('.entry-deliveries') && el.querySelector('.entry-deliveries').value) || '',
+                    followUp: (el.querySelector('.entry-followup') && el.querySelector('.entry-followup').value) || ''
+                  };
+                  entriesArr.push(e);
+                }catch(err){/*ignore*/}
+              });
+
+              const snapshot = {
+                ts: new Date().toISOString(),
+                author: staff || '',
+                school: schoolText || '',
+                date: date || '',
+                entries: entriesArr
+              };
+              if (window.addHistoryEntry) window.addHistoryEntry(snapshot);
+                // After saving history, remove exact draft (we saved to history) and navigate to the daily report page for the selected date
+                try{
+                  const draftKey = (typeof buildDraftKey === 'function') ? buildDraftKey(window._cmass_staffParam || staff, snapshot.date || date, (document.getElementById('regionSelect') && document.getElementById('regionSelect').value) || '', (document.getElementById('schoolSelect') && document.getElementById('schoolSelect').value) || '') : null;
+                  if (draftKey) try{ localStorage.removeItem(draftKey); }catch(e){}
+                }catch(e){}
+              try{
+                const chosenDate = snapshot.date || date || '';
+                const staffParam = window._cmass_staffParam || staff || '';
+                if (chosenDate){
+                  const regionParam = (document.getElementById('regionSelect') && document.getElementById('regionSelect').value) || '';
+                  const schoolParam = (document.getElementById('schoolSelect') && document.getElementById('schoolSelect').value) || '';
+                  const rptUrl = '/report.html?date=' + encodeURIComponent(chosenDate) + '&staff=' + encodeURIComponent(staffParam) + '&region=' + encodeURIComponent(regionParam) + '&school=' + encodeURIComponent(schoolParam);
+                  // navigate to report page so the user can see the saved record
+                  window.location.href = rptUrl;
+                } else {
+                  // if no date, open report page without date (report page may prompt)
+                  const regionParam = (document.getElementById('regionSelect') && document.getElementById('regionSelect').value) || '';
+                  const schoolParam = (document.getElementById('schoolSelect') && document.getElementById('schoolSelect').value) || '';
+                  window.location.href = '/report.html?staff=' + encodeURIComponent(staffParam) + '&region=' + encodeURIComponent(regionParam) + '&school=' + encodeURIComponent(schoolParam);
+                }
+              }catch(e){ console.warn('redirect to report failed', e); }
+            } catch (e) {
+              console.warn('history save failed', e);
+            }
+
+          }, true); // capture to preempt other handlers
+        }
+      });
+    })();
+  </script>
+  <script>
+    // 방문일 보고서 버튼 wiring
+    (function(){
+      document.addEventListener('DOMContentLoaded', function(){
+        const rpt = document.getElementById('btnDailyReport');
+        if (!rpt) return;
+        function getDateLabel(){
+          const d = (document.getElementById('visitDate') && document.getElementById('visitDate').value) || new URLSearchParams(window.location.search).get('date') || '';
+          return d || '방문일 보고서';
+        }
+        // set initial text
+        const label = getDateLabel();
+        if (label) rpt.textContent = (label === '방문일 보고서') ? label : (label + ' 방문일 보고서');
+
+        rpt.addEventListener('click', function(){
+          const date = (document.getElementById('visitDate') && document.getElementById('visitDate').value) || new URLSearchParams(window.location.search).get('date') || '';
+          if (!date){
+            const pick = prompt('방문일(YYYY-MM-DD)을 입력하거나 선택 후 사용하세요. 예: 2025-11-04');
+            if (!pick) return;
+            // basic validation
+            if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(pick)) { alert('날짜 형식이 올바르지 않습니다. YYYY-MM-DD로 입력하세요.'); return; }
+            const regionParam = (document.getElementById('regionSelect') && document.getElementById('regionSelect').value) || '';
+            const schoolParam = (document.getElementById('schoolSelect') && document.getElementById('schoolSelect').value) || '';
+            window.location.href = '/report.html?date=' + encodeURIComponent(pick) + '&staff=' + encodeURIComponent(window._cmass_staffParam || (document.getElementById('staff') && document.getElementById('staff').value) || '') + '&region=' + encodeURIComponent(regionParam) + '&school=' + encodeURIComponent(schoolParam);
+            return;
+          }
+          const staff = window._cmass_staffParam || (document.getElementById('staff') && document.getElementById('staff').value) || '';
+          // open report in same tab
+          const regionParam = (document.getElementById('regionSelect') && document.getElementById('regionSelect').value) || '';
+          const schoolParam = (document.getElementById('schoolSelect') && document.getElementById('schoolSelect').value) || '';
+          window.location.href = '/report.html?date=' + encodeURIComponent(date) + '&staff=' + encodeURIComponent(staff) + '&region=' + encodeURIComponent(regionParam) + '&school=' + encodeURIComponent(schoolParam);
+        });
+
+        // update button label when date changes
+        const dateEl = document.getElementById('visitDate');
+        if (dateEl) dateEl.addEventListener('change', function(){ const v = dateEl.value; rpt.textContent = v ? (v + ' 방문일 보고서') : '방문일 보고서'; });
+      });
+    })();
+
+    // Per-school, per-date history stored in localStorage.
+    (function(){
+      const HIST_PREFIX = 'meeting:history:'; // + {date}|{region}|{school}
+
+      function makeKey(date, region, school){
+        if (!date || !region || !school) return null;
+        return HIST_PREFIX + [date, region, school].map(s=>String(s||'').replace(/\|/g,'')).join('|');
+      }
+
+      function readHistory(key){
+        try{
+          const raw = localStorage.getItem(key);
+          if (!raw) return [];
+          return JSON.parse(raw) || [];
+        }catch(e){ return []; }
+      }
+
+      function writeHistory(key, arr){
+        try{ localStorage.setItem(key, JSON.stringify(arr)); } catch(e){ console.warn('writeHistory', e); }
+      }
+
+      window.addHistoryEntry = function(snapshot){
+        const key = makeKey(snapshot.date, (document.getElementById('regionSelect') && document.getElementById('regionSelect').value) || '', (document.getElementById('schoolSelect') && document.getElementById('schoolSelect').value) || '');
+        if (!key) return;
+        const arr = readHistory(key);
+        arr.unshift(snapshot); // newest first
+        // keep reasonable cap (200 entries)
+        if (arr.length > 200) arr.splice(200);
+        writeHistory(key, arr);
+        renderHistoryListForKey(key);
+      };
+
+      function renderHistoryListForKey(key){
+        const listEl = document.getElementById('historyList');
+        if (!listEl) return;
+        listEl.innerHTML = '';
+        if (!key) return;
+        const arr = readHistory(key);
+        if (!arr.length){
+          listEl.innerHTML = '<div style="color:#556">해당 날짜에 저장된 기록이 없습니다.</div>';
+          return;
+        }
+        arr.forEach((v, idx) => {
+          const item = document.createElement('div');
+          item.style.border = '1px solid #eef4fb';
+          item.style.padding = '8px';
+          item.style.borderRadius = '6px';
+          item.style.background = '#fff';
+
+          const head = document.createElement('div');
+          head.style.fontWeight = '800';
+          head.style.marginBottom = '6px';
+          // if snapshot has entries array, show first entry summary
+          if (v.entries && v.entries.length){
+            const first = v.entries[0];
+            head.textContent = (first.teacher ? (first.teacher + ' · ') : '') + (first.start ? first.start : '') + (first.duration ? (' / ' + first.duration + '분') : '') + ' · ' + new Date(v.ts).toLocaleString();
+            item.appendChild(head);
+            const body = document.createElement('div');
+            body.style.whiteSpace = 'pre-wrap';
+            const rows = [];
+            v.entries.forEach((ent, k) => {
+              rows.push(`${k+1}. ${ent.subjects || '-'} (${ent.teacher || '-' }-${ent.publisher || '-'}) : ${ent.teacher || ''} ${ent.requests||''} ${ent.deliveries||''} ${ent.followUp||''}`);
+            });
+            body.textContent = rows.join('\n');
+            item.appendChild(body);
+          } else {
+            head.textContent = (v.teacher ? (v.teacher + ' · ') : '') + (v.start ? v.start : '') + (v.duration ? (' / ' + v.duration + '분') : '') + ' · ' + new Date(v.ts).toLocaleString();
+            item.appendChild(head);
+            const body = document.createElement('div');
+            body.style.whiteSpace = 'pre-wrap';
+            const parts = [];
+            if (v.subjects) parts.push('과목: ' + v.subjects);
+            if (v.activities) parts.push('활동: ' + v.activities);
+            if (v.publisher) parts.push('출판사: ' + v.publisher);
+            if (v.phone) parts.push('연락처: ' + v.phone);
+            if (v.requests) parts.push('요청: ' + v.requests);
+            if (v.notes) parts.push('특이사항: ' + v.notes);
+            if (v.deliveries) parts.push('납품: ' + v.deliveries);
+            if (v.followUp) parts.push('후속: ' + v.followUp);
+            body.textContent = parts.join('\n');
+            item.appendChild(body);
+          }
+
+          const actions = document.createElement('div');
+          actions.style.marginTop = '8px';
+          actions.style.display = 'flex';
+          actions.style.gap = '8px';
+
+          const btnRestore = document.createElement('button');
+          btnRestore.type = 'button';
+          btnRestore.textContent = '복원';
+          btnRestore.style.padding = '6px 8px';
+          btnRestore.addEventListener('click', function(){ restoreSnapshotToForm(v); });
+          actions.appendChild(btnRestore);
+
+          const btnDelete = document.createElement('button');
+          btnDelete.type = 'button';
+          btnDelete.textContent = '삭제';
+          btnDelete.style.padding = '6px 8px';
+          btnDelete.addEventListener('click', function(){
+            if (!confirm('이 기록을 삭제하시겠습니까?')) return;
+            const arr = readHistory(key);
+            arr.splice(idx,1);
+            writeHistory(key, arr);
+            renderHistoryListForKey(key);
+          });
+          actions.appendChild(btnDelete);
+
+          item.appendChild(actions);
+          listEl.appendChild(item);
+        });
+      }
+
+      function restoreSnapshotToForm(snap){
+        try{
+          // clear existing additional entries
+          const entriesContainer = document.getElementById('entriesContainer');
+          if (entriesContainer) entriesContainer.innerHTML = '';
+
+          if (snap.entries && snap.entries.length){
+            // restore first entry into main form
+            const first = snap.entries[0];
+            if (first.start){
+              const parts = String(first.start).split(':');
+              if (parts[0] && document.getElementById('startHour')) document.getElementById('startHour').value = parts[0];
+              if (parts[1] && document.getElementById('startMinute')) document.getElementById('startMinute').value = parts[1];
+            }
+            if (document.getElementById('duration')) document.getElementById('duration').value = first.duration || '';
+            if (document.getElementById('endTime')) document.getElementById('endTime').value = first.endTime || '';
+            if (document.getElementById('teacherName')) document.getElementById('teacherName').value = first.teacher || '';
+            if (document.getElementById('publisher')) document.getElementById('publisher').value = first.publisher || '';
+            if (document.getElementById('phone')) document.getElementById('phone').value = first.phone || '';
+            if (document.getElementById('requests')) document.getElementById('requests').value = first.requests || '';
+            if (document.getElementById('notes')) document.getElementById('notes').value = first.notes || '';
+            if (document.getElementById('deliveries')) document.getElementById('deliveries').value = first.deliveries || '';
+            if (document.getElementById('followUp')) document.getElementById('followUp').value = first.followUp || '';
+            // restore subjects/activities globally from first entry
+            if (first.subjects){
+              const subs = String(first.subjects).split(/,\s*/);
+              document.querySelectorAll('#subjects .subject-btn').forEach(b=>{ b.classList.toggle('active', subs.includes(b.textContent.trim())); });
+            }
+            if (first.activities){
+              const acts = String(first.activities).split(/,\s*/);
+              document.querySelectorAll('#activities .subject-btn').forEach(b=>{ b.classList.toggle('active', acts.includes(b.textContent.trim())); });
+            }
+            // restore favor (우호도)
+            if (first.favor){
+              const favs = String(first.favor).split(/,\s*/).filter(Boolean);
+              document.querySelectorAll('#favors .subject-btn').forEach(b=>{ b.classList.toggle('active', favs.includes(b.textContent.trim())); });
+            } else {
+              document.querySelectorAll('#favors .subject-btn').forEach(b=> b.classList.remove('active'));
+            }
+
+            // create additional entries from remaining
+            const template = document.getElementById('entryTemplate');
+            for (let i=1;i<snap.entries.length;i++){
+              const ent = snap.entries[i];
+              if (!template) continue;
+              const node = template.firstElementChild.cloneNode(true);
+              // populate: if the template uses button grids, toggle buttons; otherwise set inputs
+              try{
+                const subjBtns = node.querySelectorAll('.entry-subject-btn');
+                if (subjBtns && subjBtns.length){
+                  const subs = String(ent.subjects || '').split(/,\s*/).filter(Boolean);
+                  subjBtns.forEach(b => b.classList.toggle('active', subs.includes(b.textContent.trim())));
+                } else if (node.querySelector('.entry-subject')) {
+                  node.querySelector('.entry-subject').value = ent.subjects || '';
+                }
+                if (node.querySelectorAll('.entry-activity-btn').length){
+                  const actBtns = node.querySelectorAll('.entry-activity-btn');
+                  const acts = String(ent.activities || '').split(/,\s*/).filter(Boolean);
+                  actBtns.forEach(b => b.classList.toggle('active', acts.includes(b.textContent.trim())));
+                }
+                if (node.querySelector('.entry-teacher')) node.querySelector('.entry-teacher').value = ent.teacher || '';
+                if (node.querySelector('.entry-publisher')) node.querySelector('.entry-publisher').value = ent.publisher || '';
+                if (node.querySelector('.entry-phone')) node.querySelector('.entry-phone').value = ent.phone || '';
+                if (node.querySelector('.entry-email')) node.querySelector('.entry-email').value = ent.email || '';
+                if (node.querySelector('.entry-requests')) node.querySelector('.entry-requests').value = ent.requests || '';
+                if (node.querySelector('.entry-notes')) node.querySelector('.entry-notes').value = ent.notes || '';
+                if (node.querySelector('.entry-deliveries')) node.querySelector('.entry-deliveries').value = ent.deliveries || '';
+                if (node.querySelector('.entry-followup')) node.querySelector('.entry-followup').value = ent.followUp || '';
+                // restore per-entry favor
+                const favBtns = node.querySelectorAll('.entry-favor-btn');
+                if (favBtns && favBtns.length){
+                  const favs = String(ent.favor || '').split(/,\s*/).filter(Boolean);
+                  favBtns.forEach(b => b.classList.toggle('active', favs.includes(b.textContent.trim())));
+                }
+              }catch(e){/*ignore*/}
+              // attach remove handler
+              const removeBtn = node.querySelector('.removeEntryBtn');
+              if (removeBtn) removeBtn.addEventListener('click', function(){ node.remove(); });
+              // add title so restored entries are numbered consistently and make them collapsible
+              try{
+                // wrap node children into a collapsible body
+                const body = document.createElement('div');
+                body.className = 'entry-body';
+                while(node.firstChild) body.appendChild(node.firstChild);
+                node.appendChild(body);
+
+                const idx = (entriesContainer.querySelectorAll('.entry') || []).length + 1;
+                const titleEl = document.createElement('div');
+                titleEl.className = 'entry-title';
+                titleEl.style.display = 'flex';
+                titleEl.style.justifyContent = 'space-between';
+                titleEl.style.alignItems = 'center';
+                titleEl.style.marginBottom = '6px';
+
+                const txt = document.createElement('div');
+                txt.style.fontWeight = '700';
+                txt.textContent = '미팅내용 ' + idx;
+
+                const ctrl = document.createElement('button');
+                ctrl.type = 'button';
+                ctrl.className = 'toggle-collapse';
+                ctrl.textContent = '▾';
+                ctrl.style.border = 'none';
+                ctrl.style.background = 'transparent';
+                ctrl.style.cursor = 'pointer';
+                ctrl.style.fontSize = '16px';
+
+                ctrl.addEventListener('click', function(){
+                  node.classList.toggle('collapsed');
+                  ctrl.textContent = node.classList.contains('collapsed') ? '▸' : '▾';
+                });
+
+                titleEl.appendChild(txt);
+                titleEl.appendChild(ctrl);
+                node.insertBefore(titleEl, body);
+              }catch(e){}
+              // attach entry button toggles
+              try{ if (typeof attachEntryButtonToggles === 'function') attachEntryButtonToggles(node); else {
+                (node.querySelectorAll('.entry-subject-btn') || []).forEach(b=> b.addEventListener('click', function(){ this.classList.toggle('active'); }));
+                (node.querySelectorAll('.entry-activity-btn') || []).forEach(b=> b.addEventListener('click', function(){ this.classList.toggle('active'); }));
+              }}catch(e){}
+              if (entriesContainer) entriesContainer.appendChild(node);
+            }
+
+          } else {
+            // legacy single-snapshot fallback
+            if (snap.start){
+              const parts = String(snap.start).split(':');
+              if (parts[0] && document.getElementById('startHour')) document.getElementById('startHour').value = parts[0];
+              if (parts[1] && document.getElementById('startMinute')) document.getElementById('startMinute').value = parts[1];
+            }
+            if (document.getElementById('duration')) document.getElementById('duration').value = snap.duration || '';
+            if (document.getElementById('endTime')) document.getElementById('endTime').value = snap.endTime || '';
+            if (document.getElementById('teacherName')) document.getElementById('teacherName').value = snap.teacher || '';
+            if (document.getElementById('publisher')) document.getElementById('publisher').value = snap.publisher || '';
+            if (document.getElementById('phone')) document.getElementById('phone').value = snap.phone || '';
+            if (document.getElementById('requests')) document.getElementById('requests').value = snap.requests || '';
+            if (document.getElementById('notes')) document.getElementById('notes').value = snap.notes || '';
+            if (document.getElementById('deliveries')) document.getElementById('deliveries').value = snap.deliveries || '';
+            if (document.getElementById('followUp')) document.getElementById('followUp').value = snap.followUp || '';
+            if (snap.subjects){
+              const subs = String(snap.subjects).split(/,\s*/);
+              document.querySelectorAll('#subjects .subject-btn').forEach(b=>{ b.classList.toggle('active', subs.includes(b.textContent.trim())); });
+            }
+            if (snap.activities){
+              const acts = String(snap.activities).split(/,\s*/);
+              document.querySelectorAll('#activities .subject-btn').forEach(b=>{ b.classList.toggle('active', acts.includes(b.textContent.trim())); });
+            }
+          }
+        }catch(e){ console.warn('restore failed', e); }
+      }
+
+      function loadHistoryForCurrentSelection(){
+        const date = (document.getElementById('visitDate') && document.getElementById('visitDate').value) || '';
+        const region = (document.getElementById('regionSelect') && document.getElementById('regionSelect').value) || '';
+        const school = (document.getElementById('schoolSelect') && document.getElementById('schoolSelect').value) || '';
+        const key = makeKey(date, region, school);
+        renderHistoryListForKey(key);
+        // also load draft(s) for this staff+date+region+school. If no exact draft was restored,
+        // automatically restore the most recent history entry (so previously entered data
+        // reappears when selecting the same visit-date/region/school).
+        try{
+          const restoredDraft = loadDraftForCurrentSelection && typeof loadDraftForCurrentSelection === 'function' ? loadDraftForCurrentSelection() : false;
+          if (!restoredDraft){
+            const hist = readHistory(key) || [];
+            if (hist.length){
+              // restore the newest entry (index 0)
+              try{ restoreSnapshotToForm(hist[0]); }catch(e){/*ignore*/}
+            }
+          }
+        }catch(e){/*ignore*/}
+      }
+
+      document.addEventListener('DOMContentLoaded', function(){
+        const schoolSel = document.getElementById('schoolSelect');
+        const dateEl = document.getElementById('visitDate');
+        const regionSel = document.getElementById('regionSelect');
+        if (schoolSel) schoolSel.addEventListener('change', loadHistoryForCurrentSelection);
+        if (dateEl) dateEl.addEventListener('change', loadHistoryForCurrentSelection);
+        if (regionSel) regionSel.addEventListener('change', loadHistoryForCurrentSelection);
+
+        // also load on page ready
+        setTimeout(loadHistoryForCurrentSelection, 350);
+      });
+
+    })();
+  </script>
+  <script>
+    // Wire Add Entry button and template cloning
+    (function(){
+      function attachRemove(btn){
+        btn.addEventListener('click', function(){
+          const node = this.closest('.entry'); if (node) node.remove();
+        });
+      }
+      document.addEventListener('DOMContentLoaded', function(){
+        const addBtn = document.getElementById('addEntryBtn');
+        const template = document.getElementById('entryTemplate');
+        const container = document.getElementById('entriesContainer');
+        if (!addBtn || !template || !container) return;
+
+        // helper: attach toggle behavior for subject/activity buttons inside a given root
+        function attachEntryButtonToggles(root){
+          // subject buttons inside entry
+          (root.querySelectorAll('.entry-subject-btn') || []).forEach(b => {
+            b.addEventListener('click', function(){ this.classList.toggle('active'); });
+          });
+          // activity buttons inside entry
+          (root.querySelectorAll('.entry-activity-btn') || []).forEach(b => {
+            b.addEventListener('click', function(){ this.classList.toggle('active'); });
+          });
+          // favor buttons inside entry (single-select-ish)
+          (root.querySelectorAll('.entry-favor-btn') || []).forEach(b => {
+            b.addEventListener('click', function(){
+              const all = Array.from(root.querySelectorAll('.entry-favor-btn') || []);
+              if (this.classList.contains('active')){
+                // toggle off
+                this.classList.remove('active');
+              } else {
+                all.forEach(x => x.classList.remove('active'));
+                this.classList.add('active');
+              }
+            });
+          });
+        }
+
+        addBtn.addEventListener('click', function(){
+          const node = template.firstElementChild.cloneNode(true);
+          const rem = node.querySelector('.removeEntryBtn');
+          if (rem) attachRemove(rem);
+          // add a small title with an index so entries read like "미팅내용 1, 2, ..."
+          try{
+            // wrap node children into a collapsible body
+            const body = document.createElement('div');
+            body.className = 'entry-body';
+            while(node.firstChild) body.appendChild(node.firstChild);
+            node.appendChild(body);
+
+            const idx = (container.querySelectorAll('.entry') || []).length + 1;
+            const titleEl = document.createElement('div');
+            titleEl.className = 'entry-title';
+            titleEl.style.display = 'flex';
+            titleEl.style.justifyContent = 'space-between';
+            titleEl.style.alignItems = 'center';
+            titleEl.style.marginBottom = '6px';
+
+            const txt = document.createElement('div');
+            txt.style.fontWeight = '700';
+            txt.textContent = '미팅내용 ' + idx;
+
+            const ctrl = document.createElement('button');
+            ctrl.type = 'button';
+            ctrl.className = 'toggle-collapse';
+            ctrl.textContent = '▾';
+            ctrl.style.border = 'none';
+            ctrl.style.background = 'transparent';
+            ctrl.style.cursor = 'pointer';
+            ctrl.style.fontSize = '16px';
+
+            ctrl.addEventListener('click', function(){
+              node.classList.toggle('collapsed');
+              ctrl.textContent = node.classList.contains('collapsed') ? '▸' : '▾';
+            });
+
+            titleEl.appendChild(txt);
+            titleEl.appendChild(ctrl);
+            node.insertBefore(titleEl, body);
+          }catch(e){/* ignore */}
+
+          // wire entry buttons
+          attachEntryButtonToggles(node);
+
+          container.appendChild(node);
+          node.scrollIntoView({behavior:'smooth', block:'center'});
+        });
+
+        // also attach remove to any existing (none by default)
+        container.querySelectorAll('.removeEntryBtn').forEach(b=>attachRemove(b));
+        // attach toggles to any pre-existing entry button grids
+        container.querySelectorAll('.entry').forEach(en => attachEntryButtonToggles(en));
+      });
+    })();
+  </script>
+  <script>
+    // Draft loading for 담당자-방문일-지역-학교 keyed drafts.
+    (function(){
+      const DRAFT_PREFIX = 'meeting:draft:';
+      function buildDraftKey(staff, date, region, school){
+        if (!staff || !date) return null;
+        return DRAFT_PREFIX + [staff, date, region||'', school||''].map(s=>String(s||'')).join('|');
+      }
+
+      // Collect current form state into a plain object suitable for draft storage
+      function collectDraftSnapshot(){
+        try{
+          const snap = {};
+          snap.staff = window._cmass_staffParam || (document.getElementById('staff') && document.getElementById('staff').value) || '';
+          snap.date = (document.getElementById('visitDate') && document.getElementById('visitDate').value) || '';
+          snap.region = (document.getElementById('regionSelect') && document.getElementById('regionSelect').value) || '';
+          // store both the display name and the code/value for the school
+          try{
+            const schoolEl = document.getElementById('schoolSelect');
+            if (schoolEl && schoolEl.selectedOptions && schoolEl.selectedOptions[0]){
+              snap.school = schoolEl.selectedOptions[0].textContent.trim();
+              snap.schoolCode = schoolEl.value || '';
+            } else {
+              snap.school = (schoolEl && schoolEl.value) || '';
+              snap.schoolCode = (schoolEl && schoolEl.value) || '';
+            }
+          }catch(e){ snap.school = (document.getElementById('schoolSelect') && document.getElementById('schoolSelect').value) || ''; snap.schoolCode = snap.school; }
+          snap.start = (document.getElementById('startHour') && document.getElementById('startHour').value ? (document.getElementById('startHour').value + ':' + (document.getElementById('startMinute') && document.getElementById('startMinute').value ? document.getElementById('startMinute').value : '00')) : '');
+          snap.duration = (document.getElementById('duration') && document.getElementById('duration').value) || '';
+          snap.endTime = (document.getElementById('endTime') && document.getElementById('endTime').value) || '';
+          // main button grids
+          snap.subjects = Array.from(document.querySelectorAll('#subjects .subject-btn')).filter(b=>b.classList.contains('active')).map(b=>b.textContent.trim());
+          snap.activities = Array.from(document.querySelectorAll('#activities .subject-btn')).filter(b=>b.classList.contains('active')).map(b=>b.textContent.trim());
+          snap.favor = Array.from(document.querySelectorAll('#favors .subject-btn')).filter(b=>b.classList.contains('active')).map(b=>b.textContent.trim()).join(',');
+          // main text inputs
+          ['teacherName','publisher','phone','email','requests','notes','deliveries','followUp'].forEach(id=>{ try{ const el=document.getElementById(id); if(el) snap[id]=el.value||'';}catch(e){} });
+
+          // collect additional entries
+          snap.entries = [];
+          document.querySelectorAll('#entriesContainer .entry').forEach(el=>{
+            try{
+              const e = {};
+              e.subjects = Array.from(el.querySelectorAll('.entry-subject-btn')).filter(b=>b.classList.contains('active')).map(b=>b.textContent.trim());
+              e.activities = Array.from(el.querySelectorAll('.entry-activity-btn')).filter(b=>b.classList.contains('active')).map(b=>b.textContent.trim());
+              const fav = Array.from(el.querySelectorAll('.entry-favor-btn')).filter(b=>b.classList.contains('active')).map(b=>b.textContent.trim());
+              e.favor = fav.join(',');
+              const map = {'entry-teacher':'teacher','entry-publisher':'publisher','entry-phone':'phone','entry-email':'email','entry-requests':'requests','entry-notes':'notes','entry-deliveries':'deliveries','entry-followup':'followUp'};
+              for(const cls in map){ const q = el.querySelector('.' + cls); if (q) e[map[cls]] = q.value || ''; }
+              snap.entries.push(e);
+            }catch(e){}
+          });
+          return snap;
+        }catch(e){ return null; }
+      }
+
+      // Save the current draft for the currently selected staff/date/region/school
+      function saveDraftForCurrentSelection(){
+        try{
+          const staff = window._cmass_staffParam || (document.getElementById('staff') && document.getElementById('staff').value) || '';
+          const date = (document.getElementById('visitDate') && document.getElementById('visitDate').value) || '';
+          const region = (document.getElementById('regionSelect') && document.getElementById('regionSelect').value) || '';
+          const school = (document.getElementById('schoolSelect') && document.getElementById('schoolSelect').value) || '';
+          const key = buildDraftKey(staff, date, region, school);
+          if (!key) return;
+          const snap = collectDraftSnapshot();
+          if (!snap) return;
+          try{ localStorage.setItem(key, JSON.stringify(snap)); }catch(e){ console.warn('saveDraft failed', e); }
+          // update savedDraft display for quick feedback
+          try{ restoreDraftData(snap); }catch(e){}
+        }catch(e){ /* ignore */ }
+      }
+
+      // debounced autosave
+      let __draftTimer = null;
+      function scheduleSaveDraft(ms){ if (ms===undefined) ms=600; if (__draftTimer) clearTimeout(__draftTimer); __draftTimer = setTimeout(()=>{ saveDraftForCurrentSelection(); __draftTimer=null; }, ms); }
+
+      // Attach listeners to capture user edits (buttons, inputs, selects, textareas)
+      function attachDraftListeners(){
+        // delegate clicks that toggle button active states
+        document.addEventListener('click', function(ev){
+          try{
+            const t = ev.target;
+            if (!t) return;
+            if (t.classList && (t.classList.contains('subject-btn') || t.classList.contains('entry-subject-btn') || t.classList.contains('entry-activity-btn') || t.classList.contains('entry-favor-btn'))){
+              // schedule save after click handlers run
+              scheduleSaveDraft(220);
+            }
+          }catch(e){}
+        }, true);
+
+        // inputs/selects/textarea changes
+        const inputs = ['input','select','textarea'];
+        inputs.forEach(sel => document.addEventListener('input', function(ev){ try{ const t=ev.target; if(!t) return; const tag=t.tagName.toLowerCase(); if(tag==='input' || tag==='textarea' || tag==='select'){ scheduleSaveDraft(); } }catch(e){} }));
+
+        // also save on blur/change for reliability
+        document.addEventListener('change', function(){ scheduleSaveDraft(120); });
+        window.addEventListener('beforeunload', function(){ if (__draftTimer) clearTimeout(__draftTimer); saveDraftForCurrentSelection(); });
+      }
+
+      // initialize listeners on DOM ready
+      document.addEventListener('DOMContentLoaded', function(){ attachDraftListeners(); });
+
+      function findDraftKeysForStaffDate(staff, date){
+        const prefix = DRAFT_PREFIX + staff + '|' + date + '|';
+        const keys = [];
+        for (let i=0;i<localStorage.length;i++){
+          const k = localStorage.key(i);
+          if (k && k.indexOf(prefix)===0) keys.push(k);
+        }
+        return keys;
+      }
+
+      function restoreDraftData(obj){
+        if (!obj) return;
+        try{
+          window._isRestoring = true;
+          const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+          set('staff', obj.staff || '');
+          set('visitDate', obj.date || '');
+          if (obj.start){ const parts = String(obj.start).split(':'); if (parts[0]) set('startHour', parts[0]); if (parts[1]) set('startMinute', parts[1]); }
+          set('duration', obj.duration || '');
+          set('endTime', obj.endTime || '');
+          set('teacherName', obj.teacher || obj.teacherName || '');
+          set('publisher', obj.publisher || '');
+          set('phone', obj.phone || '');
+          set('requests', obj.requests || '');
+          set('notes', obj.notes || '');
+          set('deliveries', obj.deliveries || '');
+          set('followUp', obj.followUp || '');
+          // restore selected school (prefer schoolCode, fallback to display name)
+          try{
+            const schoolSel = document.getElementById('schoolSelect');
+            if (schoolSel) {
+              if (obj.schoolCode) {
+                const byValue = Array.from(schoolSel.options).find(o => o.value === obj.schoolCode);
+                if (byValue) schoolSel.value = byValue.value;
+                else {
+                  const byText = Array.from(schoolSel.options).find(o => (o.textContent||'').trim() === (obj.school||'').trim());
+                  if (byText) schoolSel.value = byText.value;
+                }
+              } else if (obj.school) {
+                const byText = Array.from(schoolSel.options).find(o => (o.textContent||'').trim() === (obj.school||'').trim());
+                if (byText) schoolSel.value = byText.value;
+              }
+                // ensure downstream listeners run and UI updates when we set value programmatically
+                try{ schoolSel.dispatchEvent(new Event('change', { bubbles: true })); if (typeof updateTopline === 'function') updateTopline(); }catch(e){}
+            }
+          }catch(e){}
+
+          // subjects/activities
+          if (obj.subjects){ const subs = String(obj.subjects).split(/,\s*/); document.querySelectorAll('#subjects .subject-btn').forEach(b=>{ b.classList.toggle('active', subs.includes(b.textContent.trim())); }); }
+          if (obj.activities){ const acts = String(obj.activities).split(/,\s*/); document.querySelectorAll('#activities .subject-btn').forEach(b=>{ b.classList.toggle('active', acts.includes(b.textContent.trim())); }); }
+          // restore favor if present
+          if (obj.favor){ const favs = String(obj.favor).split(/,\s*/).filter(Boolean); document.querySelectorAll('#favors .subject-btn').forEach(b=>{ b.classList.toggle('active', favs.includes(b.textContent.trim())); }); }
+          else { document.querySelectorAll('#favors .subject-btn').forEach(b=> b.classList.remove('active')); }
+          // show savedDraft summary: only display keys the user actually entered
+          try{
+            const saved = document.getElementById('savedDraft');
+            if (saved){
+              if (obj.summaryText){ saved.textContent = obj.summaryText; }
+              else {
+                // list of internal fields to hide from the draft preview
+                // show the main meeting fields (teacher, requests, notes, deliveries, followUp) in the preview
+                // keep internal/technical keys hidden from the preview; show subjects & activities so users can confirm they're saved
+                const hidden = new Set(['start','startTime','duration','durationMin','endTime','visitStart','visitEnd','email','server_id','schoolCode','visitDate','date','contact','ask','conversation','delivery']);
+                const parts = [];
+                // prefer known readable keys if present
+                const preferOrder = ['school','staff','date','visitDate','startTime','visitStart','durationMin','duration','endTime'];
+                // show named fields the user actually filled (non-empty strings/arrays)
+                for (const k of Object.keys(obj)){
+                  if (hidden.has(k)) continue; // skip internal keys
+                  const v = obj[k];
+                  if (v === null || v === undefined) continue;
+                  if (typeof v === 'string' && !v.trim()) continue;
+                  if (Array.isArray(v) && v.length===0) continue;
+                  // format arrays nicely for readability (comma-separated), otherwise stringify
+                  let display;
+                  if (Array.isArray(v)) display = v.join(', ');
+                  else display = (typeof v === 'object') ? JSON.stringify(v) : String(v);
+                  parts.push(`${k}: ${display}`);
+                }
+                // fallback: if nothing user-visible, show a small teacher/start summary if present
+                if (!parts.length){
+                  if (obj.teacher || obj.start || obj.startTime || obj.visitStart) parts.push((obj.teacher||'') + ' / ' + (obj.start||obj.startTime||obj.visitStart||''));
+                }
+                saved.textContent = parts.length ? parts.join('\n') : '';
+              }
+            }
+          }catch(e){ console.warn('savedDraft render failed', e); }
+        }catch(e){ console.warn('restoreDraftData failed', e); }
+        setTimeout(()=>{ window._isRestoring = false; }, 250);
+      }
+
+      function loadDraftForCurrentSelection(){
+        const staff = window._cmass_staffParam || (document.getElementById('staff') && document.getElementById('staff').value) || '';
+        const date = (document.getElementById('visitDate') && document.getElementById('visitDate').value) || '';
+        const region = (document.getElementById('regionSelect') && document.getElementById('regionSelect').value) || '';
+        const school = (document.getElementById('schoolSelect') && document.getElementById('schoolSelect').value) || '';
+        if (!staff || !date) return false;
+
+        // try exact key first
+        const exactKey = buildDraftKey(staff, date, region, school);
+        let data = null;
+        if (exactKey && localStorage.getItem(exactKey)){
+          try{ data = JSON.parse(localStorage.getItem(exactKey)); }catch(e){ data = null; }
+          if (data) { restoreDraftData(data); return true; }
+        }
+
+        // fallback: find any draft for this staff+date
+        const keys = findDraftKeysForStaffDate(staff, date);
+        if (keys.length){
+          try{ data = JSON.parse(localStorage.getItem(keys[0])); }catch(e){ data = null; }
+          if (data) { restoreDraftData(data); return true; }
+        }
+
+        // nothing found — clear savedDraft box
+        const saved = document.getElementById('savedDraft'); if (saved) saved.textContent = '';
+        return false;
+      }
+
+      // expose for other scripts
+      window.loadDraftForCurrentSelection = loadDraftForCurrentSelection;
+
+      document.addEventListener('DOMContentLoaded', function(){
+        const dateEl = document.getElementById('visitDate');
+        if (dateEl) dateEl.addEventListener('change', loadDraftForCurrentSelection);
+        const staffEl = document.getElementById('staff');
+        if (staffEl) staffEl.addEventListener('input', function(){ setTimeout(loadDraftForCurrentSelection, 120); });
+        const schoolSel = document.getElementById('schoolSelect'); if (schoolSel) schoolSel.addEventListener('change', loadDraftForCurrentSelection);
+        const regionSel = document.getElementById('regionSelect'); if (regionSel) regionSel.addEventListener('change', loadDraftForCurrentSelection);
+        // attempt to populate region/school from query string if provided
+        try{
+          const _params = new URLSearchParams(window.location.search || '');
+          const r = _params.get('region') || '';
+          const s = _params.get('school') || '';
+          if (r && document.getElementById('regionSelect')){
+            const sel = document.getElementById('regionSelect');
+            const opt = Array.from(sel.options).find(o => o.value === r || (o.textContent||'').trim() === r);
+            if (opt) sel.value = opt.value; else sel.value = r;
+            try{ sel.dispatchEvent(new Event('change', { bubbles: true })); if (typeof updateTopline === 'function') updateTopline(); }catch(e){}
+          }
+          if (s && document.getElementById('schoolSelect')){
+            const selS = document.getElementById('schoolSelect');
+            const optS = Array.from(selS.options).find(o => o.value === s || (o.textContent||'').trim() === s);
+            if (optS) selS.value = optS.value; else selS.value = s;
+            try{ selS.dispatchEvent(new Event('change', { bubbles: true })); if (typeof updateTopline === 'function') updateTopline(); }catch(e){}
+          }
+        }catch(e){}
+        // initial load
+        setTimeout(loadDraftForCurrentSelection, 400);
+      });
+    })();
+  </script>
+  <script>
+    // Duration buttons (10..90) wiring: set #duration and recompute #endTime
+    (function(){
+      function pad(n){ return (''+n).padStart(2,'0'); }
+      function computeEnd(){
+        const hEl = document.getElementById('startHour');
+        const mEl = document.getElementById('startMinute');
+        const durEl = document.getElementById('duration');
+        const endEl = document.getElementById('endTime');
+        if (!hEl || !mEl || !durEl || !endEl) return;
+        const h = parseInt(hEl.value||'0',10)||0;
+        const m = parseInt(mEl.value||'0',10)||0;
+        const dur = parseInt(durEl.value||'0',10)||0;
+        const total = h*60 + m + dur;
+        const eh = Math.floor(total/60) % 24;
+        const em = total % 60;
+        endEl.value = pad(eh) + ':' + pad(em);
+      }
+
+      function setActiveButton(minutes){
+        const buttons = Array.from(document.querySelectorAll('.dur-btn'));
+        buttons.forEach(b => {
+          if (b.getAttribute('data-min') === String(minutes)) b.classList.add('active'); else b.classList.remove('active');
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', function(){
+        const buttons = Array.from(document.querySelectorAll('.dur-btn'));
+        const durEl = document.getElementById('duration');
+        // attach click handlers
+        buttons.forEach(b => {
+          b.addEventListener('click', function(){
+            const mins = parseInt(this.getAttribute('data-min')||'0',10) || 0;
+            if (durEl) durEl.value = mins;
+            setActiveButton(mins);
+            computeEnd();
+          });
+        });
+
+        // recompute on time/duration changes
+        const startH = document.getElementById('startHour');
+        const startM = document.getElementById('startMinute');
+        if (startH) startH.addEventListener('change', computeEnd);
+        if (startM) startM.addEventListener('change', computeEnd);
+        if (durEl) durEl.addEventListener('input', function(){
+          const v = parseInt(this.value||'0',10) || 0;
+          setActiveButton(v);
+          computeEnd();
+        });
+
+        // initialize
+        computeEnd();
+        const initial = parseInt(durEl && durEl.value || '0',10) || 0;
+        setActiveButton(initial);
+        // wire main subject/activity buttons to toggle active state
+        (document.querySelectorAll('#subjects .subject-btn') || []).forEach(b=>{
+          b.addEventListener('click', function(){ this.classList.toggle('active'); });
+        });
+        (document.querySelectorAll('#activities .subject-btn') || []).forEach(b=>{
+          b.addEventListener('click', function(){ this.classList.toggle('active'); });
+        });
+        // wire main favor buttons (single-select-ish)
+        (document.querySelectorAll('#favors .subject-btn') || []).forEach(b=>{
+          b.addEventListener('click', function(){
+            const all = Array.from(document.querySelectorAll('#favors .subject-btn') || []);
+            if (this.classList.contains('active')){
+              this.classList.remove('active');
+            } else {
+              all.forEach(x => x.classList.remove('active'));
+              this.classList.add('active');
+            }
+          });
+        });
+      });
+    })();
+  </script>
+  
+</body>
+</html>

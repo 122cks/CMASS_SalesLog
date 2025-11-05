@@ -31,6 +31,31 @@
   </style>
 </head>
 <body>
+  <script>
+    // Defensive guard: prevent automatic programmatic navigation on initial page load.
+    // This prevents stray service-workers/old scripts or cached page code from immediately
+    // navigating from `/` to `/front`. The guard restores original functions after
+    // a short timeout or after the first user interaction (click/keydown).
+    (function(){
+      try{
+        const origAssign = window.location.assign.bind(window.location);
+        const origReplace = window.location.replace.bind(window.location);
+        const origOpen = window.open.bind(window);
+        let restored = false;
+        function restore(){ if (restored) return; restored = true; try{ window.location.assign = origAssign; window.location.replace = origReplace; window.open = origOpen; }catch(e){} }
+        // temporarily override navigation methods
+        window.location.assign = function(){ console.warn('[cmass guard] blocked assign during initial load'); };
+        window.location.replace = function(){ console.warn('[cmass guard] blocked replace during initial load'); };
+        window.open = function(){ console.warn('[cmass guard] blocked open during initial load'); };
+        // restore on first user interaction
+        const onUser = function(){ restore(); window.removeEventListener('click', onUser); window.removeEventListener('keydown', onUser); };
+        window.addEventListener('click', onUser);
+        window.addEventListener('keydown', onUser);
+        // or restore after 1 second if no interaction
+        setTimeout(restore, 1000);
+      }catch(e){ console.warn('cmass guard init failed', e); }
+    })();
+  </script>
   <div class="wrap">
     <div class="card">
       <div class="logo-wrap">
@@ -57,8 +82,24 @@
     </div>
   </div>
   <div class="version">build: 2025-10-22-06</div>
+  <script>
+    // One-time helper: attempt to unregister any existing service workers and clear caches
+    // so clients don't continue to serve stale index.html or cached assets.
+    (function(){
+      try{
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(regs){
+            regs.forEach(r=>{ try{ r.unregister(); console.info('ServiceWorker unregistered'); }catch(e){} });
+          }).catch(()=>{});
+        }
+        if (window.caches && caches.keys) {
+          caches.keys().then(function(keys){ keys.forEach(k=>{ try{ caches.delete(k); console.info('cache deleted', k); }catch(e){} }); }).catch(()=>{});
+        }
+      }catch(e){ console.warn('sw unregister failed', e); }
+    })();
+  </script>
       <script>
-        // Root PIN flow: submit name+PIN to /api/pin-check, store session marker, then redirect to front?user=<token>
+  // Root PIN flow: submit name+PIN to /api/pin-check, store session marker, then redirect to front?staff=<token>
         (function(){
           const form = document.getElementById('entryForm');
           const select = document.getElementById('userSelect');
@@ -99,7 +140,7 @@
             // If the provided PIN matches a local mapping, accept it immediately and skip server check.
             if (localPins[token] && pin === localPins[token]) {
               try { sessionStorage.setItem('cmass_pin_authenticated', JSON.stringify({ staff: baseForPin, ts: Date.now() })); } catch(e){}
-              window.location.href = '/front?user=' + encodeURIComponent(token);
+              window.location.href = '/front?staff=' + encodeURIComponent(token);
               return;
             }
 
@@ -112,7 +153,7 @@
               if (resp.ok && j && j.ok) {
                 try { sessionStorage.setItem('cmass_pin_authenticated', JSON.stringify({ staff: baseForPin, ts: Date.now() })); } catch(e){}
                 // redirect to front with canonical token
-                const target = '/front?user=' + encodeURIComponent(token);
+                const target = '/front?staff=' + encodeURIComponent(token);
                 window.location.href = target;
                 return;
               } else {

@@ -145,7 +145,7 @@
         <div style="font-weight:800;margin-bottom:.4rem">Firebase 접근 로그 (Firestore)</div>
         <div id="firebaseLogsContent" class="small">Firebase 설정이 필요합니다. 루트 `public/firebase-config.json` 파일에 웹앱 설정을 추가하세요.</div>
       </div>
-      <div id="noAuth" class="small" style="display:none;color:#a33;margin-bottom:.6rem;">사용자 정보가 URL에 없습니다. 예: <code>?user=LimJunho</code></div>
+  <div id="noAuth" class="small" style="display:none;color:#a33;margin-bottom:.6rem;">사용자 정보가 URL에 없습니다. 예: <code>?staff=LimJunho</code></div>
   <div id="loading" class="small">데이터를 불러오는 중...</div>
   <div id="loadingSpinner" style="display:none;margin-top:6px" class="small">🔄 처리중...</div>
       <div id="dashboardArea" style="display:none">
@@ -249,13 +249,29 @@
   </div>
 
   <script>
-    // small helper: map user token to display staff (same mapping used elsewhere)
+    // small helper: map staff token to display staff (same mapping used elsewhere)
+    // Falls back to localStorage and sessionStorage when the URL lacks ?staff=
     function getStaffFromQuery(){
       try{
         const params = new URLSearchParams(window.location.search);
-        const user = params.get('user') || '';
-        if (!user) return '';
-        const lower = user.toLowerCase();
+        let staff = params.get('staff') || '';
+
+        // If URL didn't include staff, try sessionStorage (login flow) then localStorage
+        if (!staff) {
+          try{
+            // sessionStorage set by index.html during PIN login: { staff: token, ts }
+            const auth = sessionStorage.getItem('cmass_pin_authenticated');
+            if (auth) {
+              try{ const obj = JSON.parse(auth); if (obj && obj.staff) staff = obj.staff; }catch(e){}
+            }
+          }catch(e){}
+        }
+        if (!staff) {
+          try{ staff = localStorage.getItem('cmass:staff') || ''; }catch(e){}
+        }
+
+        if (!staff) return '';
+        const lower = staff.toLowerCase();
         // canonical lowercase/legacy mapping
         const map = {
           'songhoonjae': '송훈재 부장',
@@ -266,15 +282,47 @@
           'joyounghwan': '조영환 부장'
         };
         if (map[lower]) return map[lower];
-  // Accept exact-case tokens used by the index select and input pages
-        if (user === 'SongHoonjae' || user === 'Songhoonjae') return '송훈재 부장';
-        if (user === 'LimJunho') return '임준호 차장';
-        if (user === 'ChoYounghwan' || user === 'ChoYoungHwan') return '조영환 부장';
-        return user;
+        // Accept exact-case tokens used by the index select and input pages
+        if (staff === 'SongHoonjae' || staff === 'Songhoonjae') return '송훈재 부장';
+        if (staff === 'LimJunho') return '임준호 차장';
+        if (staff === 'ChoYounghwan' || staff === 'ChoYoungHwan') return '조영환 부장';
+        return staff;
       }catch(e){return ''}
     }
 
-    document.getElementById('goInput').addEventListener('click', ()=>{
+        // Defensive fetch helper: ensures we only call res.json() when the
+        // response is JSON. If the server returns HTML (e.g. an index/404 page)
+        // we surface a clear error instead of letting `res.json()` throw
+        // 'Unexpected token <'. Call as: const j = await fetchJson(url, opts);
+        async function fetchJson(url, options){
+          const resp = await fetch(url, options);
+          const ct = (resp.headers && resp.headers.get) ? (resp.headers.get('content-type') || '') : '';
+          // If HTTP error, read body for context and throw
+          if (!resp.ok){
+            const txt = await resp.text().catch(()=>'<no body>');
+            let msg = `HTTP ${resp.status} ${resp.statusText}`;
+            if (ct.indexOf('application/json') !== -1){
+              try{ const j = JSON.parse(txt); if (j && j.message) msg += ' - ' + j.message; }catch(_){}
+            } else {
+              msg += ' - non-JSON response: ' + (String(txt).substring(0,300));
+            }
+            const err = new Error(msg);
+            err.status = resp.status; err.body = txt;
+            throw err;
+          }
+
+          // If content-type doesn't look like JSON, avoid calling res.json()
+          if (ct.indexOf('application/json') === -1 && ct.indexOf('+json') === -1){
+            const bodyText = await resp.text().catch(()=>'<no body>');
+            const err = new Error('Non-JSON response received: ' + String(bodyText).substring(0,300));
+            err.status = resp.status; err.body = bodyText;
+            throw err;
+          }
+
+          return resp.json();
+        }
+
+        document.getElementById('goInput').addEventListener('click', ()=>{
       // preserve user token if present
       try{
         const qs = window.location.search || '';
@@ -455,8 +503,8 @@
       // base staff name without title suffix
   const base = staff.replace(/\s*(부장|차장|과장|대리|사원|팀장|선생님|선생)$/,'').trim();
 
-      // Build initial query params
-      const userToken = (new URLSearchParams(window.location.search)).get('user') || '';
+  // Build initial query params (use canonical 'staff' token)
+  const userToken = (new URLSearchParams(window.location.search)).get('staff') || '';
       const buildUrl = (cursor) => {
         const params = new URLSearchParams();
         params.set('useEntries','true');
@@ -464,7 +512,7 @@
         // send both a human-friendly staff base (Korean) and the original user token
   // send the full staff label (including title) when available so Firestore equality matches stored docs
   if (staff) params.set('staff', staff);
-        if (userToken) params.set('user', userToken);
+    if (userToken) params.set('staff', userToken);
         const sVal = startEl && startEl.value ? startEl.value : '';
         const eVal = endEl && endEl.value ? endEl.value : '';
         const subj = subjectFilterEl && subjectFilterEl.value ? subjectFilterEl.value : '';
@@ -495,10 +543,17 @@
         window._visitsAccum = [];
         window._visitsNextCursor = null;
 
-        // fetch first page
+        // fetch first page (use defensive fetchJson to avoid JSON parse errors when server
+        // accidentally returns HTML/index pages)
         const url = buildUrl(null);
-        const res = await fetch(url);
-        const j = await res.json();
+        let j = null;
+        try{
+          j = await fetchJson(url);
+        }catch(e){
+          hideLoading(); loadingEl.textContent = '데이터를 가져오지 못했습니다: ' + (e && e.message ? e.message : String(e));
+          console.warn('fetchJson initial page failed', e);
+          return;
+        }
         if (!j || !j.ok) { hideLoading(); loadingEl.textContent = '데이터를 가져오지 못했습니다.'; return; }
         const rows = Array.isArray(j.rows) ? j.rows : [];
         // Debug: surface fetched row count so users can see whether API returned data
@@ -525,11 +580,14 @@
           if (!window._visitsNextCursor) return; loadMoreBtn.disabled = true; loadMoreBtn.textContent = '불러오는 중...';
           try{
             const moreUrl = buildUrl(window._visitsNextCursor);
-            const r2 = await fetch(moreUrl); const j2 = await r2.json(); if (j2 && j2.ok && Array.isArray(j2.rows)){
-              window._visitsAccum = window._visitsAccum.concat(j2.rows);
-              window._visitsNextCursor = j2.nextCursor || null;
-              if (!window._visitsNextCursor) { loadMoreBtn.style.display = 'none'; }
-            }
+            try{
+              const j2 = await fetchJson(moreUrl);
+              if (j2 && j2.ok && Array.isArray(j2.rows)){
+                window._visitsAccum = window._visitsAccum.concat(j2.rows);
+                window._visitsNextCursor = j2.nextCursor || null;
+                if (!window._visitsNextCursor) { loadMoreBtn.style.display = 'none'; }
+              }
+            }catch(e){ console.warn('load more fetch failed', e); }
           }catch(e){ console.warn('load more failed', e); }
           loadMoreBtn.disabled = false; loadMoreBtn.textContent = '더 불러오기';
           // re-render with new data
@@ -584,9 +642,9 @@
       async function loadGeocodes(){
         if (window._geocodeCache) return window._geocodeCache;
         try{
-          const r = await fetch('/geocodes.json');
-          if (!r.ok) { window._geocodeCache = {}; return window._geocodeCache; }
-          const j = await r.json(); window._geocodeCache = j || {}; return window._geocodeCache;
+          try{
+            const j = await fetchJson('/geocodes.json'); window._geocodeCache = j || {}; return window._geocodeCache;
+          }catch(e){ console.warn('loadGeocodes failed or non-JSON response', e); window._geocodeCache = {}; return window._geocodeCache; }
         }catch(e){ console.warn('loadGeocodes failed', e); window._geocodeCache = {}; return window._geocodeCache; }
       }
 
@@ -602,11 +660,12 @@
 
           // Respect polite usage: include format=json and limit=1
           const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(address + ', 대한민국');
-          const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
-          if (!resp.ok) return null;
-          const arr = await resp.json();
-          if (!Array.isArray(arr) || !arr.length) return null;
-          const one = arr[0];
+          let arr = null;
+          try{
+            arr = await fetchJson(url, { headers: { 'Accept': 'application/json' } });
+            if (!Array.isArray(arr) || !arr.length) return null;
+          }catch(e){ console.warn('nominatim fetch failed or returned non-JSON', e); return null; }
+          const one = (Array.isArray(arr) ? arr[0] : null);
           const res = { lat: Number(one.lat), lon: Number(one.lon), display_name: one.display_name };
           cache[address] = res;
           try{ localStorage.setItem(cacheKey, JSON.stringify(cache)); }catch(e){}
@@ -1107,7 +1166,23 @@
             const wrapper = document.createElement('div'); wrapper.style.width='100%'; wrapper.style.overflow='auto'; wrapper.appendChild(tbl); cont.appendChild(wrapper); })();
 
           // server-side keyword extraction helper for a given set of rows
-          async function updateKeywords(rows){ try{ const texts = (rows || []).map(r=> (r.conversation||r.note||'')).filter(Boolean); const el = document.getElementById('noteKeywords'); if (!el) return; if (!texts.length){ el.innerHTML = '<div class="small">특이사항 키워드가 없습니다.</div>'; return; } const r = await fetch('/api/keywords', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ texts, topN: 30 }) }); const j = await r.json(); if (j && j.ok && Array.isArray(j.keywords) && j.keywords.length){ el.innerHTML = ''; j.keywords.slice(0,30).forEach(it => { const span = document.createElement('span'); span.textContent = it.token + ' · ' + it.count; span.style.display = 'inline-block'; span.style.margin = '4px 6px'; span.style.padding = '6px 8px'; span.style.borderRadius = '12px'; span.style.background = '#eef5ff'; span.style.fontSize = '13px'; el.appendChild(span); }); } else { el.innerHTML = '<div class="small">특이사항 키워드가 없습니다.</div>'; } }catch(e){ console.warn('keyword fetch failed', e); } }
+          async function updateKeywords(rows){
+            try{
+              const texts = (rows || []).map(r=> (r.conversation||r.note||'')).filter(Boolean);
+              const el = document.getElementById('noteKeywords'); if (!el) return;
+              if (!texts.length){ el.innerHTML = '<div class="small">특이사항 키워드가 없습니다.</div>'; return; }
+              let j = null;
+              try{
+                j = await fetchJson('/api/keywords', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ texts, topN: 30 }) });
+              }catch(e){ console.warn('keyword fetch failed', e); el.innerHTML = '<div class="small">특이사항 키워드 가져오기 실패: ' + (e && e.message ? e.message : '') + '</div>'; return; }
+              if (j && j.ok && Array.isArray(j.keywords) && j.keywords.length){
+                el.innerHTML = '';
+                j.keywords.slice(0,30).forEach(it => {
+                  const span = document.createElement('span'); span.textContent = it.token + ' · ' + it.count; span.style.display = 'inline-block'; span.style.margin = '4px 6px'; span.style.padding = '6px 8px'; span.style.borderRadius = '12px'; span.style.background = '#eef5ff'; span.style.fontSize = '13px'; el.appendChild(span);
+                });
+              } else { el.innerHTML = '<div class="small">특이사항 키워드가 없습니다.</div>'; }
+            }catch(e){ console.warn('updateKeywords top-level failure', e); }
+          }
 
           // topTeachers section removed by request — no UI render for top teachers
 
@@ -1182,9 +1257,10 @@
     // with your Firebase web config (apiKey, authDomain, projectId, appId, etc.).
     async function initFirebaseAndLoadLogs(staff){
       try{
-        const confResp = await fetch('/firebase-config.json');
-        if (!confResp.ok) { console.info('No firebase-config.json found - skipping Firestore init'); return; }
-        const config = await confResp.json();
+        let config = null;
+        try{
+          config = await fetchJson('/firebase-config.json');
+        }catch(e){ console.info('No firebase-config.json found or invalid JSON - skipping Firestore init', e); return; }
         if (!config || !config.projectId){ console.warn('firebase-config.json missing projectId - skipping'); return; }
 
         // dynamically load compat SDKs (simpler integration for existing global code)
@@ -1203,8 +1279,8 @@
         if (logsCard) logsCard.style.display = '';
         if (logsContent) logsContent.textContent = 'Firestore에서 로그를 불러오는 중...';
 
-        // Query: prefer staff (human label) then fallback to raw user token
-        const params = new URLSearchParams(window.location.search); const userToken = params.get('user') || '';
+  // Query: prefer staff (human label) then fallback to raw staff token
+  const params = new URLSearchParams(window.location.search); const userToken = params.get('staff') || '';
         let queryColl = db.collection('access_logs').orderBy('createdAt','desc').limit(20);
         // try viewer == staff string if staff provided
         if (staff){ queryColl = db.collection('access_logs').where('viewer','==', staff).orderBy('createdAt','desc').limit(20); }
