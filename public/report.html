@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>방문일 보고서</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;color:#123;padding:18px;background:#f8fbff}
+    .card{background:#fff;border:1px solid #e6eef8;padding:14px;border-radius:8px;margin-bottom:12px}
+    button{padding:8px 10px;border-radius:6px;border:1px solid #d6dbe8;background:#fff}
+    .muted{color:#556;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <h2 id="title">방문일 보고서</h2>
+        <div id="subtitle" class="muted"></div>
+      </div>
+      <div>
+        <!-- Back button removed per user request -->
+      </div>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <label class="muted">출근</label>
+      <input id="workStart" type="time" style="padding:6px;border-radius:6px;border:1px solid #d6dbe8">
+      <label class="muted">퇴근</label>
+      <input id="workEnd" type="time" style="padding:6px;border-radius:6px;border:1px solid #d6dbe8">
+      <label class="muted">사무실내근(분)</label>
+      <input id="officeMinutes" type="number" min="0" style="width:80px;padding:6px;border-radius:6px;border:1px solid #d6dbe8">
+      <label class="muted">자료정리(분)</label>
+      <input id="prepMinutes" type="number" min="0" style="width:80px;padding:6px;border-radius:6px;border:1px solid #d6dbe8">
+    </div>
+  </div>
+
+  <div id="content" class="card">
+    <div id="main">보고서 내용을 불러오는 중입니다.</div>
+  </div>
+
+  <script>
+    (function(){
+      function qs(k){ return new URLSearchParams(window.location.search || '').get(k) || ''; }
+      let date = qs('date');
+      let staff = qs('staff');
+      // fallback: if URL lacks staff/date (e.g., user used back/forward), try session/local storage
+      if (!staff) {
+        try{ const auth = sessionStorage.getItem('cmass_pin_authenticated'); if (auth) { const obj = JSON.parse(auth); if (obj && obj.staff) staff = obj.staff; } }catch(e){}
+      }
+      if (!staff) { try{ staff = localStorage.getItem('cmass:staff') || ''; }catch(e){} }
+      if (!date) {
+        try{ const qsSaved = new URLSearchParams(window.location.search || ''); date = qsSaved.get('date') || '';
+        }catch(e){}
+        try{ if (!date) date = sessionStorage.getItem('cmass:last_report_date') || ''; }catch(e){}
+      }
+  const region = qs('region') || (sessionStorage.getItem('cmass:last_region') || '') || (localStorage.getItem('cmass:last_region') || '');
+  const school = qs('school') || (sessionStorage.getItem('cmass:last_school') || '') || (localStorage.getItem('cmass:last_school') || '');
+  // persist last report values in session so Back/Forward can recover them
+  try{ if (date) sessionStorage.setItem('cmass:last_report_date', date); }catch(e){}
+  try{ if (region) sessionStorage.setItem('cmass:last_region', region); }catch(e){}
+  try{ if (school) sessionStorage.setItem('cmass:last_school', school); }catch(e){}
+      const title = document.getElementById('title');
+      const subtitle = document.getElementById('subtitle');
+  subtitle.textContent = `담당자: ${staff || '-'} · 방문일: ${date || '-'}`;
+
+  // also populate header area (second document in this file uses these IDs)
+  try{ const staffName = document.getElementById('staffName'); if (staffName) staffName.textContent = staff || ''; }catch(e){}
+  try{ const reportDate = document.getElementById('reportDate'); if (reportDate) reportDate.textContent = date || ''; }catch(e){}
+
+      // Guard the back button: it may be intentionally removed from the UI.
+      const _btnBack = document.getElementById('btnBack');
+      if (_btnBack) {
+        _btnBack.addEventListener('click', function(){
+          const q = new URLSearchParams();
+          if (staff) q.set('staff', staff);
+          if (date) q.set('date', date);
+          if (region) q.set('region', region);
+          if (school) q.set('school', school);
+          const href = '/meeting.html' + (q.toString() ? ('?' + q.toString()) : '');
+          window.location.href = href;
+        });
+      }
+
+      // Minimal content: show that params are received and allow further report rendering.
+      document.getElementById('main').textContent = `보고서 대상: ${school || '(학교 지정 없음)'}\n지역: ${region || '-'}\n방문일: ${date || '-'}\n담당자: ${staff || '-'}`;
+    })();
+  </script>
+
+  <!-- Draft-load modal (appears when a local draft exists for this staff|date|region|school) -->
+  <div id="draftModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center">
+    <div style="background:#fff;padding:18px;border-radius:10px;max-width:720px;width:94%;box-shadow:0 12px 30px rgba(0,0,0,0.12);">
+      <div style="font-weight:800;margin-bottom:8px">저장된 드래프트가 발견되었습니다</div>
+      <div id="draftPreview" style="white-space:pre-wrap;max-height:220px;overflow:auto;padding:8px;border:1px dashed #d6dbe8;border-radius:8px;background:#fbfdff;font-family:Consolas,'Courier New',monospace;font-size:13px;margin-bottom:12px">(미리보기)</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="draftCancelBtn" type="button">취소</button>
+        <button id="draftLoadBtn" type="button" style="background:#1e3c72;color:#fff;border-color:#1e3c72">드래프트 불러오기</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      try{
+        function draftKey(staff,date,region,school){
+          try{
+            // Require all four identifying parts to be present before treating a draft as a match.
+            // Showing a modal when e.g. school is missing caused false positives (drafts saved with
+            // empty school would match too broadly). Return null if any piece is missing.
+            if (!staff || !date || !region || !school) return null;
+            const s = String(staff||'').replace(/\s+/g,'');
+            return `cmass:draft:${s}|${String(date||'')}|${String(region||'')}|${String(school||'')}`;
+          }catch(e){ return null; }
+        }
+        document.addEventListener('DOMContentLoaded', function(){
+          try{
+            const url = new URL(window.location.href);
+            const q = url.searchParams;
+            const staff = q.get('staff') || (sessionStorage.getItem('cmass:staff') || localStorage.getItem('cmass:staff') || '');
+            const date = q.get('date') || (sessionStorage.getItem('cmass:last_report_date') || '');
+            const region = q.get('region') || (sessionStorage.getItem('cmass:last_region') || localStorage.getItem('cmass:last_region') || '');
+            // Only consider a draft restore when the school is explicitly provided via the URL.
+            // This prevents a leftover `cmass:last_school` in session/localStorage from
+            // causing the modal to appear when the user is merely changing other fields
+            // (like the visit date).
+            const schoolFromUrl = q.get('school');
+            if (!schoolFromUrl) return; // do not trigger modal if school not in URL
+            const school = schoolFromUrl;
+            const key = draftKey(staff,date,region,school);
+            if (!key) return;
+            const raw = localStorage.getItem(key);
+            if (!raw) return; // no draft
+            var parsed = null;
+            try{ parsed = JSON.parse(raw); }catch(e){ parsed = null; }
+            const modal = document.getElementById('draftModal');
+            const preview = document.getElementById('draftPreview');
+            const loadBtn = document.getElementById('draftLoadBtn');
+            const cancelBtn = document.getElementById('draftCancelBtn');
+            if (!modal || !preview || !loadBtn) return;
+            preview.textContent = parsed && parsed.data ? JSON.stringify(parsed.data, null, 2).slice(0, 1500) : '(미리보기 불러오기 실패)';
+            modal.style.display = 'flex';
+            cancelBtn && cancelBtn.addEventListener('click', function(){ modal.style.display = 'none'; });
+            loadBtn.addEventListener('click', function(){
+              // redirect to input.html with query params so the input page can call loadDraft
+              const tgt = 'meeting.html';
+              const params = new URLSearchParams();
+              if (staff) params.set('staff', staff);
+              if (date) params.set('date', date);
+              if (region) params.set('region', region);
+              if (school) params.set('school', school);
+              window.location.href = tgt + (params.toString() ? ('?' + params.toString()) : '');
+            });
+          }catch(e){ /* tolerate */ }
+        });
+      }catch(e){ }
+    })();
+  </script>
+</body>
+</html>
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>퇴근보고 - 영업일지</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;margin:18px;color:#072042}
+    header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+    h1{font-size:20px;margin:0 0 12px}
+    .pill{background:#f3f6ff;padding:8px 12px;border-radius:10px;margin-right:8px}
+    .entry{border-left:4px solid #e6eefc;padding:8px 12px;margin:8px 0;border-radius:6px;background:#fff}
+    .school-title{font-weight:900}
+    .muted{color:#556}
+  </style>
+</head>
+<body>
+  <header>
+    <div id="backWrap"><a href="/meeting.html" id="backLink">◀ 입력으로 돌아가기</a></div>
+    <div style="margin-left:12px"> <strong id="staffName"></strong> - <span id="reportDate"></span></div>
+  </header>
+
+  <main>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button id="btnCopyReport" type="button" style="padding:8px 12px;border-radius:8px;border:1px solid #d6dbe8;background:#fff">카톡으로복사</button>
+      <button id="btnSaveServerReport" type="button" style="padding:8px 12px;border-radius:8px;border:1px solid #d6dbe8;background:#fff">서버에저장</button>
+      <button id="btnClearSummary" type="button" style="padding:8px 12px;border-radius:8px;border:1px solid #f0dede;background:#fff;color:#c33">SUMMARY 모두지우기</button>
+    </div>
+    <div id="summary"></div>
+    <hr>
+    <div id="grouped"></div>
+  </main>
+
+  <script src="/report.js"></script>
+</body>
+</html>
