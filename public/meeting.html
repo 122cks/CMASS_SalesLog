@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Meeting - 영업일지</title>
+  <link rel="manifest" href="/manifest.json">
+  <script src="js/draft_restore.js" defer></script>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;margin:18px;color:#072042}
+    header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+    /* place the Back button at the far right */
+    #btnBack{margin-left:auto}
+    .topline{font-weight:800}
+    label{display:block;margin-top:10px;font-weight:700}
+    input,select,textarea,button{font-size:14px;padding:8px;border:1px solid #d6dbe8;border-radius:8px}
+    .row{display:flex;gap:8px;align-items:center}
+    .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+    .subject-btn{padding:8px 12px;border-radius:10px;border:1px solid #d6dbe8;background:#fff;cursor:pointer}
+    .subject-btn.active{background:linear-gradient(135deg,#1e3c72,#274b9f);color:#fff;border-color:#1e3c72}
+  .dur-btn{padding:6px 10px;border-radius:8px;border:1px solid #d6dbe8;background:#fff;cursor:pointer;font-weight:700}
+  .dur-btn.active{background:#1e3c72;color:#fff;border-color:#123}
+    /* favor buttons (우호도) - match subject button visuals */
+    .favor-btn{padding:8px 12px;border-radius:10px;border:1px solid #d6dbe8;background:#fff;cursor:pointer}
+    .favor-btn.active{background:linear-gradient(135deg,#1e3c72,#274b9f);color:#fff;border-color:#1e3c72}
+  /* Ensure button grids sit above transient overlays and accept pointer events.
+    Lowered z-index values to avoid stacking/isolation issues caused by very large numbers. */
+  .btn-row, #subjects, #activities, .entry-subjects, .entry-activities { position: relative; z-index: 3; }
+  /* Keep interactive buttons above their container but avoid extremely large stacking contexts */
+  .subject-btn, .entry-subject-btn, .entry-activity-btn { pointer-events: auto; position: relative; z-index: 4; }
+    .actions{display:flex;gap:8px;margin-top:14px}
+    .muted{color:#556}
+    .small{font-size:13px}
+  /* Section styling: use a subtle divider and padding for logical groups */
+  .form-section{margin-bottom:12px;padding:10px;border:1px solid #eef6fb;border-radius:8px;background:#fbfeff}
+  .section-title{margin:0 0 8px 0;font-size:15px;font-weight:800;color:#123}
+    /* Responsive tweaks for narrow screens (<=530px) - only adjust sizes/layout, keep structure */
+    @media (max-width:530px){
+      body{margin:12px;font-size:14px}
+      header{gap:8px}
+      #schoolDisplay{font-size:15px}
+      .topline{font-weight:800;font-size:14px}
+      /* slightly smaller controls, less padding */
+      input, select, textarea, button{font-size:13px;padding:6px;border-radius:8px}
+      /* allow inputs/selects to shrink and take full width when stacked */
+      input, select, textarea{min-width:0}
+      /* stack rows vertically on mobile */
+      .row{flex-direction:column;align-items:flex-start;gap:8px}
+      .row > *{width:100%}
+  /* make time selectors a bit narrower but keep readable */
+  #startHour, #startMinute{width:76px}
+  #duration, #endTime{width:100%}
+  /* remove auto left margin on the end-time wrapper so it lines up under duration without extra gap */
+  .end-time-wrap{ margin-left: 0 !important; flex: 0 0 100% !important; }
+      /* tighten button grids */
+  .btn-row{gap:6px}
+      .subject-btn{padding:6px 10px;border-radius:8px;font-size:13px}
+      .subject-btn.active{font-size:13px}
+  /* actions stack full-width */
+      .actions{flex-direction:column}
+      .actions button{width:100%}
+  /* saved draft sizing */
+  #savedDraft{font-size:13px}
+      /* reduce select dropdown visual size */
+      select{height:40px}
+
+      /* Specifically target devices up to 520px so the duration select fills the available width
+         and aligns cleanly with the end-time input without leaving gaps. */
+      @media (max-width:520px){
+        body, .form-section { box-sizing: border-box; padding-left:12px; padding-right:12px; }
+        #duration { width:100% !important; max-width:520px !important; }
+        .end-time-wrap { margin-left:0 !important; flex: 0 0 100% !important; }
+        .row > * { width:100% !important; }
+      }
+
+      /* Entry collapse styling */
+      .entry-title { cursor: default; }
+      .entry-title .toggle-collapse { font-weight:700 }
+      .entry-body { transition: all 160ms ease; }
+      .entry.collapsed .entry-body { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div id="schoolDisplay" style="margin-left:12px;font-weight:900;color:#042046;">
+      <!-- school name will be shown here -->
+    </div>
+    <!-- Back to input page (user requested a back button next to school name) -->
+    <a id="backToInput" href="/input.html" style="margin-left:auto;text-decoration:none;color:inherit;padding:6px 10px;border:1px solid #d6dbe8;border-radius:8px;background:#fff">◀ 뒤로가기</a>
+    <!-- 총 방문시간 버튼은 폼 섹션에서 관리 -->
+</header>
+
+  <main>
+    <form id="meetingForm" onsubmit="return false;">
+      <!-- Basic info section -->
+      <section class="form-section">
+        <h3 class="section-title">- 기본정보 -</h3>
+        <div class="row" style="gap:12px;align-items:center">
+          <div style="flex:1">
+            <label style="margin-top:0">담당자</label>
+            <select id="staff" style="width:50%">
+              <option value="">담당자 선택...</option>
+              <option value="송훈재 부장">송훈재 부장</option>
+              <option value="임준호 차장">임준호 차장</option>
+              <option value="조영환 부장">조영환 부장</option>
+            </select>
+          </div>
+          <div style="flex:1">
+            <label style="margin-top:0">방문일</label>
+            <input id="visitDate" type="date" style="width:50%">
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px;gap:12px">
+          <div style="flex:1">
+            <label style="margin-top:0">지역</label>
+            <select id="regionSelect" style="width:80%"><option value="">지역 선택...</option></select>
+          </div>
+          <div style="flex:1">
+            <label style="margin-top:0">학교</label>
+            <select id="schoolSelect" style="width:80%"><option value="">학교 선택...</option></select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Visit records section -->
+      <section class="form-section">
+        <h3 class="section-title">- 방문기록 -</h3>
+        <label style="margin-top:0">방문 시작시간</label>
+        <div class="row" style="align-items:center;gap:8px">
+          <div style="display:flex;gap:6px;align-items:center">
+            <select id="startHour" style="width:80px"></select>
+            <span style="font-weight:700">시</span>
+            <select id="startMinute" style="width:80px"></select>
+            <span style="font-weight:700">분</span>
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px;align-items:center">
+          <div style="flex:0 0 100px;min-width:120px">
+            <label style="margin-top:0">총 방문시간(분)</label>
+            <select id="duration" style="width:80%">
+              <option value="">방문시간 선택</option>
+              <option value="10">10분</option>
+              <option value="20">20분</option>
+              <option value="30">30분</option>
+              <option value="40">40분</option>
+              <option value="50">50분</option>
+              <option value="60">60분</option>
+              <option value="70">70분</option>
+              <option value="80">80분</option>
+              <option value="90">90분</option>
+            </select>
+          </div>
+          <!-- 버튼 그리드 제거 -->
+          <!-- reduce width and remove auto margin so it sits next to duration without pushing to the far right -->
+          <div class="end-time-wrap" style="flex:0 0 70px;min-width:130px;margin-left:8px">
+            <label style="margin-top:0">방문 종료시간</label>
+            <input id="endTime" type="text" readonly style="width:70%;background:#f7f8ff">
+          </div>
+        </div>
+      </section>
+
+      <!-- Meeting content section -->
+      <section class="form-section">
+        <h3 class="section-title">- 미팅내용1 -</h3>
+        <label style="margin-top:0">과목 선택 (버튼형)</label>
+        <div id="subjects" class="btn-row">
+          <button type="button" class="subject-btn">정보</button>
+          <button type="button" class="subject-btn">진로</button>
+          <button type="button" class="subject-btn">보건</button>
+          <button type="button" class="subject-btn">미술</button>
+          <button type="button" class="subject-btn">체육</button>
+          <button type="button" class="subject-btn">도서관사서</button>
+          <button type="button" class="subject-btn">특성화</button>
+          <button type="button" class="subject-btn">기타</button>
+        </div>
+
+        <label style="margin-top:8px">영업활동 (버튼형)</label>
+        <div id="activities" class="btn-row">
+          <button type="button" class="subject-btn">명함인사</button>
+          <button type="button" class="subject-btn">티칭샘소개</button>
+          <button type="button" class="subject-btn">카톡방소개</button>
+          <button type="button" class="subject-btn">포스터전달</button>
+          <button type="button" class="subject-btn">브로슈어</button>
+          <button type="button" class="subject-btn">가이드북</button>
+          <button type="button" class="subject-btn">단행본소개</button>
+          <button type="button" class="subject-btn">교구재안내</button>
+          <button type="button" class="subject-btn">연수소개</button>
+          <button type="button" class="subject-btn">구글클래스룸</button>
+          <button type="button" class="subject-btn">하이러닝</button>
+          <button type="button" class="subject-btn">미팅거부</button>
+          <button type="button" class="subject-btn">자료거부</button>
+        </div>
+
+        <label style="margin-top:8px">우호도</label>
+        <div id="favorBtns" class="btn-row">
+          <button type="button" class="favor-btn">좋음</button>
+          <button type="button" class="favor-btn">보통</button>
+          <button type="button" class="favor-btn">나쁨</button>
+        </div>
+
+        <!-- header row: teacher / publisher (subject is selected via buttons) -->
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <input id="teacherName" type="text" placeholder="선생님 이름" style="flex:1">
+          <input id="publisher" type="text" list="publishersList" placeholder="출판사" style="flex:0 0 140px">
+        </div>
+
+        <datalist id="publishersList">
+          <option value="씨마스"></option>
+          <option value="천재"></option>
+          <option value="비상"></option>
+          <option value="미래엔"></option>
+          <option value="동아"></option>
+          <option value="지학사"></option>
+          <option value="금성"></option>
+          <option value="창비"></option>
+          <option value="해냄"></option>
+          <option value="능률"></option>
+          <option value="삼양"></option>
+          <option value="이오북스"></option>
+          <option value="YBM"></option>
+          <option value="길벗"></option>
+          <option value="미진사"></option>
+          <option value="다락원"></option>
+          <option value="타임"></option>
+          <option value="채움"></option>
+        </datalist>
+
+        <label style="margin-top:8px">연락처</label>
+        <div class="row">
+          <input id="phone" type="tel" placeholder="전화번호">
+          <input id="email" type="email" placeholder="이메일">
+        </div>
+
+        <label style="margin-top:8px">고객요청사항</label>
+        <div class="row">
+          <input id="requests" type="text" placeholder="고객요청사항 입력" style="width:100%">
+        </div>
+
+        <label style="margin-top:8px">특이사항</label>
+        <div class="row">
+          <input id="notes" type="text" placeholder="특이사항 입력" style="width:100%">
+        </div>
+
+        <label style="margin-top:8px">납품사항</label>
+        <div class="row">
+          <input id="deliveries" type="text" placeholder="납품사항 입력" style="width:100%">
+        </div>
+
+        <label style="margin-top:8px">후속조치</label>
+        <div style="margin-top:6px;margin-bottom:6px">
+          <input id="followUp" type="text" list="followupList" placeholder="후속조치 선택 또는 입력" style="width:100%">
+          <datalist id="followupList">
+            <option value="완료(추가조치 없음)"></option>
+            <option value="고객요청사항 해소예정"></option>
+            <option value="재방문예정(중요고객)"></option>
+            <option value="AIDT교육자료 체험계정 지급"></option>
+            <option value="워크북 무상지원 제안"></option>
+            <option value="선정시기 연락 대기"></option>
+          </datalist>
+        </div>
+
+      </section>
+
+        <!-- Template for cloned sessions (uses class-based selectors) -->
+        <template id="sessionTemplate">
+          <section class="form-section meeting-session">
+            <h4 class="section-title small">미팅내용</h4>
+            <label style="margin-top:0">과목 선택 (버튼형)</label>
+            <div class="session-subjects btn-row"></div>
+            <label style="margin-top:8px">영업활동 (버튼형)</label>
+            <div class="session-activities btn-row"></div>
+            <label style="margin-top:8px">우호도</label>
+            <div class="session-favor btn-row">
+              <button type="button" class="favor-btn">좋음</button>
+              <button type="button" class="favor-btn">보통</button>
+              <button type="button" class="favor-btn">나쁨</button>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+              <input type="text" class="session-teacher" placeholder="선생님 이름" style="flex:1">
+              <input type="text" class="session-publisher" list="publishersList" placeholder="출판사" style="flex:0 0 140px">
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <input type="tel" class="session-phone" placeholder="전화번호" style="flex:1">
+              <input type="email" class="session-email" placeholder="이메일" style="flex:1">
+            </div>
+            <input type="text" class="session-requests" placeholder="요청사항" style="width:100%;margin-top:8px">
+            <input type="text" class="session-notes" placeholder="특이사항" style="width:100%;margin-top:8px">
+            <input type="text" class="session-deliveries" placeholder="납품사항" style="width:100%;margin-top:8px">
+            <input type="text" class="session-followup" list="followupList" placeholder="후속조치" style="width:100%;margin-top:8px">
+          </section>
+        </template>
+
+        <div id="sessionContainer"></div>
+
+      <div style="margin-top:10px">
+        <div style="font-weight:700;margin-bottom:6px">저장된 드래프트</div>
+  <div id="savedDraft" style="white-space:pre-wrap;padding:10px;border:1px dashed #d6dbe8;border-radius:8px;background:#fbfdff;min-height:48px;color:#123;font-family:Consolas, 'Courier New', monospace;font-size:13px;max-height:220px;overflow:auto"></div>
+      </div>
+
+      <!-- School visit history (per school + visit date) -->
+      <div id="schoolHistoryArea" style="margin-top:12px;padding:10px;border:1px solid #eef4fb;border-radius:8px;background:#fcfeff">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:800;color:#123">이 학교의 기록 (방문일 기준)</div>
+          <div style="font-size:13px;color:#556">학교 & 방문일을 선택하면 해당 날짜의 모든 입력이 보입니다.</div>
+        </div>
+        <div id="historyList" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;min-height:36px">
+          <!-- entries will be rendered here -->
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="btnSubmit" type="button">입력완료</button>
+        <button id="btnDailyReport" type="button">방문일 보고서</button>
+        <!-- Hidden placeholders for legacy JS bindings (prevent runtime errors when scripts expect these controls) -->
+        <button id="btnCopy" type="button" style="display:none"></button>
+        <button id="btnSaveServer" type="button" style="display:none"></button>
+      </div>
+
+      <!-- SUMMARY removed from meeting page per request. Summaries are handled via report page. -->
+    </form>
+  </main>
+
+  <script src="/csv-helpers.js" defer></script>
+  <!-- cache-busting query added so mobile browsers fetch the latest meeting.js -->
+  <script src="meeting.js?v=3" defer></script>
+  <script>
+    // Install lightweight draft UI glue for meeting.html when page is opened directly.
+    (function(){
+      try{
+        let timer = null;
+        const delay = 800;
+        function scheduleSave(){ clearTimeout(timer); timer = setTimeout(()=>{ try{ if (typeof saveDraft === 'function' && !window._isSelectingSchool) saveDraft(); }catch(e){} }, delay); }
+        document.addEventListener('input', scheduleSave, true);
+        document.addEventListener('change', scheduleSave, true);
+        // Ensure button clicks (subject/activity/favor) produce an 'input' event so
+        // the global input/change autosave handler will pick them up.
+        // This keeps save behavior consistent with other form controls.
+        document.addEventListener('click', function(ev){
+          try{
+            const t = ev.target;
+            if (!t) return;
+            const cls = t.className || '';
+            const isBtn = cls.includes('subject-btn') || cls.includes('favor-btn') || cls.includes('entry-subject-btn') || cls.includes('entry-activity-btn') || (t.matches && (t.matches('.subject-btn') || t.matches('.favor-btn') || t.matches('.entry-subject-btn') || t.matches('.entry-activity-btn')));
+            if (isBtn){
+              try{
+                // Dispatch a bubbling input event from the clicked element. The
+                // document-level 'input' listener installed above will receive this
+                // and schedule a saveDraft via the debounce. Use Event for broad compatibility.
+                const evInput = new Event('input', { bubbles: true, cancelable: false });
+                t.dispatchEvent(evInput);
+              }catch(e){
+                // Fallback: if dispatch fails for any reason, call saveDraft directly.
+                try{ if (typeof saveDraft === 'function') saveDraft(); }catch(_){}
+              }
+            }
+          }catch(e){}
+        }, true);
+        document.addEventListener('DOMContentLoaded', function(){
+          try{
+            // Update saved draft status but DO NOT auto-load drafts on the meeting page.
+            // Auto-loading here caused a modal to appear even when the user was viewing a different
+            // visit/report. Keep loadDraft reserved for explicit user actions on the input page.
+            // But ensure draft key computation can work when meeting.html is opened via
+            // a redirect from the report page (it uses query params). Populate the
+            // minimal state so draftKeyFor() returns a key and tests or explicit
+            // user actions can call loadDraft() later.
+            try{
+              const q = new URLSearchParams(window.location.search || '');
+              const staff = q.get('staff') || '';
+              const date = q.get('date') || '';
+              const region = q.get('region') || '';
+              const school = q.get('school') || '';
+              if (staff) { window._cmass_staffParam = staff; try{ const st = document.getElementById('staff'); if (st) st.value = staff; }catch(e){} }
+              if (date) { try{ const d = document.getElementById('visitDate'); if (d) d.value = date; }catch(e){} }
+              if (region) { window.selectedRegion = region; try{ const r = document.getElementById('regionSelect'); if (r) r.value = region; }catch(e){} }
+              if (school) { window.selectedSchool = school; try{ const s = document.getElementById('schoolSelect'); if (s) s.value = school; }catch(e){} }
+            }catch(e){}
+            if (typeof updateDraftStatus === 'function') updateDraftStatus();
+          }catch(e){}
+        });
+      }catch(e){ /* ignore */ }
+    })();
+  </script>
+  
+</body>
+</html>
