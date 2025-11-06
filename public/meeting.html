@@ -165,6 +165,7 @@
         <h3 class="section-title">- 미팅내용1 -</h3>
         <label style="margin-top:0">과목 선택 (버튼형)</label>
         <div id="subjects" class="btn-row">
+          <button type="button" class="subject-btn">정보</button>
           <button type="button" class="subject-btn">진로</button>
           <button type="button" class="subject-btn">보건</button>
           <button type="button" class="subject-btn">미술</button>
@@ -324,6 +325,160 @@
   <!-- cache-busting query added so mobile browsers fetch the latest meeting.js -->
   <script src="meeting.js?v=3" defer></script>
   <script>
+    // Keep the address bar in sync with the selected staff/date/region/school
+    (function(){
+      function getField(id){ try{ return document.getElementById(id); }catch(e){ return null; } }
+      function currentParams(){
+        try{
+          const staff = (getField('staff') && getField('staff').value) || window._cmass_staffParam || '';
+          const date = (getField('visitDate') && getField('visitDate').value) || '';
+          const regionSel = getField('regionSelect');
+          // Prefer the option text for region (more user-friendly) and fall back to value
+          let region = '';
+          if (window.selectedRegion) region = window.selectedRegion;
+          else if (regionSel){
+            const opt = regionSel.options && regionSel.selectedIndex >= 0 ? regionSel.options[regionSel.selectedIndex] : null;
+            region = (opt && (opt.text || opt.value)) || (regionSel.value || '');
+          }
+          const schoolSel = getField('schoolSelect');
+          // Prefer the option text for school and fall back to value
+          let school = '';
+          if (window.selectedSchool) school = window.selectedSchool;
+          else if (schoolSel){
+            const opt = schoolSel.options && schoolSel.selectedIndex >= 0 ? schoolSel.options[schoolSel.selectedIndex] : null;
+            school = (opt && (opt.text || opt.value)) || (schoolSel.value || '');
+          }
+          return { staff: String(staff||''), date: String(date||''), region: String((region||'').toString().replace(/\u00A0/g,' ')), school: String((school||'').toString().replace(/\u00A0/g,' ')) };
+        }catch(e){ return {staff:'',date:'',region:'',school:''}; }
+      }
+
+      function buildQuery(p){
+        const parts = [];
+        if (p.staff) parts.push('staff='+encodeURIComponent(p.staff));
+        if (p.date) parts.push('date='+encodeURIComponent(p.date));
+        if (p.region) parts.push('region='+encodeURIComponent(p.region));
+        if (p.school) parts.push('school='+encodeURIComponent(p.school));
+        return parts.length ? ('?'+parts.join('&')) : '';
+      }
+
+      function replaceUrlIfNeeded(){
+        try{
+          const p = currentParams();
+          if (!p.staff && !p.date && !p.region && !p.school) return;
+          const q = buildQuery(p);
+          // Use the current path as the base and append the computed query string.
+          const base = location.pathname;
+          const newUrl = base + q;
+          // Only replace if the resulting URL differs
+          if (newUrl !== location.pathname + location.search){
+            history.replaceState({}, '', newUrl);
+          }
+        }catch(e){}
+      }
+
+      function attach(){
+        const ids = ['staff','visitDate','regionSelect','schoolSelect'];
+        ids.forEach(id => {
+          const el = getField(id);
+          if (!el) return;
+          el.addEventListener('change', function(){
+            try{
+              // Prefer option text for readability in the URL
+              if (id === 'schoolSelect'){
+                const opt = el.options && el.selectedIndex >= 0 ? el.options[el.selectedIndex] : null;
+                window.selectedSchool = (opt && (opt.text || opt.value)) || el.value || window.selectedSchool;
+              }
+              if (id === 'regionSelect'){
+                const opt = el.options && el.selectedIndex >= 0 ? el.options[el.selectedIndex] : null;
+                window.selectedRegion = (opt && (opt.text || opt.value)) || el.value || window.selectedRegion;
+              }
+              if (id === 'staff'){ window._cmass_staffParam = el.value || window._cmass_staffParam; }
+              replaceUrlIfNeeded();
+              try{ if (typeof updateDraftStatus === 'function') updateDraftStatus(); }catch(e){}
+            }catch(e){}
+          }, true);
+        });
+
+        // Additional robustness: some UIs populate or change the school <select>
+        // dynamically (via async fetches or enhanced widgets). To ensure the
+        // address bar always reflects the current school selection we also
+        // watch for more events and mutations on the school select element.
+        try{
+          const schoolEl = getField('schoolSelect');
+          if (schoolEl){
+            // generic handler to sync URL and globals
+            const syncSchool = ()=>{
+              try{
+                const val = schoolEl.value || (schoolEl.options[schoolEl.selectedIndex] && schoolEl.options[schoolEl.selectedIndex].text) || '';
+                if (val){
+                  window.selectedSchool = val;
+                }
+                // Debug: show what we read and what query would be
+                try{ const p = currentParams(); const q = buildQuery(p); console.debug('[DRAFT-URL] syncSchool val=', val, ' currentParams=', p, ' query=', q); }catch(e){}
+                replaceUrlIfNeeded();
+                try{ if (typeof updateDraftStatus === 'function') updateDraftStatus(); }catch(e){}
+              }catch(e){}
+            };
+            // Listen to change/input/click (covers native and some enhanced widgets)
+            schoolEl.addEventListener('change', syncSchool, true);
+            schoolEl.addEventListener('input', syncSchool, true);
+            schoolEl.addEventListener('click', syncSchool, true);
+
+            // Observe childList mutations (options being added/removed) and attribute changes
+            const mo = new MutationObserver(()=>{
+              try{
+                // If the options changed and the selectedIndex updated, sync.
+                syncSchool();
+              }catch(e){}
+            });
+            mo.observe(schoolEl, { childList: true, subtree: true, attributes: true });
+
+            // As a final fallback, poll for selection changes (lightweight, stops after pagehide)
+            let lastIdx = schoolEl.selectedIndex;
+            const poll = setInterval(()=>{
+              try{
+                if (!document.contains(schoolEl)){ clearInterval(poll); mo.disconnect(); return; }
+                if (schoolEl.selectedIndex !== lastIdx){ lastIdx = schoolEl.selectedIndex; syncSchool(); }
+              }catch(e){ clearInterval(poll); }
+            }, 600);
+            window.addEventListener('pagehide', ()=>{ clearInterval(poll); mo.disconnect(); });
+          }
+        }catch(e){}
+      }
+
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach); else attach();
+
+      // Global safety-net: catch any change events on the document and ensure
+      // the address bar and globals are synchronized. This covers cases where
+      // selects are populated or swapped by other scripts after attach() ran.
+      document.addEventListener('change', function(ev){
+        try{
+          const t = ev.target;
+          if (!t || !t.id) return;
+          if (t.id === 'schoolSelect'){
+            const opt = t.options && t.selectedIndex >= 0 ? t.options[t.selectedIndex] : null;
+            window.selectedSchool = (opt && (opt.text || opt.value)) || t.value || window.selectedSchool;
+            console.debug('[DRAFT-URL] document change: schoolSelect ->', window.selectedSchool);
+          }
+          if (t.id === 'regionSelect'){
+            const opt = t.options && t.selectedIndex >= 0 ? t.options[t.selectedIndex] : null;
+            window.selectedRegion = (opt && (opt.text || opt.value)) || t.value || window.selectedRegion;
+            console.debug('[DRAFT-URL] document change: regionSelect ->', window.selectedRegion);
+          }
+          if (t.id === 'staff'){
+            window._cmass_staffParam = t.value || window._cmass_staffParam;
+            console.debug('[DRAFT-URL] document change: staff ->', window._cmass_staffParam);
+          }
+          // Always attempt to update the URL when any of these fields change
+          try{ const p = currentParams(); console.debug('[DRAFT-URL] before replaceUrlIfNeeded currentParams=', p); }catch(e){}
+          replaceUrlIfNeeded();
+          try{ if (typeof updateDraftStatus === 'function') updateDraftStatus(); }catch(e){}
+        }catch(e){}
+      }, true);
+    })();
+  </script>
+
+  <script>
     // Install lightweight draft UI glue for meeting.html when page is opened directly.
     (function(){
       try{
@@ -365,15 +520,29 @@
             // minimal state so draftKeyFor() returns a key and tests or explicit
             // user actions can call loadDraft() later.
             try{
+              // Only accept URL-provided identifying parameters when ALL are present.
+              // This avoids partially populating the meeting form (e.g. only date)
+              // from a URL and thereby creating a draft key that partially matches
+              // existing drafts. The report page should navigate here with full
+              // staff/date/region/school when the user explicitly chooses to load a draft.
               const q = new URLSearchParams(window.location.search || '');
               const staff = q.get('staff') || '';
               const date = q.get('date') || '';
               const region = q.get('region') || '';
               const school = q.get('school') || '';
-              if (staff) { window._cmass_staffParam = staff; try{ const st = document.getElementById('staff'); if (st) st.value = staff; }catch(e){} }
-              if (date) { try{ const d = document.getElementById('visitDate'); if (d) d.value = date; }catch(e){} }
-              if (region) { window.selectedRegion = region; try{ const r = document.getElementById('regionSelect'); if (r) r.value = region; }catch(e){} }
-              if (school) { window.selectedSchool = school; try{ const s = document.getElementById('schoolSelect'); if (s) s.value = school; }catch(e){} }
+              if (staff && date && region && school) {
+                // mark that the page was opened with a full identifying URL and
+                // therefore a draft lookup/load may be appropriate
+                window._cmass_allowDraftFromUrl = true;
+                window._cmass_staffParam = staff;
+                try{ const st = document.getElementById('staff'); if (st) st.value = staff; }catch(e){}
+                try{ const d = document.getElementById('visitDate'); if (d) d.value = date; }catch(e){}
+                try{ window.selectedRegion = region; const r = document.getElementById('regionSelect'); if (r) r.value = region; }catch(e){}
+                try{ window.selectedSchool = school; const s = document.getElementById('schoolSelect'); if (s) s.value = school; }catch(e){}
+              } else {
+                // do not populate partial values from the URL - keep existing state
+                window._cmass_allowDraftFromUrl = false;
+              }
             }catch(e){}
             if (typeof updateDraftStatus === 'function') updateDraftStatus();
           }catch(e){}
@@ -381,6 +550,138 @@
       }catch(e){ /* ignore */ }
     })();
   </script>
-  
+</script>
+
+  <!-- Draft-load modal: shown on meeting page when opened with full staff|date|region|school and a local draft exists -->
+  <div id="draftModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center">
+    <div style="background:#fff;padding:18px;border-radius:10px;max-width:720px;width:94%;box-shadow:0 12px 30px rgba(0,0,0,0.12);">
+  <div style="font-weight:800;margin-bottom:8px">저장된 드래프트가 발견되었습니다</div>
+  <div id="draftMetaMsg" style="margin-bottom:8px;color:#234;font-size:14px">(불러올 항목: 담당자 · 방문일 · 지역 · 학교)</div>
+      <div id="draftPreview" style="white-space:pre-wrap;max-height:220px;overflow:auto;padding:8px;border:1px dashed #d6dbe8;border-radius:8px;background:#fbfdff;font-family:Consolas,'Courier New',monospace;font-size:13px;margin-bottom:12px">(미리보기)</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px">
+        <button id="draftToggleFullBtn" type="button" style="background:#fff;border:1px solid #d6dbe8;padding:6px 10px;border-radius:8px;font-size:13px">미리보기 더보기</button>
+        <div style="flex:1"></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="draftCancelBtn" type="button">취소</button>
+        <button id="draftDeleteBtn" type="button" style="background:#fff;color:#c33;border-color:#f0dede">드래프트 삭제</button>
+        <button id="draftLoadBtn" type="button" style="background:#1e3c72;color:#fff;border-color:#1e3c72">드래프트 불러오기</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      document.addEventListener('DOMContentLoaded', function(){
+        try{
+          // Only show modal when meeting page was opened from report with full identifying params
+          if (!window._cmass_allowDraftFromUrl) return;
+          // draftKeyFor() derives the same key used to save drafts
+          const key = (typeof draftKeyFor === 'function') ? draftKeyFor() : null;
+          if (!key) return;
+          const raw = localStorage.getItem(key);
+          if (!raw) return;
+          let parsed = null;
+          try{ parsed = JSON.parse(raw); }catch(e){ parsed = null; }
+          const modal = document.getElementById('draftModal');
+          const preview = document.getElementById('draftPreview');
+          const toggleBtn = document.getElementById('draftToggleFullBtn');
+          const loadBtn = document.getElementById('draftLoadBtn');
+          const cancelBtn = document.getElementById('draftCancelBtn');
+          const deleteBtn = document.getElementById('draftDeleteBtn');
+          if (!modal || !preview) return;
+          try{
+            if (parsed && parsed.data){
+              const d = parsed.data;
+              const when = parsed.ts ? new Date(parsed.ts).toLocaleString() : '(저장시간 없음)';
+              const subj = Array.isArray(d.selectedSubjects) ? d.selectedSubjects.join(', ') : (d.selectedSubjects || (d.selectedSubject || ''));
+              const acts = Array.isArray(d.selectedActivities) ? d.selectedActivities.join(', ') : (d.selectedActivities || '');
+              const duration = d.visitDuration || d.visitDuration === 0 ? String(d.visitDuration) + '분' : (d.visitEndTime ? d.visitEndTime : '정보없음');
+              // build brief session lines (미팅내용1..)
+              let sessionLines = [];
+              if (Array.isArray(d.subjects) && d.subjects.length){
+                for (let i=0;i<Math.min(6,d.subjects.length);i++){
+                  const s = d.subjects[i] || {};
+                  const txt = (s.conversation || s.notes || s.customerRequest || s.requests || '').toString().trim();
+                  sessionLines.push(`미팅내용${i+1}: ${txt || '(간단 메모 없음)'}`);
+                }
+              }
+              // fallback: if no sessions but top-level texts exist, show them
+              if (!sessionLines.length){
+                const top = (d.notes || d.requests || d.conversation || '');
+                if (top) sessionLines.push(`미팅내용1: ${top}`);
+              }
+              const summary = `저장일시: ${when}\n과목: ${subj || '(없음)'}\n활동: ${acts || '(없음)'}\n총 방문시간: ${duration}\n\n간단 드래프트:\n${sessionLines.join('\n')}`;
+              preview.textContent = summary;
+            } else {
+              preview.textContent = '(미리보기 불러오기 실패)';
+            }
+          }catch(e){ preview.textContent = '(미리보기 불러오기 실패)'; }
+          // show a human-readable meta line explaining which identifying values will be applied
+          try{
+            const metaEl = document.getElementById('draftMetaMsg');
+            if (metaEl){
+              const d = parsed && parsed.data ? parsed.data : {};
+              const staff = d.staff || window._cmass_staffParam || '';
+              const date = d.visitDate || (document.getElementById('visitDate')?document.getElementById('visitDate').value:'') || '';
+              const region = d.region || window.selectedRegion || '';
+              const school = d.school || window.selectedSchool || '';
+              const pretty = `${staff || '(담당자 없음)'}  —  ${date || '(방문일 없음)'}  —  ${region || '(지역 없음)'}  —  ${school || '(학교 없음)'} `;
+              metaEl.textContent = '이 드래프트는 다음 값을 불러옵니다: ' + pretty;
+            }
+          }catch(e){}
+          // Build full JSON preview string for toggle
+          let fullPreviewStr = null;
+          try{ fullPreviewStr = parsed ? JSON.stringify(parsed, null, 2) : null; }catch(e){ fullPreviewStr = null; }
+          // attach toggle behavior: show summary by default, allow expanding to full JSON
+          try{
+            let showingFull = false;
+            if (toggleBtn){
+              toggleBtn.textContent = '미리보기 더보기';
+              toggleBtn.addEventListener('click', function(){
+                try{
+                  if (!showingFull){
+                    // expand to full JSON if available
+                    if (fullPreviewStr) preview.textContent = fullPreviewStr; else preview.textContent = preview.textContent;
+                    toggleBtn.textContent = '간단히 보기';
+                    showingFull = true;
+                  } else {
+                    // collapse back to the summary (recompute short summary if possible)
+                    try{
+                      if (parsed && parsed.data){
+                        const d = parsed.data;
+                        const subj = Array.isArray(d.selectedSubjects) ? d.selectedSubjects.join(', ') : (d.selectedSubjects || d.selectedSubject || '');
+                        const acts = Array.isArray(d.selectedActivities) ? d.selectedActivities.join(', ') : (d.selectedActivities || '');
+                        const duration = d.visitDuration || d.visitDuration === 0 ? String(d.visitDuration) + '분' : (d.visitEndTime ? d.visitEndTime : '정보없음');
+                        let sessionLines = [];
+                        if (Array.isArray(d.subjects) && d.subjects.length){
+                          for (let i=0;i<Math.min(6,d.subjects.length);i++){
+                            const s = d.subjects[i] || {};
+                            const txt = (s.conversation || s.notes || s.customerRequest || s.requests || '').toString().trim();
+                            sessionLines.push(`미팅내용${i+1}: ${txt || '(간단 메모 없음)'}`);
+                          }
+                        }
+                        if (!sessionLines.length){ const top = (d.notes || d.requests || d.conversation || ''); if (top) sessionLines.push(`미팅내용1: ${top}`); }
+                        const when = parsed.ts ? new Date(parsed.ts).toLocaleString() : '(저장시간 없음)';
+                        const summary = `저장일시: ${when}\n과목: ${subj || '(없음)'}\n활동: ${acts || '(없음)'}\n총 방문시간: ${duration}\n\n간단 드래프트:\n${sessionLines.join('\n')}`;
+                        preview.textContent = summary;
+                      }
+                    }catch(e){}
+                    toggleBtn.textContent = '미리보기 더보기';
+                    showingFull = false;
+                  }
+                }catch(e){ }
+              });
+            }
+          }catch(e){}
+          modal.style.display = 'flex';
+          cancelBtn && cancelBtn.addEventListener('click', function(){ modal.style.display = 'none'; });
+          loadBtn && loadBtn.addEventListener('click', function(){ try{ if (typeof loadDraft === 'function') loadDraft(); }catch(e){} modal.style.display = 'none'; });
+          deleteBtn && deleteBtn.addEventListener('click', function(){ try{ if (typeof clearLocalDraft === 'function') clearLocalDraft(); }catch(e){} modal.style.display = 'none'; });
+        }catch(e){ /* tolerate */ }
+      });
+    })();
+  </script>
+
 </body>
 </html>
