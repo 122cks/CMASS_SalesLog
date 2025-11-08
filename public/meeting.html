@@ -674,6 +674,7 @@
 
       function computeEndTime(){
         try{
+          try{ console.debug('[CMASS computeEndTime] running'); }catch(e){}
           const hEl = qs('startHour');
           const mEl = qs('startMinute');
           const durEl = qs('duration');
@@ -682,6 +683,7 @@
           const h = hEl && hEl.value !== '' ? Number(hEl.value) : NaN;
           const mm = mEl && mEl.value !== '' ? Number(mEl.value) : NaN;
           const dur = durEl && durEl.value !== '' ? Number(durEl.value) : NaN;
+          try{ console.debug('[CMASS computeEndTime] inputs', { h:hEl && hEl.value, mm:mEl && mEl.value, dur: durEl && durEl.value }); }catch(e){}
           if (Number.isNaN(h) || Number.isNaN(mm) || Number.isNaN(dur)){
             out.value = '';
             return;
@@ -696,6 +698,7 @@
 
           const end = new Date(now.getTime() + (dur * 60000));
           out.value = pad(end.getHours()) + ':' + pad(end.getMinutes());
+          try{ console.debug('[CMASS computeEndTime] set endTime to', out.value); }catch(e){}
         }catch(e){ /* tolerate */ }
       }
 
@@ -708,6 +711,7 @@
           if (h) h.addEventListener('change', computeEndTime, true);
           if (m) m.addEventListener('change', computeEndTime, true);
           if (d) d.addEventListener('change', computeEndTime, true);
+          try{ console.debug('[CMASS computeEndTime] attached listeners', { h: !!h, m: !!m, d: !!d }); }catch(e){}
 
           // ensure option elements exist (do not shadow element vars with loop counters)
           try{
