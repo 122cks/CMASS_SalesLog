@@ -920,7 +920,7 @@
           }catch(e){}
         }
 
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(tryApply, 120); }); else setTimeout(tryApply, 120);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(tryApply, 120); setTimeout(tryApply, 700); }); else { setTimeout(tryApply, 120); setTimeout(tryApply, 700); }
 
     // populateTimeSelectors removed: time selects are left uninitialized so edit flow controls values explicitly
     // Lightweight initializer: ensure startHour and startMinute have option elements so the
