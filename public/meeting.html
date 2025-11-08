@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Meeting - 영업일지</title>
   <link rel="manifest" href="/manifest.json">
-  <script src="js/draft_restore.js" defer></script>
+  <script src="js/silence-console.js"></script>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;margin:18px;color:#072042}
     header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
@@ -18,78 +18,111 @@
     .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
     .subject-btn{padding:8px 12px;border-radius:10px;border:1px solid #d6dbe8;background:#fff;cursor:pointer}
     .subject-btn.active{background:linear-gradient(135deg,#1e3c72,#274b9f);color:#fff;border-color:#1e3c72}
-  .dur-btn{padding:6px 10px;border-radius:8px;border:1px solid #d6dbe8;background:#fff;cursor:pointer;font-weight:700}
-  .dur-btn.active{background:#1e3c72;color:#fff;border-color:#123}
+    .dur-btn{padding:6px 10px;border-radius:8px;border:1px solid #d6dbe8;background:#fff;cursor:pointer;font-weight:700}
+    .dur-btn.active{background:#1e3c72;color:#fff;border-color:#123}
     /* favor buttons (우호도) - match subject button visuals */
     .favor-btn{padding:8px 12px;border-radius:10px;border:1px solid #d6dbe8;background:#fff;cursor:pointer}
     .favor-btn.active{background:linear-gradient(135deg,#1e3c72,#274b9f);color:#fff;border-color:#1e3c72}
-  /* Ensure button grids sit above transient overlays and accept pointer events.
-    Lowered z-index values to avoid stacking/isolation issues caused by very large numbers. */
-  .btn-row, #subjects, #activities, .entry-subjects, .entry-activities { position: relative; z-index: 3; }
-  /* Keep interactive buttons above their container but avoid extremely large stacking contexts */
-  .subject-btn, .entry-subject-btn, .entry-activity-btn { pointer-events: auto; position: relative; z-index: 4; }
+   /* Ensure button grids and time selectors sit above transient overlays and accept pointer events.
+     Bump z-index and explicitly enable pointer-events for duration buttons and selects so they
+     remain interactive even if a transient element overlays the page. If another element still
+     covers them, use the inspector to find that element (it will have a higher z-index). */
+   .btn-row, #subjects, #activities, .entry-subjects, .entry-activities, #durationBtns, #schoolVisitsTableContainer { position: relative; z-index: 9999; pointer-events: auto; }
+   .subject-btn, .entry-subject-btn, .entry-activity-btn, .dur-btn, .favor-btn { pointer-events: auto; position: relative; z-index: 10000; }
+   /* Make select inputs for time appear above overlays too */
+   #startHour, #startMinute, #duration, #endTime { position: relative; z-index: 10001; pointer-events: auto; }
     .actions{display:flex;gap:8px;margin-top:14px}
     .muted{color:#556}
+  .invalid{outline:2px solid #f2c6c6 !important; box-shadow:0 0 0 3px rgba(242,198,198,0.25);}
     .small{font-size:13px}
-  /* Section styling: use a subtle divider and padding for logical groups */
-  .form-section{margin-bottom:12px;padding:10px;border:1px solid #eef6fb;border-radius:8px;background:#fbfeff}
-  .section-title{margin:0 0 8px 0;font-size:15px;font-weight:800;color:#123}
-    /* Responsive tweaks for narrow screens (<=530px) - only adjust sizes/layout, keep structure */
+    .form-section{margin-bottom:12px;padding:10px;border:1px solid #eef6fb;border-radius:8px;background:#fbfeff}
+    .section-title{margin:0 0 8px 0;font-size:15px;font-weight:800;color:#123}
     @media (max-width:530px){
       body{margin:12px;font-size:14px}
       header{gap:8px}
       #schoolDisplay{font-size:15px}
       .topline{font-weight:800;font-size:14px}
-      /* slightly smaller controls, less padding */
       input, select, textarea, button{font-size:13px;padding:6px;border-radius:8px}
-      /* allow inputs/selects to shrink and take full width when stacked */
       input, select, textarea{min-width:0}
-      /* stack rows vertically on mobile */
       .row{flex-direction:column;align-items:flex-start;gap:8px}
       .row > *{width:100%}
-  /* make time selectors a bit narrower but keep readable */
-  #startHour, #startMinute{width:76px}
-  #duration, #endTime{width:100%}
-  /* remove auto left margin on the end-time wrapper so it lines up under duration without extra gap */
-  .end-time-wrap{ margin-left: 0 !important; flex: 0 0 100% !important; }
-      /* tighten button grids */
-  .btn-row{gap:6px}
+      #startHour, #startMinute{width:76px}
+      #duration, #endTime{width:100%}
+      .end-time-wrap{ margin-left: 0 !important; flex: 0 0 100% !important; }
+      .btn-row{gap:6px}
       .subject-btn{padding:6px 10px;border-radius:8px;font-size:13px}
       .subject-btn.active{font-size:13px}
-  /* actions stack full-width */
-      .actions{flex-direction:column}
-      .actions button{width:100%}
-  /* saved draft sizing */
-  #savedDraft{font-size:13px}
-      /* reduce select dropdown visual size */
-      select{height:40px}
-
-      /* Specifically target devices up to 520px so the duration select fills the available width
-         and aligns cleanly with the end-time input without leaving gaps. */
-      @media (max-width:520px){
-        body, .form-section { box-sizing: border-box; padding-left:12px; padding-right:12px; }
-        #duration { width:100% !important; max-width:520px !important; }
-        .end-time-wrap { margin-left:0 !important; flex: 0 0 100% !important; }
-        .row > * { width:100% !important; }
-      }
-
-      /* Entry collapse styling */
-      .entry-title { cursor: default; }
-      .entry-title .toggle-collapse { font-weight:700 }
-      .entry-body { transition: all 160ms ease; }
-      .entry.collapsed .entry-body { display: none; }
+  .actions{flex-direction:column}
+  .actions button{width:100%}
+  /* removed savedDraft/modal UI */
     }
   </style>
 </head>
 <body>
+  <script>
+    // Defensive stubs: ensure callers can safely call waitForFirebase() and prefillStartFromLocal()
+    // even if the full implementations haven't loaded yet. These will be overwritten by later
+    // definitions in the page when the real code runs.
+    (function(){
+      try{
+        if (!window.waitForFirebase || typeof window.waitForFirebase !== 'function'){
+          window.waitForFirebase = function(timeoutMs){
+            return new Promise((resolve, reject) => {
+              try{
+                if (window.firebaseDb) { resolve(); return; }
+                let attempts = 0; const max = Math.max(10, Math.ceil((timeoutMs||8000)/100));
+                const iv = setInterval(()=>{
+                  attempts++;
+                  if (window.firebaseDb){ clearInterval(iv); resolve(); }
+                  else if (attempts > max){ clearInterval(iv); reject(new Error('waitForFirebase: timeout')); }
+                }, 100);
+              }catch(e){ reject(e); }
+            });
+          }
+        }
+        if (!window.prefillStartFromLocal || typeof window.prefillStartFromLocal !== 'function'){
+          window.prefillStartFromLocal = async function(){
+            try{ console.debug('[prefill stub] called before implementation ready'); }catch(e){}
+            return { applied: false, reason: 'stub_not_ready' };
+          };
+        }
+      } catch(e) { /* tolerate */ }
+    })();
+    // version marker so browsers can confirm they're loading the expected bundle
+    try{ console.log('[CMASS meeting.html] version: v20251107-1'); }catch(e){}
+  </script>
+  <script>
+    // If the user navigated here from input.html, ensure any edit markers are cleared
+    // so the meeting form loads as a fresh entry. This defends against cases where
+    // an edit entry remained in sessionStorage (cached or set earlier).
+    (function(){
+      try{
+        const ref = document.referrer || '';
+        // look for the /input path in the referrer URL (works for both /input and /input.html)
+        if (ref && (ref.indexOf('/input') !== -1 || ref.indexOf('/input.html') !== -1)){
+          try{
+            if (window.sessionStorage){
+              console.log('[CMASS] input.html에서 이동: sessionStorage 키 제거 시작');
+              sessionStorage.removeItem('cmass:edit_entry');
+              sessionStorage.removeItem('cmass:edit_index');
+              // sessionStorage.removeItem('cmass:next_school'); // 유지하도록 변경
+              sessionStorage.removeItem('cmass:next_subjects');
+              sessionStorage.removeItem('cmass:next_activities');
+              console.log('[CMASS] 제거 완료: edit_entry, edit_index, next_school, next_subjects, next_activities');
+            }
+          }catch(e){ console.warn('[CMASS] sessionStorage 제거 중 오류', e); }
+        } else {
+          console.log('[CMASS] input.html에서 이동 아님: sessionStorage 키 유지');
+        }
+      }catch(e){ console.warn('[CMASS] sessionStorage 제거 스크립트 오류', e); }
+    })();
+  </script>
   <header>
     <div id="schoolDisplay" style="margin-left:12px;font-weight:900;color:#042046;">
       <!-- school name will be shown here -->
     </div>
-    <!-- Back to input page (user requested a back button next to school name) -->
     <a id="backToInput" href="/input.html" style="margin-left:auto;text-decoration:none;color:inherit;padding:6px 10px;border:1px solid #d6dbe8;border-radius:8px;background:#fff">◀ 뒤로가기</a>
-    <!-- 총 방문시간 버튼은 폼 섹션에서 관리 -->
-</header>
+  </header>
 
   <main>
     <form id="meetingForm" onsubmit="return false;">
@@ -99,11 +132,11 @@
         <div class="row" style="gap:12px;align-items:center">
           <div style="flex:1">
             <label style="margin-top:0">담당자</label>
-            <select id="staff" style="width:50%">
+            <select id="staff" style="width:50%" disabled aria-disabled="true" title="담당자는 고정되어 있어 변경할 수 없습니다">
               <option value="">담당자 선택...</option>
-              <option value="송훈재 부장">송훈재 부장</option>
-              <option value="임준호 차장">임준호 차장</option>
-              <option value="조영환 부장">조영환 부장</option>
+              <option value="songhoonjae">송훈재 부장</option>
+              <option value="imjunho">임준호 차장</option>
+              <option value="joyounghwan">조영환 부장</option>
             </select>
           </div>
           <div style="flex:1">
@@ -120,6 +153,7 @@
             <label style="margin-top:0">학교</label>
             <select id="schoolSelect" style="width:80%"><option value="">학교 선택...</option></select>
           </div>
+          <!-- 학교 메타는 CSV에서 자동으로 채워집니다; 수동 입력란 제거 -->
         </div>
       </section>
 
@@ -138,21 +172,20 @@
         <div class="row" style="margin-top:8px;align-items:center">
           <div style="flex:0 0 100px;min-width:120px">
             <label style="margin-top:0">총 방문시간(분)</label>
-            <select id="duration" style="width:80%">
-              <option value="">방문시간 선택</option>
-              <option value="10">10분</option>
-              <option value="20">20분</option>
-              <option value="30">30분</option>
-              <option value="40">40분</option>
-              <option value="50">50분</option>
-              <option value="60">60분</option>
-              <option value="70">70분</option>
-              <option value="80">80분</option>
-              <option value="90">90분</option>
-            </select>
+            <div id="durationBtns" class="btn-row" style="margin-top:6px;">
+              <button type="button" class="dur-btn" data-min="10">10분</button>
+              <button type="button" class="dur-btn" data-min="20">20분</button>
+              <button type="button" class="dur-btn" data-min="30">30분</button>
+              <button type="button" class="dur-btn" data-min="40">40분</button>
+              <button type="button" class="dur-btn" data-min="50">50분</button>
+              <button type="button" class="dur-btn" data-min="60">60분</button>
+              <button type="button" class="dur-btn" data-min="70">70분</button>
+              <button type="button" class="dur-btn" data-min="80">80분</button>
+              <button type="button" class="dur-btn" data-min="90">90분</button>
+            </div>
+            <!-- keep a hidden input with id 'duration' so existing scripts reading #duration.value continue working -->
+            <input type="hidden" id="duration" value="">
           </div>
-          <!-- 버튼 그리드 제거 -->
-          <!-- reduce width and remove auto margin so it sits next to duration without pushing to the far right -->
           <div class="end-time-wrap" style="flex:0 0 70px;min-width:130px;margin-left:8px">
             <label style="margin-top:0">방문 종료시간</label>
             <input id="endTime" type="text" readonly style="width:70%;background:#f7f8ff">
@@ -162,7 +195,7 @@
 
       <!-- Meeting content section -->
       <section class="form-section">
-        <h3 class="section-title">- 미팅내용1 -</h3>
+    <h3 class="section-title">미팅내용</h3>
         <label style="margin-top:0">과목 선택 (버튼형)</label>
         <div id="subjects" class="btn-row">
           <button type="button" class="subject-btn">정보</button>
@@ -194,12 +227,11 @@
 
         <label style="margin-top:8px">우호도</label>
         <div id="favorBtns" class="btn-row">
-          <button type="button" class="favor-btn">좋음</button>
-          <button type="button" class="favor-btn">보통</button>
-          <button type="button" class="favor-btn">나쁨</button>
+          <button type="button" class="favor-btn">반응좋음</button>
+          <button type="button" class="favor-btn">반응보통</button>
+          <button type="button" class="favor-btn">반응나쁨</button>
         </div>
 
-        <!-- header row: teacher / publisher (subject is selected via buttons) -->
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
           <input id="teacherName" type="text" placeholder="선생님 이름" style="flex:1">
           <input id="publisher" type="text" list="publishersList" placeholder="출판사" style="flex:0 0 140px">
@@ -259,117 +291,224 @@
             <option value="선정시기 연락 대기"></option>
           </datalist>
         </div>
-
       </section>
 
-        <!-- Template for cloned sessions (uses class-based selectors) -->
-        <template id="sessionTemplate">
-          <section class="form-section meeting-session">
-            <h4 class="section-title small">미팅내용</h4>
-            <label style="margin-top:0">과목 선택 (버튼형)</label>
-            <div class="session-subjects btn-row"></div>
-            <label style="margin-top:8px">영업활동 (버튼형)</label>
-            <div class="session-activities btn-row"></div>
-            <label style="margin-top:8px">우호도</label>
-            <div class="session-favor btn-row">
-              <button type="button" class="favor-btn">좋음</button>
-              <button type="button" class="favor-btn">보통</button>
-              <button type="button" class="favor-btn">나쁨</button>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
-              <input type="text" class="session-teacher" placeholder="선생님 이름" style="flex:1">
-              <input type="text" class="session-publisher" list="publishersList" placeholder="출판사" style="flex:0 0 140px">
-            </div>
-            <div style="display:flex;gap:8px;margin-top:8px">
-              <input type="tel" class="session-phone" placeholder="전화번호" style="flex:1">
-              <input type="email" class="session-email" placeholder="이메일" style="flex:1">
-            </div>
-            <input type="text" class="session-requests" placeholder="요청사항" style="width:100%;margin-top:8px">
-            <input type="text" class="session-notes" placeholder="특이사항" style="width:100%;margin-top:8px">
-            <input type="text" class="session-deliveries" placeholder="납품사항" style="width:100%;margin-top:8px">
-            <input type="text" class="session-followup" list="followupList" placeholder="후속조치" style="width:100%;margin-top:8px">
-          </section>
-        </template>
+      <template id="sessionTemplate">
+        <section class="form-section meeting-session">
+          <h4 class="section-title small">미팅내용</h4>
+          <label style="margin-top:0">과목 선택 (버튼형)</label>
+          <div class="session-subjects btn-row"></div>
+          <label style="margin-top:8px">영업활동 (버튼형)</label>
+          <div class="session-activities btn-row"></div>
+          <label style="margin-top:8px">우호도</label>
+          <div class="session-favor btn-row">
+            <button type="button" class="favor-btn">좋음</button>
+            <button type="button" class="favor-btn">보통</button>
+            <button type="button" class="favor-btn">나쁨</button>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+            <input type="text" class="session-teacher" placeholder="선생님 이름" style="flex:1">
+            <input type="text" class="session-publisher" list="publishersList" placeholder="출판사" style="flex:0 0 140px">
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input type="tel" class="session-phone" placeholder="전화번호" style="flex:1">
+            <input type="email" class="session-email" placeholder="이메일" style="flex:1">
+          </div>
+          <input type="text" class="session-requests" placeholder="요청사항" style="width:100%;margin-top:8px">
+          <input type="text" class="session-notes" placeholder="특이사항" style="width:100%;margin-top:8px">
+          <input type="text" class="session-deliveries" placeholder="납품사항" style="width:100%;margin-top:8px">
+          <input type="text" class="session-followup" list="followupList" placeholder="후속조치" style="width:100%;margin-top:8px">
+        </section>
+      </template>
 
-        <div id="sessionContainer"></div>
+      <div id="sessionContainer"></div>
 
-      <div style="margin-top:10px">
-        <div style="font-weight:700;margin-bottom:6px">저장된 드래프트</div>
-  <div id="savedDraft" style="white-space:pre-wrap;padding:10px;border:1px dashed #d6dbe8;border-radius:8px;background:#fbfdff;min-height:48px;color:#123;font-family:Consolas, 'Courier New', monospace;font-size:13px;max-height:220px;overflow:auto"></div>
-      </div>
+  <!-- Entries area removed per request: meeting entries UI hidden -->
 
-      <!-- School visit history (per school + visit date) -->
       <div id="schoolHistoryArea" style="margin-top:12px;padding:10px;border:1px solid #eef4fb;border-radius:8px;background:#fcfeff">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <div style="font-weight:800;color:#123">이 학교의 기록 (방문일 기준)</div>
           <div style="font-size:13px;color:#556">학교 & 방문일을 선택하면 해당 날짜의 모든 입력이 보입니다.</div>
         </div>
-        <div id="historyList" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;min-height:36px">
-          <!-- entries will be rendered here -->
-        </div>
+        <div id="historyList" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;min-height:36px"></div>
       </div>
+
+      <!-- Compatibility placeholder: some legacy scripts (entries.js) expect an #entriesArea container
+           to exist. The original entries UI was removed, but keeping a hidden placeholder prevents
+           runtime TypeErrors when those scripts attempt to set innerHTML on a missing element. -->
+      <div id="entriesArea" style="display:none;" aria-hidden="true"></div>
 
       <div class="actions">
         <button id="btnSubmit" type="button">입력완료</button>
-        <button id="btnDailyReport" type="button">방문일 보고서</button>
-        <!-- Hidden placeholders for legacy JS bindings (prevent runtime errors when scripts expect these controls) -->
+  <button id="btnDailyReport" type="button" disabled>방문일 보고서</button>
         <button id="btnCopy" type="button" style="display:none"></button>
         <button id="btnSaveServer" type="button" style="display:none"></button>
       </div>
-
-      <!-- SUMMARY removed from meeting page per request. Summaries are handled via report page. -->
     </form>
   </main>
 
   <script src="/csv-helpers.js" defer></script>
-  <!-- cache-busting query added so mobile browsers fetch the latest meeting.js -->
-  <script src="meeting.js?v=3" defer></script>
+  <script src="js/entries.js" defer></script>
+
+  <!-- Defensive wrapper: if entries.js expects a container that was removed,
+       wrap renderSlots to avoid uncaught TypeError when that container is missing. -->
+  <script>
+    (function(){
+      try{
+        // Install wrapper after the page fully loads so entries.js (defer) has defined
+        // its renderSlots implementation. Use window.load to be safe.
+        window.addEventListener('load', function(){
+          try{
+            const orig = window.renderSlots;
+            const candidateIds = ['entriesArea','slots','slotsContainer','schoolVisitsTableContainer','historyList'];
+            function findTarget(){ for (const id of candidateIds){ const el = document.getElementById(id); if (el) return el; } return null; }
+
+            window.renderSlots = function(...args){
+              try{
+                const target = findTarget();
+                if (!target){ console.warn('renderSlots: target container not found; skipping render'); return; }
+                if (typeof orig === 'function') return orig.apply(this, args);
+              }catch(e){ console.warn('renderSlots wrapper caught', e); }
+            };
+          }catch(e){ console.warn('failed to install renderSlots wrapper on load', e); }
+        }, { once: true });
+      }catch(e){ console.warn('failed to schedule renderSlots wrapper', e); }
+    })();
+  </script>
+
+  <!-- Firebase SDK + init (so meeting can sync to server) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script>
+    // Initialize Firebase if not already initialized in session
+    (function(){
+      try{
+        if (window.firebaseDb) return;
+        const firebaseConfig = {
+          apiKey: "AIzaSyARdXNfFCUShNeFXV8cTDzFbKa4GId5EvU",
+          authDomain: "cmass-sales.firebaseapp.com",
+          projectId: "cmass-sales",
+          storageBucket: "cmass-sales.firebasestorage.app",
+          messagingSenderId: "918981476485",
+          appId: "1:918981476485:web:7939150e23500e2703a9ec",
+          measurementId: "G-9188JJXRWX"
+        };
+        try{ const app = firebase.initializeApp(firebaseConfig); const db = firebase.firestore(); window.firebaseDb = db; window.firestoreAddDoc = (ref,data)=>db.collection(ref).add(data); window.firestoreUpdateDoc = (ref,id,data)=>db.collection(ref).doc(id).update(data); window.firestoreDoc = (ref,id)=>db.collection(ref).doc(id); window.firestoreServerTimestamp = firebase.firestore.FieldValue.serverTimestamp; }catch(e){ /* tolerate if already inited */ }
+        console.debug('[meeting.html] Firebase init attempted');
+      }catch(e){ /* ignore */ }
+    })();
+
+    // small helper to wait until firebaseDb is ready
+    function waitForFirebase() {
+      return new Promise((resolve, reject) => {
+        if (window.firebaseDb) { resolve(); return; }
+        let attempts = 0;
+        const interval = setInterval(() => {
+          attempts++;
+          if (window.firebaseDb) { clearInterval(interval); resolve(); }
+          else if (attempts > 50) { clearInterval(interval); reject(new Error('Firebase init timeout')); }
+        }, 100);
+      });
+    }
+
+    // Map local entry -> server fields requested by the user
+    function mapEntryToServer(entry){
+      try{
+        return {
+          staff: entry.staff || '',
+          staffLabel: entry.staffLabel || '',
+          region: entry.region || '',
+          school: entry.school || '',
+          // optional school metadata
+          meta: entry.meta || '',
+          visitDate: entry.visitDate || '',
+          visitStart: (entry.startHour ? String(entry.startHour).padStart(2,'0') : '') + (entry.startMinute !== undefined && entry.startMinute !== '' ? (':' + String(entry.startMinute).padStart(2,'0')) : ''),
+          duration: entry.duration ? Number(entry.duration) : 0,
+          visitEnd: entry.endTime || '',
+          subjects: Array.isArray(entry.subjects) ? entry.subjects : (entry.subjects ? [entry.subjects] : []),
+          activities: Array.isArray(entry.activities) ? entry.activities : (entry.activities ? [entry.activities] : []),
+          favor: entry.favor || '',
+          teacher: entry.teacherName || '',
+          publisher: entry.publisher || '',
+          Phonenumber: entry.phone || '',
+          email: entry.email || '',
+          ask: entry.requests || '',
+          conversation: entry.notes || '',
+          delivery: entry.deliveries || '',
+          followUp: entry.followUp || '',
+          _savedAt: entry._savedAt || (new Date()).toISOString()
+        };
+      }catch(e){ return {}; }
+    }
+
+    async function syncEntryToServer(entry, isEdit, editIndex){
+      try{
+        await waitForFirebase().catch(()=>null);
+        if (!window.firebaseDb || !window.firestoreAddDoc) return null;
+        // Ensure anonymous auth before attempting writes — some Firestore rules require authenticated requests.
+        try{
+          if (firebase && firebase.auth && !firebase.auth().currentUser){
+            try{ await firebase.auth().signInAnonymously(); console.debug('[meeting] 익명 로그인 성공', firebase.auth().currentUser && firebase.auth().currentUser.uid); }catch(e){ console.warn('[meeting] 익명 로그인 실패', e); }
+          }
+        }catch(e){ console.warn('[meeting] 익명 로그인 시도 중 예외', e); }
+        const data = mapEntryToServer(entry);
+        // Prefer writing to `visit_entries` (console path) so front page can read it.
+        // If entry has server_id, update that document in visit_entries; otherwise add.
+        try{
+          if (entry.server_id){
+            try{ await window.firestoreUpdateDoc('visit_entries', entry.server_id, data); }
+            catch(e){ console.error('[meeting] visit_entries update 실패', e); }
+            // also attempt to update legacy 'visits' doc with same id if it exists
+            try{ await window.firestoreUpdateDoc('visits', entry.server_id, data); }catch(e){ console.warn('[meeting] visits update (legacy) 실패', e); }
+            return entry.server_id;
+          }
+        }catch(e){ /* tolerate */ }
+
+        // Add to visit_entries first (primary). Also fire-and-forget add to legacy 'visits' for compatibility.
+        try{
+          const docRef = await window.firestoreAddDoc('visit_entries', data);
+          if (docRef && docRef.id){
+            // ensure the saved document includes its own id for easier queries
+            try{ await window.firestoreUpdateDoc('visit_entries', docRef.id, { server_id: docRef.id }); }catch(e){ console.warn('[meeting] visit_entries set server_id 실패', e); }
+            // best-effort: also create a copy in 'visits' for older dashboards and tag it with server_id
+            try{
+              const legacyRef = await window.firestoreAddDoc('visits', data);
+              if (legacyRef && legacyRef.id){
+                try{ await window.firestoreUpdateDoc('visits', legacyRef.id, { server_id: legacyRef.id }); }catch(e){ console.warn('[meeting] visits set server_id 실패', e); }
+              }
+            }catch(e){ console.warn('[meeting] legacy visits 추가 실패', e); }
+            return docRef.id;
+          }
+        }catch(e){ console.error('[meeting] visit_entries 추가 실패', e); }
+      }catch(e){}
+      return null;
+    }
+  </script>
+
   <script>
     // Keep the address bar in sync with the selected staff/date/region/school
     (function(){
       function getField(id){ try{ return document.getElementById(id); }catch(e){ return null; } }
       function currentParams(){
         try{
+          // Only keep staff in the address bar per requirements
           const staff = (getField('staff') && getField('staff').value) || window._cmass_staffParam || '';
-          const date = (getField('visitDate') && getField('visitDate').value) || '';
-          const regionSel = getField('regionSelect');
-          // Prefer the option text for region (more user-friendly) and fall back to value
-          let region = '';
-          if (window.selectedRegion) region = window.selectedRegion;
-          else if (regionSel){
-            const opt = regionSel.options && regionSel.selectedIndex >= 0 ? regionSel.options[regionSel.selectedIndex] : null;
-            region = (opt && (opt.text || opt.value)) || (regionSel.value || '');
-          }
-          const schoolSel = getField('schoolSelect');
-          // Prefer the option text for school and fall back to value
-          let school = '';
-          if (window.selectedSchool) school = window.selectedSchool;
-          else if (schoolSel){
-            const opt = schoolSel.options && schoolSel.selectedIndex >= 0 ? schoolSel.options[schoolSel.selectedIndex] : null;
-            school = (opt && (opt.text || opt.value)) || (schoolSel.value || '');
-          }
-          return { staff: String(staff||''), date: String(date||''), region: String((region||'').toString().replace(/\u00A0/g,' ')), school: String((school||'').toString().replace(/\u00A0/g,' ')) };
-        }catch(e){ return {staff:'',date:'',region:'',school:''}; }
+          return { staff: String(staff||'') };
+        }catch(e){ return { staff: '' }; }
       }
 
       function buildQuery(p){
-        const parts = [];
-        if (p.staff) parts.push('staff='+encodeURIComponent(p.staff));
-        if (p.date) parts.push('date='+encodeURIComponent(p.date));
-        if (p.region) parts.push('region='+encodeURIComponent(p.region));
-        if (p.school) parts.push('school='+encodeURIComponent(p.school));
-        return parts.length ? ('?'+parts.join('&')) : '';
+        if (p && p.staff) return '?staff=' + encodeURIComponent(p.staff);
+        return '';
       }
 
       function replaceUrlIfNeeded(){
         try{
           const p = currentParams();
-          if (!p.staff && !p.date && !p.region && !p.school) return;
+          if (!p.staff) return;
           const q = buildQuery(p);
-          // Use the current path as the base and append the computed query string.
           const base = location.pathname;
           const newUrl = base + q;
-          // Only replace if the resulting URL differs
           if (newUrl !== location.pathname + location.search){
             history.replaceState({}, '', newUrl);
           }
@@ -383,10 +522,23 @@
           if (!el) return;
           el.addEventListener('change', function(){
             try{
-              // Prefer option text for readability in the URL
               if (id === 'schoolSelect'){
                 const opt = el.options && el.selectedIndex >= 0 ? el.options[el.selectedIndex] : null;
                 window.selectedSchool = (opt && (opt.text || opt.value)) || el.value || window.selectedSchool;
+                try{
+                  const p = currentParams();
+                  const q = buildQuery(p);
+                  if (p.staff || p.date || p.region || p.school){
+                    try{
+                      const target = '/meeting' + q;
+                      const current = location.pathname + location.search;
+                      if (target !== current){
+                        window.location.href = target;
+                        return;
+                      }
+                    }catch(e){}
+                  }
+                }catch(e){}
               }
               if (id === 'regionSelect'){
                 const opt = el.options && el.selectedIndex >= 0 ? el.options[el.selectedIndex] : null;
@@ -394,46 +546,28 @@
               }
               if (id === 'staff'){ window._cmass_staffParam = el.value || window._cmass_staffParam; }
               replaceUrlIfNeeded();
-              try{ if (typeof updateDraftStatus === 'function') updateDraftStatus(); }catch(e){}
             }catch(e){}
           }, true);
         });
 
-        // Additional robustness: some UIs populate or change the school <select>
-        // dynamically (via async fetches or enhanced widgets). To ensure the
-        // address bar always reflects the current school selection we also
-        // watch for more events and mutations on the school select element.
         try{
           const schoolEl = getField('schoolSelect');
           if (schoolEl){
-            // generic handler to sync URL and globals
             const syncSchool = ()=>{
               try{
                 const val = schoolEl.value || (schoolEl.options[schoolEl.selectedIndex] && schoolEl.options[schoolEl.selectedIndex].text) || '';
-                if (val){
-                  window.selectedSchool = val;
-                }
-                // Debug: show what we read and what query would be
-                try{ const p = currentParams(); const q = buildQuery(p); console.debug('[DRAFT-URL] syncSchool val=', val, ' currentParams=', p, ' query=', q); }catch(e){}
+                if (val){ window.selectedSchool = val; }
+                try{ const p = currentParams(); const q = buildQuery(p); console.debug('[URL] syncSchool val=', val, ' currentParams=', p, ' query=', q); }catch(e){}
                 replaceUrlIfNeeded();
-                try{ if (typeof updateDraftStatus === 'function') updateDraftStatus(); }catch(e){}
               }catch(e){}
             };
-            // Listen to change/input/click (covers native and some enhanced widgets)
             schoolEl.addEventListener('change', syncSchool, true);
             schoolEl.addEventListener('input', syncSchool, true);
             schoolEl.addEventListener('click', syncSchool, true);
 
-            // Observe childList mutations (options being added/removed) and attribute changes
-            const mo = new MutationObserver(()=>{
-              try{
-                // If the options changed and the selectedIndex updated, sync.
-                syncSchool();
-              }catch(e){}
-            });
+            const mo = new MutationObserver(()=>{ try{ syncSchool(); }catch(e){} });
             mo.observe(schoolEl, { childList: true, subtree: true, attributes: true });
 
-            // As a final fallback, poll for selection changes (lightweight, stops after pagehide)
             let lastIdx = schoolEl.selectedIndex;
             const poll = setInterval(()=>{
               try{
@@ -448,9 +582,6 @@
 
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach); else attach();
 
-      // Global safety-net: catch any change events on the document and ensure
-      // the address bar and globals are synchronized. This covers cases where
-      // selects are populated or swapped by other scripts after attach() ran.
       document.addEventListener('change', function(ev){
         try{
           const t = ev.target;
@@ -458,230 +589,1331 @@
           if (t.id === 'schoolSelect'){
             const opt = t.options && t.selectedIndex >= 0 ? t.options[t.selectedIndex] : null;
             window.selectedSchool = (opt && (opt.text || opt.value)) || t.value || window.selectedSchool;
-            console.debug('[DRAFT-URL] document change: schoolSelect ->', window.selectedSchool);
+            console.debug('[URL] document change: schoolSelect ->', window.selectedSchool);
           }
           if (t.id === 'regionSelect'){
             const opt = t.options && t.selectedIndex >= 0 ? t.options[t.selectedIndex] : null;
             window.selectedRegion = (opt && (opt.text || opt.value)) || t.value || window.selectedRegion;
-            console.debug('[DRAFT-URL] document change: regionSelect ->', window.selectedRegion);
+            console.debug('[URL] document change: regionSelect ->', window.selectedRegion);
           }
-          if (t.id === 'staff'){
-            window._cmass_staffParam = t.value || window._cmass_staffParam;
-            console.debug('[DRAFT-URL] document change: staff ->', window._cmass_staffParam);
-          }
-          // Always attempt to update the URL when any of these fields change
-          try{ const p = currentParams(); console.debug('[DRAFT-URL] before replaceUrlIfNeeded currentParams=', p); }catch(e){}
+          if (t.id === 'staff'){ window._cmass_staffParam = t.value || window._cmass_staffParam; console.debug('[URL] document change: staff ->', window._cmass_staffParam); }
+          try{ const p = currentParams(); console.debug('[URL] before replaceUrlIfNeeded currentParams=', p); }catch(e){}
           replaceUrlIfNeeded();
-          try{ if (typeof updateDraftStatus === 'function') updateDraftStatus(); }catch(e){}
         }catch(e){}
       }, true);
     })();
+
+    // Enable toggling for subject/activity buttons (multi-select) and favor buttons (single-select)
+    (function(){
+      function closestButton(el){ return el && (el.tagName === 'BUTTON' ? el : el.closest('button')) || null; }
+      function isSubject(btn){ return btn.classList && btn.classList.contains('subject-btn'); }
+      function isFavor(btn){ return btn.classList && btn.classList.contains('favor-btn'); }
+
+      function toggleSubject(btn){
+        try{
+          // fallback toggle for subject-like buttons outside the main subjects container (e.g. session templates)
+          const active = btn.classList.toggle('active');
+          btn.setAttribute('aria-pressed', String(!!active));
+        }catch(e){}
+      }
+
+      function selectSingleSubject(btn){
+        try{
+          // Only enforce single-select within the top-level #subjects container
+          const container = btn.closest('#subjects') || btn.parentElement || document;
+          const others = container.querySelectorAll('.subject-btn') || [];
+          const already = btn.classList.contains('active');
+          others.forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
+          if (!already){ btn.classList.add('active'); btn.setAttribute('aria-pressed','true'); }
+        }catch(e){}
+      }
+
+      function selectFavor(btn){
+        try{
+          const parent = btn.parentElement || document;
+          const others = parent.querySelectorAll && parent.querySelectorAll('.favor-btn') || [];
+          const already = btn.classList.contains('active');
+          others.forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
+          if (!already){ btn.classList.add('active'); btn.setAttribute('aria-pressed','true'); }
+        }catch(e){}
+      }
+
+      function onClick(ev){
+        try{
+          const btn = closestButton(ev.target);
+          if (!btn) return;
+          if (isSubject(btn)){
+            ev.preventDefault();
+            // If the button belongs to the main subjects container, enforce single-select.
+            if (btn.closest && btn.closest('#subjects')){
+              selectSingleSubject(btn);
+            } else {
+              // keep toggle behavior for other dynamically-inserted subject-like buttons
+              toggleSubject(btn);
+            }
+            return;
+          }
+          if (isFavor(btn)){
+            ev.preventDefault();
+            selectFavor(btn);
+            return;
+          }
+        }catch(e){}
+      }
+
+      // delegate at document level so dynamically injected session templates work too
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ document.addEventListener('click', onClick, true); }); else document.addEventListener('click', onClick, true);
+    })();
   </script>
 
   <script>
-    // Install lightweight draft UI glue for meeting.html when page is opened directly.
+    // Auto-calc end time from startHour, startMinute and duration (minutes)
     (function(){
-      try{
-        let timer = null;
-        const delay = 800;
-        function scheduleSave(){ clearTimeout(timer); timer = setTimeout(()=>{ try{ if (typeof saveDraft === 'function' && !window._isSelectingSchool) saveDraft(); }catch(e){} }, delay); }
-        document.addEventListener('input', scheduleSave, true);
-        document.addEventListener('change', scheduleSave, true);
-        // Ensure button clicks (subject/activity/favor) produce an 'input' event so
-        // the global input/change autosave handler will pick them up.
-        // This keeps save behavior consistent with other form controls.
-        document.addEventListener('click', function(ev){
+      function qs(id){ return document.getElementById(id); }
+      function pad(n){ return String(n).padStart(2,'0'); }
+
+      function computeEndTime(){
+        try{
+          const hEl = qs('startHour');
+          const mEl = qs('startMinute');
+          const durEl = qs('duration');
+          const out = qs('endTime');
+          if (!out) return;
+          const h = hEl && hEl.value !== '' ? Number(hEl.value) : NaN;
+          const mm = mEl && mEl.value !== '' ? Number(mEl.value) : NaN;
+          const dur = durEl && durEl.value !== '' ? Number(durEl.value) : NaN;
+          if (Number.isNaN(h) || Number.isNaN(mm) || Number.isNaN(dur)){
+            out.value = '';
+            return;
+          }
+
+          const now = new Date();
+          // use today's date with given hour/minute
+          now.setHours(h);
+          now.setMinutes(mm);
+          now.setSeconds(0);
+          now.setMilliseconds(0);
+
+          const end = new Date(now.getTime() + (dur * 60000));
+          out.value = pad(end.getHours()) + ':' + pad(end.getMinutes());
+        }catch(e){ /* tolerate */ }
+      }
+
+      function attach(){
+        try{
+          const h = qs('startHour');
+          const m = qs('startMinute');
+          const d = qs('duration');
+          // wire change listeners
+          if (h) h.addEventListener('change', computeEndTime, true);
+          if (m) m.addEventListener('change', computeEndTime, true);
+          if (d) d.addEventListener('change', computeEndTime, true);
+
+          // ensure option elements exist (do not shadow element vars with loop counters)
           try{
-            const t = ev.target;
-            if (!t) return;
-            const cls = t.className || '';
-            const isBtn = cls.includes('subject-btn') || cls.includes('favor-btn') || cls.includes('entry-subject-btn') || cls.includes('entry-activity-btn') || (t.matches && (t.matches('.subject-btn') || t.matches('.favor-btn') || t.matches('.entry-subject-btn') || t.matches('.entry-activity-btn')));
-            if (isBtn){
-              try{
-                // Dispatch a bubbling input event from the clicked element. The
-                // document-level 'input' listener installed above will receive this
-                // and schedule a saveDraft via the debounce. Use Event for broad compatibility.
-                const evInput = new Event('input', { bubbles: true, cancelable: false });
-                t.dispatchEvent(evInput);
-              }catch(e){
-                // Fallback: if dispatch fails for any reason, call saveDraft directly.
-                try{ if (typeof saveDraft === 'function') saveDraft(); }catch(_){}
+            if (h && (!h.options || h.options.length === 0)){
+              h.innerHTML = '<option value="">시 선택...</option>';
+              for (let i = 0; i < 24; i++){
+                const val = String(i).padStart(2,'0');
+                const opt = document.createElement('option');
+                opt.value = val; opt.text = val;
+                h.appendChild(opt);
+              }
+            }
+            if (m && (!m.options || m.options.length === 0)){
+              m.innerHTML = '<option value="">분 선택...</option>';
+              for (let j = 0; j < 60; j += 5){
+                const val = String(j).padStart(2,'0');
+                const opt = document.createElement('option');
+                opt.value = val; opt.text = val;
+                m.appendChild(opt);
               }
             }
           }catch(e){}
-        }, true);
-        document.addEventListener('DOMContentLoaded', function(){
-          try{
-            // Update saved draft status but DO NOT auto-load drafts on the meeting page.
-            // Auto-loading here caused a modal to appear even when the user was viewing a different
-            // visit/report. Keep loadDraft reserved for explicit user actions on the input page.
-            // But ensure draft key computation can work when meeting.html is opened via
-            // a redirect from the report page (it uses query params). Populate the
-            // minimal state so draftKeyFor() returns a key and tests or explicit
-            // user actions can call loadDraft() later.
-            try{
-              // Only accept URL-provided identifying parameters when ALL are present.
-              // This avoids partially populating the meeting form (e.g. only date)
-              // from a URL and thereby creating a draft key that partially matches
-              // existing drafts. The report page should navigate here with full
-              // staff/date/region/school when the user explicitly chooses to load a draft.
-              const q = new URLSearchParams(window.location.search || '');
-              const staff = q.get('staff') || '';
-              const date = q.get('date') || '';
-              const region = q.get('region') || '';
-              const school = q.get('school') || '';
-              if (staff && date && region && school) {
-                // mark that the page was opened with a full identifying URL and
-                // therefore a draft lookup/load may be appropriate
-                window._cmass_allowDraftFromUrl = true;
-                window._cmass_staffParam = staff;
-                try{ const st = document.getElementById('staff'); if (st) st.value = staff; }catch(e){}
-                try{ const d = document.getElementById('visitDate'); if (d) d.value = date; }catch(e){}
-                try{ window.selectedRegion = region; const r = document.getElementById('regionSelect'); if (r) r.value = region; }catch(e){}
-                try{ window.selectedSchool = school; const s = document.getElementById('schoolSelect'); if (s) s.value = school; }catch(e){}
-              } else {
-                // do not populate partial values from the URL - keep existing state
-                window._cmass_allowDraftFromUrl = false;
-              }
-            }catch(e){}
-            if (typeof updateDraftStatus === 'function') updateDraftStatus();
-          }catch(e){}
-        });
-      }catch(e){ /* ignore */ }
+
+          // run once after DOM ready in case inputs were prefilled
+          computeEndTime();
+        }catch(e){}
+      }
+
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attach); else attach();
     })();
   </script>
-</script>
-
-  <!-- Draft-load modal: shown on meeting page when opened with full staff|date|region|school and a local draft exists -->
-  <div id="draftModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center">
-    <div style="background:#fff;padding:18px;border-radius:10px;max-width:720px;width:94%;box-shadow:0 12px 30px rgba(0,0,0,0.12);">
-  <div style="font-weight:800;margin-bottom:8px">저장된 드래프트가 발견되었습니다</div>
-  <div id="draftMetaMsg" style="margin-bottom:8px;color:#234;font-size:14px">(불러올 항목: 담당자 · 방문일 · 지역 · 학교)</div>
-      <div id="draftPreview" style="white-space:pre-wrap;max-height:220px;overflow:auto;padding:8px;border:1px dashed #d6dbe8;border-radius:8px;background:#fbfdff;font-family:Consolas,'Courier New',monospace;font-size:13px;margin-bottom:12px">(미리보기)</div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px">
-        <button id="draftToggleFullBtn" type="button" style="background:#fff;border:1px solid #d6dbe8;padding:6px 10px;border-radius:8px;font-size:13px">미리보기 더보기</button>
-        <div style="flex:1"></div>
-      </div>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button id="draftCancelBtn" type="button">취소</button>
-        <button id="draftDeleteBtn" type="button" style="background:#fff;color:#c33;border-color:#f0dede">드래프트 삭제</button>
-        <button id="draftLoadBtn" type="button" style="background:#1e3c72;color:#fff;border-color:#1e3c72">드래프트 불러오기</button>
-      </div>
-    </div>
-  </div>
 
   <script>
+    // Wire up duration buttons -> hidden #duration so existing handlers continue to work
     (function(){
-      document.addEventListener('DOMContentLoaded', function(){
-        try{
-          // Only show modal when meeting page was opened from report with full identifying params
-          if (!window._cmass_allowDraftFromUrl) return;
-          // draftKeyFor() derives the same key used to save drafts
-          const key = (typeof draftKeyFor === 'function') ? draftKeyFor() : null;
-          if (!key) return;
-          const raw = localStorage.getItem(key);
-          if (!raw) return;
-          let parsed = null;
-          try{ parsed = JSON.parse(raw); }catch(e){ parsed = null; }
-          const modal = document.getElementById('draftModal');
-          const preview = document.getElementById('draftPreview');
-          const toggleBtn = document.getElementById('draftToggleFullBtn');
-          const loadBtn = document.getElementById('draftLoadBtn');
-          const cancelBtn = document.getElementById('draftCancelBtn');
-          const deleteBtn = document.getElementById('draftDeleteBtn');
-          if (!modal || !preview) return;
+      function qs(id){ return document.getElementById(id); }
+      function clearActive(container){ Array.from(container.querySelectorAll('button.dur-btn')).forEach(b=>b.classList.remove('active')); }
+      function markActive(container, value){ const btn = container.querySelector('button.dur-btn[data-min="'+value+'"]'); if (btn) btn.classList.add('active'); }
+      function init(){
+        const container = qs('durationBtns');
+        const hidden = qs('duration');
+        if (!container || !hidden) return;
+        container.addEventListener('click', function(ev){
+          const btn = ev.target.closest('button.dur-btn');
+          if (!btn) return;
+          try{ clearActive(container); btn.classList.add('active'); const val = btn.getAttribute('data-min') || ''; hidden.value = val; hidden.dispatchEvent(new Event('change',{bubbles:true})); }catch(e){}
+        }, true);
+
+        // initialize from existing hidden value (if any)
+        try{ if (hidden.value){ markActive(container, hidden.value); } }catch(e){}
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+    })();
+
+      // If an edit entry was set from report.html, prefill the form for editing.
+      (function(){
+        function qs(id){ return document.getElementById(id); }
+        function trimText(s){ try{return String(s||'').trim(); }catch(e){return ''} }
+        function activateButtons(containerSelector, btnClass, values, single){
           try{
-            if (parsed && parsed.data){
-              const d = parsed.data;
-              const when = parsed.ts ? new Date(parsed.ts).toLocaleString() : '(저장시간 없음)';
-              const subj = Array.isArray(d.selectedSubjects) ? d.selectedSubjects.join(', ') : (d.selectedSubjects || (d.selectedSubject || ''));
-              const acts = Array.isArray(d.selectedActivities) ? d.selectedActivities.join(', ') : (d.selectedActivities || '');
-              const duration = d.visitDuration || d.visitDuration === 0 ? String(d.visitDuration) + '분' : (d.visitEndTime ? d.visitEndTime : '정보없음');
-              // build brief session lines (미팅내용1..)
-              let sessionLines = [];
-              if (Array.isArray(d.subjects) && d.subjects.length){
-                for (let i=0;i<Math.min(6,d.subjects.length);i++){
-                  const s = d.subjects[i] || {};
-                  const txt = (s.conversation || s.notes || s.customerRequest || s.requests || '').toString().trim();
-                  sessionLines.push(`미팅내용${i+1}: ${txt || '(간단 메모 없음)'}`);
+            const container = document.querySelector(containerSelector); if (!container) return;
+            const buttons = Array.from(container.querySelectorAll('button.'+btnClass));
+            if (!Array.isArray(values)) values = [];
+            const set = new Set(values.map(v=>String(v||'').trim()));
+            if (single){
+              // pick first matching value
+              let chosen = null;
+              for (const b of buttons){ const t = trimText(b.textContent); if (set.has(t)){ chosen = b; break; } }
+              buttons.forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
+              if (chosen){ chosen.classList.add('active'); chosen.setAttribute('aria-pressed','true'); }
+            } else {
+              buttons.forEach(b=>{ const t = trimText(b.textContent); if (set.has(t)){ b.classList.add('active'); b.setAttribute('aria-pressed','true'); } else { b.classList.remove('active'); b.setAttribute('aria-pressed','false'); } });
+            }
+          }catch(e){}
+        }
+
+        function setDuration(val){
+          try{
+            const hidden = qs('duration'); const container = qs('durationBtns');
+            if (!hidden) return; hidden.value = val || '';
+            if (container){ Array.from(container.querySelectorAll('button.dur-btn')).forEach(b=>b.classList.remove('active'));
+              const btn = container.querySelector('button.dur-btn[data-min="'+String(val)+'"]'); if (btn) btn.classList.add('active'); }
+            try{ hidden.dispatchEvent(new Event('change',{bubbles:true})); }catch(e){}
+          }catch(e){}
+        }
+
+        function applyEntry(entry){
+          try{
+            if (!entry) return;
+            // staff
+            try{ if (entry.staff){ const s = qs('staff'); if (s){ s.value = entry.staff; s.dispatchEvent(new Event('change',{bubbles:true})); } } }catch(e){}
+            // visitDate
+            try{ if (entry.visitDate){ const d = qs('visitDate'); if (d){ d.value = entry.visitDate; d.dispatchEvent(new Event('change',{bubbles:true})); } } }catch(e){}
+            // region & school (region may not be populated yet)
+            try {
+              if (entry.region) {
+                const r = qs('regionSelect');
+                if (r) {
+                  r.value = entry.region;
+                  r.dispatchEvent(new Event('change', { bubbles: true }));
                 }
               }
-              // fallback: if no sessions but top-level texts exist, show them
-              if (!sessionLines.length){
-                const top = (d.notes || d.requests || d.conversation || '');
-                if (top) sessionLines.push(`미팅내용1: ${top}`);
-              }
-              const summary = `저장일시: ${when}\n과목: ${subj || '(없음)'}\n활동: ${acts || '(없음)'}\n총 방문시간: ${duration}\n\n간단 드래프트:\n${sessionLines.join('\n')}`;
-              preview.textContent = summary;
-            } else {
-              preview.textContent = '(미리보기 불러오기 실패)';
-            }
-          }catch(e){ preview.textContent = '(미리보기 불러오기 실패)'; }
-          // show a human-readable meta line explaining which identifying values will be applied
-          try{
-            const metaEl = document.getElementById('draftMetaMsg');
-            if (metaEl){
-              const d = parsed && parsed.data ? parsed.data : {};
-              const staff = d.staff || window._cmass_staffParam || '';
-              const date = d.visitDate || (document.getElementById('visitDate')?document.getElementById('visitDate').value:'') || '';
-              const region = d.region || window.selectedRegion || '';
-              const school = d.school || window.selectedSchool || '';
-              const pretty = `${staff || '(담당자 없음)'}  —  ${date || '(방문일 없음)'}  —  ${region || '(지역 없음)'}  —  ${school || '(학교 없음)'} `;
-              metaEl.textContent = '이 드래프트는 다음 값을 불러옵니다: ' + pretty;
-            }
-          }catch(e){}
-          // Build full JSON preview string for toggle
-          let fullPreviewStr = null;
-          try{ fullPreviewStr = parsed ? JSON.stringify(parsed, null, 2) : null; }catch(e){ fullPreviewStr = null; }
-          // attach toggle behavior: show summary by default, allow expanding to full JSON
-          try{
-            let showingFull = false;
-            if (toggleBtn){
-              toggleBtn.textContent = '미리보기 더보기';
-              toggleBtn.addEventListener('click', function(){
-                try{
-                  if (!showingFull){
-                    // expand to full JSON if available
-                    if (fullPreviewStr) preview.textContent = fullPreviewStr; else preview.textContent = preview.textContent;
-                    toggleBtn.textContent = '간단히 보기';
-                    showingFull = true;
-                  } else {
-                    // collapse back to the summary (recompute short summary if possible)
-                    try{
-                      if (parsed && parsed.data){
-                        const d = parsed.data;
-                        const subj = Array.isArray(d.selectedSubjects) ? d.selectedSubjects.join(', ') : (d.selectedSubjects || d.selectedSubject || '');
-                        const acts = Array.isArray(d.selectedActivities) ? d.selectedActivities.join(', ') : (d.selectedActivities || '');
-                        const duration = d.visitDuration || d.visitDuration === 0 ? String(d.visitDuration) + '분' : (d.visitEndTime ? d.visitEndTime : '정보없음');
-                        let sessionLines = [];
-                        if (Array.isArray(d.subjects) && d.subjects.length){
-                          for (let i=0;i<Math.min(6,d.subjects.length);i++){
-                            const s = d.subjects[i] || {};
-                            const txt = (s.conversation || s.notes || s.customerRequest || s.requests || '').toString().trim();
-                            sessionLines.push(`미팅내용${i+1}: ${txt || '(간단 메모 없음)'}`);
-                          }
-                        }
-                        if (!sessionLines.length){ const top = (d.notes || d.requests || d.conversation || ''); if (top) sessionLines.push(`미팅내용1: ${top}`); }
-                        const when = parsed.ts ? new Date(parsed.ts).toLocaleString() : '(저장시간 없음)';
-                        const summary = `저장일시: ${when}\n과목: ${subj || '(없음)'}\n활동: ${acts || '(없음)'}\n총 방문시간: ${duration}\n\n간단 드래프트:\n${sessionLines.join('\n')}`;
-                        preview.textContent = summary;
-                      }
-                    }catch(e){}
-                    toggleBtn.textContent = '미리보기 더보기';
-                    showingFull = false;
+            } catch (e) {}
+            // school select logic (separate try/catch)
+            try {
+              if (entry.school) {
+                const attemptSetSchool = () => {
+                  const sh = qs('schoolSelect');
+                  if (sh) {
+                    try {
+                      sh.value = entry.school;
+                      sh.dispatchEvent(new Event('change', { bubbles: true }));
+                    } catch (e) {}
+                    return true;
                   }
-                }catch(e){ }
-              });
-            }
+                  return false;
+                };
+                // try immediately and retry a few times if needed
+                let tries = 0;
+                const t = setInterval(() => {
+                  tries++;
+                  const ok = attemptSetSchool();
+                  if (ok || tries > 12) clearInterval(t);
+                }, 150);
+              }
+            } catch (e) {}
+
+            // time
+            try{
+              if (entry.startHour){ const h = qs('startHour'); if (h){ h.value = String(entry.startHour); h.dispatchEvent(new Event('change',{bubbles:true})); } }
+              if (entry.startMinute){ const m = qs('startMinute'); if (m){ m.value = String(entry.startMinute); m.dispatchEvent(new Event('change',{bubbles:true})); } }
+
+              // If duration is present, use the canonical setter. Otherwise if an endTime
+              // is provided, compute duration from start and end and set it so computeEndTime
+              // and UI duration buttons reflect the stored visit length.
+              try{
+                const hasDur = entry.duration !== undefined && entry.duration !== null && String(entry.duration).trim() !== '';
+                const hasEnd = entry.endTime || entry.visitEnd || entry.visitend || '';
+                if (hasDur){ setDuration(entry.duration); }
+                else if (hasEnd){
+                  // normalize endTime string
+                  const rawEnd = (entry.endTime || entry.visitEnd || entry.visitend || '').toString().trim();
+                  const outEl = qs('endTime'); if (outEl) outEl.value = rawEnd;
+                  // try compute duration from startHour/startMinute to endTime
+                  try{
+                    const sh = qs('startHour') && qs('startHour').value ? Number(qs('startHour').value) : NaN;
+                    const sm = qs('startMinute') && qs('startMinute').value ? Number(qs('startMinute').value) : NaN;
+                    if (!Number.isNaN(sh) && !Number.isNaN(sm) && rawEnd.indexOf(':') !== -1){
+                      const parts = rawEnd.split(':'); const eh = Number(parts[0]); const em = Number(parts[1]);
+                      if (!Number.isNaN(eh) && !Number.isNaN(em)){
+                        let startMin = sh*60 + sm; let endMin = eh*60 + em; let diff = endMin - startMin; if (diff < 0) diff += 24*60;
+                        if (diff > 0){ setDuration(String(diff)); }
+                      }
+                    }
+                  }catch(e){}
+                }
+              }catch(e){}
+            }catch(e){}
+
+            // subjects (single) and activities (multi)
+            try{ activateButtons('#subjects','subject-btn', entry.subjects || [], true); }catch(e){}
+            try{ activateButtons('#activities','subject-btn', entry.activities || [], false); }catch(e){}
+            // favor
+            try{ if (entry.favor){ activateButtons('#favorBtns','favor-btn', [entry.favor], true); } }catch(e){}
+
+            // other fields
+            try{ if (entry.teacherName) qs('teacherName').value = entry.teacherName; }catch(e){}
+            try{ if (entry.publisher) qs('publisher').value = entry.publisher; }catch(e){}
+            try{ if (entry.phone) qs('phone').value = entry.phone; }catch(e){}
+            try{ if (entry.email) qs('email').value = entry.email; }catch(e){}
+            try{ if (entry.requests) qs('requests').value = entry.requests; }catch(e){}
+            try{ if (entry.notes) qs('notes').value = entry.notes; }catch(e){}
+            try{ if (entry.deliveries) qs('deliveries').value = entry.deliveries; }catch(e){}
+            try{ if (entry.followUp) qs('followUp').value = entry.followUp; }catch(e){}
+
+            // endTime will be auto-calculated by existing computeEndTime listener
           }catch(e){}
-          modal.style.display = 'flex';
-          cancelBtn && cancelBtn.addEventListener('click', function(){ modal.style.display = 'none'; });
-          loadBtn && loadBtn.addEventListener('click', function(){ try{ if (typeof loadDraft === 'function') loadDraft(); }catch(e){} modal.style.display = 'none'; });
-          deleteBtn && deleteBtn.addEventListener('click', function(){ try{ if (typeof clearLocalDraft === 'function') clearLocalDraft(); }catch(e){} modal.style.display = 'none'; });
-        }catch(e){ /* tolerate */ }
-      });
+        }
+
+        function tryApply(){
+          try{
+            if (!window.sessionStorage) return;
+            const raw = sessionStorage.getItem('cmass:edit_entry');
+            if (!raw) return;
+            let entry = null;
+            try{ entry = JSON.parse(raw); }catch(e){ entry = null; }
+            if (!entry) return;
+
+            // Robust apply: attempt to apply entry now and retry a few times if some inputs
+            // are not present yet or get overwritten by later scripts. This prevents a
+            // race where defaulting code or dynamic UI modifications clear applied values.
+            let attempts = 0;
+            const maxAttempts = 12; // ~12 * 150ms = ~1.8s max retry window
+            const iv = setInterval(()=>{
+              try{
+                applyEntry(entry);
+                attempts++;
+                // verify that at least one key text field was populated
+                const teacherOk = (document.getElementById('teacherName') && document.getElementById('teacherName').value && String(document.getElementById('teacherName').value).trim() !== '');
+                const notesOk = (document.getElementById('notes') && document.getElementById('notes').value && String(document.getElementById('notes').value).trim() !== '');
+                const phoneOk = (document.getElementById('phone') && document.getElementById('phone').value && String(document.getElementById('phone').value).trim() !== '');
+                if (teacherOk || notesOk || phoneOk || attempts >= maxAttempts){ clearInterval(iv); }
+              }catch(e){ clearInterval(iv); }
+            }, 150);
+
+            // keep edit_entry until save completes; do not remove here to allow submit logic to know it's an edit
+          }catch(e){}
+        }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(tryApply, 120); }); else setTimeout(tryApply, 120);
+
+    // populateTimeSelectors removed: time selects are left uninitialized so edit flow controls values explicitly
+    // Lightweight initializer: ensure startHour and startMinute have option elements so the
+    // dropdowns are usable in the UI. This does NOT auto-select a value (no defaulting).
+    (function(){
+      // Lightweight initializer: ensure startHour and startMinute have option elements so the
+      // dropdowns are usable in the UI. This does NOT auto-select a value (no defaulting).
+      // ...existing code...
+    })();
+    // If the user arrived here from input.html (or via our Next navigation), prefer staff+visitDate
+    // populated from sessionStorage (set by input.html) and keep only the staff query param in the URL.
+    (function(){
+      try{
+        const params = new URLSearchParams(location.search);
+        const ref = document.referrer || '';
+
+        // Try sessionStorage values first (set by input.html) — more reliable across rewrites
+        let nextToken = null;
+        let nextLabel = null;
+        let nextDate = null;
+        let nextRegion = null;
+        let nextSchool = null;
+        try{
+          if (window.sessionStorage){
+            nextToken = sessionStorage.getItem('cmass:next_staff_token') || null;
+            nextLabel = sessionStorage.getItem('cmass:next_staff_label') || null;
+            nextDate = sessionStorage.getItem('cmass:next_visitDate') || null;
+            nextRegion = sessionStorage.getItem('cmass:next_region') || null;
+            // input.html may also set next_school to let meeting.html pre-select the school
+            nextSchool = sessionStorage.getItem('cmass:next_school') || null;
+          }
+        }catch(e){/* ignore */}
+
+        function slugifyStaff(val){
+          try{
+            if(!val) return '';
+            const s = String(val).trim();
+            const ascii = s.normalize ? s.normalize('NFKD') : s;
+            return ascii.toLowerCase().replace(new RegExp('[^a-z0-9]','g'), '');
+          }catch(e){ return ''; }
+        }
+
+        // prefer explicit staff param in URL, otherwise sessionStorage token, otherwise staff select value
+        const urlStaff = params.get('staff');
+        // normalize incoming staff token from URL/session to canonical ascii slug
+        const normalizedUrlStaff = slugifyStaff(urlStaff);
+        const normalizedNext = slugifyStaff(nextToken);
+        const fromSelect = slugifyStaff((document.getElementById('staff') && document.getElementById('staff').value) || '');
+        const staffToken = (normalizedUrlStaff) ? normalizedUrlStaff : (normalizedNext || fromSelect || '');
+
+        if (staffToken){
+          // set staff select to token if possible and set internal globals
+          try{
+            const sel = document.getElementById('staff');
+            if (sel){ sel.value = staffToken; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+            if (nextLabel) {
+              // keep a readable label for topline and other UI
+              window._cmass_staffParam = nextLabel;
+            }
+            if (nextToken) {
+              window._cmass_staffToken = nextToken;
+            }
+            // If input provided a visitDate, use it. Otherwise default to today.
+            try{
+              const d = document.getElementById('visitDate');
+              const today = (new Date()).toISOString().slice(0,10);
+              const useDate = (nextDate && String(nextDate).trim()) ? nextDate : today;
+              if (d && !d.value) { d.value = useDate; d.dispatchEvent(new Event('change',{ bubbles: true })); }
+            }catch(e){}
+          }catch(e){}
+        }
+
+        // Apply region selection from input if present (do NOT add it to the URL)
+        try{
+          if (nextRegion && String(nextRegion).trim()){
+            const regSel = document.getElementById('regionSelect');
+            if (regSel) {
+              regSel.value = nextRegion;
+              regSel.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          }
+        } catch (e) {
+          console.warn('Region selection error:', e);
+        }
+
+        // If a school was provided by input.html, apply it (attempt after regions are populated)
+        try{
+          if (nextSchool && String(nextSchool).trim()){
+            const schoolEl = document.getElementById('schoolSelect');
+            if (schoolEl) {
+              schoolEl.value = nextSchool;
+              schoolEl.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          }
+        } catch (e) {
+          console.warn('School selection error:', e);
+        }
+      }catch(e){}
+
+      // Only keep the staff query param in the address bar (no date/region/school)
+      try{
+        const q = staffToken ? ('?staff='+encodeURIComponent(staffToken)) : '';
+        const newUrl = location.pathname + q;
+        if (newUrl !== location.pathname + location.search){
+          history.replaceState({}, '', newUrl);
+        }
+      }catch(e){}
+
+      // cleanup sessionStorage keys we used
+      // cleanup sessionStorage keys we used (consume next_school as well)
+      try{ if (window.sessionStorage){ sessionStorage.removeItem('cmass:next_staff_token'); sessionStorage.removeItem('cmass:next_staff_label'); sessionStorage.removeItem('cmass:next_visitDate'); sessionStorage.removeItem('cmass:next_region'); sessionStorage.removeItem('cmass:next_school'); } }catch(e){};
     })();
   </script>
 
+  <script>
+    (function(){
+      // Populate region and school selects from the consolidated CSV (same source as input.html)
+      async function loadRegionsAndSchools(){
+        try{
+          // Wait briefly for csv helpers to be available
+          if (typeof fetchCsvRows !== 'function'){
+            await new Promise((resolve)=>{
+              const t = setInterval(()=>{ if (typeof fetchCsvRows === 'function'){ clearInterval(t); resolve(); } }, 100);
+              setTimeout(()=>{ clearInterval(t); resolve(); }, 2000);
+            });
+          }
+
+          const rows = (typeof fetchCsvRows === 'function') ? await fetchCsvRows().catch(()=>[]) : [];
+          if (!rows || rows.length < 2) return;
+          const header = rows[0] || [];
+
+          function findHeaderIndex(headerArr, candidates){
+            if (!Array.isArray(headerArr)) return -1;
+            for (let i=0;i<headerArr.length;i++){
+              const cell = (headerArr[i]||'').trim();
+              if (!cell) continue;
+              if (candidates.some(c => c === cell)) return i;
+            }
+            return -1;
+          }
+
+          const idxRegion = findHeaderIndex(header, ['region','지역']);
+          const idxSchool = findHeaderIndex(header, ['school','학교','학교명']);
+          if (idxRegion === -1 || idxSchool === -1) return;
+          // detect optional school-meta column in CSV (various header candidates)
+          const idxMeta = findHeaderIndex(header, ['meta','schoolMeta','학교메타','메타','school_meta','school_info','info']);
+
+          const regionMap = new Map();
+          // staff -> { label, regions: Map(region -> Set(schools)) }
+          window.staffRegionSchoolMap = window.staffRegionSchoolMap || {};
+          // map of schoolName -> meta string
+          window.schoolMetaMap = window.schoolMetaMap || {};
+          for (let i=1;i<rows.length;i++){
+            const row = rows[i] || [];
+            const region = (row[idxRegion] || '').toString().trim();
+            const school = (row[idxSchool] || '').toString().trim();
+            if (!region || !school) continue;
+            // capture optional meta value
+            try{ if (idxMeta !== -1){ const m = (row[idxMeta] || '').toString().trim(); if (m) window.schoolMetaMap[school] = m; } }catch(e){}
+            if (!regionMap.has(region)) regionMap.set(region, new Set());
+            regionMap.get(region).add(school);
+          }
+
+          const regionSelect = document.getElementById('regionSelect');
+          const schoolSelect = document.getElementById('schoolSelect');
+          if (!regionSelect || !schoolSelect) return;
+
+          // Try to load staff->region->school mapping from public/sales_staff.csv (optional)
+          (async function loadStaffCsv(){
+            try{
+              const resp = await fetch('/sales_staff.csv');
+              if (!resp.ok) return;
+              const text = await resp.text();
+              const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
+              if (!lines || lines.length < 2) return;
+              const splitRow = (line)=> line.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c=>{ let t = c||''; t = t.trim(); if (t.startsWith('"') && t.endsWith('"')) t = t.slice(1,-1).replace(/""/g,'"'); return t; });
+              const hdr = splitRow(lines[0]);
+              function findHeaderIndex(headerArr, candidates){ if (!Array.isArray(headerArr)) return -1; for (let i=0;i<headerArr.length;i++){ const cell = (headerArr[i]||'').trim(); if (!cell) continue; if (candidates.some(c=>c===cell)) return i; } return -1; }
+
+              const staffTokenIdx = findHeaderIndex(hdr, ['staff_token','token','staffid','staff_id','staffToken']);
+              const staffNameIdx = findHeaderIndex(hdr, ['staff','staff_name','staffLabel','name','label']);
+              const csvRegionIdx = findHeaderIndex(hdr, ['region','지역']);
+              const csvSchoolIdx = findHeaderIndex(hdr, ['school','학교','학교명','school_name']);
+              if (csvRegionIdx === -1 || csvSchoolIdx === -1) return;
+
+              function slugifyStaff(val){ try{ if(!val) return ''; const s = String(val).trim(); const ascii = s.normalize ? s.normalize('NFKD') : s; return ascii.toLowerCase().replace(new RegExp('[^a-z0-9]','g'), ''); }catch(e){return '';} }
+
+              const map = {};
+              for (let r=1;r<lines.length;r++){
+                try{
+                  const cols = splitRow(lines[r]);
+                  const rawToken = staffTokenIdx !== -1 ? (cols[staffTokenIdx]||'') : '';
+                  const rawName = staffNameIdx !== -1 ? (cols[staffNameIdx]||'') : '';
+                  const token = rawToken ? String(rawToken).trim() : slugifyStaff(rawName || rawToken || '');
+                  const label = rawName || rawToken || '';
+                  const reg = (cols[csvRegionIdx]||'').trim();
+                  const sch = (cols[csvSchoolIdx]||'').trim();
+                  if (!token || !reg || !sch) continue;
+                  if (!map[token]) map[token] = { label: label || token, regions: {} };
+                  if (!map[token].regions[reg]) map[token].regions[reg] = new Set();
+                  map[token].regions[reg].add(sch);
+                }catch(e){ continue; }
+              }
+              // convert Sets to Maps/Arrays for easier usage and build index by label
+              window.staffRegionSchoolMap = window.staffRegionSchoolMap || {};
+              window.staffRegionSchoolIndex = window.staffRegionSchoolIndex || { byToken:{}, byLabel:{} };
+              Object.keys(map).forEach(tkn=>{
+                const regionsObj = map[tkn].regions || {};
+                const regionsMap = new Map();
+                Object.keys(regionsObj).forEach(rn=>{ regionsMap.set(rn, regionsObj[rn]); });
+                const label = map[tkn].label || tkn;
+                window.staffRegionSchoolMap[tkn] = { label: label, regions: regionsMap };
+                try{ window.staffRegionSchoolIndex.byToken[tkn] = tkn; window.staffRegionSchoolIndex.byLabel[(label||'').toString().trim().toLowerCase()] = tkn; }catch(e){}
+              });
+              // Fallback: if staff tokens from the staff <select> are not present in the CSV's
+              // explicit staff column, try to detect them by scanning each CSV row for the
+              // staff label (e.g. '송훈재') and assign that row's region/school to the matching token.
+              try{
+                const staffEl = document.getElementById('staff');
+                if (staffEl && staffEl.options && staffEl.options.length){
+                  const staffOpts = Array.from(staffEl.options).map(o=>({ token: o.value, label: (o.text||'').toString().trim() }));
+                  // build a quick lookup of tokens already present
+                  const existingTokens = new Set(Object.keys(window.staffRegionSchoolMap || {}));
+                  for (let r=1;r<lines.length;r++){
+                    try{
+                      const cols = splitRow(lines[r]);
+                      const reg = (cols[csvRegionIdx]||'').trim();
+                      const sch = (cols[csvSchoolIdx]||'').trim();
+                      if (!reg || !sch) continue;
+                      for (const so of staffOpts){
+                        if (!so || !so.label || !so.token) continue;
+                        // if token already has mapping, skip unless we need to add extra regions
+                        const labelRaw = (so.label||'').toString().trim();
+                        const labelLc = labelRaw.toLowerCase();
+                        // match if any column contains the staff label OR the staff label contains the column (bidirectional, case-insensitive)
+                        const matched = cols.some(c => {
+                          try{
+                            const cell = (c||'').toString().trim();
+                            if (!cell) return false;
+                            const cellLc = cell.toLowerCase();
+                            if (cellLc.indexOf(labelLc) !== -1) return true;
+                            if (labelLc.indexOf(cellLc) !== -1) return true;
+                            return false;
+                          }catch(e){return false;}
+                        });
+                        if (matched){
+                          const tkn = so.token || (labelLc.toLowerCase().replace(new RegExp('[^a-z0-9]','g'), ''));
+                          if (!window.staffRegionSchoolMap[tkn]){ window.staffRegionSchoolMap[tkn] = { label: so.label, regions: new Map() }; window.staffRegionSchoolIndex.byToken[tkn] = tkn; window.staffRegionSchoolIndex.byLabel[(so.label||'').toString().trim().toLowerCase()] = tkn; }
+                          const regMap = window.staffRegionSchoolMap[tkn].regions;
+                          if (!regMap.has(reg)) regMap.set(reg, new Set());
+                          regMap.get(reg).add(sch);
+                        }
+                      }
+                    }catch(e){ continue; }
+                  }
+                }
+              }catch(e){}
+            }catch(e){ /* ignore staff csv errors */ }
+          })();
+
+          // populate region options, preferring staff-scoped regions when available
+          function repopulateRegionsForStaff(staffToken){
+            try{
+              regionSelect.innerHTML = '<option value="">지역 선택...</option>';
+              let regions = [];
+              // resolve staffToken via index: try exact, slugified, label match
+              function slugify(val){ try{ if(!val) return ''; const s = String(val).trim(); const ascii = s.normalize ? s.normalize('NFKD') : s; return ascii.toLowerCase().replace(new RegExp('[^a-z0-9]','g'), ''); }catch(e){return ''; } }
+              let resolved = '';
+              try{
+                if (staffToken && window.staffRegionSchoolMap && window.staffRegionSchoolMap[staffToken]) resolved = staffToken;
+                if (!resolved && window.staffRegionSchoolIndex){
+                  const s1 = String(staffToken||'');
+                  if (window.staffRegionSchoolIndex.byToken[s1]) resolved = window.staffRegionSchoolIndex.byToken[s1];
+                  if (!resolved){ const s2 = slugify(s1); if (window.staffRegionSchoolIndex.byToken[s2]) resolved = window.staffRegionSchoolIndex.byToken[s2]; }
+                  if (!resolved){ const lbl = (s1||'').trim().toLowerCase(); if (window.staffRegionSchoolIndex.byLabel[lbl]) resolved = window.staffRegionSchoolIndex.byLabel[lbl]; }
+                }
+              }catch(e){}
+
+              if (resolved && window.staffRegionSchoolMap && window.staffRegionSchoolMap[resolved]){
+                regions = Array.from(window.staffRegionSchoolMap[resolved].regions.keys());
+              } else {
+                regions = Array.from(regionMap.keys());
+              }
+              regions.sort((a,b)=>a.localeCompare(b,'ko')).forEach(r => { const opt = document.createElement('option'); opt.value = r; opt.text = r; regionSelect.appendChild(opt); });
+            }catch(e){ /* tolerate */ }
+          }
+
+          // initial population: try staff token from select or globals
+          const staffEl = document.getElementById('staff');
+          const initialStaffToken = (staffEl && staffEl.value) || window._cmass_staffToken || '';
+          repopulateRegionsForStaff(initialStaffToken);
+
+          function populateSchoolsFor(regionName){
+            schoolSelect.innerHTML = '<option value="">학교 선택...</option>';
+            if (!regionName) return;
+            // prefer staff-scoped schools if staff token present (resolve via index)
+            const staffTokenNowRaw = (document.getElementById('staff') && document.getElementById('staff').value) || window._cmass_staffToken || '';
+            function resolveStaffKey(raw){ try{ if (!raw) return null; function slugify(val){ try{ if(!val) return ''; const s = String(val).trim(); const ascii = s.normalize ? s.normalize('NFKD') : s; return ascii.toLowerCase().replace(new RegExp('[^a-z0-9]','g'), ''); }catch(e){return ''; } }
+                if (window.staffRegionSchoolMap && window.staffRegionSchoolMap[raw]) return raw;
+                if (window.staffRegionSchoolIndex){ if (window.staffRegionSchoolIndex.byToken[raw]) return window.staffRegionSchoolIndex.byToken[raw]; const s2 = slugify(raw); if (window.staffRegionSchoolIndex.byToken[s2]) return window.staffRegionSchoolIndex.byToken[s2]; const lbl = (raw||'').trim().toLowerCase(); if (window.staffRegionSchoolIndex.byLabel[lbl]) return window.staffRegionSchoolIndex.byLabel[lbl]; }
+                return null; }catch(e){ return null; } }
+            const staffTokenNow = resolveStaffKey(staffTokenNowRaw);
+            let set = null;
+            try{
+              if (staffTokenNow && window.staffRegionSchoolMap && window.staffRegionSchoolMap[staffTokenNow] && window.staffRegionSchoolMap[staffTokenNow].regions.has(regionName)){
+                set = window.staffRegionSchoolMap[staffTokenNow].regions.get(regionName) || new Set();
+              }
+            }catch(e){ set = null; }
+            if (!set){ set = regionMap.get(regionName) || new Set(); }
+            Array.from(set).sort((a,b)=>a.localeCompare(b,'ko')).forEach(s => {
+              const o = document.createElement('option'); o.value = s; o.text = s;
+              // attach meta as data attribute if available
+              try{ const m = (window.schoolMetaMap && window.schoolMetaMap[s]) ? window.schoolMetaMap[s] : ''; if (m) o.dataset.meta = m; }catch(e){}
+              schoolSelect.appendChild(o);
+            });
+          }
+
+          // apply any existing selection from sessionStorage/script
+          if (window.selectedRegion) { regionSelect.value = window.selectedRegion; populateSchoolsFor(window.selectedRegion); }
+          if (window.selectedSchool) { try{ schoolSelect.value = window.selectedSchool; }catch(e){} }
+
+          regionSelect.addEventListener('change', function(){
+            window.selectedRegion = this.value || '';
+            populateSchoolsFor(window.selectedRegion);
+            // clear selected school if not present
+            if (!Array.from(schoolSelect.options).some(o => o.value === window.selectedSchool)) window.selectedSchool = '';
+          }, true);
+
+          // when staff changes, repopulate regions and clear schools
+          if (staffEl){
+            staffEl.addEventListener('change', function(){
+              try{ const tok = this.value || ''; repopulateRegionsForStaff(tok); schoolSelect.innerHTML = '<option value="">학교 선택...</option>'; window.selectedRegion = ''; window.selectedSchool = ''; }catch(e){}
+            }, true);
+          }
+
+          schoolSelect.addEventListener('change', function(){
+            window.selectedSchool = this.value || '';
+            // update header display with optional meta if available
+            try{
+              const display = document.getElementById('schoolDisplay');
+              if (display){ const meta = (this.options && this.selectedIndex>=0 && this.options[this.selectedIndex].dataset && this.options[this.selectedIndex].dataset.meta) ? this.options[this.selectedIndex].dataset.meta : ''; display.textContent = (this.value || '') + (meta ? (' · ' + meta) : ''); }
+            }catch(e){}
+                // also attempt to prefill start time/duration from any existing local visit for this school
+                try{ if (typeof prefillStartFromLocal === 'function') setTimeout(prefillStartFromLocal, 120); }catch(e){}
+              }, true);
+
+        }catch(e){ /* tolerate silently */ }
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadRegionsAndSchools); else loadRegionsAndSchools();
+    })();
+    
+      // Prefill helpers: mark manual edits and prefill start/duration when a prior visit exists
+      (function(){
+        function qs(id){ return document.getElementById(id); }
+
+        // mark manual edits so we don't override an explicitly-set time
+        function attachManualFlags(){
+          try{
+            ['startHour','startMinute','duration'].forEach(id=>{
+              const el = qs(id);
+              if (!el) return;
+              el.addEventListener('input', function(){ try{ el.dataset.manual = '1'; }catch(e){} }, true);
+              el.addEventListener('change', function(){ try{ el.dataset.manual = '1'; }catch(e){} }, true);
+            });
+          }catch(e){}
+        }
+
+        // Find a local visit entry matching staff+visitDate+school
+        function findLocalVisit(staff, visitDate, school){
+          try{
+            if (!staff || !visitDate || !school) return null;
+            const raw = localStorage.getItem('cmass_reports') || '[]';
+            let arr = [];
+            try{ arr = JSON.parse(raw) || []; }catch(e){ arr = []; }
+            // prefer the most recent saved matching entry
+            for (let i=0;i<arr.length;i++){
+              const e = arr[i] || {};
+              if ((String(e.staff||'') === String(staff)) && (String(e.visitDate||'') === String(visitDate)) && (String(e.school||'') === String(school))){
+                return e;
+              }
+            }
+            return null;
+          }catch(e){ return null; }
+        }
+
+        // Prefill startHour/startMinute and duration (only if user hasn't manually edited fields)
+        // Return a Promise that resolves to a diagnostic object quickly. Local values are applied
+        // synchronously; server lookup is performed in the background and will apply if found.
+        window.prefillStartFromLocal = function(){
+         
+
+          try{
+            const staff = (qs('staff') && qs('staff').value) || '';
+            const visitDate = (qs('visitDate') && qs('visitDate').value) || '';
+            const school = (qs('schoolSelect') && qs('schoolSelect').value) || (window.selectedSchool || '');
+            if (!staff || !visitDate || !school) {
+              console.debug('[prefill] missing params', { staff, visitDate, school });
+              return Promise.resolve({ applied: false, reason: 'missing_params', staff, visitDate, school });
+            }
+
+            const hEl = qs('startHour'); const mEl = qs('startMinute'); const durEl = qs('duration');
+            const manualH = hEl && hEl.dataset && hEl.dataset.manual;
+            const manualM = mEl && mEl.dataset && mEl.dataset.manual;
+            const manualDur = durEl && durEl.dataset && durEl.dataset.manual;
+
+            // First try localStorage and apply synchronously if found
+            const match = findLocalVisit(staff, visitDate, school);
+            try{ console.debug('[prefill] params', { staff, visitDate, school, hasLocal: !!match }); }catch(e){}
+            if (match){
+              try{
+                let applied = false;
+                if (!manualH && match.startHour){ if (hEl){ hEl.value = String(match.startHour); hEl.dispatchEvent(new Event('change',{bubbles:true})); } applied = true; }
+                if (!manualM && match.startMinute){ if (mEl){ mEl.value = String(match.startMinute); mEl.dispatchEvent(new Event('change',{bubbles:true})); } applied = true; }
+                // prefer explicit duration if present
+                if (!manualDur && (match.duration !== undefined && match.duration !== null && String(match.duration).trim() !== '')){
+                  try{ if (typeof setDuration === 'function'){ setDuration(match.duration); } else if (durEl){ durEl.value = String(match.duration); durEl.dispatchEvent(new Event('change',{bubbles:true})); } }catch(e){}
+                  applied = true;
+                } else if (!manualDur && match.endTime){
+                  // if endTime exists but duration missing, compute duration from start->end when possible
+                  try{
+                    const rawEnd = (match.endTime || match.visitEnd || match.visitend || '').toString().trim();
+                    const outEl = qs('endTime'); if (outEl) outEl.value = rawEnd;
+                    // try compute duration from startHour/startMinute to endTime
+                    try{
+                      const sh = qs('startHour') && qs('startHour').value ? Number(qs('startHour').value) : NaN;
+                      const sm = qs('startMinute') && qs('startMinute').value ? Number(qs('startMinute').value) : NaN;
+                      if (!Number.isNaN(sh) && !Number.isNaN(sm) && rawEnd.indexOf(':') !== -1){
+                        const parts = rawEnd.split(':'); const eh = Number(parts[0]); const em = Number(parts[1]);
+                        if (!Number.isNaN(eh) && !Number.isNaN(em)){
+                          let startMin = sh*60 + sm; let endMin = eh*60 + em; let diff = endMin - startMin; if (diff < 0) diff += 24*60;
+                          if (diff > 0){ setDuration(String(diff)); }
+                        }
+                      }
+                    }catch(e){}
+                  }catch(e){}
+                }
+                if (applied){ console.debug('[prefill] applied local match', { startHour: match.startHour, startMinute: match.startMinute, duration: match.duration, endTime: match.endTime }); return Promise.resolve({ applied: true, source: 'local', entry: match }); }
+              }catch(e){ console.warn('[prefill] applying local match failed', e); }
+            }
+
+            // No local match — start server lookup in background (non-blocking). It may apply values later.
+            (async function(){
+              try{
+                await waitForFirebase().catch(()=>null);
+                if (!window.firebaseDb){ console.debug('[prefill bg] no firebaseDb available'); return; }
+                let q = window.firebaseDb.collection('visit_entries').where('staff','==', staff).where('visitDate','==', visitDate).where('school','==', school);
+                const snap = await q.limit(5).get();
+                console.debug('[prefill bg] server query snapshot size=', snap && snap.size ? snap.size : 0);
+                if (snap && snap.size > 0){
+                  let picked = null;
+                  snap.forEach(d => { try{ if (!picked) picked = { id: d.id, data: d.data() }; console.debug('[prefill bg] server doc', d.id, d.data()); }catch(e){} });
+                  if (!picked) return;
+                  const data = picked.data || {};
+                  const visitStart = (data.visitStart || data.visitstart || '').toString();
+                  let sh = '', sm = '';
+                  if (visitStart && visitStart.indexOf(':') !== -1){ const parts = visitStart.split(':'); sh = parts[0].padStart(2,'0'); sm = (parts[1]||'00').padStart(2,'0'); }
+                  else { if (data.startHour !== undefined) sh = String(data.startHour).padStart(2,'0'); if (data.startMinute !== undefined) sm = String(data.startMinute).padStart(2,'0'); }
+                  const dur = Number(data.duration || data.visitDuration || 0) || 0;
+                  const visitEndRaw = (data.visitEnd || data.visitend || data.visitEndTime || data.visit_end || '').toString();
+                  let applied = false;
+                  try{ if (!manualH && sh){ if (hEl){ hEl.value = sh; hEl.dispatchEvent(new Event('change',{bubbles:true})); } applied = true; } }catch(e){}
+                  try{ if (!manualM && sm){ if (mEl){ mEl.value = sm; mEl.dispatchEvent(new Event('change',{bubbles:true})); } applied = true; } }catch(e){}
+                  try {
+                    if (!manualDur) {
+                      if (!Number.isNaN(dur) && dur > 0) {
+                        if (typeof setDuration === 'function') {
+                          setDuration(dur);
+                        } else if (durEl) {
+                          durEl.value = String(dur);
+                          durEl.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                        applied = true;
+                      } else if (visitEndRaw) {
+                        try {
+                          const out = qs('endTime');
+                          if (out) out.value = visitEndRaw;
+                        } catch (e) {}
+
+                        if (visitEndRaw.indexOf(':') !== -1) {
+                          const parts = visitEndRaw.split(':');
+                          const eh = Number(parts[0]);
+                          const em = Number(parts[1]);
+                          const shNum = Number(sh);
+                          const smNum = Number(sm);
+
+                          if (!Number.isNaN(eh) && !Number.isNaN(em) && !Number.isNaN(shNum) && !Number.isNaN(smNum)) {
+                            let startMin = shNum * 60 + smNum;
+                            let endMin = eh * 60 + em;
+                            let diff = endMin - startMin;
+
+                            if (diff < 0) diff += 24 * 60;
+                            if (diff > 0) {
+                              try {
+                                if (typeof setDuration === 'function') {
+                                  setDuration(String(diff));
+                                } else if (durEl) {
+                                  durEl.value = String(diff);
+                                  durEl.dispatchEvent(new Event('change', { bubbles: true }));
+                                }
+                                applied = true;
+                              } catch (e) {}
+                            }
+                          }
+                        }
+                      }
+                    }
+                  } catch (e) {}
+
+                  if (applied) {
+                    console.debug('[prefill bg] applied server values', {
+                      startHour: sh,
+                      startMinute: sm,
+                      duration: dur,
+                      visitEnd: visitEndRaw,
+                    });
+                  }
+                }
+              }catch(e){ console.warn('[prefill bg] server fetch error', e); }
+            })();
+
+            return Promise.resolve({ applied:false, reason:'no_local_started_server_bg' });
+          }catch(e){ console.warn('prefillStartFromLocal error', e); return Promise.resolve({ applied:false, reason:'exception', error: e && e.message }); }
+        };
+
+        // attach to key fields so changes trigger re-evaluation
+        function attachTriggers(){
+          try{
+            ['schoolSelect','staff','visitDate'].forEach(id=>{
+              const el = qs(id);
+              if (!el) return;
+              el.addEventListener('change', function(){ try{ window.prefillStartFromLocal(); }catch(e){} }, true);
+            });
+          }catch(e){}
+        }
+
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ attachManualFlags(); attachTriggers(); setTimeout(window.prefillStartFromLocal, 250); }); else { attachManualFlags(); attachTriggers(); setTimeout(window.prefillStartFromLocal, 250); }
+      })();
+  </script>
+
+  <script>
+    // Collect form fields and save a report entry to localStorage, then open report.html
+    (function(){
+      function qs(id){ return document.getElementById(id); }
+      function collectActiveText(containerSelector, btnClass){
+        try{
+          const container = document.querySelector(containerSelector);
+          if (!container) return [];
+          return Array.from(container.querySelectorAll('button.'+btnClass+'.active')).map(b=>b.textContent.trim());
+        }catch(e){return []}
+      }
+
+      function getSingleActive(containerSelector, btnClass){
+        try{
+          const container = document.querySelector(containerSelector);
+          if (!container) return '';
+          const b = container.querySelector('button.'+btnClass+'.active');
+          return b ? b.textContent.trim() : '';
+        }catch(e){return ''}
+      }
+
+      function gatherForm(){
+        try{
+          const obj = {};
+          obj._savedAt = (new Date()).toISOString();
+          obj.staff = (qs('staff') && qs('staff').value) || '';
+          obj.staffLabel = (qs('staff') && qs('staff').options && qs('staff').selectedIndex>=0) ? qs('staff').options[qs('staff').selectedIndex].text : '';
+          obj.visitDate = (qs('visitDate') && qs('visitDate').value) || '';
+          obj.region = (qs('regionSelect') && qs('regionSelect').value) || '';
+          // Prefer explicit select value, but fall back to window.selectedSchool (kept by URL sync)
+          try{
+            const selVal = (qs('schoolSelect') && qs('schoolSelect').value) || '';
+            obj.school = selVal || (window.selectedSchool || '');
+          }catch(e){ obj.school = (qs('schoolSelect') && qs('schoolSelect').value) || (window.selectedSchool || ''); }
+          obj.startHour = (qs('startHour') && qs('startHour').value) || '';
+          obj.startMinute = (qs('startMinute') && qs('startMinute').value) || '';
+          obj.duration = (qs('duration') && qs('duration').value) || '';
+          obj.endTime = (qs('endTime') && qs('endTime').value) || '';
+          obj.subjects = collectActiveText('#subjects','subject-btn');
+          // activities are multi-select
+          obj.activities = collectActiveText('#activities','subject-btn');
+          obj.favor = getSingleActive('#favorBtns','favor-btn');
+          obj.teacherName = (qs('teacherName') && qs('teacherName').value) || '';
+          obj.publisher = (qs('publisher') && qs('publisher').value) || '';
+          obj.phone = (qs('phone') && qs('phone').value) || '';
+          obj.email = (qs('email') && qs('email').value) || '';
+          // optional school-level metadata (e.g. '사립, 120명, 일반고등학교')
+          // auto-fill school meta from CSV-derived map if available
+          try{ obj.meta = (window.schoolMetaMap && window.schoolMetaMap[obj.school]) ? window.schoolMetaMap[obj.school] : ''; }catch(e){ obj.meta = ''; }
+          obj.requests = (qs('requests') && qs('requests').value) || '';
+          obj.notes = (qs('notes') && qs('notes').value) || '';
+          obj.deliveries = (qs('deliveries') && qs('deliveries').value) || '';
+          obj.followUp = (qs('followUp') && qs('followUp').value) || '';
+          return obj;
+        }catch(e){ return null; }
+      }
+
+      // Validate required fields before saving/submitting
+      function validateForm(){
+        try{
+          const errors = [];
+          const qsEl = id => (document.getElementById(id) || null);
+          const staff = qsEl('staff') && qsEl('staff').value;
+          const visitDate = qsEl('visitDate') && qsEl('visitDate').value;
+          const region = qsEl('regionSelect') && qsEl('regionSelect').value;
+          const school = qsEl('schoolSelect') && qsEl('schoolSelect').value;
+          const startHour = qsEl('startHour') && qsEl('startHour').value;
+          const startMinute = qsEl('startMinute') && qsEl('startMinute').value;
+          const duration = qsEl('duration') && qsEl('duration').value;
+          const subjects = collectActiveText('#subjects','subject-btn');
+          const teacher = (qsEl('teacherName') && qsEl('teacherName').value) || '';
+
+          // reset previous invalid styles
+          ['staff','visitDate','regionSelect','schoolSelect','startHour','startMinute','duration','teacherName'].forEach(id=>{ try{ const el = document.getElementById(id); if (el) el.classList.remove('invalid'); }catch(e){} });
+
+          if (!staff) errors.push({ field: 'staff', msg: '담당자를 선택해 주세요.' });
+          if (!visitDate) errors.push({ field: 'visitDate', msg: '방문일을 선택해 주세요.' });
+          if (!region) errors.push({ field: 'regionSelect', msg: '지역을 선택해 주세요.' });
+          if (!school) errors.push({ field: 'schoolSelect', msg: '학교를 선택해 주세요.' });
+
+          // 방문기록 필수: 시작시간과 종료(또는 duration)
+          if (!startHour || startHour === '') errors.push({ field: 'startHour', msg: '시작 시간을 선택해 주세요.' });
+          if (!startMinute || startMinute === '') errors.push({ field: 'startMinute', msg: '시작 분을 선택해 주세요.' });
+          if (!duration || String(duration).trim() === '') errors.push({ field: 'duration', msg: '총 방문시간을 선택해 주세요.' });
+
+          // 미팅내용 필수: 과목과 이름
+          if (!Array.isArray(subjects) || subjects.length === 0) errors.push({ field: 'subjects', msg: '적어도 하나의 과목을 선택해 주세요.' });
+          if (!teacher || teacher.trim() === '') errors.push({ field: 'teacherName', msg: '선생님 이름을 입력해 주세요.' });
+
+          return { ok: errors.length === 0, errors };
+        }catch(e){ return { ok: false, errors: [{ field:'', msg: '검증 중 예외가 발생했습니다.' }] }; }
+      }
+
+      function saveReport(entry){
+        try{
+          if (!entry) return false;
+          const key = 'cmass_reports';
+          let arr = [];
+          try{ arr = JSON.parse(localStorage.getItem(key) || '[]') || []; }catch(e){ arr = []; }
+          // If editing an existing entry, replace it at the stored index. Otherwise prepend newest.
+          try{
+            const rawEditIndex = window.sessionStorage ? sessionStorage.getItem('cmass:edit_index') : null;
+            const rawEditEntry = window.sessionStorage ? sessionStorage.getItem('cmass:edit_entry') : null;
+            // If entry has a server_id, prefer to find existing local entry with same server_id and replace it
+            let replaced = false;
+            if (entry && entry.server_id){
+              const existingIdx = arr.findIndex(it => it && String(it.server_id||'') === String(entry.server_id));
+              if (existingIdx !== -1){ arr[existingIdx] = entry; replaced = true; }
+            }
+
+            // Only use an edit-index if there is an accompanying edit_entry payload and it appears
+            // to match the entry being saved. This prevents stale edit_index markers from overwriting
+            // unrelated records (which was causing other schools' entries to be replaced).
+            let usedEditIndex = false;
+            if (!replaced && rawEditIndex !== null && rawEditIndex !== undefined && rawEditIndex !== '' && rawEditEntry){
+              try{
+                const parsed = JSON.parse(rawEditEntry);
+                const i = Number(rawEditIndex);
+                const idxValid = !Number.isNaN(i) && i >= 0 && i < arr.length;
+                // determine if parsed edit entry matches the entry we're saving
+                let match = false;
+                if (parsed && typeof parsed === 'object'){
+                  if (parsed.server_id && entry.server_id && String(parsed.server_id) === String(entry.server_id)) match = true;
+                  else if (parsed._savedAt && entry._savedAt && String(parsed._savedAt) === String(entry._savedAt)) match = true;
+                  else if (parsed.staff && parsed.visitDate && parsed.school && parsed.staff === entry.staff && parsed.visitDate === entry.visitDate && parsed.school === entry.school) match = true;
+                }
+                if (match && idxValid){ arr[i] = entry; usedEditIndex = true; }
+              }catch(e){ /* ignore parse errors */ }
+            }
+
+            if (!replaced && !usedEditIndex){
+              // treat as new if we didn't meaningfully replace an existing entry
+              arr.unshift(entry);
+            }
+
+            // If we replaced or used the edit index, clear edit markers to avoid future accidental overwrites
+            if (replaced || usedEditIndex){
+              try{ sessionStorage.removeItem('cmass:edit_index'); sessionStorage.removeItem('cmass:edit_entry'); }catch(e){}
+            }
+          }catch(e){ arr.unshift(entry); }
+          // keep last 200 entries to avoid unlimited growth
+          if (arr.length > 200) arr.length = 200;
+          localStorage.setItem(key, JSON.stringify(arr));
+          // Debug log: confirm saved to localStorage
+          try{ console.debug('[meeting] saved cmass_reports length=', (JSON.parse(localStorage.getItem(key)||'[]')||[]).length); }catch(e){}
+
+          // fire-and-forget: sync this entry to Firestore and update local copy with server_id
+          (async function(){
+            try{
+              const editIndex = window.sessionStorage ? sessionStorage.getItem('cmass:edit_index') : null;
+              // determine index where this entry was saved: if editIndex used, use that, otherwise 0 (unshifted newest)
+              let savedIndex = 0;
+              if (editIndex !== null && editIndex !== undefined && editIndex !== ''){
+                const i = Number(editIndex);
+                if (!Number.isNaN(i) && i >= 0 && i < arr.length) savedIndex = i;
+              }
+              // Only attempt server sync if PIN authentication was completed via index.html
+              const pinAuth = (window.sessionStorage && sessionStorage.getItem('cmass_pin_authenticated')) || null;
+              if (!pinAuth){
+                // Skip server sync when not PIN-authenticated. This prevents unauthenticated writes.
+                console.warn('[meeting] 서버 동기화 스킵: PIN 인증 필요');
+                return;
+              }
+              const serverId = await syncEntryToServer(arr[savedIndex], !!(arr[savedIndex] && arr[savedIndex].server_id), savedIndex);
+              if (serverId){ 
+                // assign server_id to the saved index
+                arr[savedIndex].server_id = serverId;
+                // remove any other local entries that have the same server_id to avoid duplicates
+                try{
+                  for (let k = arr.length - 1; k >= 0; k--){
+                    if (k === savedIndex) continue;
+                    try{ if (arr[k] && String(arr[k].server_id||'') === String(serverId)){ arr.splice(k,1); if (k < savedIndex) savedIndex--; } }catch(e){}
+                  }
+                }catch(e){}
+                localStorage.setItem(key, JSON.stringify(arr));
+              }
+            }catch(e){ console.warn('[meeting] 서버 동기화 중 예외', e); }
+          })();
+
+          return true;
+        }catch(e){ return false; }
+      }
+
+      // Compute summary metrics for a given staff+visitDate and store in sessionStorage
+      function computeAndStoreMetrics(staffToken, visitDate){
+        try{
+          if (!staffToken || !visitDate) return;
+          const key = 'cmass_reports';
+          let arr = [];
+          try{ arr = JSON.parse(localStorage.getItem(key) || '[]') || []; }catch(e){ arr = []; }
+          const filtered = arr.filter(it => String(it.visitDate||'') === String(visitDate) && String(it.staff||'') === String(staffToken));
+          const totalMeetings = filtered.length;
+          const schools = new Set(filtered.map(it => (it.school||'').toString().trim()).filter(Boolean));
+          const totalSchools = schools.size;
+          const contactsSecured = filtered.reduce((s,it)=> s + ((it.phone && String(it.phone).trim()) || (it.email && String(it.email).trim()) ? 1:0), 0);
+          const additionalSelections = filtered.reduce((s,it)=>{
+            const text = ((it.followUp||'') + ' ' + (it.requests||'') + ' ' + (it.notes||'')).toString();
+            return s + ((text.indexOf('선정') !== -1) ? 1 : 0);
+          },0);
+          const metrics = { visitDate: String(visitDate), totalSchools: totalSchools, totalMeetings: totalMeetings, contactsSecured: contactsSecured, additionalSelections: additionalSelections };
+          try{ if (window.sessionStorage) sessionStorage.setItem('cmass:report_metrics', JSON.stringify(metrics)); }catch(e){}
+          return metrics;
+        }catch(e){ return null; }
+      }
+
+      function init(){
+        const btn = qs('btnSubmit');
+        if (btn) {
+          btn.addEventListener('click', function(){
+            try{
+              // validate before gathering/saving
+              const v = validateForm();
+              if (!v.ok){
+                try{
+                  // mark invalid fields and focus first one
+                  const first = v.errors && v.errors.length ? v.errors[0] : null;
+                  v.errors.forEach(err => {
+                    try{
+                      if (!err || !err.field) return;
+                      if (err.field === 'subjects'){
+                        // highlight subject container
+                        const container = document.getElementById('subjects'); if (container) container.classList.add('invalid');
+                      } else {
+                        const el = document.getElementById(err.field); if (el) el.classList.add('invalid');
+                      }
+                    }catch(e){}
+                  });
+                  if (first && first.field && first.field !== 'subjects'){
+                    const el = document.getElementById(first.field); if (el && typeof el.focus === 'function'){ el.focus(); }
+                  } else if (first && first.field === 'subjects'){
+                    const s = document.querySelector('#subjects'); if (s) s.scrollIntoView({behavior:'smooth', block:'center'});
+                  }
+                  alert(v.errors.map(e=>e.msg).join('\n'));
+                }catch(e){ alert('입력값을 확인해 주세요.'); }
+                return;
+              }
+
+              const entry = gatherForm();
+              if (!entry) return;
+              // before leaving, persist the staff/visitDate/region so report->meeting preserves them
+              try{
+                if (window.sessionStorage){
+                  const token = (qs('staff') && qs('staff').value) || entry.staff || '';
+                  const label = (qs('staff') && qs('staff').options && qs('staff').selectedIndex>=0) ? qs('staff').options[qs('staff').selectedIndex].text : (entry.staffLabel||'');
+                  const date = (qs('visitDate') && qs('visitDate').value) || entry.visitDate || '';
+                  const region = (qs('regionSelect') && qs('regionSelect').value) || entry.region || '';
+                  try{ if (token) sessionStorage.setItem('cmass:next_staff_token', String(token)); }catch(e){}
+                  try{ if (label) sessionStorage.setItem('cmass:next_staff_label', String(label)); }catch(e){}
+                  try{ if (date) sessionStorage.setItem('cmass:next_visitDate', String(date)); }catch(e){}
+                  try{ if (region) sessionStorage.setItem('cmass:next_region', String(region)); }catch(e){}
+                }
+              }catch(e){}
+
+              // save entry and navigate to the report page (preserve staff query param if possible)
+              saveReport(entry);
+              try{
+                const token = (qs('staff') && qs('staff').value) || entry.staff || '';
+                const date = (qs('visitDate') && qs('visitDate').value) || entry.visitDate || '';
+                // compute metrics and store to session so report.html can display them immediately
+                try{ computeAndStoreMetrics(token, date); }catch(e){}
+                // Build query params explicitly and DO NOT include `school`.
+                try{
+                  const params = new URLSearchParams();
+                  if (token) params.set('staff', String(token));
+                  if (date) params.set('visitDate', String(date));
+                  window.location.href = '/report.html' + (params.toString() ? ('?' + params.toString()) : '');
+                }catch(e){
+                  // fallback to previous behavior
+                  let q = '';
+                  if (token && date) {
+                    q = '?staff=' + encodeURIComponent(String(token)) + '&visitDate=' + encodeURIComponent(String(date));
+                  } else if (token) {
+                    q = '?staff=' + encodeURIComponent(String(token));
+                  }
+                  window.location.href = '/report.html' + q;
+                }
+              }catch(e){
+                try{ window.open('/report.html','_blank'); }catch(e){}
+              }
+            }catch(e){ /* tolerate */ }
+          }, true);
+        }
+
+        // 방문일 보고서 버튼: enable only if staff and visitDate are selected
+        const btnDaily = qs('btnDailyReport');
+        const staffEl = qs('staff');
+        const dateEl = qs('visitDate');
+        function updateDailyBtn() {
+          const staff = staffEl && staffEl.value;
+          const date = dateEl && dateEl.value;
+          btnDaily.disabled = !(staff && date);
+        }
+        if (staffEl) staffEl.addEventListener('change', updateDailyBtn, true);
+        if (dateEl) dateEl.addEventListener('change', updateDailyBtn, true);
+        updateDailyBtn();
+        if (btnDaily) {
+          btnDaily.addEventListener('click', function() {
+            // 담당자 select의 value(영문 토큰) 사용
+            const staff = staffEl && staffEl.value;
+            const date = dateEl && dateEl.value;
+            if (staff && date) {
+              try{ computeAndStoreMetrics(staff, date); }catch(e){}
+              try{
+                const params = new URLSearchParams();
+                params.set('staff', String(staff));
+                params.set('visitDate', String(date));
+                window.location.href = '/report.html' + (params.toString() ? ('?' + params.toString()) : '');
+              }catch(e){
+                window.location.href = '/report.html?staff=' + encodeURIComponent(staff) + '&visitDate=' + encodeURIComponent(date);
+              }
+            }
+          }, true);
+        }
+
+        // keep the Back link to input.html carrying the staff token
+        try{
+          const back = qs('backToInput');
+          function updateBackHref(){
+            try{
+              const token = (qs('staff') && qs('staff').value) || window._cmass_staffParam || '';
+              const q = token ? ('?staff=' + encodeURIComponent(String(token))) : '';
+              if (back) back.setAttribute('href', '/input' + q);
+              try{
+                if (back){
+                  if (window.__cmass_back_click__ && typeof window.__cmass_back_click__ === 'function'){
+                    try{ back.removeEventListener('click', window.__cmass_back_click__); }catch(e){}
+                  }
+                  window.__cmass_back_click__ = function(ev){
+                    try{
+                      if (!window.sessionStorage) return;
+                      const label = (qs('staff') && qs('staff').options && qs('staff').selectedIndex>=0) ? qs('staff').options[qs('staff').selectedIndex].text : '';
+                      const date = (qs('visitDate') && qs('visitDate').value) || '';
+                      const region = (qs('regionSelect') && qs('regionSelect').value) || '';
+                      const school = (qs('schoolSelect') && qs('schoolSelect').value) || '';
+                      try{ if (token) sessionStorage.setItem('cmass:next_staff_token', String(token)); }catch(e){}
+                      try{ if (label) sessionStorage.setItem('cmass:next_staff_label', String(label)); }catch(e){}
+                      try{ if (date) sessionStorage.setItem('cmass:next_visitDate', String(date)); }catch(e){}
+                      try{ if (region) sessionStorage.setItem('cmass:next_region', String(region)); }catch(e){}
+                      try{ if (school) sessionStorage.setItem('cmass:next_school', String(school)); }catch(e){}
+                    }catch(e){}
+                  };
+                  back.addEventListener('click', window.__cmass_back_click__, true);
+                }
+              }catch(e){}
+            }catch(e){}
+          }
+          updateBackHref();
+          if (staffEl) staffEl.addEventListener('change', updateBackHref, true);
+        }catch(e){}
+      }
+
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+    })();
+  </script>
+  <script>
+    // Defensive fix: ensure time selects and duration buttons are interactive
+    // Some webviews/overlays can prevent native selects from opening. This script
+    // forces selects to be enabled, stops event propagation on clicks, and
+    // wires a robust pointer handler for duration buttons that updates the
+    // hidden #duration input and triggers change so computeEndTime runs.
+    (function(){
+      function qs(id){ return document.getElementById(id); }
+      function ensure(){
+        try{
+          const sh = qs('startHour');
+          const sm = qs('startMinute');
+          const durHidden = qs('duration');
+          const durBtns = qs('durationBtns');
+
+          // Ensure selects are enabled and can receive focus/clicks
+          [sh, sm].forEach(el=>{
+            try{
+              if (!el) return;
+              el.disabled = false;
+              // make sure pointer events are allowed and stop propagation so
+              // document-level handlers or overlays don't swallow the interaction
+              el.style.pointerEvents = 'auto';
+              el.tabIndex = el.tabIndex || 0;
+              el.addEventListener('click', function(ev){ ev.stopPropagation(); }, true);
+              el.addEventListener('mousedown', function(){ try{ this.focus(); }catch(e){} }, true);
+            }catch(e){}
+          });
+          console.debug('[ensure] startHour options:', sh ? sh.options.length : 'null');
+          console.debug('[ensure] startMinute options:', sm ? sm.options.length : 'null');
+
+          // Robust duration button handling: pointerdown to capture before other handlers
+          if (durBtns && durHidden){
+            // Prevent adding duplicate listeners
+            if (!durBtns.__cmass_duration_installed){
+              durBtns.addEventListener('pointerdown', function(ev){
+                try{
+                  const btn = ev.target && ev.target.closest ? ev.target.closest('button.dur-btn') : null;
+                  if (!btn) return;
+                  ev.preventDefault(); ev.stopPropagation();
+                  // set hidden value and mark active class
+                  const val = btn.getAttribute('data-min') || '';
+                  durHidden.value = val;
+                  Array.from(durBtns.querySelectorAll('button.dur-btn')).forEach(b=>b.classList.remove('active'));
+                  btn.classList.add('active');
+                  // dispatch change so computeEndTime runs
+                  try{ durHidden.dispatchEvent(new Event('change',{bubbles:true})); }catch(e){}
+                }catch(e){ /* tolerate */ }
+              }, true);
+              durBtns.__cmass_duration_installed = true;
+            }
+          }
+
+          // Trigger computeEndTime once in case values already set
+          try{ const ev = new Event('change',{bubbles:true}); if (qs('duration')) qs('duration').dispatchEvent(ev); }catch(e){}
+        }catch(e){ console.warn('time-control ensure failed', e); }
+      }
+
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ensure); else setTimeout(ensure, 50);
+    })();
+  </script>
+
+
+  <script>
+    // 강제 시/분 옵션 초기화 및 디버그
+    (function(){
+      function buildOptions(){
+        try{
+          const h = document.getElementById('startHour');
+          const m = document.getElementById('startMinute');
+          if (!h && !m) return;
+          if (h && (!h.options || h.options.length <= 0)){
+            h.innerHTML = '<option value="">시 선택...</option>';
+            for (let i=0;i<24;i++){
+              const val = String(i).padStart(2,'0');
+              const o = document.createElement('option');
+              o.value = val; o.text = val;
+              h.appendChild(o);
+            }
+          }
+          if (m && (!m.options || m.options.length <= 0)){
+            m.innerHTML = '<option value="">분 선택...</option>';
+            for (let j=0;j<60;j+=5){
+              const val = String(j).padStart(2,'0');
+              const o = document.createElement('option');
+              o.value = val; o.text = val;
+              m.appendChild(o);
+            }
+          }
+          console.debug('[buildOptions-final] startHour options:', h ? h.options.length : 'null');
+          console.debug('[buildOptions-final] startMinute options:', m ? m.options.length : 'null');
+        }catch(e){ console.warn('buildOptions-final error', e); }
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => buildOptions());
+      } else {
+        buildOptions();
+      }
+    })();
+  </script>
+
+  
+
+}
 </body>
 </html>
