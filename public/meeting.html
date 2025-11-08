@@ -920,6 +920,9 @@
           }catch(e){}
         }
 
+  // expose a safe hook so other initializers can trigger applying any pending edit entry
+  try{ window._cmass_applyPendingEdit = tryApply; }catch(e){}
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(tryApply, 120); setTimeout(tryApply, 700); }); else { setTimeout(tryApply, 120); setTimeout(tryApply, 700); }
 
     // populateTimeSelectors removed: time selects are left uninitialized so edit flow controls values explicitly
@@ -1265,6 +1268,7 @@
             }catch(e){}
                 // also attempt to prefill start time/duration from any existing local visit for this school
                 try{ if (typeof prefillStartFromLocal === 'function') setTimeout(prefillStartFromLocal, 120); }catch(e){}
+                try{ if (typeof window._cmass_applyPendingEdit === 'function') setTimeout(window._cmass_applyPendingEdit, 150); }catch(e){}
               }, true);
 
         }catch(e){ /* tolerate silently */ }
