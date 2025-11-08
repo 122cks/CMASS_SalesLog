@@ -890,10 +890,13 @@
         function tryApply(){
           try{
             if (!window.sessionStorage) return;
+            try{ console.debug('[CMASS debug] sessionStorage contains keys:', Object.keys(sessionStorage || {})); }catch(e){}
             const raw = sessionStorage.getItem('cmass:edit_entry');
+            try{ console.debug('[CMASS debug] raw cmass:edit_entry length:', raw ? raw.length : 0); }catch(e){}
             if (!raw) return;
             let entry = null;
             try{ entry = JSON.parse(raw); }catch(e){ entry = null; }
+            try{ console.debug('[CMASS debug] parsed edit entry keys:', entry ? Object.keys(entry) : null); }catch(e){}
             if (!entry) return;
 
             // Robust apply: attempt to apply entry now and retry a few times if some inputs
