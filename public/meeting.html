@@ -702,6 +702,9 @@
         }catch(e){ /* tolerate */ }
       }
 
+  // expose for other modules to call directly if needed
+  try{ window._cmass_computeEndTime = computeEndTime; }catch(e){}
+
       function attach(){
         try{
           const h = qs('startHour');
@@ -758,6 +761,7 @@
           const btn = ev.target.closest('button.dur-btn');
           if (!btn) return;
           try{ clearActive(container); btn.classList.add('active'); const val = btn.getAttribute('data-min') || ''; hidden.value = val; hidden.dispatchEvent(new Event('change',{bubbles:true})); }catch(e){}
+          try{ setTimeout(function(){ try{ if (typeof window._cmass_computeEndTime === 'function') window._cmass_computeEndTime(); }catch(e){} }, 0); }catch(e){}
         }, true);
 
         // initialize from existing hidden value (if any)
