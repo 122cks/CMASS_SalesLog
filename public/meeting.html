@@ -680,11 +680,25 @@
           const durEl = qs('duration');
           const out = qs('endTime');
           if (!out) return;
-          const h = hEl && hEl.value !== '' ? Number(hEl.value) : NaN;
-          const mm = mEl && mEl.value !== '' ? Number(mEl.value) : NaN;
-          const dur = durEl && durEl.value !== '' ? Number(durEl.value) : NaN;
-          try{ console.debug('[CMASS computeEndTime] inputs', { h:hEl && hEl.value, mm:mEl && mEl.value, dur: durEl && durEl.value }); }catch(e){}
+          // defensive parsing: allow values like '06', '6', or strings containing digits
+          const parseNum = v => {
+            try{
+              if (v === null || v === undefined) return NaN;
+              const s = String(v).toString().trim();
+              if (s === '') return NaN;
+              // extract leading digits (handles cases like '30분' or '30 min')
+              const m = s.match(/(-?\d+)/);
+              if (m && m[1]) return Number(m[1]);
+              const n = Number(s);
+              return Number.isFinite(n) ? n : NaN;
+            }catch(e){ return NaN; }
+          };
+          const h = hEl ? parseNum(hEl.value) : NaN;
+          const mm = mEl ? parseNum(mEl.value) : NaN;
+          const dur = durEl ? parseNum(durEl.value) : NaN;
+          try{ console.debug('[CMASS computeEndTime] inputs', { hRaw: hEl && hEl.value, mmRaw: mEl && mEl.value, durRaw: durEl && durEl.value, hParsed: h, mmParsed: mm, durParsed: dur }); }catch(e){}
           if (Number.isNaN(h) || Number.isNaN(mm) || Number.isNaN(dur)){
+            try{ console.debug('[CMASS computeEndTime] invalid inputs, clearing endTime'); }catch(e){}
             out.value = '';
             return;
           }

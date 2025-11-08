@@ -3,192 +3,1352 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>방문일 보고서</title>
-  <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;color:#123;padding:18px;background:#f8fbff}
-    .card{background:#fff;border:1px solid #e6eef8;padding:14px;border-radius:8px;margin-bottom:12px}
-    button{padding:8px 10px;border-radius:6px;border:1px solid #d6dbe8;background:#fff}
-    .muted{color:#556;font-size:13px}
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div>
-        <h2 id="title">방문일 보고서</h2>
-        <div id="subtitle" class="muted"></div>
-      </div>
-      <div>
-        <!-- Back button removed per user request -->
+  <!doctype html>
+  <html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>방문일 보고서 - 영업일지</title>
+    <style>
+      body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;color:#123;padding:18px;background:#f8fbff}
+      header{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+      .card{background:#fff;border:1px solid #e6eef8;padding:14px;border-radius:8px;margin-bottom:12px}
+      .muted{color:#556;font-size:13px}
+      .summary-grid{display:flex;gap:12px;flex-wrap:wrap}
+      .summary-item{min-width:140px}
+  .report-entry{border-left:4px solid #e6eefc;padding:8px 12px;margin:8px 0;border-radius:6px;background:#fff}
+  .report-entry-summary{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .report-entry-summary .meta-left{font-weight:700}
+  .report-entry-details{margin-top:8px}
+      .school-title{font-weight:900}
+      button{padding:8px 10px;border-radius:6px;border:1px solid #d6dbe8;background:#fff}
+      .muted-strong{color:#556;font-size:13px;margin-bottom:6px}
+      /* Slightly reduce main title and auth status font sizes per UI request */
+  /* increased per request: make report title slightly larger for visibility */
+  #title{ font-size:24px; margin:0; }
+      #cmass-auth-status{ font-size:13px; }
+      /* school list buttons: default and active state */
+      .alt-btn{ padding:6px 10px;border-radius:8px;border:1px solid #d6dbe8;background:#fff;color:inherit; cursor:pointer }
+      .alt-btn.active{ background:linear-gradient(135deg,#1e3c72,#274b9f); color:#fff; border-color:#1e3c72 }
+    </style>
+    <!-- Firebase (compat) for realtime updates -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script>
+      (function(){
+        try{
+          if (window.firebaseDb) return;
+          const firebaseConfig = {
+            apiKey: "AIzaSyARdXNfFCUShNeFXV8cTDzFbKa4GId5EvU",
+            authDomain: "cmass-sales.firebaseapp.com",
+            projectId: "cmass-sales",
+            storageBucket: "cmass-sales.firebasestorage.app",
+            messagingSenderId: "918981476485",
+            appId: "1:918981476485:web:7939150e23500e2703a9ec",
+            measurementId: "G-9188JJXRWX"
+          };
+          try{ const app = firebase.initializeApp(firebaseConfig); const db = firebase.firestore(); window.firebaseDb = db; }catch(e){ /* ignore if already init */ }
+        }catch(e){ /* tolerate */ }
+
+        window.waitForFirebase = function(){
+          return new Promise((resolve,reject)=>{
+            if (window.firebaseDb) { resolve(); return; }
+            let attempts = 0; const t = setInterval(()=>{ attempts++; if (window.firebaseDb){ clearInterval(t); resolve(); } else if (attempts>50){ clearInterval(t); reject(new Error('firebase init timeout')); } }, 100);
+          });
+        };
+      })();
+    </script>
+  </head>
+  <body>
+    <header>
+      <a href="#" id="backLink">◀ 입력으로 돌아가기</a>
+      <div style="margin-left:12px"> <strong id="staffName"></strong> - <span id="reportDate"></span></div>
+    </header>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <h2 id="title">방문일 보고서</h2>
+          <div id="subtitle" class="muted" style="display:none"></div>
+        </div>
+        <div>
+          <button id="btnClearSummary" style="border-color:#f0dede;color:#c33">모두지우기</button>
+          <button id="cmass-save-server-btn" type="button" style="margin-left:8px">서버에저장</button>
+          <span id="cmass-save-server-status" style="margin-left:8px"></span>
+          <button id="cmass-anon-signin" type="button" style="margin-left:8px">익명로그인</button>
+          <span id="cmass-auth-status" style="margin-left:8px;color:#226">(인증 상태: 확인 중)</span>
+        </div>
       </div>
     </div>
-    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <label class="muted">출근</label>
-      <input id="workStart" type="time" style="padding:6px;border-radius:6px;border:1px solid #d6dbe8">
-      <label class="muted">퇴근</label>
-      <input id="workEnd" type="time" style="padding:6px;border-radius:6px;border:1px solid #d6dbe8">
-      <label class="muted">사무실내근(분)</label>
-      <input id="officeMinutes" type="number" min="0" style="width:80px;padding:6px;border-radius:6px;border:1px solid #d6dbe8">
-      <label class="muted">자료정리(분)</label>
-      <input id="prepMinutes" type="number" min="0" style="width:80px;padding:6px;border-radius:6px;border:1px solid #d6dbe8">
+
+    <div class="card">
+      <div id="main">보고서 내용을 불러오는 중입니다.</div>
     </div>
-  </div>
 
-  <div id="content" class="card">
-    <div id="main">보고서 내용을 불러오는 중입니다.</div>
-  </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <h3 style="margin:0">사무실 출근 / 퇴근보고</h3>
+          <div class="muted">출근시각, 내근시간, 퇴근보고(자료정리시간(분))를 기록합니다. 로컬에 저장됩니다.</div>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <label style="min-width:90px">출근시각</label>
+          <select id="officeCheckinHour" style="width:80px">
+            <option value="">시</option>
+            <option value="06">06</option>
+            <option value="07">07</option>
+            <option value="08">08</option>
+            <option value="09">09</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+            <option value="12">12</option>
+          </select>
+          <select id="officeCheckinMinute" style="width:80px">
+            <option value="">분</option>
+            <option>05</option>
+            <option>10</option>
+            <option>15</option>
+            <option>20</option>
+            <option>25</option>
+            <option>30</option>
+            <option>35</option>
+            <option>40</option>
+            <option>45</option>
+            <option>50</option>
+            <option>55</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <label style="min-width:90px">내근시간</label>
+          <input id="officeInternalHours" type="number" min="0" max="24" step="1" style="width:60px" placeholder="시간" />
+          <input id="officeInternalMinutes" type="number" min="0" max="59" step="1" style="width:60px" placeholder="분" />
+        </div>
+        <div style="margin-bottom:8px">
+          <label style="display:block;margin-bottom:6px">퇴근보고 (자료정리시간, 분)</label>
+          <input id="officeEndMinutes" type="number" min="0" step="1" style="width:120px" />
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="btnSaveOffice">저장</button>
+          <button id="btnClearOffice" style="border-color:#f0dede;color:#c33">지우기</button>
+          <button id="btnCopyKakao" style="margin-left:6px">카톡으로 복사</button>
+          <div id="officeSavedAt" class="muted" style="margin-left:8px"></div>
+        </div>
+      </div>
+    </div>
 
-  <script>
+    <main id="entriesArea"></main>
+
+    <script>
     (function(){
-      function qs(k){ return new URLSearchParams(window.location.search || '').get(k) || ''; }
-      let date = qs('date');
-      let staff = qs('staff');
-      // fallback: if URL lacks staff/date (e.g., user used back/forward), try session/local storage
-      if (!staff) {
-        try{ const auth = sessionStorage.getItem('cmass_pin_authenticated'); if (auth) { const obj = JSON.parse(auth); if (obj && obj.staff) staff = obj.staff; } }catch(e){}
-      }
-      if (!staff) { try{ staff = localStorage.getItem('cmass:staff') || ''; }catch(e){} }
-      if (!date) {
-        try{ const qsSaved = new URLSearchParams(window.location.search || ''); date = qsSaved.get('date') || '';
-        }catch(e){}
-        try{ if (!date) date = sessionStorage.getItem('cmass:last_report_date') || ''; }catch(e){}
-      }
-  const region = qs('region') || (sessionStorage.getItem('cmass:last_region') || '') || (localStorage.getItem('cmass:last_region') || '');
-  const school = qs('school') || (sessionStorage.getItem('cmass:last_school') || '') || (localStorage.getItem('cmass:last_school') || '');
-  // persist last report values in session so Back/Forward can recover them
-  try{ if (date) sessionStorage.setItem('cmass:last_report_date', date); }catch(e){}
-  try{ if (region) sessionStorage.setItem('cmass:last_region', region); }catch(e){}
-  try{ if (school) sessionStorage.setItem('cmass:last_school', school); }catch(e){}
-      const title = document.getElementById('title');
-      const subtitle = document.getElementById('subtitle');
-  subtitle.textContent = `담당자: ${staff || '-'} · 방문일: ${date || '-'}`;
+  function qs(id){ return document.getElementById(id); }
+  function qsParam(k){ try{ return (new URLSearchParams(window.location.search || '').get(k) || '').toString(); }catch(e){ return ''; } }
+  // normalize/trim URL params to avoid accidental mismatches
+  const staff = (qsParam('staff') || '').toString().trim();
+  const visitDate = (qsParam('visitDate') || qsParam('date') || '').toString().trim();
+      document.getElementById('subtitle').textContent = `담당자: ${staff || '-'} · 방문일: ${visitDate || '-'}`;
+      document.getElementById('staffName').textContent = staff || '';
+      document.getElementById('reportDate').textContent = visitDate || '';
 
-  // also populate header area (second document in this file uses these IDs)
-  try{ const staffName = document.getElementById('staffName'); if (staffName) staffName.textContent = staff || ''; }catch(e){}
-  try{ const reportDate = document.getElementById('reportDate'); if (reportDate) reportDate.textContent = date || ''; }catch(e){}
-
-      // Guard the back button: it may be intentionally removed from the UI.
-      const _btnBack = document.getElementById('btnBack');
-      if (_btnBack) {
-        _btnBack.addEventListener('click', function(){
-          const q = new URLSearchParams();
-          if (staff) q.set('staff', staff);
-          if (date) q.set('date', date);
-          if (region) q.set('region', region);
-          if (school) q.set('school', school);
-          const href = '/meeting.html' + (q.toString() ? ('?' + q.toString()) : '');
-          window.location.href = href;
-        });
-      }
-
-      // Minimal content: show that params are received and allow further report rendering.
-      document.getElementById('main').textContent = `보고서 대상: ${school || '(학교 지정 없음)'}\n지역: ${region || '-'}\n방문일: ${date || '-'}\n담당자: ${staff || '-'}`;
-    })();
-  </script>
-
-  <!-- Draft-load modal (appears when a local draft exists for this staff|date|region|school) -->
-  <div id="draftModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:center;justify-content:center">
-    <div style="background:#fff;padding:18px;border-radius:10px;max-width:720px;width:94%;box-shadow:0 12px 30px rgba(0,0,0,0.12);">
-      <div style="font-weight:800;margin-bottom:8px">저장된 드래프트가 발견되었습니다</div>
-      <div id="draftPreview" style="white-space:pre-wrap;max-height:220px;overflow:auto;padding:8px;border:1px dashed #d6dbe8;border-radius:8px;background:#fbfdff;font-family:Consolas,'Courier New',monospace;font-size:13px;margin-bottom:12px">(미리보기)</div>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button id="draftCancelBtn" type="button">취소</button>
-        <button id="draftLoadBtn" type="button" style="background:#1e3c72;color:#fff;border-color:#1e3c72">드래프트 불러오기</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    (function(){
-      try{
-        function draftKey(staff,date,region,school){
-          try{
-            // Require all four identifying parts to be present before treating a draft as a match.
-            // Showing a modal when e.g. school is missing caused false positives (drafts saved with
-            // empty school would match too broadly). Return null if any piece is missing.
-            if (!staff || !date || !region || !school) return null;
-            const s = String(staff||'').replace(/\s+/g,'');
-            return `cmass:draft:${s}|${String(date||'')}|${String(region||'')}|${String(school||'')}`;
-          }catch(e){ return null; }
+      // Ensure anonymous authentication before Firestore write/delete operations.
+      // Uses the compat SDK firebase.auth() when available.
+      async function ensureAnonymousAuth(firebaseAuth){
+        try{
+          const auth = firebaseAuth || (window.firebase && firebase.auth ? firebase.auth() : null);
+          if (!auth) return null;
+          if (auth.currentUser) return auth.currentUser;
+          const cred = await auth.signInAnonymously();
+          // compat SDK: currentUser should be set after sign-in
+          return cred && cred.user ? cred.user : auth.currentUser || null;
+        }catch(err){
+          console.warn('ensureAnonymousAuth failed', err);
+          throw err;
         }
-        document.addEventListener('DOMContentLoaded', function(){
-          try{
-            const url = new URL(window.location.href);
-            const q = url.searchParams;
-            const staff = q.get('staff') || (sessionStorage.getItem('cmass:staff') || localStorage.getItem('cmass:staff') || '');
-            const date = q.get('date') || (sessionStorage.getItem('cmass:last_report_date') || '');
-            const region = q.get('region') || (sessionStorage.getItem('cmass:last_region') || localStorage.getItem('cmass:last_region') || '');
-            // Only consider a draft restore when the school is explicitly provided via the URL.
-            // This prevents a leftover `cmass:last_school` in session/localStorage from
-            // causing the modal to appear when the user is merely changing other fields
-            // (like the visit date).
-            const schoolFromUrl = q.get('school');
-            if (!schoolFromUrl) return; // do not trigger modal if school not in URL
-            const school = schoolFromUrl;
-            const key = draftKey(staff,date,region,school);
-            if (!key) return;
-            const raw = localStorage.getItem(key);
-            if (!raw) return; // no draft
-            var parsed = null;
-            try{ parsed = JSON.parse(raw); }catch(e){ parsed = null; }
-            const modal = document.getElementById('draftModal');
-            const preview = document.getElementById('draftPreview');
-            const loadBtn = document.getElementById('draftLoadBtn');
-            const cancelBtn = document.getElementById('draftCancelBtn');
-            if (!modal || !preview || !loadBtn) return;
-            preview.textContent = parsed && parsed.data ? JSON.stringify(parsed.data, null, 2).slice(0, 1500) : '(미리보기 불러오기 실패)';
-            modal.style.display = 'flex';
-            cancelBtn && cancelBtn.addEventListener('click', function(){ modal.style.display = 'none'; });
-            loadBtn.addEventListener('click', function(){
-              // redirect to input.html with query params so the input page can call loadDraft
-              const tgt = 'meeting.html';
-              const params = new URLSearchParams();
-              if (staff) params.set('staff', staff);
-              if (date) params.set('date', date);
-              if (region) params.set('region', region);
-              if (school) params.set('school', school);
-              window.location.href = tgt + (params.toString() ? ('?' + params.toString()) : '');
+      }
+
+      // PIN 인증 상태 확인: index.html에서 sessionStorage에 `cmass_pin_authenticated`를
+      // 설정하면 서버 쓰기 권한(클라이언트 쪽 UI)을 허용합니다. 없는 경우 업로드 버튼을 비활성화합니다.
+      try{
+        const pinFlagRaw = (window.sessionStorage && sessionStorage.getItem('cmass_pin_authenticated')) || null;
+        const pinBtn = document.getElementById('cmass-save-server-btn');
+        if (!pinFlagRaw){
+          if (pinBtn){ pinBtn.disabled = true; pinBtn.title = '업로드를 위해서는 시작 페이지에서 PIN 인증이 필요합니다.'; }
+          try{ const authStatusEl = document.getElementById('cmass-auth-status'); if (authStatusEl) authStatusEl.textContent = '(인증 상태: PIN 필요)'; }catch(e){}
+        } else {
+          // Enable the upload button in the UI when PIN flag present
+          if (pinBtn){ pinBtn.disabled = false; pinBtn.title = '서버 업로드 가능 (PIN 인증됨)'; }
+
+          // 자동 익명 로그인: sessionStorage에 PIN 플래그가 있으면 시도
+          (function(){
+            try {
+              const pinFlag = (window.sessionStorage && sessionStorage.getItem('cmass_pin_authenticated')) || null;
+              if (!pinFlag) return;
+
+              // 방어: firebase.auth가 준비될 때까지 대기
+              function trySignIn() {
+                try {
+                  if (!window.firebase || !firebase.auth) {
+                    // 아직 SDK 비동기 로딩중이면 재시도
+                    setTimeout(trySignIn, 200);
+                    return;
+                  }
+                  // 이미 로그인돼 있으면 무시
+                  if (firebase.auth().currentUser) {
+                    console.debug('[auth] already signed in', firebase.auth().currentUser && firebase.auth().currentUser.uid);
+                    try{ const authStatusEl = document.getElementById('cmass-auth-status'); if (authStatusEl) authStatusEl.textContent = '(인증 상태: 익명 로그인됨)'; }catch(e){}
+                    return;
+                  }
+                  firebase.auth().signInAnonymously()
+                    .then(res => {
+                      console.debug('[auth] 익명 로그인 성공', res && res.user && res.user.uid);
+                      try{ const authStatusEl = document.getElementById('cmass-auth-status'); if (authStatusEl) authStatusEl.textContent = '(인증 상태: 익명 로그인됨)'; }catch(e){}
+                    })
+                    .catch(err => {
+                      console.error('[auth] 익명 로그인 실패', err);
+                      try{ const authStatusEl = document.getElementById('cmass-auth-status'); if (authStatusEl) authStatusEl.textContent = '(인증 상태: 익명 로그인 실패)'; }catch(e){}
+                      // UI에 추가 안내가 필요하면 여기에 토스트/배너 호출을 추가할 수 있습니다.
+                    });
+                } catch(e) { console.warn('[auth] trySignIn 예외', e); }
+              }
+
+              trySignIn();
+            } catch(e) { console.warn('[auth] auto-anon init error', e); }
+          })();
+        }
+      }catch(e){ /* tolerate */ }
+
+      // Build a textual summary for the current staff+visitDate using local entries and office data
+      function buildOfficeSummary(){
+        try{
+          const entries = (window._cmass_report_lastFiltered && window._cmass_report_lastFiltered.length) ? window._cmass_report_lastFiltered.slice() : (computeMetrics(loadLocalReports()).filtered || []);
+          if (!entries || entries.length === 0) return '';
+          const office = loadOfficeData() || {};
+          // Prefer a human-friendly display name (staffLabel) from entries if available
+          let staffLabel = staff || '';
+          if (entries && entries.length && entries[0].staffLabel) staffLabel = entries[0].staffLabel || staffLabel;
+          const header = `(${staffLabel} 퇴근보고)`;
+          const lines = [];
+          lines.push(header);
+          lines.push(`방문일: ${visitDate || ''}`);
+
+          // metrics
+          const schools = Array.from(new Set(entries.map(e=> (e.school||'').toString().trim()).filter(x=>x)));
+          const totalSchools = schools.length;
+          const totalMeetings = entries.length;
+          const contacts = entries.filter(e=> (e.phone || '').toString().trim()).length;
+          const additional = entries.filter(e=> (e.followUp || '').toString().trim()).length;
+          lines.push(`총 방문 학교: ${totalSchools}개 · 총 미팅수: ${totalMeetings}건 · 연락처 확보: ${contacts}건 · 추가선정 확인: ${additional}건`);
+
+          // 1. 출근/퇴근
+          // 출근: 가장 이른 방문 시작시간(있는 경우)을 사용, 없으면 오피스 입력 사용
+          const internalM = (Number(office.internalHours||0) * 60) + Number(office.internalMinutes||0);
+          const meetingTotalM = entries.reduce((s,it)=> s + (Number(it.duration)||0), 0);
+          // find earliest visit start (minutes since midnight) and latest visit end
+          const startTimes = entries.map(it=>{ try{ if (it.startHour !== undefined && it.startHour !== '') return (Number(it.startHour||0)*60 + Number(it.startMinute||0)); }catch(e){} return null; }).filter(x=>x!==null).sort((a,b)=>a-b);
+          const earliestStart = startTimes.length ? startTimes[0] : null;
+          const latestEnd = entries.reduce((acc,it)=>{ try{ const st = (it.startHour !== undefined && it.startHour !== '') ? (Number(it.startHour||0)*60 + Number(it.startMinute||0)) : null; const dur = Number(it.duration||0); if (st!==null){ const end = st + dur; return Math.max(acc,end); } }catch(e){} return acc; }, 0);
+          const cleanupM = Number(office.endMinutes || 0) || 30;
+          function fmtHM(totalMin){ const h = Math.floor(totalMin/60); const m = totalMin % 60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; }
+          // compute displayed checkin (use earliest visit start when available)
+          let checkinTotal = null;
+          if (earliestStart !== null){ checkinTotal = earliestStart; }
+          else { const checkinH = Number(office.checkinHour || 0); const checkinM = Number(office.checkinMinute || 0); checkinTotal = (checkinH*60) + checkinM; }
+          // checkout is defined as latest visit end + cleanup (퇴근보고 자료 정리 끝나는 시간)
+          const checkoutTotal = (latestEnd > 0 ? (latestEnd + cleanupM) : (checkinTotal + internalM + meetingTotalM + cleanupM));
+          // external work should include meeting durations plus the cleanup time
+          const externalM = meetingTotalM + cleanupM;
+          const totalWorkM = internalM + externalM;
+          lines.push(`1. 출근: ${fmtHM(checkinTotal)} · 퇴근: ${fmtHM(checkoutTotal)} ( ${Math.floor(totalWorkM/60)}H ${totalWorkM%60}M)`);
+          lines.push(`   사무실 내근 (${Math.floor(internalM/60)}H ${internalM%60}M) 외근 (${Math.floor(externalM/60)}H ${externalM%60}M)`);
+
+          // 2. 세부업무
+          lines.push('');
+          lines.push('2. 세부업무');
+          // group by school
+          const bySchool = {};
+          entries.forEach(it=>{ const s = (it.school||'학교 미정'); bySchool[s] = bySchool[s] || []; bySchool[s].push(it); });
+          let idxSchool = 0;
+          const korNums = ['가','나','다','라','마','바','사','아','자','차','카','타','파','하'];
+          for (const sch of Object.keys(bySchool)){
+            idxSchool++;
+            const list = bySchool[sch];
+            // determine school-level start/end
+            const startTimes = list.map(it=>{ if (it.startHour !== undefined && it.startHour !== '') return (Number(it.startHour||0)*60 + Number(it.startMinute||0)); return null; }).filter(x=>x!==null).sort((a,b)=>a-b);
+            const first = startTimes.length ? startTimes[0] : null;
+            const lastEnd = list.reduce((acc,it)=>{ const st = (it.startHour !== undefined && it.startHour !== '') ? (Number(it.startHour||0)*60 + Number(it.startMinute||0)) : null; const dur = Number(it.duration||0); if (st!==null){ const end = st + dur; return Math.max(acc,end); } return acc; }, 0);
+            const schStart = first !== null ? fmtHM(first) : '';
+            const schEnd = lastEnd ? fmtHM(lastEnd) : '';
+            // For Kakao copy/display: use the largest single meeting duration for the school
+            // (user requested: 학교별 방문시간은 방문시간 제일 큰 숫자로 적용)
+            const durations = list.map(it => Number(it.duration) || 0);
+            const totalMinForSchool = durations.length ? Math.max.apply(null, durations) : 0;
+            // append optional school meta inline when available
+            const metaText = (list[0] && list[0].meta) ? (' (' + list[0].meta + ')') : '';
+            const schoolLabel = korNums[idxSchool-1] || String(idxSchool);
+            lines.push(`${schoolLabel}. ${sch}: ${schStart}${schStart && schEnd ? ('~'+schEnd) : ''} (${totalMinForSchool}분)${metaText}`);
+            lines.push('');
+            // per-meeting bullets
+            list.forEach((it, j)=>{
+              const subjArr = Array.isArray(it.subjects) ? it.subjects : (it.subjects ? [it.subjects] : []);
+              const subjText = subjArr.length ? subjArr.join(', ') : '';
+              const teacher = it.teacherName || '';
+              const pub = it.publisher || '';
+              const dur = Number(it.duration||0);
+              const start = (it.startHour !== undefined && it.startHour !== '') ? fmtHM(Number(it.startHour||0)*60 + Number(it.startMinute||0)) : '';
+              lines.push(`-  ${String.fromCharCode(97 + j)}. ${subjText} (${teacher}${pub?'-'+pub:''}) : ${subjText} ${it.favor||''} ${it.activities||''} ${it.requests||''} ${it.notes||''} ${it.deliveries||''}`);
             });
-          }catch(e){ /* tolerate */ }
+            lines.push('');
+          }
+
+          // 3. 퇴근보고 자료 정리
+          const cleanupStart = checkoutTotal - cleanupM;
+          const cleanupEnd = checkoutTotal;
+          lines.push('3. 퇴근보고 자료 정리 (' + fmtHM(cleanupStart) + '~' + fmtHM(cleanupEnd) + ') (' + cleanupM + '분)');
+          lines.push('');
+          lines.push('- 끝.');
+          lines.push('');
+
+          // auto tags simple heuristic
+          const subjCounts = {};
+          entries.forEach(it=>{ const arr = Array.isArray(it.subjects) ? it.subjects : (it.subjects? [it.subjects] : []); arr.forEach(s=>{ const k = (s||'').toString(); if (!k) return; subjCounts[k] = (subjCounts[k]||0)+1; }); });
+          const subjEntries = Object.entries(subjCounts).sort((a,b)=>b[1]-a[1]);
+          const tags = [];
+          if (subjEntries.length){ tags.push('주요과목: ' + subjEntries[0][0] + '('+subjEntries[0][1]+'회)'); if (subjEntries[0][1] > 1) tags.push(subjEntries[0][0] + ' 다수 방문'); }
+          const revisit = Object.entries(bySchool).filter(([k,v])=> v.length>1).map(x=>x[0]);
+          if (revisit.length) tags.push('재방문: ' + revisit.join(', '));
+          if (tags.length) lines.push('자동 태그: ' + tags.join(', '));
+
+          return lines.join('\n');
+        }catch(e){ console.warn('buildOfficeSummary failed', e); return ''; }
+      }
+
+      function loadLocalReports(){
+        try{ const raw = localStorage.getItem('cmass_reports') || '[]'; return JSON.parse(raw) || []; }catch(e){ return []; }
+      }
+
+      function computeMetrics(entries){
+        try{
+          const targetVisit = (visitDate || '').toString().trim();
+          const targetStaff = (staff || '').toString().trim();
+          // Start by filtering with visitDate/staff from the provided array
+          let rawFiltered = (entries||[]).filter(e => {
+            try{
+              const evd = (e.visitDate || '').toString().trim();
+              const est = (e.staff || '').toString().trim();
+              // visitDate: allow prefix match (handles full ISO timestamps)
+              const visitMatch = !targetVisit || (evd.indexOf(targetVisit) === 0);
+              // staff: require exact token match when provided
+              const staffMatch = !targetStaff || (est === targetStaff);
+              return visitMatch && staffMatch;
+            }catch(ex){ return false; }
+          });
+          // If we found nothing with the strict staff+visitDate filter, but a visitDate
+          // is provided, try a looser fallback that matches visitDate only. This
+          // handles cases where the saved entry uses a different staff token (e.g.
+          // label vs token mismatch) but is still the same visit day.
+          let usedStaffFallback = false;
+          if ((rawFiltered || []).length === 0 && targetVisit){
+            const looser = (entries||[]).filter(e => { try{ const evd = (e.visitDate||'').toString().trim(); return (!targetVisit) || (evd.indexOf(targetVisit) === 0); }catch(x){ return false; } });
+            if ((looser||[]).length > 0){ rawFiltered = looser; usedStaffFallback = true; }
+          }
+          // Deduplicate by server_id when present, otherwise by _savedAt fallback
+          const seen = new Set();
+          const filtered = [];
+          for (const e of rawFiltered){
+            try{
+              const key = (e && e.server_id) ? ('s:' + String(e.server_id)) : ('l:' + String(e._savedAt || JSON.stringify(e)));
+              if (seen.has(key)) continue;
+              seen.add(key);
+              filtered.push(e);
+            }catch(err){ filtered.push(e); }
+          }
+          const totalMeetings = filtered.length;
+          try{ console.debug('[report] computeMetrics', { targetStaff: targetStaff, targetVisit: targetVisit, rawCount: (entries||[]).length, matched: totalMeetings, usedStaffFallback: !!usedStaffFallback }); }catch(e){}
+          const schools = new Set(filtered.map(it => (it.school||'').toString().trim()).filter(Boolean));
+          const totalSchools = schools.size;
+          const contactsSecured = filtered.reduce((s,it)=> s + (((it.phone && String(it.phone).trim()) || (it.email && String(it.email).trim())) ? 1:0), 0);
+          const additionalSelections = filtered.reduce((s,it)=>{ const text = ((it.followUp||'') + ' ' + (it.requests||'') + ' ' + (it.notes||'')).toString(); return s + ((text.indexOf('선정') !== -1) ? 1 : 0); },0);
+          return { totalMeetings, totalSchools, contactsSecured, additionalSelections, filtered };
+        }catch(e){ return { totalMeetings:0, totalSchools:0, contactsSecured:0, additionalSelections:0, filtered:[] }; }
+      }
+
+      function renderSummary(metrics){
+        const mainEl = qs('main');
+        const m = metrics || { totalMeetings:0, totalSchools:0, contactsSecured:0, additionalSelections:0, filtered:[] };
+        const html = [];
+        html.push('<div style="font-weight:800;margin-bottom:8px">보고서 요약</div>');
+        html.push('<div class="summary-grid">');
+        html.push(`<div class="summary-item"><div class="muted">방문일</div><div style="font-weight:800">${visitDate||'-'}</div></div>`);
+        html.push(`<div class="summary-item"><div class="muted">총 방문 학교</div><div style="font-weight:800">${m.totalSchools||0}개</div></div>`);
+        html.push(`<div class="summary-item"><div class="muted">총 미팅수</div><div style="font-weight:800">${m.totalMeetings||0}건</div></div>`);
+        html.push(`<div class="summary-item"><div class="muted">연락처 확보</div><div style="font-weight:800">${m.contactsSecured||0}건</div></div>`);
+        html.push(`<div class="summary-item"><div class="muted">추가선정 확인</div><div style="font-weight:800">${m.additionalSelections||0}건</div></div>`);
+        html.push('</div>');
+        if ((m.filtered || []).length === 0) html.push('<div style="margin-top:12px;color:#c33">해당 일자의 기록이 없습니다.</div>');
+        mainEl.innerHTML = html.join('');
+
+        // Render list of schools visited that day as clickable buttons under the summary
+        try{
+          // store last filtered list for school-button callbacks
+          // Ensure we only expose entries that match the current staff (defensive filter)
+          const filteredByStaffRaw = (m.filtered || []).filter(it => { try{ return !staff || ((it.staff||'').toString().trim() === staff); }catch(e){ return false; } });
+          // Deduplicate entries by server_id when present, otherwise by _savedAt fallback.
+          // This prevents showing multiple duplicate cards when local copies and server docs
+          // or multiple local copies share the same server_id.
+          const dedupMap = new Map();
+          const filteredByStaff = [];
+          for (const e of filteredByStaffRaw){
+            try{
+              const key = (e && e.server_id) ? ('s:' + String(e.server_id)) : ('l:' + String(e._savedAt || JSON.stringify(e)));
+              if (dedupMap.has(key)) continue;
+              dedupMap.set(key, true);
+              filteredByStaff.push(e);
+            }catch(x){ /* tolerate malformed entries */ }
+          }
+          window._cmass_report_lastFiltered = filteredByStaff.slice();
+          const schoolSet = new Set((filteredByStaff||[]).map(it => (it.school||'').toString().trim()).filter(Boolean));
+          const containerId = '__report_school_list';
+          let container = document.getElementById(containerId);
+          // preserve previously-selected school (if any) so we can re-apply the active state
+          const prevActive = (container && container.querySelector) ? (container.querySelector('button.active') ? ((container.querySelector('button.active').dataset || {}).school || '') : '') : '';
+          if (!container){ container = document.createElement('div'); container.id = containerId; container.style.marginTop = '12px'; mainEl.appendChild(container); }
+          container.innerHTML = '';
+          const title = document.createElement('div'); title.className = 'muted-strong'; title.style.marginBottom = '6px'; title.textContent = '해당일 방문 학교'; container.appendChild(title);
+          const listWrap = document.createElement('div'); listWrap.style.display = 'flex'; listWrap.style.gap = '8px'; listWrap.style.flexWrap = 'wrap'; container.appendChild(listWrap);
+          // '전체' button
+          const btnAll = document.createElement('button'); btnAll.className = 'alt-btn'; btnAll.textContent = '전체'; btnAll.dataset.school = '';
+          btnAll.addEventListener('click', function(){
+            // clear active states and render the staff-filtered list immediately
+            Array.from(listWrap.querySelectorAll('button')).forEach(b => b.classList.remove('active'));
+            btnAll.classList.add('active');
+            try{
+              const all = window._cmass_report_lastFiltered || [];
+              renderEntries(all);
+            }catch(e){ console.warn('전체 button render failed', e); }
+          });
+          listWrap.appendChild(btnAll);
+
+          // (직원 전체) 버튼 제거 — 직원 필터에 맞춰 표시되도록 단일 '전체' 버튼만 남깁니다.
+
+          // create one button per school
+          Array.from(schoolSet).forEach(sch => {
+            const b = document.createElement('button'); b.className = 'alt-btn'; b.textContent = sch; b.dataset.school = sch;
+            b.addEventListener('click', function(){
+              // highlight
+              Array.from(listWrap.querySelectorAll('button')).forEach(bb => bb.classList.remove('active'));
+              b.classList.add('active');
+              try{
+                  const all = window._cmass_report_lastFiltered || [];
+                  const filteredBySchool = all.filter(it => (it.school||'').toString().trim() === sch);
+                renderEntries(filteredBySchool);
+              }catch(e){ console.warn('school filter failed', e); }
+            });
+            listWrap.appendChild(b);
+          });
+          // re-apply previous active selection if any
+          try{
+            if (prevActive){
+              const match = Array.from(listWrap.querySelectorAll('button')).find(x => (x.dataset && x.dataset.school) === prevActive);
+              if (match){ match.classList.add('active');
+                // render entries for that school
+                const all = window._cmass_report_lastFiltered || [];
+                const filteredBySchool = all.filter(it => (it.school||'').toString().trim() === prevActive);
+                renderEntries(filteredBySchool);
+              } else {
+                // no previous active selection, fall back to 전체
+                btnAll.classList.add('active');
+                try{ renderEntries(window._cmass_report_lastFiltered || []); }catch(e){}
+              }
+            } else {
+              // default to 전체 (staff-filtered) and render entries immediately
+              btnAll.classList.add('active');
+              try{ renderEntries(window._cmass_report_lastFiltered || []); }catch(e){}
+            }
+          }catch(e){ btnAll.classList.add('active'); }
+        }catch(e){ console.warn('renderSummary school list error', e); }
+      }
+
+      function renderEntries(filtered){
+        const area = qs('entriesArea'); area.innerHTML = '';
+        if (!filtered || filtered.length === 0) return;
+        // Defensive dedupe before rendering: prefer one entry per server_id or _savedAt
+        const seen = new Set();
+        const unique = [];
+        for (const e of filtered){
+          try{
+            const key = (e && e.server_id) ? ('s:' + String(e.server_id)) : ('l:' + String(e._savedAt || JSON.stringify(e)));
+            if (seen.has(key)) continue;
+            seen.add(key);
+            unique.push(e);
+          }catch(err){ unique.push(e); }
+        }
+        unique.forEach((e, idx)=>{
+          const div = document.createElement('div'); div.className = 'report-entry';
+          // insert upload-selection checkbox (data-local-index should map back to cmass_reports)
+          try{
+            const localArr = loadLocalReports();
+            // attempt to find local index by server_id or by matching key fields
+            let localIndex = localArr.findIndex(it => it && e && it.server_id && e.server_id && String(it.server_id) === String(e.server_id));
+            if (localIndex === -1){
+              localIndex = localArr.findIndex(it => it && e && (it._savedAt && e._savedAt && it._savedAt === e._savedAt));
+            }
+            if (localIndex === -1){
+              localIndex = localArr.findIndex(it => it && e && (String(it.school||'') === String(e.school||'')) && (String(it.visitDate||'') === String(e.visitDate||'')) && (String(it.startHour||'') === String(e.startHour||'')));
+            }
+            const isServer = !!(e && e.server_id);
+            const chk = document.createElement('input'); chk.type = 'checkbox'; chk.className = 'cmass-upload-check';
+            // If this entry already exists on server, indicate it and disable upload checkbox
+            if (isServer){ chk.checked = true; chk.disabled = true; chk.title = '이미 서버에 저장된 항목입니다.'; }
+            else { chk.checked = true; chk.disabled = false; chk.title = '서버에 업로드할 항목 선택'; }
+            chk.setAttribute('data-local-index', String(localIndex === -1 ? -1 : localIndex));
+            chk.style.marginRight = '8px';
+            div.appendChild(chk);
+
+            // If server-saved, show a small icon/badge indicating server origin
+            if (isServer){
+              const badge = document.createElement('span');
+              badge.textContent = '☁️'; // cloud icon
+              badge.title = '서버에 저장됨';
+              badge.style.marginLeft = '6px';
+              badge.style.fontSize = '14px';
+              badge.style.verticalAlign = 'middle';
+              div.appendChild(badge);
+            }
+          }catch(err){ /* tolerate */ }
+          const title = document.createElement('div'); title.className='school-title'; title.textContent = (e.school||'(학교 미정)') + ' · ' + (e.visitDate||'');
+          const meta = document.createElement('div'); meta.className='muted'; meta.textContent = (e.staffLabel || e.staff || '') + ' · ' + (e.region||'');
+          // We'll show a compact summary by default; full title/meta live in the details when expanded
+          title.style.display = 'none';
+          meta.style.display = 'none';
+          div.appendChild(title); div.appendChild(meta);
+
+          // Compact summary visible when collapsed: show school, subjects, teacher, phone
+          const summaryDiv = document.createElement('div'); summaryDiv.className = 'report-entry-summary';
+          const left = document.createElement('div'); left.className = 'meta-left';
+          const subjectsText = Array.isArray(e.subjects) ? (e.subjects.join(', ')) : (e.subjects || '');
+          const parts = [];
+          if (e.school) parts.push(e.school);
+          if (subjectsText) parts.push(subjectsText);
+          if (e.teacherName) parts.push(e.teacherName);
+          // show '우호도' (favor) in the compact collapsed summary instead of 연락처
+          if (e.favor) parts.push(e.favor);
+          left.textContent = parts.join(' · ');
+          const right = document.createElement('div');
+          const toggleBtn = document.createElement('button'); toggleBtn.textContent = '펼치기';
+          toggleBtn.style.minWidth = '72px';
+          right.appendChild(toggleBtn);
+          summaryDiv.appendChild(left); summaryDiv.appendChild(right);
+          div.appendChild(summaryDiv);
+          // Human-friendly Korean labels for fields
+          const FIELD_LABELS = {
+            server_id: '서버 ID',
+            staff: '직원',
+            staffLabel: '직원(표시명)',
+            region: '지역',
+            school: '학교',
+            visitDate: '방문일',
+            startHour: '방문시작시간',
+            startMinute: '방문시작분',
+            duration: '총 방문시간',
+            endTime: '방문종료시간',
+            subjects: '과목',
+            activities: '영업활동',
+            favor: '우호도',
+            teacherName: '선생님 이름',
+            publisher: '출판사',
+            phone: '연락처',
+            email: '이메일',
+            requests: '고객 요청사항',
+            notes: '특이사항',
+            deliveries: '납품사항',
+            followUp: '후속조치',
+            _savedAt: '저장시기'
+          };
+
+          // Preferred order for display
+          const fields = ['server_id','staff','staffLabel','region','school','visitDate','startHour','startMinute','duration','endTime','subjects','activities','favor','teacherName','publisher','phone','email','requests','notes','deliveries','followUp','_savedAt'];
+
+          // Details container (hidden by default)
+          const details = document.createElement('div'); details.className = 'report-entry-details'; details.style.display = 'none';
+
+          fields.forEach(f=>{
+            const v = e[f];
+            // skip undefined/empty (allow 0 value)
+            if ((v === undefined || v === null || v === '') && v !== 0) return;
+            const p = document.createElement('div'); p.style.marginTop='6px';
+
+            // combine startHour and startMinute into a single readable time when available
+            if (f === 'startHour'){
+              const hr = e.startHour || '';
+              const min = e.startMinute || '';
+              const time = hr ? (hr + (min ? (':' + String(min).padStart(2,'0')) : '')) : '';
+              if (!time) return; // nothing to show
+              p.innerHTML = `<strong>${FIELD_LABELS[f]}:</strong> ${time}`;
+              details.appendChild(p);
+              return;
+            }
+
+            // don't repeat startMinute separately if we've already shown it
+            if (f === 'startMinute') return;
+
+            const label = FIELD_LABELS[f] || f;
+            const display = Array.isArray(v) ? (v.length ? v.join(', ') : '') : v;
+            if ((display === '' || display === undefined || display === null) && display !== 0) return;
+            p.innerHTML = `<strong>${label}:</strong> ${display}`;
+            details.appendChild(p);
+          });
+
+          // Wire toggle button to show/hide details and title/meta
+          try{
+            toggleBtn.addEventListener('click', function(ev){
+              ev.preventDefault();
+              const open = (details.style.display !== 'none');
+              if (open){
+                details.style.display = 'none';
+                title.style.display = 'none';
+                meta.style.display = 'none';
+                toggleBtn.textContent = '펼치기';
+              } else {
+                details.style.display = 'block';
+                title.style.display = 'block';
+                meta.style.display = 'block';
+                toggleBtn.textContent = '접기';
+              }
+            });
+            // allow clicking the summary left area to toggle as well
+            summaryDiv.querySelector('.meta-left').addEventListener('click', function(){ toggleBtn.click(); });
+          }catch(e){}
+
+          // Edit button (in details)
+          const btnEdit = document.createElement('button'); btnEdit.textContent='수정'; btnEdit.style.marginTop='8px';
+          btnEdit.addEventListener('click', function(){ try{ if (window.sessionStorage){ sessionStorage.setItem('cmass:edit_entry', JSON.stringify(e)); sessionStorage.setItem('cmass:edit_index', String(idx)); } const staffToken = e && e.staff ? encodeURIComponent(String(e.staff)) : ''; const target = '/meeting.html' + (staffToken ? ('?staff='+staffToken) : ''); window.location.href = target; }catch(ex){} });
+          details.appendChild(btnEdit);
+
+          // Delete button (in details)
+          const btnDel = document.createElement('button'); btnDel.textContent='삭제'; btnDel.style.marginLeft='8px'; btnDel.style.marginTop='8px'; btnDel.style.borderColor='#f0dede'; btnDel.style.color='#c33';
+          btnDel.addEventListener('click', async function(){
+            try{
+              if (!confirm('정말로 이 항목을 삭제하시겠습니까?')) return;
+              // Attempt server delete first (if available), then remove from localStorage
+              try{
+                // ensure anonymous auth before server-side operations
+                try{
+                  if (window.firebaseDb && window.firebase && firebase.auth){
+                    await ensureAnonymousAuth(firebase.auth());
+                  }
+                }catch(authErr){
+                  console.warn('anonymous auth before delete failed', authErr);
+                  alert('삭제를 위해 익명 인증이 필요합니다. Firebase 콘솔에서 익명 인증을 활성화했는지 확인하세요.');
+                  return;
+                }
+
+                if (window.firebaseDb){
+                  // Prefer to delete by server_id to target a single document
+                  if (e.server_id){
+                    try{
+                      await window.firebaseDb.collection('visit_entries').doc(String(e.server_id)).delete();
+                    }catch(err){
+                      console.warn('direct delete by id failed', err);
+                    }
+                    // best-effort: try legacy collection only by id (do NOT run broad queries)
+                    try{ await window.firebaseDb.collection('visits').doc(String(e.server_id)).delete().catch(()=>{}); }catch(_){ }
+                  } else {
+                    // No server_id: attempt to find a single matching doc using visitStart (HH:MM) + staff+date+school
+                    try{
+                      const visitStart = (e.startHour ? (String(e.startHour).padStart(2,'0') + ':' + (e.startMinute ? String(e.startMinute).padStart(2,'0') : '00')) : '');
+                      let q = window.firebaseDb.collection('visit_entries')
+                        .where('staff','==', e.staff || '')
+                        .where('visitDate','==', e.visitDate || '')
+                        .where('school','==', e.school || '');
+                      if (visitStart) q = q.where('visitStart','==', visitStart);
+                      const snap = await q.limit(5).get();
+                      // delete only the first strongly-matching document to avoid mass-deletes
+                      let deletedAny = false;
+                      snap.forEach(d => {
+                        if (deletedAny) return;
+                        try{ window.firebaseDb.collection('visit_entries').doc(d.id).delete().catch(()=>{}); deletedAny = true; }catch(_){ }
+                      });
+                      if (!deletedAny){ console.warn('no matching server doc found for targeted delete (no server_id)'); }
+                    }catch(qerr){ console.warn('targeted query delete failed', qerr); }
+                  }
+                }
+                }catch(serverErr){ console.warn('server delete error', serverErr); alert('서버 삭제 중 오류가 발생했습니다: '+(serverErr && serverErr.message)); }
+
+              // Remove from localStorage (match by server_id first, then fallback to fields). Always do this to keep UI consistent.
+              try{
+                const arr = loadLocalReports();
+                let removed = false;
+                if (e.server_id){
+                  const idxLocal = arr.findIndex(it => String(it.server_id||'') === String(e.server_id));
+                  if (idxLocal !== -1){ arr.splice(idxLocal,1); removed = true; }
+                }
+                if (!removed){
+                  // fallback: try match by school/staff/visitDate and start time
+                  const idxLocal = arr.findIndex(it => (it.school||'')=== (e.school||'') && (it.visitDate||'') === (e.visitDate||'') && (it.staff||'') === (e.staff||'') && ((it.startHour||'') === (e.startHour||'')));
+                  if (idxLocal !== -1){ arr.splice(idxLocal,1); removed = true; }
+                }
+                if (!removed){
+                  // last resort: remove first matching school+date
+                  const idxLocal2 = arr.findIndex(it => (it.school||'')=== (e.school||'') && (it.visitDate||'') === (e.visitDate||''));
+                  if (idxLocal2 !== -1){ arr.splice(idxLocal2,1); removed = true; }
+                }
+                if (removed){ localStorage.setItem('cmass_reports', JSON.stringify(arr)); }
+              }catch(lsErr){ console.warn('local delete failed', lsErr); }
+
+              // re-render (preserve school filter if applied)
+              try{ _reRenderUI(); }catch(re){ /* tolerate */ }
+            }catch(ex){ console.error('delete handler', ex); alert('삭제 중 오류가 발생했습니다. 콘솔을 확인하세요.'); }
+          });
+          // place delete button inside details and attach details to the entry
+          details.appendChild(btnDel);
+          div.appendChild(details);
+          area.appendChild(div);
         });
-      }catch(e){ }
+      }
+
+      function mapServerDocToEntry(doc){
+        try{
+          const start = (doc.visitStart || doc.visitstart || doc.visitstart || '');
+          let startHour = '';
+          let startMinute = '';
+          if (start && String(start).indexOf(':') !== -1){ const parts = String(start).split(':'); startHour = parts[0]; startMinute = parts[1]; }
+          return {
+            server_id: doc.server_id || doc._id || '',
+            staff: doc.staff || '',
+            staffLabel: doc.staffLabel || '',
+            region: doc.region || '',
+            school: doc.school || '',
+            meta: doc.meta || doc.schoolMeta || '',
+            visitDate: doc.visitDate || '',
+            startHour: startHour,
+            startMinute: startMinute,
+            duration: doc.duration || 0,
+            endTime: doc.visitEnd || doc.visitend || '',
+            subjects: Array.isArray(doc.subjects) ? doc.subjects : (doc.subjects ? [doc.subjects] : []),
+            activities: Array.isArray(doc.activities) ? doc.activities : (doc.activities ? [doc.activities] : []),
+            favor: doc.favor || '',
+            teacherName: doc.teacher || doc.teacherName || '',
+            publisher: doc.publisher || '',
+            phone: doc.Phonenumber || doc.phone || '',
+            email: doc.email || '',
+            requests: doc.ask || doc.requests || '',
+            notes: doc.conversation || doc.notes || '',
+            deliveries: doc.delivery || doc.deliveries || '',
+            followUp: doc.followUp || '' ,
+            _savedAt: doc._savedAt || ''
+          };
+        }catch(e){ return {}; }
+      }
+
+        // Map local entry shape back to server payload
+        function mapEntryToServerPayload(e){
+          return {
+            staff: e.staff || '',
+            staffLabel: e.staffLabel || '',
+            region: e.region || '',
+            school: e.school || '',
+            visitDate: e.visitDate || '',
+            visitStart: (e.startHour ? (String(e.startHour).padStart(2,'0') + ':' + (e.startMinute ? String(e.startMinute).padStart(2,'0') : '00')) : ''),
+            duration: (e.duration !== undefined) ? Number(e.duration) : 0,
+            visitEnd: e.endTime || '',
+            subjects: Array.isArray(e.subjects) ? e.subjects : (e.subjects ? [e.subjects] : []),
+            activities: Array.isArray(e.activities) ? e.activities : (e.activities ? [e.activities] : []),
+            favor: e.favor || '',
+            teacher: e.teacherName || e.teacher || '',
+            publisher: e.publisher || '',
+            Phonenumber: e.phone || e.Phonenumber || '',
+            phone: e.phone || e.Phonenumber || '',
+            email: e.email || '',
+            ask: e.requests || e.ask || '',
+            conversation: e.notes || '',
+            delivery: e.deliveries || e.delivery || '',
+            followUp: e.followUp || '',
+            _savedAt: e._savedAt || new Date().toISOString()
+          };
+        }
+
+        // If the meeting page left an edited entry in sessionStorage, apply it (local + server)
+    async function applySessionEditIfPresent(){
+          try{
+            if (!window.sessionStorage) return;
+            const raw = sessionStorage.getItem('cmass:edit_entry');
+            const idxRaw = sessionStorage.getItem('cmass:edit_index');
+            if (!raw) return;
+            const edited = JSON.parse(raw);
+            // update localStorage
+            const arr = loadLocalReports();
+            let idx = -1;
+            if (idxRaw){ idx = Number(idxRaw); }
+            if (idx >=0 && idx < arr.length){ arr[idx] = edited; }
+            else {
+              // try to find by server_id or by matching key fields
+              if (edited.server_id){ idx = arr.findIndex(it=> String(it.server_id||'') === String(edited.server_id)); }
+              if (idx === -1){ idx = arr.findIndex(it=> (it.school||'')=== (edited.school||'') && (it.visitDate||'') === (edited.visitDate||'') && (it.staff||'') === (edited.staff||'')); }
+              if (idx === -1){ arr.push(edited); idx = arr.length-1; }
+              else { arr[idx] = edited; }
+            }
+
+            // Expose the apply function for console/tests
+            try{ window._cmass_applySessionEditIfPresent = applySessionEditIfPresent; }catch(e){}
+
+            // Extracted delete routine so it can be called from console or a test harness
+            async function deleteEntryRoutine(e){
+              try{
+                if (!confirm('정말로 이 항목을 삭제하시겠습니까?')) return { ok:false, reason: 'cancel' };
+                // Attempt server delete first (if available), then remove from localStorage
+                try{
+                  // ensure anonymous auth before server-side operations
+                  try{
+                    if (window.firebaseDb && window.firebase && firebase.auth){
+                      await ensureAnonymousAuth(firebase.auth());
+                    }
+                  }catch(authErr){
+                    console.warn('anonymous auth before delete failed', authErr);
+                    return { ok:false, reason: 'auth' };
+                  }
+
+                  if (window.firebaseDb){
+                    if (e.server_id){
+                      try{ await window.firebaseDb.collection('visit_entries').doc(String(e.server_id)).delete(); }catch(err){ console.warn('direct delete by id failed', err); }
+                      try{ await window.firebaseDb.collection('visits').doc(String(e.server_id)).delete().catch(()=>{}); }catch(_){ }
+                    } else {
+                      try{
+                        const visitStart = (e.startHour ? (String(e.startHour).padStart(2,'0') + ':' + (e.startMinute ? String(e.startMinute).padStart(2,'0') : '00')) : '');
+                        let q = window.firebaseDb.collection('visit_entries')
+                          .where('staff','==', e.staff || '')
+                          .where('visitDate','==', e.visitDate || '')
+                          .where('school','==', e.school || '');
+                        if (visitStart) q = q.where('visitStart','==', visitStart);
+                        const snap = await q.limit(5).get();
+                        let deletedAny = false;
+                        snap.forEach(d => { if (deletedAny) return; try{ window.firebaseDb.collection('visit_entries').doc(d.id).delete().catch(()=>{}); deletedAny = true; }catch(_){ } });
+                        if (!deletedAny){ console.warn('no matching server doc found for targeted delete (no server_id)'); }
+                      }catch(qerr){ console.warn('targeted query delete failed', qerr); }
+                    }
+                  }
+                }catch(serverErr){ console.warn('server delete error', serverErr); alert('서버 삭제 중 오류가 발생했습니다: '+(serverErr && serverErr.message)); }
+
+                // Remove from localStorage
+                try{
+                  const arr = loadLocalReports();
+                  let removed = false;
+                  if (e.server_id){
+                    const idxLocal = arr.findIndex(it => String(it.server_id||'') === String(e.server_id));
+                    if (idxLocal !== -1){ arr.splice(idxLocal,1); removed = true; }
+                  }
+                  if (!removed){
+                    const idxLocal = arr.findIndex(it => (it.school||'')=== (e.school||'') && (it.visitDate||'') === (e.visitDate||'') && (e.staff||'') === (e.staff||'') && ((it.startHour||'') === (e.startHour||'')));
+                    if (idxLocal !== -1){ arr.splice(idxLocal,1); removed = true; }
+                  }
+                  if (!removed){
+                    const idxLocal2 = arr.findIndex(it => (it.school||'')=== (e.school||'') && (it.visitDate||'') === (e.visitDate||''));
+                    if (idxLocal2 !== -1){ arr.splice(idxLocal2,1); removed = true; }
+                  }
+                  if (removed){ localStorage.setItem('cmass_reports', JSON.stringify(arr)); }
+                }catch(lsErr){ console.warn('local delete failed', lsErr); }
+
+                // re-render (preserve school filter if applied)
+                try{ _reRenderUI(); }catch(re){ /* tolerate */ }
+                return { ok:true };
+              }catch(ex){ console.error('delete handler', ex); alert('삭제 중 오류가 발생했습니다. 콘솔을 확인하세요.'); return { ok:false, reason: ex }; }
+            }
+
+            try{ window._cmass_deleteEntry = deleteEntryRoutine; }catch(e){}
+
+            // Small interactive test runner exposed to window
+            async function _cmass_runSyncTest(){
+              try{
+                console.log('[CMASS TEST] 시작');
+                const testEntry = {
+                  server_id: '', staff: staff || '김영업', staffLabel: staff || '김영업', region: '테스트', school: '테스트학교-삭제', visitDate: visitDate || new Date().toISOString().slice(0,10), startHour: '09', startMinute: '05', duration: 30, endTime: '09:35', subjects: ['테스트과목'], activities: ['테스트행동'], favor: '보통', teacherName: '테스트선생', publisher: '', phone: '010-0000-9999', email: '', requests:'', notes:'테스트 노트', deliveries:'', followUp:'', _savedAt: new Date().toISOString()
+                };
+                // save locally
+                const arr = loadLocalReports(); arr.push(testEntry); localStorage.setItem('cmass_reports', JSON.stringify(arr));
+                console.log('[CMASS TEST] 로컬에 테스트 엔트리 추가됨');
+                // attempt server add
+                if (window.firebaseDb){
+                  try{
+                    // ensure auth if possible
+                    if (firebase.auth && !firebase.auth().currentUser){ try{ await firebase.auth().signInAnonymously(); }catch(e){} }
+                    const ref = await window.firebaseDb.collection('visit_entries').add(mapEntryToServerPayload(testEntry));
+                    testEntry.server_id = ref.id;
+                    // write back to local
+                    const arr2 = loadLocalReports(); const idx = arr2.findIndex(it=> it.school === testEntry.school && it.visitDate === testEntry.visitDate && it.staff === testEntry.staff); if (idx!==-1){ arr2[idx].server_id = ref.id; localStorage.setItem('cmass_reports', JSON.stringify(arr2)); }
+                    console.log('[CMASS TEST] 서버에 추가됨 id=', ref.id);
+                  }catch(e){ console.warn('[CMASS TEST] 서버 추가 실패', e); }
+                }
+
+                // simulate edit via sessionStorage
+                testEntry.notes = '테스트 수정: 노트 변경';
+                sessionStorage.setItem('cmass:edit_entry', JSON.stringify(testEntry));
+                sessionStorage.setItem('cmass:edit_index', String(arr.length-1));
+                // apply
+                if (typeof applySessionEditIfPresent === 'function'){ await applySessionEditIfPresent(); console.log('[CMASS TEST] 세션 편집 적용 완료'); }
+                else if (window._cmass_applySessionEditIfPresent){ await window._cmass_applySessionEditIfPresent(); }
+
+                // now delete via routine
+                const delRes = await deleteEntryRoutine(testEntry);
+                console.log('[CMASS TEST] 삭제 결과:', delRes);
+                alert('[CMASS TEST] 완료 - 콘솔을 확인하세요.');
+              }catch(e){ console.error('[CMASS TEST] 예외', e); alert('테스트 중 오류가 발생했습니다. 콘솔을 확인하세요.'); }
+            }
+            try{ window._cmass_runSyncTest = _cmass_runSyncTest; }catch(e){}
+            localStorage.setItem('cmass_reports', JSON.stringify(arr));
+
+            // attempt server sync
+            if (window.firebaseDb){
+              // ensure anonymous auth before attempting to write/update server documents
+              try{
+                if (window.firebase && firebase.auth){
+                  await ensureAnonymousAuth(firebase.auth());
+                }
+              }catch(authErr){ console.warn('anonymous auth before server sync failed', authErr); }
+
+              const payload = mapEntryToServerPayload(edited);
+              try{
+                if (edited.server_id){
+                  // update existing doc
+                  await window.firebaseDb.collection('visit_entries').doc(String(edited.server_id)).set(payload, { merge: true });
+                }else{
+                  const ref = await window.firebaseDb.collection('visit_entries').add(payload);
+                  // write back server_id into local arr and persist
+                  arr[idx].server_id = ref.id;
+                  localStorage.setItem('cmass_reports', JSON.stringify(arr));
+                }
+              }catch(err){ console.warn('server sync for edit failed', err); }
+            }
+
+            // cleanup sessionStorage markers
+            try{ sessionStorage.removeItem('cmass:edit_entry'); sessionStorage.removeItem('cmass:edit_index'); }catch(e){}
+          }catch(e){ console.warn('applySessionEditIfPresent error', e); }
+        }
+
+        // --- Office / End-of-day report helpers ---
+        function _officeStorageKey(){
+          // store map by staff:visitDate
+          const key = (staff || 'UNKNOWN') + ':' + (visitDate || new Date().toISOString().slice(0,10));
+          return key;
+        }
+
+        function loadOfficeData(){
+          try{
+            const raw = localStorage.getItem('cmass_office_reports') || '{}';
+            const map = JSON.parse(raw || '{}');
+            return map[_officeStorageKey()] || {};
+          }catch(e){ return {}; }
+        }
+
+        function saveOfficeData(payload){
+          try{
+            const raw = localStorage.getItem('cmass_office_reports') || '{}';
+            const map = JSON.parse(raw || '{}');
+            map[_officeStorageKey()] = Object.assign({}, map[_officeStorageKey()]||{}, payload, { _savedAt: new Date().toISOString() });
+            localStorage.setItem('cmass_office_reports', JSON.stringify(map));
+            return map[_officeStorageKey()];
+          }catch(e){ console.warn('office save failed', e); return null; }
+        }
+
+        function renderOfficeSection(){
+          try{
+            const data = loadOfficeData();
+            const elHour = qs('officeCheckinHour');
+            const elMin = qs('officeCheckinMinute');
+            const elHours = qs('officeInternalHours');
+            const elMins = qs('officeInternalMinutes');
+            const elEnd = qs('officeEndMinutes');
+            const elSaved = qs('officeSavedAt');
+            if (!elHour || !elMin || !elHours || !elMins || !elEnd || !elSaved) return;
+            // populate new inputs
+            elHour.value = data.checkinHour || '';
+            elMin.value = data.checkinMinute || '';
+            elHours.value = (data.internalHours !== undefined) ? String(data.internalHours) : '';
+            elMins.value = (data.internalMinutes !== undefined) ? String(data.internalMinutes) : '';
+            // default to 30 minutes for end/cleanup time when no saved value exists
+            elEnd.value = (data.endMinutes !== undefined && data.endMinutes !== null && data.endMinutes !== '') ? String(data.endMinutes) : '30';
+            elSaved.textContent = data._savedAt ? ('저장: ' + new Date(data._savedAt).toLocaleString()) : '';
+          }catch(e){ /* tolerate */ }
+        }
+
+        // Helper: determine currently selected school from the school-list UI
+        function _getActiveSchoolSelection(){
+          try{
+            const container = document.getElementById('__report_school_list');
+            if (!container) return '';
+            const btn = container.querySelector('button.active');
+            if (!btn) return '';
+            return btn.dataset ? (btn.dataset.school || '') : '';
+          }catch(e){ return ''; }
+        }
+
+  // Ensure a global stub exists immediately so DevTools can call it
+  // even before the rest of the script has finished executing.
+  try{ window._reRenderUI = window._reRenderUI || function(){ console.warn('reRenderUI: not ready yet'); }; }catch(e){}
+
+  // Re-render summary and entries, preserving any active per-school filter.
+  function _reRenderUI(){
+          try{
+            const entries = loadLocalReports();
+            const metrics = computeMetrics(entries);
+            // update stored lastFiltered for other code
+            window._cmass_report_lastFiltered = (metrics.filtered || []).slice();
+            renderSummary(metrics);
+            const activeSchool = _getActiveSchoolSelection();
+            if (activeSchool){
+              const bySchool = (metrics.filtered || []).filter(it => ((it.school||'').toString().trim() === activeSchool));
+              renderEntries(bySchool);
+            }else{
+              renderEntries(metrics.filtered);
+            }
+          }catch(e){ console.warn('_reRenderUI failed', e); }
+        }
+        try{ window._reRenderUI = _reRenderUI; }catch(e){}
+
+        // wire office buttons
+        function wireOfficeButtons(){
+          try{
+            const btnSave = qs('btnSaveOffice');
+            const btnClear = qs('btnClearOffice');
+            if (btnSave){ btnSave.addEventListener('click', function(){
+              const payload = {
+                checkinHour: qs('officeCheckinHour').value || '',
+                checkinMinute: qs('officeCheckinMinute').value || '',
+                internalHours: qs('officeInternalHours').value ? Number(qs('officeInternalHours').value) : 0,
+                internalMinutes: qs('officeInternalMinutes').value ? Number(qs('officeInternalMinutes').value) : 0,
+                endMinutes: qs('officeEndMinutes').value ? Number(qs('officeEndMinutes').value) : 0
+              };
+              const saved = saveOfficeData(payload);
+              if (saved){ renderOfficeSection(); alert('사무실 기록이 저장되었습니다.'); }
+              else alert('저장에 실패했습니다. 콘솔을 확인하세요.');
+            }); }
+
+            if (btnClear){ btnClear.addEventListener('click', function(){
+              if (!confirm('사무실 기록을 삭제하시겠습니까?')) return;
+              try{
+                const raw = localStorage.getItem('cmass_office_reports') || '{}';
+                const map = JSON.parse(raw || '{}');
+                delete map[_officeStorageKey()];
+                localStorage.setItem('cmass_office_reports', JSON.stringify(map));
+                renderOfficeSection();
+              }catch(e){ console.warn('clear office failed', e); }
+            }); }
+            // Copy summary to clipboard for KakaoTalk paste
+            try{
+              const btnCopy = qs('btnCopyKakao');
+              if (btnCopy){ btnCopy.addEventListener('click', async function(){
+                try{
+                  const text = buildOfficeSummary();
+                  if (!text) { alert('요약할 내용이 없습니다.'); return; }
+                  // copy to clipboard
+                  if (navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(text); alert('요약이 클립보드에 복사되었습니다. 카톡에 붙여넣기하세요.'); }
+                  else {
+                    const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert('요약이 클립보드에 복사되었습니다. 카톡에 붙여넣기하세요.');
+                  }
+                }catch(e){ console.warn('copy kakao failed', e); alert('복사에 실패했습니다. 콘솔을 확인하세요.'); }
+              }); }
+            }catch(e){}
+          }catch(e){ /* tolerate */ }
+        }
+
+      // initial render from localStorage
+      (async function(){
+        try{
+          // If meeting.html left an edited entry in sessionStorage, apply it first so
+          // the report view reflects the most recent changes saved by the editor.
+          try{ if (typeof applySessionEditIfPresent === 'function') await applySessionEditIfPresent().catch(()=>{}); }catch(_){ /* tolerate */ }
+
+          const entries = loadLocalReports();
+          const metrics = computeMetrics(entries);
+          renderSummary(metrics);
+          renderEntries(metrics.filtered);
+          // render office section and wire buttons
+          renderOfficeSection();
+          wireOfficeButtons();
+        }catch(e){ /* tolerate */ }
+
+        // attach realtime listener to Firestore visit_entries once firebase is ready
+        (async function attachRealtime(){
+          try{
+            if (!staff || !visitDate) return; // only attach when both provided
+            await window.waitForFirebase().catch(()=>null);
+            if (!window.firebaseDb) return;
+            try{
+              let q = window.firebaseDb.collection('visit_entries').where('staff','==', staff).where('visitDate','==', visitDate);
+              const unsub = q.onSnapshot((snap)=>{
+                try{
+                  const docs = [];
+                  snap.forEach(d=>{ const data = d.data(); data._id = d.id; docs.push(mapServerDocToEntry(data)); });
+                  // If server returned no docs for this query, prefer localStorage view
+                  // to avoid overwriting user's local entries with an empty server result.
+                  const localAll = loadLocalReports() || [];
+                  const localFiltered = (localAll||[]).filter(it => { try{ return (!visitDate || (String(it.visitDate||'').indexOf(visitDate)===0)) && (!staff || String(it.staff||'')===String(staff)); }catch(e){ return false; } });
+
+                  if ((!docs || docs.length === 0) && (!localFiltered || localFiltered.length === 0)) { return; }
+
+                  // Merge server docs with local entries, prefer server documents when server_id matches.
+                  // However, if a server document is missing some fields (e.g. legacy docs without `staff` token)
+                  // prefer filling those missing fields from the corresponding local entry when available.
+                  const merged = [];
+                  const serverById = {};
+                  // index local entries by server_id (array) for possible enrichment/duplicates
+                  const localById = {};
+                  (localFiltered||[]).forEach(l => {
+                    try{
+                      const sid = String(l.server_id || l.serverId || '');
+                      if (!sid) return;
+                      localById[sid] = localById[sid] || [];
+                      localById[sid].push(l);
+                    }catch(e){}
+                  });
+                  docs.forEach(d => { if (d && d.server_id) serverById[String(d.server_id)] = d; });
+
+                  // Start with server docs but enrich missing fields from local when possible.
+                  // If multiple local entries share the same server_id, preserve them as additional
+                  // entries rather than collapsing them into a single server doc.
+                  docs.forEach(d => {
+                    try{
+                      if (!d) { merged.push(d); return; }
+                      const sid = String(d.server_id || d.serverId || '');
+                      const localList = sid && localById[sid] ? localById[sid].slice() : [];
+                      if (localList && localList.length){
+                        // Use first local item to enrich missing display fields on the server doc
+                        const local = localList.shift();
+                        const enriched = Object.assign({}, d);
+                        if ((!enriched.staff || String(enriched.staff).trim() === '') && local.staff) enriched.staff = local.staff;
+                        if ((!enriched.staffLabel || String(enriched.staffLabel).trim() === '') && local.staffLabel) enriched.staffLabel = local.staffLabel;
+                        if ((!enriched.startHour || enriched.startHour === '') && local.startHour) enriched.startHour = local.startHour;
+                        if ((!enriched.startMinute || enriched.startMinute === '') && local.startMinute) enriched.startMinute = local.startMinute;
+                        if ((!enriched.duration || Number(enriched.duration) === 0) && local.duration) enriched.duration = local.duration;
+                        merged.push(enriched);
+                        // Any remaining local entries that share the same server_id but are distinct
+                        // (for example, multiple sessions recorded locally before server consolidation)
+                        // should be preserved as separate entries so they remain visible to the user.
+                        localList.forEach(extraLocal => {
+                          try{ merged.push(extraLocal); }catch(e){}
+                        });
+                      } else {
+                        merged.push(d);
+                      }
+                    }catch(e){ merged.push(d); }
+                  });
+
+                  // Add local entries that are not represented on server (by server_id or by _savedAt)
+                  localFiltered.forEach(l => {
+                    try{
+                      const sid = l.server_id || l.serverId || '';
+                      // if it has a server id and serverById has been handled above, but there may be
+                      // local entries without server_id or with server_id that wasn't in serverById
+                      if (sid && serverById[String(sid)]) return; // already represented (or already appended above)
+                      // try to detect by _savedAt match to avoid dupes
+                      const exists = merged.find(mdoc => mdoc && mdoc._savedAt && l._savedAt && String(mdoc._savedAt) === String(l._savedAt));
+                      if (!exists) merged.push(l);
+                    }catch(e){}
+                  });
+
+                  const m = computeMetrics(merged || docs || []);
+                  renderSummary(m);
+                  renderEntries(m.filtered);
+                }catch(e){ /* tolerate */ }
+              }, (err)=>{ /* tolerate */ });
+              window._cmass_report_unsub = unsub;
+            }catch(e){ /* tolerate */ }
+          }catch(e){ /* tolerate */ }
+        })();
+      })();
+
+      // Wire buttons
+      qs('btnClearSummary').addEventListener('click', async function(){
+        try{
+          if (!confirm('정말로 해당 방문일의 보고서를 모두 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+          // Remove matching entries from localStorage
+          try{
+            const arr = loadLocalReports();
+            const before = arr.length;
+            const filtered = arr.filter(it => {
+              if (!it) return true;
+              // keep entries that do NOT match the target date (or staff if provided)
+              if (String(it.visitDate||'') !== String(visitDate)) return true;
+              if (staff && String(it.staff||'') !== String(staff)) return true;
+              return false; // remove this entry
+            });
+            if (filtered.length !== before){ localStorage.setItem('cmass_reports', JSON.stringify(filtered)); }
+          }catch(lsErr){ console.warn('local clear failed', lsErr); }
+
+          // Attempt server-side deletion of matching docs (delete all for that visitDate / staff)
+          try{
+            if (window.firebaseDb){
+              // ensure anonymous auth before bulk deletes
+              try{
+                if (window.firebase && firebase.auth){
+                  await ensureAnonymousAuth(firebase.auth());
+                }
+              }catch(authErr){ console.warn('anonymous auth before bulk delete failed', authErr); alert('삭제를 위해 익명 인증이 필요합니다. 콘솔에서 익명 인증을 활성화했는지 확인하세요.'); }
+
+              await window.waitForFirebase().catch(()=>null);
+              let q = window.firebaseDb.collection('visit_entries').where('visitDate','==', visitDate);
+              if (staff) q = q.where('staff','==', staff);
+              const snap = await q.get();
+              const batchDeletes = [];
+              snap.forEach(d => { batchDeletes.push(d.id); });
+              // delete each doc (best-effort)
+              for (const id of batchDeletes){
+                try{ await window.firebaseDb.collection('visit_entries').doc(id).delete(); }catch(e){ console.warn('delete doc failed', id, e); }
+              }
+            }
+          }catch(serverErr){ console.warn('server bulk delete failed', serverErr); alert('서버 삭제 중 오류가 발생했습니다. 콘솔을 확인하세요.'); }
+
+          // Re-render or reload to reflect changes (preserve school filter)
+          try{ _reRenderUI(); }catch(e){}
+        }catch(e){ console.error('clear all handler', e); alert('모두 삭제 중 오류가 발생했습니다. 콘솔을 확인하세요.'); }
+      });
+      qs('backLink').addEventListener('click', function(ev){ ev.preventDefault(); const q = new URLSearchParams(); if (staff) q.set('staff', staff); if (visitDate) q.set('visitDate', visitDate); window.location.href = '/meeting.html' + (q.toString() ? ('?' + q.toString()) : ''); });
+
+      // Test button wiring (best-effort)
+      try{
+        const tbtn = qs('btnRunTest'); if (tbtn){ tbtn.addEventListener('click', function(){ try{ if (window._cmass_runSyncTest) window._cmass_runSyncTest(); else alert('테스트 함수가 준비되지 않았습니다. 콘솔에 함수를 확인하세요.'); }catch(e){ console.error(e); alert('테스트 호출 중 오류'); } }); }
+      }catch(e){}
+    })();
+    </script>
+    <script>
+      // Inline safe uploader: upload checked local entries to Firestore one-by-one and
+      // update localStorage with returned server_id. This is a defensive replacement
+      // for the optional external integration script which may not be present or may
+      // perform aggressive removals. It will never delete unrelated local entries.
+      (function(){
+        function qs(id){ return document.getElementById(id); }
+        async function ensureAnon(){ try{ if (window.firebase && firebase.auth){ if (!firebase.auth().currentUser) await firebase.auth().signInAnonymously(); return firebase.auth().currentUser; } }catch(e){ console.warn('ensureAnon failed', e); } return null; }
+
+        async function uploadSelected(){
+          const statusEl = qs('cmass-save-server-status'); const btn = qs('cmass-save-server-btn');
+          if (btn) btn.disabled = true; if (statusEl) statusEl.textContent = '업로드 중...';
+          try{
+            if (!window.firebaseDb){ console.warn('no firebaseDb available'); if (statusEl) statusEl.textContent = 'Firebase unavailable'; return; }
+            // ensure auth
+            try{ await ensureAnon(); }catch(e){ console.warn('anon auth failed', e); }
+
+            const checks = Array.from(document.querySelectorAll('input.cmass-upload-check')).filter(c => c && !c.disabled && c.checked);
+            if (!checks.length){ if (statusEl) statusEl.textContent = '업로드할 항목을 선택하세요.'; return; }
+
+            for (const chk of checks){
+              try{
+                // re-load fresh local array each iteration to avoid index drift
+                const arr = loadLocalReports();
+                let li = Number(chk.getAttribute('data-local-index'));
+                let entry = null;
+                if (!Number.isNaN(li) && li >=0 && li < arr.length){ entry = arr[li]; }
+                // fallback: try to find by matching key fields if index not valid
+                if (!entry){
+                  // look for best match by server_id, _savedAt, then school+date+start
+                  entry = null;
+                  const sid = chk.dataset && chk.dataset.serverId ? String(chk.dataset.serverId) : '';
+                  if (sid){ entry = arr.find(a=> a && String(a.server_id||'') === sid); }
+                  if (!entry){ entry = arr.find(a=> a && a._savedAt && chk.getAttribute('data-local-index') === '-1' && String(a._savedAt) === String(chk.getAttribute('data-local-index'))); }
+                  if (!entry){
+                    entry = arr.find(a => a && String(a.school||'') === String(chk.dataset && chk.dataset.school || '') && String(a.visitDate||'') === String(visitDate));
+                  }
+                }
+                if (!entry){ console.warn('could not locate local entry for upload checkbox', chk); continue; }
+                // If already on server, skip
+                if (entry.server_id){ console.debug('entry already saved on server, skipping', entry.server_id); continue; }
+
+                // Build payload and add to Firestore
+                const payload = mapEntryToServerPayload(entry);
+                try{
+                  const ref = await window.firebaseDb.collection('visit_entries').add(payload);
+                  if (ref && ref.id){
+                    // ensure server_id present on server doc
+                    try{ await window.firebaseDb.collection('visit_entries').doc(ref.id).update({ server_id: ref.id }); }catch(e){}
+                    // reload array, find matching entry again (match by _savedAt if available)
+                    const arr2 = loadLocalReports();
+                    let idx = arr2.findIndex(a => a && a._savedAt && entry._savedAt && String(a._savedAt) === String(entry._savedAt));
+                    if (idx === -1){
+                      // fallback by school+date+start
+                      idx = arr2.findIndex(a => a && String(a.school||'')===String(entry.school||'') && String(a.visitDate||'')===String(entry.visitDate||'') && String(a.startHour||'')===String(entry.startHour||''));
+                    }
+                    if (idx === -1){
+                      // as last resort, append and set index
+                      arr2.push(Object.assign({}, entry, { server_id: ref.id })); idx = arr2.length-1;
+                    } else {
+                      arr2[idx].server_id = ref.id;
+                    }
+                    // Remove other local entries that have the same server_id to avoid duplicates, but do not remove unrelated entries
+                    for (let k = arr2.length -1; k >=0; k--){ if (k === idx) continue; try{ if (arr2[k] && String(arr2[k].server_id||'') === String(ref.id)){ arr2.splice(k,1); if (k < idx) idx--; } }catch(e){} }
+                    localStorage.setItem('cmass_reports', JSON.stringify(arr2));
+                    if (statusEl) statusEl.textContent = `업로드 완료: ${entry.school || ''}`;
+                  }
+                }catch(e){ console.error('upload add failed', e); if (statusEl) statusEl.textContent = '업로드 실패 - 콘솔 확인'; }
+              }catch(inner){ console.warn('upload loop item error', inner); }
+            }
+            // finished - re-render UI
+            try{ _reRenderUI(); }catch(e){}
+            if (statusEl) statusEl.textContent = '업로드 완료';
+          }catch(err){ console.error('uploadSelected failed', err); if (qs('cmass-save-server-status')) qs('cmass-save-server-status').textContent = '업로드 실패'; }
+          finally{ if (btn) btn.disabled = false; }
+        }
+
+        document.addEventListener('DOMContentLoaded', function(){ try{ const b = qs('cmass-save-server-btn'); if (b){ b.addEventListener('click', function(){ // require PIN flag
+              const pin = (window.sessionStorage && sessionStorage.getItem('cmass_pin_authenticated')) || null; if (!pin){ alert('서버 업로드를 위해서는 PIN 인증이 필요합니다. 시작 페이지에서 인증해 주세요.'); return; } uploadSelected(); }); } }catch(e){ console.warn('uploader wire failed', e); } });
+    })();
+    </script>
+    <script src="/js/report_upload_integration.js"></script>
+  <script>
+    // Ensure local-storage-backed view is re-applied after full reloads or navigation restores
+    (function(){
+      function tryRerender(){
+        try{
+          if (typeof _reRenderUI === 'function'){
+            console.debug('[report] reapply local render');
+            _reRenderUI();
+          }
+        }catch(e){ console.warn('[report] reapply failed', e); }
+      }
+      // pageshow fires on load and when navigating back/forward; use it to reapply local view
+      window.addEventListener('pageshow', function(ev){ try{ setTimeout(tryRerender, 120); }catch(e){} });
+      // also ensure on full load we re-render after other scripts
+      window.addEventListener('load', function(){ try{ setTimeout(tryRerender, 200); }catch(e){} });
     })();
   </script>
-</body>
-</html>
-<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>퇴근보고 - 영업일지</title>
-  <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;margin:18px;color:#072042}
-    header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
-    h1{font-size:20px;margin:0 0 12px}
-    .pill{background:#f3f6ff;padding:8px 12px;border-radius:10px;margin-right:8px}
-    .entry{border-left:4px solid #e6eefc;padding:8px 12px;margin:8px 0;border-radius:6px;background:#fff}
-    .school-title{font-weight:900}
-    .muted{color:#556}
-  </style>
-</head>
-<body>
-  <header>
-    <div id="backWrap"><a href="/meeting.html" id="backLink">◀ 입력으로 돌아가기</a></div>
-    <div style="margin-left:12px"> <strong id="staffName"></strong> - <span id="reportDate"></span></div>
-  </header>
-
-  <main>
-    <div style="display:flex;gap:8px;margin-bottom:10px">
-      <button id="btnCopyReport" type="button" style="padding:8px 12px;border-radius:8px;border:1px solid #d6dbe8;background:#fff">카톡으로복사</button>
-      <button id="btnSaveServerReport" type="button" style="padding:8px 12px;border-radius:8px;border:1px solid #d6dbe8;background:#fff">서버에저장</button>
-      <button id="btnClearSummary" type="button" style="padding:8px 12px;border-radius:8px;border:1px solid #f0dede;background:#fff;color:#c33">SUMMARY 모두지우기</button>
-    </div>
-    <div id="summary"></div>
-    <hr>
-    <div id="grouped"></div>
-  </main>
-
-  <script src="/report.js"></script>
-</body>
-</html>
+  <script>
+// Firestore에서 visit_entries를 불러와서 화면 갱신 (학교 필터 강제 초기화)
+function reloadServerReports() {
+  try {
+    if (!window.firebaseDb) { console.warn('Firebase DB not ready'); return; }
+    window.firebaseDb.collection('visit_entries').get().then(snapshot => {
+      const entries = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        data.server_id = doc.id;
+        entries.push(data);
+      });
+      // 학교 필터를 강제로 초기화
+      if (window._setActiveSchoolSelection) window._setActiveSchoolSelection('');
+      // 기존 _reRenderUI와 동일하게 렌더링
+      const metrics = computeMetrics(entries);
+      window._cmass_report_lastFiltered = (metrics.filtered || []).slice();
+      renderSummary(metrics);
+      renderEntries(metrics.filtered); // 전체 리스트 표시
+    }).catch(e => { console.error('reloadServerReports error', e); });
+  } catch(e) { console.warn('reloadServerReports failed', e); }
+}
+</script>
+<script>
+// 서버에저장 버튼 클릭 후 서버 데이터로 화면 갱신
+(function(){
+  document.addEventListener('DOMContentLoaded', function(){
+    try{
+      const b = document.getElementById('cmass-save-server-btn');
+      if (b){
+        b.addEventListener('click', function(){
+          const pin = (window.sessionStorage && sessionStorage.getItem('cmass_pin_authenticated')) || null;
+          if (!pin){ alert('서버 업로드를 위해서는 PIN 인증이 필요합니다. 시작 페이지에서 인증해 주세요.'); return; }
+          uploadSelected();
+          setTimeout(reloadServerReports, 1200); // 업로드 후 서버 데이터로 갱신
+        });
+      }
+    }catch(e){ console.warn('uploader wire failed', e); }
+  });
+})();
+</script>
+  </body>
+  </html>

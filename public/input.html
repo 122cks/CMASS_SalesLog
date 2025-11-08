@@ -6,6 +6,7 @@
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#1e3c72">
   <title>영업일지 입력</title>
+  <script src="js/silence-console.js"></script>
   <script src="collectFormData.js"></script>
   <script src="js/draft_restore.js" defer></script>
   <script>
@@ -940,16 +941,16 @@
         if (nextBtn) {
           nextBtn.addEventListener('click', function(){
             // Validate Step1 inputs
-            const visitDate = document.getElementById('visitDate')?.value;
+            const visitDateEl = document.getElementById('visitDate');
+            // default to today's date when not provided
+            const todayStr = (new Date()).toISOString().slice(0,10);
+            const visitDate = (visitDateEl && visitDateEl.value) ? visitDateEl.value : todayStr;
             const region = window.selectedRegion || '';
             const school = window.selectedSchool || '';
             // legacy 'user' removed - prefer 'staff'
             const userParam = '';
 
-            if (!visitDate) {
-              alert('방문일을 선택해주세요.');
-              return;
-            }
+            // visitDate is defaulted to today if empty
             if (!region) {
               alert('지역을 선택해주세요.');
               return;
@@ -959,16 +960,61 @@
               return;
             }
 
-            // Navigate to meeting.html with parameters (staff, date, region, school)
-            const staffParam = window._cmass_staffParam || new URLSearchParams(window.location.search).get('staff') || '';
-            const params = new URLSearchParams({
-              staff: staffParam,
-              school: school,
-              region: region,
-              date: visitDate
-            });
-            // Navigate to the explicit HTML file to avoid relying on hosting rewrites
-            window.location.href = '/meeting.html?' + params.toString();
+            // Navigate to meeting but only pass the staff parameter.
+            // If the current page URL already has a staff query param, prefer it unchanged.
+            const qs = new URLSearchParams(window.location.search);
+            // Prefer an explicit staff token if available, otherwise derive from globals.
+            const explicitStaff = qs.get('staff');
+
+            function slugifyStaff(val){
+              try{
+                if(!val) return '';
+                const s = String(val).trim();
+                // If it's already ASCII, normalize to lowercase and strip non-alphanum
+                const ascii = s.normalize ? s.normalize('NFKD') : s;
+                return ascii.toLowerCase().replace(/[^a-z0-9]/g,'');
+              }catch(e){ return ''; }
+            }
+            // source preference: explicit query -> canonical token (window._cmass_staffToken) -> readable param label
+            const staffSource = explicitStaff || window._cmass_staffToken || window._cmass_staffParam || '';
+            // Canonicalize common romanization variants to the project's tokens used in meeting.html
+            function canonicalizeStaffToken(raw){
+              const s = slugifyStaff(raw);
+              if (!s) return '';
+              const aliasMap = {
+                // common variants -> canonical token
+                'limjunho': 'imjunho', // L vs I romanization
+                'imjunho': 'imjunho',
+                'choyounghwan': 'joyounghwan',
+                'choyounghwan': 'joyounghwan',
+                'joyounghwan': 'joyounghwan',
+                'songhoonjae': 'songhoonjae',
+                'songhunje': 'songhoonjae'
+              };
+              return aliasMap[s] || s;
+            }
+            const staffToken = canonicalizeStaffToken(staffSource);
+            const staffLabel = window._cmass_staffParam || explicitStaff || '';
+            // persist these briefly so meeting page can pick them up even if query is empty
+            try{
+                if (window.sessionStorage) {
+                if (staffToken) sessionStorage.setItem('cmass:next_staff_token', staffToken);
+                if (staffLabel) sessionStorage.setItem('cmass:next_staff_label', staffLabel);
+                if (visitDate) sessionStorage.setItem('cmass:next_visitDate', visitDate);
+                if (region) sessionStorage.setItem('cmass:next_region', region);
+                // Persist the selected school so meeting.html can prefill it
+                try{ if (school) sessionStorage.setItem('cmass:next_school', school); }catch(e){}
+                // 미팅내용 관련 값 초기화 (but keep next_school)
+                sessionStorage.removeItem('cmass:edit_entry');
+                sessionStorage.removeItem('cmass:edit_index');
+                sessionStorage.removeItem('cmass:next_subjects');
+                sessionStorage.removeItem('cmass:next_activities');
+              }
+            }catch(e){}
+            const params = new URLSearchParams();
+            if (staffToken) params.set('staff', staffToken);
+            // Navigate to the hosted rewrite path '/meeting' (only staff param)
+            window.location.href = '/meeting' + (params.toString() ? ('?' + params.toString()) : '');
           });
         }
 
