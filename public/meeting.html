@@ -1446,9 +1446,8 @@
             }
             return;
           }
+          // favor buttons handled by dedicated handler to avoid conflicts
           if (isFavor(btn)){
-            ev.preventDefault();
-            selectFavor(btn);
             return;
           }
         }catch(e){}
@@ -2393,6 +2392,26 @@
               }catch(e){}
             }, true);
           }
+          // Dedicated handler for favor buttons (single-select within #favorBtns)
+          try{
+            const favorRoot = qs('favorBtns');
+            if (favorRoot){
+              favorRoot.addEventListener('click', function(ev){
+                try{
+                  const btn = ev.target && ev.target.closest ? ev.target.closest('button.favor-btn') : null;
+                  if (!btn) return;
+                  // if pointerdown already processed this interaction, skip here
+                  if (btn.__cmass_ptr_handled){ try{ btn.__cmass_ptr_handled = false; }catch(e){} return; }
+                  ev.preventDefault(); ev.stopPropagation();
+                  // clear others and toggle clicked one
+                  const others = Array.from(favorRoot.querySelectorAll('button.favor-btn'));
+                  others.forEach(b=>{ if (b !== btn){ b.classList.remove('active'); b.setAttribute('aria-pressed','false'); } });
+                  if (btn.classList.contains('active')){ btn.classList.remove('active'); btn.setAttribute('aria-pressed','false'); }
+                  else { btn.classList.add('active'); btn.setAttribute('aria-pressed','true'); }
+                }catch(e){}
+              }, true);
+            }
+          }catch(e){}
         }catch(e){}
       }, { once:true });
     })();
