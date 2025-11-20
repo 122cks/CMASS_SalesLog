@@ -1043,6 +1043,7 @@
                   const parent = btn.parentElement || document;
                   Array.from(parent.querySelectorAll('.favor-btn')).forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
                   btn.classList.add('active'); btn.setAttribute('aria-pressed','true');
+                  try{ btn.__cmass_ptr_handled = true; setTimeout(()=>{ try{ btn.__cmass_ptr_handled = false; }catch(e){} }, 50); }catch(e){}
                   return;
                 }
 
@@ -1430,6 +1431,9 @@
       function onClick(ev){
         try{
           const btn = closestButton(ev.target);
+          // If a capture-phase pointer handler already processed this button interaction,
+          // ignore the delegated click to avoid double-toggle behaviour.
+          if (btn && btn.__cmass_ptr_handled){ try{ btn.__cmass_ptr_handled = false; }catch(e){} return; }
           if (!btn) return;
           if (isSubject(btn)){
             ev.preventDefault();
