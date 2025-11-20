@@ -1419,8 +1419,11 @@
           const parent = btn.parentElement || document;
           const others = parent.querySelectorAll && parent.querySelectorAll('.favor-btn') || [];
           const already = btn.classList.contains('active');
-          others.forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
-          if (!already){ btn.classList.add('active'); btn.setAttribute('aria-pressed','true'); }
+          // Remove active only from OTHER buttons; preserve clicked button's state until we decide toggle
+          Array.from(others).forEach(b=>{ if (b !== btn){ b.classList.remove('active'); b.setAttribute('aria-pressed','false'); } });
+          // Toggle clicked button: if it was active, deactivate it; otherwise activate it
+          if (already){ btn.classList.remove('active'); btn.setAttribute('aria-pressed','false'); }
+          else { btn.classList.add('active'); btn.setAttribute('aria-pressed','true'); }
         }catch(e){}
       }
 
