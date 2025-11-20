@@ -31,6 +31,22 @@
     .dur-btn.active{background:#1e3c72;color:#fff;border-color:#123}
     /* favor buttons (우호도) - match subject button visuals */
     .favor-btn{padding:8px 12px;border-radius:10px;border:1px solid #d6dbe8;background:#fff;cursor:pointer}
+    /* Fixed color variants for specific subject buttons (explicit assignments) */
+    .subject-btn.subject-lib{ background: linear-gradient(180deg,#fff9f1,#fff3e6); border-color:#ffd9b3; color:#5a2b00 }
+    .subject-btn.subject-lib:hover{ background: linear-gradient(180deg,#fff2e0,#fff0d4); }
+    .subject-btn.subject-lib.active{ background: linear-gradient(135deg,#ffb366,#ff8a33); color:#fff; border-color:#cc6b2a }
+
+    .subject-btn.subject-grade{ background: linear-gradient(180deg,#f2f9ff,#e8f6ff); border-color:#cfeefe; color:#073c57 }
+    .subject-btn.subject-grade:hover{ background: linear-gradient(180deg,#e6f4ff,#dff2ff); }
+    .subject-btn.subject-grade.active{ background: linear-gradient(135deg,#5cc1ff,#2e95e6); color:#fff; border-color:#2e95e6 }
+
+    .subject-btn.subject-special{ background: linear-gradient(180deg,#f7fff4,#e9ffe8); border-color:#cdf3ce; color:#0b4d19 }
+    .subject-btn.subject-special:hover{ background: linear-gradient(180deg,#e9ffeb,#e0ffe2); }
+    .subject-btn.subject-special.active{ background: linear-gradient(135deg,#7be08a,#3ec058); color:#fff; border-color:#2fa044 }
+
+    .subject-btn.subject-other{ background: linear-gradient(180deg,#f6f5ff,#efeaff); border-color:#ddd5ff; color:#2e1a66 }
+    .subject-btn.subject-other:hover{ background: linear-gradient(180deg,#efeaff,#e6e0ff); }
+    .subject-btn.subject-other.active{ background: linear-gradient(135deg,#a88cff,#7a59ff); color:#fff; border-color:#6940e6 }
    /* Ensure button grids and time selectors sit above transient overlays and accept pointer events.
      Bump z-index and explicitly enable pointer-events for duration buttons and selects so they
      remain interactive even if a transient element overlays the page. If another element still
@@ -112,28 +128,9 @@
     }
   </style>
   <script>
-    // Apply random pastel colors to elements with class `subject-random`.
-    (function(){
-      function randH(){ return Math.floor(Math.random()*360); }
-      function applyRandomToButton(btn){
-        try{
-          const h = randH();
-          const bg1 = `hsl(${h}, 85%, 94%)`;
-          const bg2 = `hsl(${h}, 75%, 88%)`;
-          const border = `hsl(${h}, 65%, 74%)`;
-          btn.style.background = `linear-gradient(180deg, ${bg1}, ${bg2})`;
-          btn.style.borderColor = border;
-          btn.style.color = '#072042';
-          btn.style.transition = 'filter 120ms ease, transform 120ms ease';
-          btn.addEventListener('mouseenter', ()=>{ btn.style.filter = 'brightness(0.96)'; btn.style.transform='translateY(-1px)'; });
-          btn.addEventListener('mouseleave', ()=>{ btn.style.filter = ''; btn.style.transform=''; });
-        }catch(e){ /* tolerate */ }
-      }
-      try{
-        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ Array.from(document.querySelectorAll('button.subject-random')).forEach(applyRandomToButton); }, { once:true });
-        else Array.from(document.querySelectorAll('button.subject-random')).forEach(applyRandomToButton);
-      }catch(e){ /* tolerate */ }
-    })();
+    // Fixed-color classes are applied via CSS above for specific buttons.
+    // The previous dynamic random-color JS has been removed to provide
+    // deterministic, accessible styling for the four designated buttons.
     // Gather form helpers and save/report wiring
       document.addEventListener('DOMContentLoaded', () => {
     // input.html에서 선택한 지역/학교를 sessionStorage에서 읽어 select에 반영
@@ -601,10 +598,10 @@
           <button type="button" class="subject-btn">보건</button>
           <button type="button" class="subject-btn">미술</button>
           <button type="button" class="subject-btn">체육</button>
-          <button type="button" class="subject-btn subject-random">도서관사서</button>
-          <button type="button" class="subject-btn subject-random">학년부장</button>
-          <button type="button" class="subject-btn subject-random">특성화</button>
-          <button type="button" class="subject-btn subject-random">기타</button>
+          <button type="button" class="subject-btn subject-lib">도서관사서</button>
+          <button type="button" class="subject-btn subject-grade">학년부장</button>
+          <button type="button" class="subject-btn subject-special">특성화</button>
+          <button type="button" class="subject-btn subject-other">기타</button>
         </div>
 
         <label style="margin-top:8px">영업활동 (버튼형)</label>
@@ -1034,11 +1031,13 @@
             btn.style.pointerEvents = btn.style.pointerEvents || 'auto';
             // avoid duplicate installation
             if (btn.__cmass_ptr_installed) return; btn.__cmass_ptr_installed = true;
+
+            // pointer handler: primary button only
             btn.addEventListener('pointerdown', function(ev){
               try{
-                // only handle primary button
                 if (ev.button !== 0) return;
                 ev.preventDefault(); ev.stopPropagation();
+
                 // favor buttons: single-select within parent
                 if (btn.classList.contains('favor-btn')){
                   const parent = btn.parentElement || document;
@@ -1046,30 +1045,44 @@
                   btn.classList.add('active'); btn.setAttribute('aria-pressed','true');
                   return;
                 }
-                // subject main list: single-select
+
+                // subjects: toggle multi-select (allow selecting multiple subjects)
                 const subj = btn.closest && btn.closest('#subjects');
                 if (subj){
-                  Array.from(subj.querySelectorAll('.subject-btn')).forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
-                  btn.classList.add('active'); btn.setAttribute('aria-pressed','true');
+                  const now = btn.classList.toggle('active');
+                  btn.setAttribute('aria-pressed', String(!!now));
                   return;
                 }
+
                 // activities list: toggle multi-select
                 const act = btn.closest && btn.closest('#activities');
                 if (act){
                   const now = btn.classList.toggle('active'); btn.setAttribute('aria-pressed', String(!!now));
                   return;
                 }
+
                 // duration buttons: single-select in durationBtns
                 const durParent = btn.closest && btn.closest('#durationBtns');
                 if (durParent){
-                  Array.from(durParent.querySelectorAll('.dur-btn')).forEach(b=>b.classList.remove('active'));
-                  btn.classList.add('active');
+                  Array.from(durParent.querySelectorAll('.dur-btn')).forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
+                  btn.classList.add('active'); btn.setAttribute('aria-pressed','true');
                   const hidden = document.getElementById('duration'); if (hidden) { hidden.value = btn.getAttribute('data-min') || ''; hidden.dispatchEvent(new Event('change',{bubbles:true})); }
+                  try{ if (typeof window._cmass_computeEndTime === 'function') window._cmass_computeEndTime(); }catch(e){}
                   return;
                 }
+
                 // fallback for any other subject-like buttons
                 if (btn.classList.contains('subject-btn')){ const now = btn.classList.toggle('active'); btn.setAttribute('aria-pressed', String(!!now)); }
               }catch(e){ /* tolerate */ }
+            }, true);
+
+            // keyboard activation for accessibility (Space / Enter)
+            btn.addEventListener('keydown', function(ev){
+              try{
+                if (ev.key === ' ' || ev.key === 'Enter'){
+                  ev.preventDefault(); btn.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true, cancelable:true }));
+                }
+              }catch(e){}
             }, true);
           });
         });
