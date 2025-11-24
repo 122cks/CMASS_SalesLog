@@ -2392,6 +2392,8 @@
               try{
                 const btn = ev.target && ev.target.closest ? ev.target.closest('button.subject-btn') : null;
                 if (!btn) return;
+                // If pointerdown already toggled this button, skip click to avoid double-toggle
+                if (btn.__cmass_ptr_handled){ try{ btn.__cmass_ptr_handled = false; }catch(e){} return; }
                 ev.preventDefault(); ev.stopPropagation();
                 toggleActivity(btn);
               }catch(e){}
