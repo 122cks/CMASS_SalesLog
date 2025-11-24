@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CMASS - 시작</title>
+  <!-- Version: 2025-11-01-v2 Clean URLs -->
+  <style>
+    :root{ --bg:#f5f6fa; --card-bg:#fff; --muted:#556; --brand-1:#12325a; --brand-2:#1e3c72; --accent:#6b8bff }
+    body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:#071a2e;margin:0;padding:20px 16px}
+    .container{max-width:1100px;margin:0 auto}
+    h1{text-align:center;color:var(--brand-1);margin:6px 0 14px 0;font-size:28px}
+    .hero{background:var(--card-bg);border-radius:14px;padding:18px 20px;box-shadow:0 12px 40px rgba(10,20,60,0.06);margin-bottom:14px}
+    .btn-row{display:flex;gap:12px;align-items:center;justify-content:center;margin:14px 0}
+    .big-btn{padding:12px 18px;border-radius:12px;border:none;background:linear-gradient(90deg,var(--brand-1),var(--brand-2));color:#fff;font-weight:800;font-size:15px;cursor:pointer}
+    .alt-btn{padding:10px 14px;border-radius:12px;border:1px solid #e1e7f6;background:var(--card-bg);color:var(--brand-1);font-weight:800;cursor:pointer}
+    .card{background:var(--card-bg);border-radius:12px;padding:14px;margin-top:12px;box-shadow:0 10px 30px rgba(10,20,60,0.04)}
+    /* stats grid: responsive auto-fit */
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:12px}
+    .stat{background:#f7fbff;border-radius:10px;padding:12px;border:1px solid #e6eefc;display:flex;flex-direction:column;justify-content:center}
+    .stat div { line-height:1 }
+    .stat .small{margin-top:6px;color:var(--muted);font-size:13px}
+  table{width:100%;border-collapse:collapse;margin-top:8px;background:transparent}
+  th,td{padding:.5rem .6rem;border:1px solid #eef2ff;text-align:left;font-size:13px}
+  /* notes table: fixed layout, wrap long text and sticky header for better UX */
+  .notes-table{table-layout:fixed;width:100%;border-collapse:collapse}
+  .notes-table th{position:sticky;top:0;background:var(--card-bg);z-index:3}
+  /* make the table denser: smaller padding and font-size for compactness */
+  .notes-table th, .notes-table td{padding:.28rem .4rem;border:1px solid #eef2ff;text-align:left;font-size:12px;vertical-align:top}
+  /* allow long notes to wrap and preserve line breaks; make notes column the most flexible */
+  .notes-table td{word-break:break-word;white-space:normal}
+  /* column width suggestions:
+    1) 방문일 - short
+    2) 방문시간 - short
+    3) 선생님명 - medium-short
+    4) 과목명 - short
+    5) 영업활동 - slightly wider
+    6) 특이사항 - flexible / remaining space (wide)
+  */
+  /* Make first columns compact and give more room to activity/note columns */
+  .notes-table th:nth-child(1), .notes-table td:nth-child(1){width:70px}   /* 방문일 */
+  .notes-table th:nth-child(2), .notes-table td:nth-child(2){width:140px}  /* 학교 */
+  .notes-table th:nth-child(3), .notes-table td:nth-child(3){width:70px}   /* 방문시간 */
+  .notes-table th:nth-child(4), .notes-table td:nth-child(4){width:90px}   /* 선생님명 */
+  .notes-table th:nth-child(5), .notes-table td:nth-child(5){width:90px}   /* 과목명 */
+  .notes-table th:nth-child(6), .notes-table td:nth-child(6){width:220px}  /* 영업활동 - wider */
+  .notes-table th:nth-child(7), .notes-table td:nth-child(7){width:auto}    /* 특이사항 - flexible */
+    .small{font-size:13px;color:var(--muted)}
+  /* charts responsive height */
+  canvas{width:100% !important; height:220px !important}
+    /* card sections */
+    #dashboardArea > div { margin-top:8px }
+    /* top teachers list styling */
+    #topTeachers div{padding:6px 8px;border-bottom:1px solid #f1f5ff;font-size:14px}
+    /* follow-up badges grid */
+    #followUpSummary div{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+
+    /* mobile tweaks */
+    @media (max-width:720px){
+      body{padding:12px}
+      h1{font-size:20px}
+      .hero{padding:12px}
+      .big-btn{padding:10px 12px;font-size:14px}
+      canvas{height:180px !important}
+      .card{padding:12px}
+    }
+
+    /* Mobile-specific dashboard tweaks: compact buttons, horizontal scroll for button bars,
+       denser table cells, and responsive chart sizes for small screens */
+    @media (max-width:720px){
+      /* make school/subject button rows scrollable horizontally */
+      #schoolButtons, #subjectButtons { overflow-x:auto; -webkit-overflow-scrolling:touch; gap:8px; flex-wrap:nowrap; white-space:nowrap; padding-bottom:6px }
+      #schoolButtons .alt-btn, #subjectButtons .alt-btn { padding:6px 8px; font-size:13px; white-space:nowrap; border-radius:8px }
+
+      /* reduce stats card density */
+      .stat { padding:10px 8px }
+
+      /* table tweaks: denser and mobile-friendly */
+      .notes-table th, .notes-table td { font-size:11px; padding:.25rem .35rem }
+      .notes-table th { position:sticky; top:0; z-index:4; background:var(--card-bg) }
+      #schoolVisitsTableContainer { max-height:320px }
+
+      /* charts: give more vertical room on mobile but keep them compact */
+      #subjectsChart, #actionsPieChart { height:90px !important }
+    /* make action and monthly charts larger for readability */
+    #actionsChart { height:200px !important }
+    #monthlyChart { height:240px !important }
+
+      /* reduce margins for compactness */
+      .hero, .card { padding:10px }
+    }
+
+    /* additional mobile tweaks for visit tables: avoid extreme wrapping by
+       making the table horizontally scrollable when needed. Use a fixed
+       table-layout with a reasonable min-width so columns keep their shape. */
+    @media (max-width:720px){
+      /* container is the scroll viewport for sticky header to work */
+      #schoolVisitsTableContainer { overflow:auto; -webkit-overflow-scrolling:touch; padding:4px }
+      /* give the table a min-width so columns don't collapse into a thin vertical strip */
+      .notes-table { table-layout:fixed !important; min-width:720px; width:100% }
+      .notes-table th, .notes-table td { padding:.2rem .35rem; font-size:11px }
+      .notes-table td { white-space:normal; word-break:break-word }
+      /* reduce header height impact */
+      .notes-table thead th { font-size:12px }
+      /* keep last column flexible for long notes */
+  .notes-table th:nth-child(1), .notes-table td:nth-child(1){width:80px}
+  .notes-table th:nth-child(2), .notes-table td:nth-child(2){width:140px}
+  .notes-table th:nth-child(3), .notes-table td:nth-child(3){width:70px}
+  .notes-table th:nth-child(4), .notes-table td:nth-child(4){width:100px}
+  .notes-table th:nth-child(5), .notes-table td:nth-child(5){width:80px}
+  .notes-table th:nth-child(6), .notes-table td:nth-child(6){width:120px}
+  .notes-table th:nth-child(7), .notes-table td:nth-child(7){width:auto}
+    }
+    /* personal map styling */
+    #personalMap{width:100%;height:420px;border-radius:8px;border:1px solid #eef2ff;margin-top:8px}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <!-- Leaflet map for per-user geocode distribution -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="" crossorigin="" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+</head>
+<body>
+  <script>
+    // One-time automatic service-worker & cache cleanup to ensure clients load the
+    // newest JS/CSS. This runs only once per-browser (flagged in localStorage)
+    // and reloads the page with `sw_cleared=1` to avoid loops.
+    (function(){
+      try{
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('sw_cleared') === '1') { try{ localStorage.setItem('_cmass_sw_cleared','1'); }catch(e){} return; }
+        if (localStorage.getItem('_cmass_sw_cleared') === '1') return;
+        (async function(){
+          try{
+            if ('serviceWorker' in navigator){
+              try{ const regs = await navigator.serviceWorker.getRegistrations().catch(()=>[]); await Promise.all((regs||[]).map(r=>r.unregister().catch(()=>{}))); }catch(e){}
+            }
+            if (window.caches && caches.keys){
+              try{ const keys = await caches.keys().catch(()=>[]); await Promise.all((keys||[]).map(k=>caches.delete(k).catch(()=>{}))); }catch(e){}
+            }
+          }catch(e){ console.warn('sw cleanup inner failed', e); }
+          try{ localStorage.setItem('_cmass_sw_cleared','1'); }catch(e){}
+          try{
+            const u = new URL(window.location.href);
+            u.searchParams.set('sw_cleared','1');
+            window.location.replace(u.toString());
+          }catch(e){ try{ window.location.reload(true); }catch(_){} }
+        })();
+      }catch(e){ console.warn('sw cleanup failed', e); }
+    })();
+  </script>
+  <div class="container">
+    <h1>CMASS 영업일지</h1>
+    <div class="hero">
+      <div style="text-align:center">
+        <div class="btn-row">
+          <button id="goInput" class="big-btn" onclick="try{ if(typeof front_goInput==='function'){ front_goInput(); } else { alert('입력 페이지 이동이 비활성화되어 있습니다.'); } }catch(e){}">영업일지 입력</button>
+          <button id="btnForceRefresh" class="alt-btn" title="서비스워커 강제 업데이트 / 페이지 새로고침" onclick="try{ if(typeof front_forceRefresh==='function'){ front_forceRefresh(); } else if(typeof forceServiceWorkerUpdate==='function'){ forceServiceWorkerUpdate(); } else { alert('새로고침 기능을 사용할 수 없습니다.'); } }catch(e){}">새로고침(최신)</button>
+            <button id="clearLocalDraftFrontBtn" class="alt-btn" title="로컬 임시본 삭제 및 최신 로드" style="background:#ff7043;color:#fff;border:1px solid #e05252;margin-left:6px" onclick="try{ if(typeof front_clearLocal==='function'){ front_clearLocal(); } else if(typeof clearCmassLocalDataAndGo==='function'){ clearCmassLocalDataAndGo(); } else { alert('임시본 삭제 기능을 사용할 수 없습니다.'); } }catch(e){}">로컬 임시본 삭제 (강력)</button>
+        </div>
+        <script>
+          // Lightweight, always-available wrappers used by inline onclick attributes.
+          function front_goInput(){
+            try{
+              console.log('front_goInput called');
+              // Preserve existing query string (user token / staff selection)
+              const qs = window.location.search || '';
+              const origin = (location && location.origin) ? location.origin : (location.protocol + '//' + location.host);
+              const target = origin + '/input' + qs;
+              try{ console.log('front_goInput -> navigating to', target); }catch(e){}
+
+              // Try multiple navigation strategies for webviews and browsers
+              try{ window.location.assign(target); }catch(e){}
+              try{ window.location.href = target; }catch(e){}
+              try{
+                let a = document.getElementById('__goInputAnchor');
+                if (!a){ a = document.createElement('a'); a.id='__goInputAnchor'; a.style.display='none'; document.body.appendChild(a); }
+                a.href = target; a.target = '_self'; a.click();
+              }catch(e){}
+              try{ window.open(target, '_self'); }catch(e){}
+
+              // If navigation is swallowed by a webview, show a visible fallback link
+              try{
+                setTimeout(()=>{
+                  const msgId = '__goInputFallbackMsg';
+                  if (!document.getElementById(msgId)){
+                    const div = document.createElement('div'); div.id = msgId; div.style.marginTop='8px'; div.style.textAlign='center';
+                    div.innerHTML = '자동 이동이 되지 않았습니다. <a href="'+ target +'" onclick="return true;">여기</a>를 누르면 이동합니다.';
+                    const hero = document.querySelector('.hero') || document.body;
+                    hero.parentNode.insertBefore(div, hero.nextSibling);
+                  }
+                }, 300);
+              }catch(e){}
+            }catch(e){ console.warn('front_goInput failed', e); }
+          }
+          function front_forceRefresh(){ try{ console.log('front_forceRefresh called'); if (typeof forceServiceWorkerUpdate === 'function'){ forceServiceWorkerUpdate(); } else { alert('새로고침 기능을 사용할 수 없습니다.'); } }catch(e){ console.warn(e); } }
+          function front_clearLocal(){ try{ console.log('front_clearLocal called'); if (typeof clearCmassLocalDataAndGo === 'function'){ clearCmassLocalDataAndGo(); } else { alert('임시본 삭제 기능을 사용할 수 없습니다.'); } }catch(e){ console.warn(e); } }
+
+          // Ensure buttons are interactable and add lightweight diagnostics in case clicks are swallowed
+          (function ensureButtonsClickable(){
+            try{
+              const sel = '.big-btn, .alt-btn, button';
+              const btns = Array.from(document.querySelectorAll(sel));
+              btns.forEach(b=>{ try{ b.style.pointerEvents = 'auto'; b.style.touchAction = 'auto'; if (!b.hasAttribute('tabindex')) b.setAttribute('tabindex','0'); }catch(e){} });
+              document.addEventListener('click', function(ev){ try{ const t = ev.target && (ev.target.id || ev.target.className || ev.target.tagName) || 'unknown'; console.debug('document click:', t); }catch(e){} }, true);
+            }catch(e){ console.warn('ensureButtonsClickable failed', e); }
+          })();
+        </script>
+
+        <!-- map moved into the visit-summary section (rendered below) -->
+        <div id="staffLabel" class="small" style="margin-top:6px;font-weight:800"></div>
+        <div class="small" id="heroNote">아래는 본인의 저장된 방문기록 요약입니다.</div>
+      </div>
+    </div>
+
+    <div id="personalCard" class="card">
+      <h3>내 방문 기록 요약</h3>
+      <div id="noAuth" class="small" style="display:none;color:#a33;margin-bottom:.6rem;">사용자 정보가 URL에 없습니다. 예: <code>?user=LimJunho</code></div>
+  <div id="loading" class="small">데이터를 불러오는 중...</div>
+  <div id="loadingSpinner" style="display:none;margin-top:6px" class="small">🔄 처리중...</div>
+      <div id="dashboardArea" style="display:none">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <label class="small" style="font-weight:700">기간:</label>
+            <input type="date" id="filterStart" style="padding:.4rem;border-radius:.5rem;border:1px solid #e6eefc">
+            <span class="small">~</span>
+            <input type="date" id="filterEnd" style="padding:.4rem;border-radius:.5rem;border:1px solid #e6eefc">
+            <!-- Quick range buttons -->
+            <div id="quickRanges" style="display:flex;gap:6px;align-items:center;margin-left:8px;flex-wrap:wrap">
+              <button id="btnYesterday" class="alt-btn" title="어제">어제</button>
+              <button id="btnToday" class="alt-btn" title="오늘">오늘</button>
+              <button id="btnLastWeek" class="alt-btn" title="지난주 (월~일)">지난주</button>
+              <button id="btnThisWeek" class="alt-btn" title="이번주 (월~일)">이번주</button>
+              <button id="btnLastMonth" class="alt-btn" title="지난달 (1일~말일)">지난달</button>
+              <button id="btnThisMonth" class="alt-btn" title="이번달 (1일~말일)">이번달</button>
+            </div>
+            <button id="filterApply" class="alt-btn">적용</button>
+            <button id="filterClear" class="alt-btn">초기화</button>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <label class="small" style="font-weight:700">과목 필터:</label>
+            <select id="subjectFilter" style="padding:.4rem;border-radius:.5rem;border:1px solid #e6eefc;background:#fff">
+              <option value="">전체</option>
+            </select>
+            <button id="loadMoreBtn" class="alt-btn" style="margin-left:8px;display:none">더 불러오기</button>
+            <button id="exportCsvBtn" class="alt-btn" style="margin-left:6px;display:none">CSV 내보내기</button>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="totalVisits">-</div><div class="small">총 저장 미팅 수</div></div>
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="uniqueSchools">-</div><div class="small">방문한 학교 수</div></div>
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="totalTime">-</div><div class="small">학교에 있었던 총 방문 시간(분)</div></div>
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="avgDuration">-</div><div class="small">평균 방문 시간(분) (학교당)</div></div>
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="contactsCount">-</div><div class="small">수집된 연락처</div></div>
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="followUpsCount">-</div><div class="small">후속 조치 항목 수</div></div>
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="recentDate">-</div><div class="small">최근 방문일</div></div>
+        </div>
+        <!-- Conditional filter panel: allow ad-hoc querying of visit_entries -->
+        <div class="card" style="margin-top:8px;padding:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <label class="small" style="font-weight:700;margin-right:6px">조건 필터:</label>
+          <input id="filterStaffInput" placeholder="staff or user token (예: songhoonjae or Songhoonjae)" style="padding:.4rem;border:1px solid #e6eefc;border-radius:6px;min-width:220px" />
+          <input id="filterSchoolInput" placeholder="학교명 (예: 고양고등학교)" style="padding:.4rem;border:1px solid #e6eefc;border-radius:6px;min-width:180px" />
+          <input id="filterRegionInput" placeholder="지역 (예: 경기도고양시덕양구)" style="padding:.4rem;border:1px solid #e6eefc;border-radius:6px;min-width:180px" />
+          <input id="filterStartDate" type="date" style="padding:.4rem;border:1px solid #e6eefc;border-radius:6px" />
+          <input id="filterEndDate" type="date" style="padding:.4rem;border:1px solid #e6eefc;border-radius:6px" />
+          <button id="applyCondFilterBtn" class="alt-btn">적용</button>
+          <button id="clearCondFilterBtn" class="alt-btn">초기화</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="width:100%">
+            <div style="font-weight:800;margin-bottom:.4rem">방문한 학교별 기록</div>
+            <!-- 방문일 필터 버튼 (전체 / YYYY-MM-DD / ...) -->
+            <div id="dateButtons" style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px"></div>
+            <div id="schoolButtons" style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px"></div>
+            <!-- subject buttons appear under the school buttons for quick filtering -->
+            <div id="subjectButtons" style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"></div>
+            <div id="schoolVisitsTableContainer" style="max-height:420px;overflow:auto;border:1px solid #eef2ff;padding:6px;border-radius:6px;background:#fff"></div>
+          </div>
+
+          <div style="width:100%">
+            <div style="display:flex;flex-direction:column;gap:12px">
+                  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start">
+                    <div style="flex:1 1 320px;min-width:220px">
+                      <div style="font-weight:800;margin-bottom:.4rem">과목 분포</div>

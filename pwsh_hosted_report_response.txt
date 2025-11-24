@@ -1,0 +1,22 @@
+
+StatusCode        : 200
+StatusDescription : OK
+Content           : <!doctype html>
+                    <html lang="ko">
+                    <head>
+                      <meta charset="utf-8">
+                      <!-- cache-bust: 2025-11-09T00:00:00Z -->
+                      <meta name="viewport" content="width=device-width,initial-scale=1">
+                      <title>방문일 보고…
+RawContent        : HTTP/1.1 200 OK
+                    Connection: keep-alive
+                    Cache-Control: max-age=3600
+                    ETag: "b8c180cc264d8ccc5e291b962678211de402c2917f99bb443129af0e6dbf115c-br"
+                    Strict-Transport-Security: max-age=31556926; includeS…
+Headers           : {[Connection, System.String[]], [Cache-Control, System.String[]], [ETag, System.String[]], [Strict-Transport-Security, System.String[]]…}
+Images            : {}
+InputFields       : {@{outerHTML=<input id="cmass-include-uploaded" type="checkbox" style="margin-right:6px">; tagName=INPUT; id=cmass-include-uploaded; type=checkbox; style=margin-right:6px}, @{outerHTML=<input id="officeInternalHours" type="number" min="0" max="24" step="1" style="width:60px" placeholder="시간" />; tagName=INPUT; id=officeInternalHours; type=number; min=0; max=24; step=1; style=width:60px; placeholder=시간}, @{outerHTML=<input id="officeInternalMinutes" type="number" min="0" max="59" step="1" style="width:60px" placeholder="분" />; tagName=INPUT; id=officeInternalMinutes; type=number; min=0; max=59; step=1; style=width:60px; placeholder=분}, @{outerHTML=<input id="officeEndMinutes" type="number" min="0" step="1" style="width:120px" />; tagName=INPUT; id=officeEndMinutes; type=number; min=0; step=1; style=width:120px}}
+Links             : {@{outerHTML=<a href="#" id="backLink">◀ 입력으로 돌아가기</a>; tagName=A; href=#; id=backLink}}
+RawContentLength  : 98572
+RelationLink      : {}
+

@@ -1,0 +1,29 @@
+{
+  "url": "https://cmass-sales.web.app/front?staff=SongHoonjae&debug=1",
+  "steps": [
+    "launch",
+    "goto https://cmass-sales.web.app/front?staff=SongHoonjae&debug=1",
+    "response status: 200",
+    "appearance detected"
+  ],
+  "ok": true,
+  "console": [],
+  "pageErrors": [
+    "SyntaxError: Unexpected end of input",
+    "SyntaxError: Unexpected end of input"
+  ],
+  "networkErrors": [],
+  "state": {
+    "loadingText": "데이터를 불러오는 중...",
+    "dashboardVisible": false,
+    "canvasCount": 0,
+    "canvasIds": [],
+    "tableRows": 0,
+    "hasLoadPersonalVisits": false,
+    "hasRenderFromVisitEntries": false,
+    "_visitsAccum_len": 0,
+    "_visitsNextCursor": null,
+    "staffLabel": "",
+    "sampleEntry0": null
+  }
+}

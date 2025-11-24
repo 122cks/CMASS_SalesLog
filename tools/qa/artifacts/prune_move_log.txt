@@ -1,0 +1,35 @@
+PRUNE MOVE LOG - 2025-11-05T18:01:56.1738120+09:00
+RepoRoot: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog
+BackupRoot: C:\Users\PC\OneDrive\cmass-sales-system\251105_backup
+
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\.gitkeep -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\.gitkeep
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\assets\CMASS_LOGO.png -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\assets\CMASS_LOGO.png
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\assets\CMASS_sales_logo.png -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\assets\CMASS_sales_logo.png
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\clear-local-draft.html -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\clear-local-draft.html
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\deploy-check-20251102.html -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\deploy-check-20251102.html
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\export.csv -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\export.csv
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\firebase-api.js -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\firebase-api.js
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\firebase-config.js -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\firebase-config.js
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\firebase-config.json -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\firebase-config.json
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\firebase.json -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\firebase.json
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\geocodes_missing.csv -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\geocodes_missing.csv
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\hosting_asset_check.csv -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\hosting_asset_check.csv
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\hosting_asset_details.csv -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\hosting_asset_details.csv
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\input_backup_20251103_090803.html -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\input_backup_20251103_090803.html
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\input-next.html -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\input-next.html
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\js\mapping-utils.js -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\js\mapping-utils.js
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\kakao_migrated.csv -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\kakao_migrated.csv
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\kakao_migrated.normalized.csv -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\kakao_migrated.normalized.csv
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\live_sw.js -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\live_sw.js
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\meeting_copy.html -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\meeting_copy.html
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\neis_preview_7010052_2025s2.csv -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\neis_preview_7010052_2025s2.csv
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\neis_preview_7010117_2025s2.csv -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\neis_preview_7010117_2025s2.csv
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\papaparse.min.js -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\papaparse.min.js
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\remove_firestore_duplicates.ps1 -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\remove_firestore_duplicates.ps1
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\sales_staff_live.csv -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\sales_staff_live.csv
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\sales_staff.deployed.csv -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\sales_staff.deployed.csv
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\service-worker.js -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\service-worker.js
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\sw.js -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\sw.js
+MOVED: C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\public\visits_export_sample.csv -> C:\Users\PC\OneDrive\cmass-sales-system\251105_backup\public\visits_export_sample.csv
+
+TOTAL_MOVED: 29

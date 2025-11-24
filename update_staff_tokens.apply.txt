@@ -1,0 +1,47 @@
+Starting update_staff_tokens.js { project: 'cmass-sales', apply: true }
+Documents fetched: 348
+
+Dry-run report: documents to update: 18
+{ id: '0RFRLHtr56OWDFlI0Ra7', before: 'imjunho', after: 'LimJunho' }
+{ id: '0z4wfrQQEeUrJL2Hjf63', before: 'imjunho', after: 'LimJunho' }
+{ id: '1AFFl3XfAxC1NuqUmdnG', before: 'imjunho', after: 'LimJunho' }
+{ id: '2M9mZbdgag3Mq78XFtCF', before: 'imjunho', after: 'LimJunho' }
+{
+  id: '4jxmm4VDv8wZ2RDYZsg4',
+  before: 'songhoonjae',
+  after: 'SongHoonjae'
+}
+{ id: 'EKbQm4MDssi1c4NHll56', before: 'imjunho', after: 'LimJunho' }
+{ id: 'ENMoi3zJJJP8RJ2r1UVD', before: 'imjunho', after: 'LimJunho' }
+{ id: 'Gc6QRcf6JACwPI1a7wuV', before: 'imjunho', after: 'LimJunho' }
+{ id: 'Jp9KVbVEA9kFEoKKv5Ue', before: 'imjunho', after: 'LimJunho' }
+{ id: 'T9GB5JziQN1QCICgxncJ', before: 'imjunho', after: 'LimJunho' }
+{ id: 'XBc8vTzzEem1OE3k9plD', before: 'imjunho', after: 'LimJunho' }
+{ id: 'aevJQAnKwXHjQozuEXTW', before: 'imjunho', after: 'LimJunho' }
+{ id: 'd6IyaHqf8SSaix2ppi4d', before: 'imjunho', after: 'LimJunho' }
+{ id: 'gz4UKHv66ixlnqg1GVTx', before: 'imjunho', after: 'LimJunho' }
+{ id: 'qV3mbbgzWeufSynlldOu', before: 'imjunho', after: 'LimJunho' }
+{ id: 'ssR75xNgwrejXP3ew4rk', before: 'imjunho', after: 'LimJunho' }
+{ id: 'xIQsi1navBODLMLRZjyb', before: 'imjunho', after: 'LimJunho' }
+{ id: 'xczH09MAuoj2DtomKnwl', before: 'imjunho', after: 'LimJunho' }
+
+Applying changes...
+Updated 0RFRLHtr56OWDFlI0Ra7 imjunho => LimJunho
+Updated 0z4wfrQQEeUrJL2Hjf63 imjunho => LimJunho
+Updated 1AFFl3XfAxC1NuqUmdnG imjunho => LimJunho
+Updated 2M9mZbdgag3Mq78XFtCF imjunho => LimJunho
+Updated 4jxmm4VDv8wZ2RDYZsg4 songhoonjae => SongHoonjae
+Updated EKbQm4MDssi1c4NHll56 imjunho => LimJunho
+Updated ENMoi3zJJJP8RJ2r1UVD imjunho => LimJunho
+Updated Gc6QRcf6JACwPI1a7wuV imjunho => LimJunho
+Updated Jp9KVbVEA9kFEoKKv5Ue imjunho => LimJunho
+Updated T9GB5JziQN1QCICgxncJ imjunho => LimJunho
+Updated XBc8vTzzEem1OE3k9plD imjunho => LimJunho
+Updated aevJQAnKwXHjQozuEXTW imjunho => LimJunho
+Updated d6IyaHqf8SSaix2ppi4d imjunho => LimJunho
+Updated gz4UKHv66ixlnqg1GVTx imjunho => LimJunho
+Updated qV3mbbgzWeufSynlldOu imjunho => LimJunho
+Updated ssR75xNgwrejXP3ew4rk imjunho => LimJunho
+Updated xIQsi1navBODLMLRZjyb imjunho => LimJunho
+Updated xczH09MAuoj2DtomKnwl imjunho => LimJunho
+Apply complete. Updated count: 18

@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="com.cmass.sales" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+  <name>CMASS 영업일지</name>
+  <description>WebView wrapper for https://cmass-sales.web.app (loads remote site)</description>
+  <author email="dev@example.com">CMASS</author>
+
+  <!-- Start page: remote URL. Use staff param when launching the app if you want a preselected staff token. -->
+  <content src="https://cmass-sales.web.app/" />
+
+  <access origin="*" />
+  <allow-navigation href="https://cmass-sales.web.app/*" />
+  <allow-intent href="http://*/*" />
+  <allow-intent href="https://*/*" />
+
+  <!-- Android settings -->
+  <platform name="android">
+    <allow-intent href="market:*" />
+    <preference name="AndroidPersistentFileLocation" value="Internal" />
+  </platform>
+
+  <!-- Whitelist plugin recommended -->
+  <plugin name="cordova-plugin-whitelist" spec="1" />
+  <access origin="https://*/*" subdomains="true" />
+
+</widget>

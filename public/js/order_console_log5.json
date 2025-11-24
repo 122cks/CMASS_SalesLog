@@ -1,0 +1,639 @@
+{
+  "meta": {
+    "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3"
+  },
+  "logs": [
+    {
+      "ts": 1763356093649,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093799,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "49",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 05:08:13 GMT",
+        "location": "/order.html?school=S020000338&cb=3",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450081-ICN",
+        "x-timer": "S1763356094.828608,VS0,VE78"
+      }
+    },
+    {
+      "ts": 1763356093800,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093886,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338&cb=3",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "44",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 05:08:13 GMT",
+        "location": "/order?school=S020000338&cb=3",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450081-ICN",
+        "x-timer": "S1763356094.920723,VS0,VE78"
+      }
+    },
+    {
+      "ts": 1763356093886,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093888,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "49",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 05:08:13 GMT",
+        "location": "/order.html?school=S020000338&cb=3",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450081-ICN",
+        "x-timer": "S1763356094.828608,VS0,VE78"
+      }
+    },
+    {
+      "ts": 1763356093888,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093889,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338&cb=3",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "44",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 05:08:13 GMT",
+        "location": "/order?school=S020000338&cb=3",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450081-ICN",
+        "x-timer": "S1763356094.920723,VS0,VE78"
+      }
+    },
+    {
+      "ts": 1763356093889,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093889,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "49",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 05:08:13 GMT",
+        "location": "/order.html?school=S020000338&cb=3",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450081-ICN",
+        "x-timer": "S1763356094.828608,VS0,VE78"
+      }
+    },
+    {
+      "ts": 1763356093890,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093890,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338&cb=3",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "44",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 05:08:13 GMT",
+        "location": "/order?school=S020000338&cb=3",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450081-ICN",
+        "x-timer": "S1763356094.920723,VS0,VE78"
+      }
+    },
+    {
+      "ts": 1763356093890,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093891,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "49",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 05:08:13 GMT",
+        "location": "/order.html?school=S020000338&cb=3",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450081-ICN",
+        "x-timer": "S1763356094.828608,VS0,VE78"
+      }
+    },
+    {
+      "ts": 1763356093891,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093893,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338&cb=3",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "44",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 05:08:13 GMT",
+        "location": "/order?school=S020000338&cb=3",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450081-ICN",
+        "x-timer": "S1763356094.920723,VS0,VE78"
+      }
+    },
+    {
+      "ts": 1763356093893,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093895,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "49",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 05:08:13 GMT",
+        "location": "/order.html?school=S020000338&cb=3",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450081-ICN",
+        "x-timer": "S1763356094.828608,VS0,VE78"
+      }
+    },
+    {
+      "ts": 1763356093896,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093897,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338&cb=3",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "44",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 05:08:13 GMT",
+        "location": "/order?school=S020000338&cb=3",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450081-ICN",
+        "x-timer": "S1763356094.920723,VS0,VE78"
+      }
+    },
+    {
+      "ts": 1763356093897,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093897,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "49",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 05:08:13 GMT",
+        "location": "/order.html?school=S020000338&cb=3",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450081-ICN",
+        "x-timer": "S1763356094.828608,VS0,VE78"
+      }
+    },
+    {
+      "ts": 1763356093897,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093898,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338&cb=3",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "44",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 05:08:13 GMT",
+        "location": "/order?school=S020000338&cb=3",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450081-ICN",
+        "x-timer": "S1763356094.920723,VS0,VE78"
+      }
+    },
+    {
+      "ts": 1763356093898,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093899,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "49",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 05:08:13 GMT",
+        "location": "/order.html?school=S020000338&cb=3",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450081-ICN",
+        "x-timer": "S1763356094.828608,VS0,VE78"
+      }
+    },
+    {
+      "ts": 1763356093899,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093900,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338&cb=3",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "44",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 05:08:13 GMT",
+        "location": "/order?school=S020000338&cb=3",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450081-ICN",
+        "x-timer": "S1763356094.920723,VS0,VE78"
+      }
+    },
+    {
+      "ts": 1763356093901,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093902,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "49",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 05:08:13 GMT",
+        "location": "/order.html?school=S020000338&cb=3",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450081-ICN",
+        "x-timer": "S1763356094.828608,VS0,VE78"
+      }
+    },
+    {
+      "ts": 1763356093902,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093903,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338&cb=3",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "44",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 05:08:13 GMT",
+        "location": "/order?school=S020000338&cb=3",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450081-ICN",
+        "x-timer": "S1763356094.920723,VS0,VE78"
+      }
+    },
+    {
+      "ts": 1763356093903,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093903,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "49",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 05:08:13 GMT",
+        "location": "/order.html?school=S020000338&cb=3",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450081-ICN",
+        "x-timer": "S1763356094.828608,VS0,VE78"
+      }
+    },
+    {
+      "ts": 1763356093903,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093905,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338&cb=3",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "44",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 05:08:13 GMT",
+        "location": "/order?school=S020000338&cb=3",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450081-ICN",
+        "x-timer": "S1763356094.920723,VS0,VE78"
+      }
+    },
+    {
+      "ts": 1763356093905,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093906,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order?school=S020000338&cb=3",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "49",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 05:08:13 GMT",
+        "location": "/order.html?school=S020000338&cb=3",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450081-ICN",
+        "x-timer": "S1763356094.828608,VS0,VE78"
+      }
+    },
+    {
+      "ts": 1763356093906,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338&cb=3",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763356093912,
+      "type": "goto-error",
+      "message": "Error: page.goto: net::ERR_TOO_MANY_REDIRECTS at https://cmass-sales.web.app/order?school=S020000338&cb=3\nCall log:\n\u001b[2m  - navigating to \"https://cmass-sales.web.app/order?school=S020000338&cb=3\", waiting until \"networkidle\"\u001b[22m\n"
+    },
+    {
+      "ts": 1763356098936,
+      "type": "page-content",
+      "length": 39
+    }
+  ],
+  "pageHtml": "<html><head></head><body></body></html>"
+}

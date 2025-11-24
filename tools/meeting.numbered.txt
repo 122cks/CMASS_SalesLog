@@ -1,0 +1,479 @@
+1: // meeting.js - behavior for meeting.html
+2: (function(){
+3:   const qs = (id) => document.getElementById(id);
+4:   const staffEl = qs('staff');
+5:   const dateEl = qs('visitDate');
+6:   const regionEl = qs('regionSelect');
+7:   const schoolEl = qs('schoolSelect');
+8:   const startHourEl = qs('startHour');
+9:   const startMinEl = qs('startMinute');
+10:   const durEl = qs('duration');
+11:   const endEl = qs('endTime');
+12:   const subjectContainer = qs('subjects');
+13:   const activitiesContainer = qs('activities');
+14:   const schoolDisplay = qs('schoolDisplay');
+15:   const followUpEl = qs('followUp');
+16:   const btnBack = qs('btnBack');
+17:   const btnCopy = qs('btnCopy');
+18:   const btnSaveServer = qs('btnSaveServer');
+19:   const btnSubmit = qs('btnSubmit');
+20:   const topline = qs('topline');
+21:   const savedDraftEl = qs('savedDraft');
+22: 
+23:   let regions = [];
+24:   let _isRestoring = false; // when true, don't trigger autosave while populating
+25: 
+26:   function parseRegionsFromRows(rows){
+27:     const header = rows[0] || [];
+28:     const idxRegion = header.findIndex(h => /region|지역/i.test((h||'').trim()));
+29:     const idxStaff = header.findIndex(h => /staff|담당/i.test((h||'').trim()));
+30:     // identify school-name and school-code columns robustly
+31:     let idxSchoolName = -1;
+32:     let idxSchoolCode = -1;
+33:     for (let i = 0; i < header.length; i++){
+34:       const h = (header[i] || '').trim();
+35:       const lower = h.toLowerCase();
+36:       // detect explicit code columns first
+37:       if (/(정보공시학교코드|학교코드|school_code|schoolcode|\bcode\b)/i.test(h)) {
+38:         if (idxSchoolCode === -1) idxSchoolCode = i;
+39:         continue;
+40:       }
+41:       // explicit name-like headers
+42:       if (/(학교명|학교 이름|school_name|schoolname|school name|^school$)/i.test(h)) {
+43:         idxSchoolName = i; break;
+44:       }
+45:     }
+46:     // if explicit name header not found, pick any header containing '학교' or 'school' but not '코드'/'code'
+47:     if (idxSchoolName === -1) {
+48:       for (let i = 0; i < header.length; i++){
+49:         const h = (header[i] || '').trim();
+50:         if (/(학교|school)/i.test(h) && !/(코드|code)/i.test(h)) { idxSchoolName = i; break; }
+51:       }
+52:     }
+53:     // final fallback: if we only found a code column, use it as code and don't treat it as name
+54:     const idxSchool = idxSchoolName >= 0 ? idxSchoolName : idxSchoolCode;
+55:     if (idxRegion < 0 || idxSchool < 0) return [];
+56:     const regionMap = new Map();
+57:     for (let i=1;i<rows.length;i++){
+58:       const r = rows[i]; if(!r) continue;
+59:       const rn = (r[idxRegion]||'').trim();
+60:   const sn = idxSchoolName>=0 ? (r[idxSchoolName]||'').trim() : '';
+61:   const scode = idxSchoolCode>=0 ? (r[idxSchoolCode]||'').trim() : '';
+62:       const st = idxStaff>=0? (r[idxStaff]||'').trim() : '';
+63:   if(!rn||!(sn||scode)) continue;
+64:       if(!regionMap.has(rn)) regionMap.set(rn,{name:rn,schools:[],staffSet:new Set()});
+65:       const reg = regionMap.get(rn);
+66:       // store both display name and optional code
+67:       const displayName = sn || scode;
+68:       reg.schools.push({ name: displayName, code: scode || '', staff: st? [st] : [] });
+69:       if(st) reg.staffSet.add(st);
+70:     }
+71:     return Array.from(regionMap.values()).map(reg => ({
+72:       name: reg.name,
+73:       schools: reg.schools.map(s => ({ name: s.name, code: s.code }))
+74:     })).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+75:   }
+76: 
+77:   async function loadRegions(){
+78:     if (typeof fetchCsvRows !== 'function') {
+79:       console.warn('fetchCsvRows not available. Ensure /csv-helpers.js is loaded.');
+80:       return [];
+81:     }
+82:     const rows = await fetchCsvRows().catch(()=>[]);
+83:     regions = parseRegionsFromRows(rows || []);
+84:     populateRegionSelect();
+85:     return regions;
+86:   }
+87: 
+88:   function populateRegionSelect(){
+89:     regionEl.innerHTML = '<option value="">지역 선택...</option>';
+90:     regions.forEach(r => {
+91:       const opt = document.createElement('option'); opt.value = r.name; opt.textContent = r.name; regionEl.appendChild(opt);
+92:     });
+93:   }
+94: 
+95:   function populateSchoolSelect(regionName){
+96:     schoolEl.innerHTML = '<option value="">학교 선택...</option>';
+97:     const reg = regions.find(r=>r.name===regionName);
+98:     if(!reg) return;
+99:     reg.schools.forEach(s => { 
+100:       const opt = document.createElement('option'); 
+101:       // show the human-friendly school name as text; keep code (if present) as the value
+102:       opt.value = s.code && s.code.length ? s.code : s.name; 
+103:       opt.textContent = s.name; 
+104:       if(s.code) opt.dataset.code = s.code;
+105:       schoolEl.appendChild(opt); 
+106:     });
+107:   }
+108: 
+109:   function buildKey(){
+110:     const staff = (staffEl.value||'').trim();
+111:     const date = dateEl.value || '';
+112:     const region = regionEl.value || '';
+113:     const school = schoolEl.value || '';
+114:     return `meeting:draft:${staff}|${date}|${region}|${school}`;
+115:   }
+116: 
+117:   function gatherForm(){
+118:     const subjects = Array.from(subjectContainer.querySelectorAll('.subject-btn.active')).map(b=>b.textContent.trim());
+119:     const activities = activitiesContainer ? Array.from(activitiesContainer.querySelectorAll('.subject-btn.active')).map(b=>b.textContent.trim()) : [];
+120:     const params = new URLSearchParams(window.location.search || '');
+121:   const server_id = params.get('server_id') || params.get('serverId') || '';
+122:     const schoolText = (schoolEl.selectedOptions && schoolEl.selectedOptions[0]) ? schoolEl.selectedOptions[0].textContent : schoolEl.value;
+123:     return {
+124:       staff: staffEl.value,
+125:       date: dateEl.value,
+126:       region: regionEl.value,
+127:       // include both school code (value) and the displayed school name
+128:       schoolCode: schoolEl.value,
+129:       school: schoolText,
+130:       server_id,
+131:   // produce HH:MM from hour/minute selects
+132:   startTime: (function(){ try{ const h = (startHourEl && startHourEl.value) ? String(startHourEl.value).padStart(2,'0') : '08'; const m = (startMinEl && startMinEl.value) ? String(startMinEl.value).padStart(2,'0') : '00'; return `${h}:${m}`;}catch(e){return '';}})(),
+133:       durationMin: Number(durEl.value)||0,
+134:       endTime: endEl.value,
+135:       subjects, activities, teacher: qs('teacherName').value, publisher: qs('publisher').value,
+136:       phone: qs('phone').value, email: qs('email').value,
+137:       requests: qs('requests').value, notes: qs('notes').value, deliveries: qs('deliveries').value,
+138:       // server-side friendly aliases
+139:       contact: qs('phone').value,
+140:       ask: qs('requests').value,
+141:       conversation: qs('notes').value,
+142:       delivery: qs('deliveries').value,
+143:       followUp: qs('followUp') ? qs('followUp').value : '' ,
+144:       // also include canonical visit fields
+145:       visitDate: dateEl.value,
+146:       visitStart: (function(){ try{ const h = (startHourEl && startHourEl.value) ? String(startHourEl.value).padStart(2,'0') : '08'; const m = (startMinEl && startMinEl.value) ? String(startMinEl.value).padStart(2,'0') : '00'; return `${h}:${m}`;}catch(e){return '';}})(),
+147:       duration: Number(durEl.value)||0,
+148:       visitEnd: endEl.value
+149:     };
+150:   }
+151: 
+152:   function saveDraft(){
+153:     const key = buildKey();
+154:     try{ localStorage.setItem(key, JSON.stringify(gatherForm())); }
+155:     catch(e){ console.warn('failed to save draft', e); }
+156:     try{ renderSavedDraft(gatherForm()); }catch(e){}
+157:   }
+158: 
+159:   // --- server autosave (debounced) ---
+160:   let _serverSaveTimer = null;
+161:   const SERVER_SAVE_DELAY = 1500; // ms
+162: 
+163:   function scheduleServerSave(){
+164:     try{ if(_serverSaveTimer) clearTimeout(_serverSaveTimer); _serverSaveTimer = setTimeout(()=> { saveDraftToServer(); _serverSaveTimer = null; }, SERVER_SAVE_DELAY); }catch(e){}
+165:   }
+166: 
+167:   async function saveDraftToServer(){
+168:     const data = gatherForm();
+169:     // don't send if staff or date missing
+170:     if(!data.staff || !data.date) return;
+171:     try{
+172:       await fetch('/save-draft', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+173:       // optional: could set a small visual indicator here
+174:       try{ renderSavedDraft(data); }catch(e){}
+175:     }catch(e){ console.warn('saveDraftToServer failed', e); }
+176:   }
+177: 
+178:   async function fetchDraftFromServer(){
+179:     try{
+180:       const params = new URLSearchParams();
+181:       params.set('staff', (staffEl.value||'').trim());
+182:       params.set('date', (dateEl.value||'').trim());
+183:       params.set('region', (regionEl.value||'').trim());
+184:       // prefer schoolCode (select value) as query, but also include school name if available
+185:       params.set('school', (schoolEl.value||'').trim());
+186:       const res = await fetch('/get-draft?'+params.toString());
+187:       if(!res.ok) return null;
+188:       const j = await res.json().catch(()=>null); if(!j || !j.ok || !j.draft) return null;
+189:       try{ renderSavedDraft(j.draft); }catch(e){}
+190:       return j.draft;
+191:     }catch(e){ console.warn('fetchDraftFromServer failed', e); return null; }
+192:   }
+193: 
+194:   function renderSavedDraft(d){
+195:     if(!savedDraftEl) return;
+196:     try{
+197:       if(!d) { savedDraftEl.textContent = ''; return; }
+198:       // build a compact, readable summary of important fields
+199:       const parts = [];
+200:       if(d.staff) parts.push(`담당자: ${d.staff}`);
+201:       if(d.date) parts.push(`방문일: ${d.date}`);
+202:       if(d.region) parts.push(`지역: ${d.region}`);
+203:       if(d.school) parts.push(`학교: ${d.school}`);
+204:       if(d.visitStart || d.startTime) parts.push(`시작: ${d.visitStart || d.startTime}`);
+205:       if(d.duration || d.durationMin) parts.push(`소요: ${d.duration || d.durationMin}분`);
+206:       if(d.subjects && Array.isArray(d.subjects) && d.subjects.length) parts.push(`과목: ${d.subjects.join(', ')}`);
+207:       if(d.activities && Array.isArray(d.activities) && d.activities.length) parts.push(`영업활동: ${d.activities.join(', ')}`);
+208:       if(d.teacher) parts.push(`선생님: ${d.teacher}`);
+209:       if(d.requests) parts.push(`요청: ${d.requests}`);
+210:       if(d.notes) parts.push(`특이사항: ${d.notes}`);
+211:       if(d.delivery) parts.push(`납품: ${d.delivery}`);
+212:       if(d.followUp) parts.push(`후속조치: ${d.followUp}`);
+213:       savedDraftEl.textContent = parts.join('\n');
+214:     }catch(e){ console.warn('renderSavedDraft failed', e); }
+215:   }
+216: 
+217:   function restoreDraft(){
+218:     const key = buildKey();
+219:     const txt = localStorage.getItem(key); if(!txt) return;
+220:     try{
+221:       const d = JSON.parse(txt);
+222:       if(!d) return;
+223:       _isRestoring = true;
+224:       try{
+225:         staffEl.value = d.staff||''; dateEl.value = d.date||''; regionEl.value = d.region||'';
+226:         if(d.region) populateSchoolSelect(d.region);
+227:         // try to restore by code first, then by displayed name
+228:         if(d.schoolCode) schoolEl.value = d.schoolCode; else schoolEl.value = d.school||'';
+229:         // restore startHour/startMinute from saved startTime if present
+230:         try{
+231:           if(d.startTime){
+232:             const m = (d.startTime||'').toString().trim().split(':');
+233:             if(m && m.length>=2){ if(startHourEl) startHourEl.value = String(m[0]).padStart(2,'0'); if(startMinEl) startMinEl.value = String(m[1]).padStart(2,'0'); }
+234:           }
+235:         }catch(e){}
+236:         durEl.value = d.durationMin||durEl.value; endEl.value = d.endTime||'';
+237:         qs('teacherName').value = d.teacher||''; qs('publisher').value = d.publisher||'';
+238:         qs('phone').value = d.phone||''; qs('email').value = d.email||'';
+239:         qs('requests').value = d.requests||''; qs('notes').value = d.notes||''; qs('deliveries').value = d.deliveries||'';
+240:         if (qs('followUp')) qs('followUp').value = d.followUp || '';
+241:         // subjects
+242:         const btns = subjectContainer.querySelectorAll('.subject-btn'); btns.forEach(b=> b.classList.toggle('active', (d.subjects||[]).includes(b.textContent.trim())));
+243:         // activities
+244:         if (activitiesContainer) {
+245:           const acts = activitiesContainer.querySelectorAll('.subject-btn');
+246:           acts.forEach(b=> b.classList.toggle('active', (d.activities||[]).includes(b.textContent.trim())));
+247:         }
+248:       } finally { _isRestoring = false; }
+249:     }catch(e){ console.warn('failed to restore draft', e); }
+250:   }
+251: 
+252:   // Load draft for current key: prefer local, fallback to server; used when staff/date/region/school changes
+253:   async function loadDraftForCurrentKey(){
+254:     const key = buildKey();
+255:     // try local first
+256:     const txt = localStorage.getItem(key);
+257:     if(txt){ try{ const d = JSON.parse(txt); if(d){ restoreDraft(); renderSavedDraft(d); } }catch(e){} return; }
+258:     // else try server
+259:     try{
+260:       const serverDraft = await fetchDraftFromServer();
+261:       if(serverDraft){ localStorage.setItem(key, JSON.stringify(serverDraft)); _isRestoring = true; try{ restoreDraft(); }finally{ _isRestoring = false; } renderSavedDraft(serverDraft); }
+262:     }catch(e){ /* ignore */ }
+263:   }
+264: 
+265:   function computeEndTime(){
+266:     // read hour/minute from selects
+267:     const dur = Number(durEl.value)||0;
+268:     if(!startHourEl || !startMinEl || !dur){ endEl.value = ''; return; }
+269:     const hh = Number(String(startHourEl.value).replace(/^0+/, '') || 0);
+270:     const mm = Number(String(startMinEl.value).replace(/^0+/, '') || 0);
+271:     if(Number.isNaN(hh) || Number.isNaN(mm)){ endEl.value = ''; return; }
+272:     const startMinutes = hh*60 + mm;
+273:     const endMinutes = startMinutes + dur;
+274:     const eh = Math.floor((endMinutes%1440)/60).toString().padStart(2,'0');
+275:     const em = (endMinutes%60).toString().padStart(2,'0');
+276:     endEl.value = `${eh}:${em}`;
+277:   }
+278: 
+279:   function updateTopline(){
+280:     const schoolText = (schoolEl.selectedOptions && schoolEl.selectedOptions[0]) ? schoolEl.selectedOptions[0].textContent : (schoolEl.value || '');
+281:     // put the readable school name next to the Back button
+282:     if(schoolDisplay) schoolDisplay.textContent = schoolText || '';
+283:     // topline no longer includes school to avoid duplication
+284:     topline.textContent = `${staffEl.value||'-'} - ${dateEl.value||'-'} - ${regionEl.value||'-'}`;
+285:   }
+286: 
+287:   function formatForCopy(){
+288:     const f = gatherForm();
+289:     return `담당자: ${f.staff}\n방문일: ${f.date} (${f.startTime} ~ ${f.endTime || ''})\n지역: ${f.region}\n학교: ${f.school}\n과목: ${f.subjects.join(', ')}\n영업활동: ${(f.activities||[]).join(', ')}\n선생님: ${f.teacher}\n출판사: ${f.publisher}\n연락처: ${f.phone} ${f.email}\n\n고객요청사항:\n${f.requests}\n\n특이사항:\n${f.notes}\n\n납품사항:\n${f.deliveries}`;
+290:   }
+291: 
+292:   async function saveToServer(){
+293:     const data = gatherForm();
+294:     try{
+295:       const res = await fetch('/save-meeting', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+296:       if(res.ok){ alert('서버 저장 성공'); return true; }
+297:       else { const txt = await res.text().catch(()=>res.statusText); alert('서버 저장 실패: '+txt); return false; }
+298:     }catch(e){ alert('서버 전송 중 오류: '+e.message); return false; }
+299:   }
+300: 
+301:   // wire events
+302:   document.addEventListener('DOMContentLoaded', async ()=>{
+303:     await loadRegions();
+304:     // populate hour and minute selects for start time
+305:     try{
+306:       if (startHourEl) {
+307:         startHourEl.innerHTML = '';
+308:         for (let h = 8; h <= 20; h++) {
+309:           const v = String(h).padStart(2,'0');
+310:           const opt = document.createElement('option'); opt.value = v; opt.textContent = v; startHourEl.appendChild(opt);
+311:         }
+312:       }
+313:       if (startMinEl) {
+314:         startMinEl.innerHTML = '';
+315:         for (let m = 0; m < 60; m += 5) {
+316:           const v = String(m).padStart(2,'0');
+317:           const opt = document.createElement('option'); opt.value = v; opt.textContent = v; startMinEl.appendChild(opt);
+318:         }
+319:       }
+320:       // default values
+321:       if (startHourEl && !startHourEl.value) startHourEl.value = '08';
+322:       if (startMinEl && !startMinEl.value) startMinEl.value = '00';
+323:     }catch(e){ /* ignore */ }
+324:     // Prefill from query params (if present) so navigation from input.html carries values
+325:     try{
+326:       const params = new URLSearchParams(window.location.search || '');
+327:       const pStaff = params.get('staff') || '';
+328:       const pDate = params.get('date') || '';
+329:       const pRegion = params.get('region') || '';
+330:       const pSchool = params.get('school') || '';
+331:       if (pStaff) staffEl.value = pStaff;
+332:         // If staff was supplied via query (navigated from input), lock the field so user cannot change it
+333:         if (pStaff) {
+334:           try{
+335:             staffEl.readOnly = true;
+336:             staffEl.style.background = '#f3f6ff';
+337:             staffEl.style.cursor = 'not-allowed';
+338:           }catch(e){}
+339:         }
+340:   if (pDate) dateEl.value = pDate;
+341:       if (pRegion) {
+342:         regionEl.value = pRegion;
+343:         populateSchoolSelect(pRegion);
+344:       }
+345:   if (pSchool) {
+346:         // try to restore by matching option value first (code), then by displayed text (name)
+347:         const byValue = Array.from(schoolEl.options).find(o=>o.value === pSchool);
+348:         const byText = Array.from(schoolEl.options).find(o=> (o.textContent||'') === pSchool);
+349:         if(byValue) schoolEl.value = byValue.value;
+350:         else if(byText) schoolEl.value = byText.value;
+351:         else schoolEl.value = pSchool;
+352:       }
+353:       // if query contains start time like ?start=08:30 or ?startTime=08:30, set selects
+354:       const qStart = params.get('start') || params.get('startTime') || params.get('visitStart') || '';
+355:       if (qStart) {
+356:         try{
+357:           const parts = qStart.split(':');
+358:           if (parts.length >= 2) {
+359:             if (startHourEl) startHourEl.value = String(parts[0]).padStart(2,'0');
+360:             if (startMinEl) startMinEl.value = String(parts[1]).padStart(2,'0');
+361:           }
+362:         }catch(e){}
+363:       }
+364:     }catch(e){ /* ignore */ }
+365: 
+366:     // restore saved draft for this key (key uses staff|date|region|school)
+367:     restoreDraft();
+368:     // attempt to fetch server-side draft and merge (server wins when local missing)
+369:     try{
+370:       const serverDraft = await fetchDraftFromServer();
+371:       if(serverDraft){
+372:         // only apply fields that are missing locally to avoid overwriting unsaved local edits
+373:         const localKey = buildKey();
+374:         const localTxt = localStorage.getItem(localKey);
+375:         const local = localTxt ? JSON.parse(localTxt) : {};
+376:         const merged = Object.assign({}, serverDraft, local || {});
+377:         // save merged locally and restore
+378:         localStorage.setItem(localKey, JSON.stringify(merged));
+379:         restoreDraft();
+380:       }
+381:     }catch(e){ console.warn('merge server draft failed', e); }
+382:     updateTopline();
+383:     computeEndTime();
+384:   });
+385: 
+386:   // region -> schools
+387:   regionEl.addEventListener('change', async ()=>{ populateSchoolSelect(regionEl.value); if(!_isRestoring) { saveDraft(); scheduleServerSave(); } updateTopline(); await loadDraftForCurrentKey(); });
+388:   schoolEl.addEventListener('change', async ()=>{ if(!_isRestoring) { saveDraft(); scheduleServerSave(); } updateTopline(); await loadDraftForCurrentKey(); });
+389:   [staffEl, dateEl].forEach(el=> el.addEventListener('input', async ()=>{ if(!_isRestoring) { saveDraft(); scheduleServerSave(); } updateTopline(); await loadDraftForCurrentKey(); }));
+390: 
+391:   // time/duration
+392:   if (startHourEl) startHourEl.addEventListener('change', ()=>{ computeEndTime(); saveDraft(); scheduleServerSave(); });
+393:   if (startMinEl) startMinEl.addEventListener('change', ()=>{ computeEndTime(); saveDraft(); scheduleServerSave(); });
+394:   durEl.addEventListener('input', ()=>{ computeEndTime(); saveDraft(); scheduleServerSave(); });
+395: 
+396:   // subject toggles
+397:   subjectContainer.addEventListener('click', (ev)=>{
+398:     const b = ev.target.closest('.subject-btn'); if(!b) return; b.classList.toggle('active'); saveDraft(); scheduleServerSave();
+399:   });
+400: 
+401:   // activities toggles (same visual style)
+402:   if (activitiesContainer) {
+403:     activitiesContainer.addEventListener('click', (ev)=>{
+404:       const b = ev.target.closest('.subject-btn'); if(!b) return; b.classList.toggle('active'); saveDraft(); scheduleServerSave();
+405:     });
+406:   }
+407: 
+408:   // followUp is now a datalist-backed input (publisher-style). No button handlers required.
+409: 
+410:   // copy to clipboard
+411:   btnCopy.addEventListener('click', async ()=>{
+412:     const txt = formatForCopy();
+413:     try{ await navigator.clipboard.writeText(txt); alert('클립보드에 복사되었습니다.'); }catch(e){ alert('복사 실패: '+e.message); }
+414:   });
+415: 
+416:   // server save
+417:   btnSaveServer.addEventListener('click', async ()=>{ await saveToServer(); });
+418: 
+419:   // submit (finalize) - also save draft locally under a final key
+420:   btnSubmit.addEventListener('click', async ()=>{
+421:     // Save draft first
+422:     saveDraft();
+423:     // try server save
+424:     const ok = await saveToServer().catch(()=>false);
+425:     if(ok){
+426:       // append to daily report and redirect to report view
+427:       try{ appendToDailyReport(gatherForm()); }catch(e){ console.warn('append report failed', e); }
+428:       // navigate to report page for this staff/date
+429:       const s = encodeURIComponent((staffEl.value||'').trim());
+430:       const d = encodeURIComponent((dateEl.value||'').trim());
+431:       location.href = `/report.html?staff=${s}&date=${d}`;
+432:     } else {
+433:       // still append locally so draft accumulates
+434:       try{ appendToDailyReport(gatherForm()); }catch(e){ console.warn('append report failed', e); }
+435:       alert('입력완료: 서버 저장 실패, 로컬에 누적되었습니다.');
+436:       const s = encodeURIComponent((staffEl.value||'').trim());
+437:       const d = encodeURIComponent((dateEl.value||'').trim());
+438:       location.href = `/report.html?staff=${s}&date=${d}`;
+439:     }
+440:   });
+441: 
+442:   function reportKeyFor(staff, date){
+443:     return `report:${(staff||'').trim()}|${(date||'').trim()}`;
+444:   }
+445: 
+446:   function appendToDailyReport(entry){
+447:     // gatherForm already returns a normalized object
+448:     const staff = (entry.staff||'').trim();
+449:     const date = entry.date || '';
+450:     if(!staff || !date) return;
+451:     const key = reportKeyFor(staff,date);
+452:     let arr = [];
+453:     try{ arr = JSON.parse(localStorage.getItem(key) || '[]') || []; }catch(e){ arr = []; }
+454:     arr.push(Object.assign({}, entry, { savedAt: new Date().toISOString() }));
+455:     try{ localStorage.setItem(key, JSON.stringify(arr)); }catch(e){ console.warn('failed to save report', e); }
+456:   }
+457: 
+458:   btnBack.addEventListener('click', ()=>{
+459:     try{
+460:       // Preserve 담당자 and 방문일 when navigating back to input
+461:       const staff = encodeURIComponent((staffEl.value||'').trim());
+462:       const date = encodeURIComponent((dateEl.value||'').trim());
+463:       const params = new URLSearchParams();
+464:       if(staff) params.set('staff', staff);
+465:       if(date) params.set('date', date);
+466:       const qs = params.toString();
+467:       const target = '/input' + (qs ? ('?' + qs) : '');
+468:       location.href = target;
+469:     }catch(e){ try{ location.href = '/input'; }catch(e2){ /* ignore */ } }
+470:   });
+471: 
+472:   // update headline when any input changes
+473:   document.querySelectorAll('input,select,textarea').forEach(el=> el.addEventListener('input', updateTopline));
+474: 
+475:   // recompute end time on load if possible
+476:   window.addEventListener('load', computeEndTime);
+477: 
+478: })();
+479: 

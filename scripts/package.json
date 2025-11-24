@@ -1,0 +1,10 @@
+{
+  "name": "cmass-firestore-tools",
+  "version": "1.0.0",
+  "description": "Small utilities to export Firestore data for CMASS_SalesLog",
+  "private": true,
+  "dependencies": {
+    "firebase-admin": "^11.11.0",
+    "minimist": "^1.2.8"
+  }
+}

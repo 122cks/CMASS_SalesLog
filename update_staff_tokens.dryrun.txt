@@ -1,0 +1,28 @@
+Starting update_staff_tokens.js { project: 'cmass-sales', apply: false }
+Documents fetched: 348
+
+Dry-run report: documents to update: 18
+{ id: '0RFRLHtr56OWDFlI0Ra7', before: 'imjunho', after: 'LimJunho' }
+{ id: '0z4wfrQQEeUrJL2Hjf63', before: 'imjunho', after: 'LimJunho' }
+{ id: '1AFFl3XfAxC1NuqUmdnG', before: 'imjunho', after: 'LimJunho' }
+{ id: '2M9mZbdgag3Mq78XFtCF', before: 'imjunho', after: 'LimJunho' }
+{
+  id: '4jxmm4VDv8wZ2RDYZsg4',
+  before: 'songhoonjae',
+  after: 'SongHoonjae'
+}
+{ id: 'EKbQm4MDssi1c4NHll56', before: 'imjunho', after: 'LimJunho' }
+{ id: 'ENMoi3zJJJP8RJ2r1UVD', before: 'imjunho', after: 'LimJunho' }
+{ id: 'Gc6QRcf6JACwPI1a7wuV', before: 'imjunho', after: 'LimJunho' }
+{ id: 'Jp9KVbVEA9kFEoKKv5Ue', before: 'imjunho', after: 'LimJunho' }
+{ id: 'T9GB5JziQN1QCICgxncJ', before: 'imjunho', after: 'LimJunho' }
+{ id: 'XBc8vTzzEem1OE3k9plD', before: 'imjunho', after: 'LimJunho' }
+{ id: 'aevJQAnKwXHjQozuEXTW', before: 'imjunho', after: 'LimJunho' }
+{ id: 'd6IyaHqf8SSaix2ppi4d', before: 'imjunho', after: 'LimJunho' }
+{ id: 'gz4UKHv66ixlnqg1GVTx', before: 'imjunho', after: 'LimJunho' }
+{ id: 'qV3mbbgzWeufSynlldOu', before: 'imjunho', after: 'LimJunho' }
+{ id: 'ssR75xNgwrejXP3ew4rk', before: 'imjunho', after: 'LimJunho' }
+{ id: 'xIQsi1navBODLMLRZjyb', before: 'imjunho', after: 'LimJunho' }
+{ id: 'xczH09MAuoj2DtomKnwl', before: 'imjunho', after: 'LimJunho' }
+
+Dry-run complete. To apply changes run with --apply (and ensure credentials are set).

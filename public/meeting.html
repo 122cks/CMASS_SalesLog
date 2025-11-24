@@ -204,6 +204,7 @@
             // Also store canonical single-key 'subject' (array-normalized) for unified schema
             try{ obj.subject = Array.isArray(obj.subjects) ? obj.subjects.slice() : (obj.subjects ? [obj.subjects] : []); }catch(e){ obj.subject = (obj.subjects || []); }
             obj.activities = collectActiveText('#activities','subject-btn');
+            obj.materials = collectActiveText('#materials','subject-btn');
             obj.favor = getSingleActive('#favorBtns','favor-btn');
             obj.teacherName = (qs('teacherName') && qs('teacherName').value) || '';
             obj.publisher = (qs('publisher') && qs('publisher').value) || '';
@@ -377,7 +378,7 @@
         function clearMeetingContents(){
           try{
             // remove active state from subject/activity/favor buttons
-            ['#subjects','#activities','#favorBtns'].forEach(sel=>{
+            ['#subjects','#activities','#materials','#favorBtns'].forEach(sel=>{
               try{
                 const container = document.querySelector(sel);
                 if (!container) return;
@@ -604,37 +605,7 @@
           <button type="button" class="subject-btn subject-other">기타</button>
         </div>
 
-        <label style="margin-top:8px">영업활동 (버튼형)</label>
-        <div id="activities" class="btn-row">
-          <button type="button" class="subject-btn">명함인사</button>
-          <button type="button" class="subject-btn">달력증정</button>  
-          <button type="button" class="subject-btn">티칭샘소개</button>
-          <button type="button" class="subject-btn">카톡방소개</button>
-          <button type="button" class="subject-btn">포스터전달</button>
-          <button type="button" class="subject-btn">브로슈어</button>
-          <button type="button" class="subject-btn">가이드북</button>
-          <button type="button" class="subject-btn">단행본안내</button>  
-          <button type="button" class="subject-btn">단행본증정</button>
-          <button type="button" class="subject-btn">워크북안내</button>
-          <button type="button" class="subject-btn">워크북증정</button>
-          <button type="button" class="subject-btn">교구재안내</button>
-          <button type="button" class="subject-btn">연수안내</button>
-          <button type="button" class="subject-btn subject-sky">AIDT사용경험有</button>  
-          <button type="button" class="subject-btn subject-sky">AIDT체험신청</button>
-          <button type="button" class="subject-btn subject-sky">구글클래스룸</button>
-          <button type="button" class="subject-btn subject-sky">하이러닝</button>
-          <button type="button" class="subject-btn subject-danger">부재중</button>
-          <button type="button" class="subject-btn subject-danger">미팅불가</button>
-          <button type="button" class="subject-btn subject-danger">자료거부</button>
-        </div>
-
-        <label style="margin-top:8px">우호도</label>
-        <div id="favorBtns" class="btn-row">
-          <button type="button" class="favor-btn">반응좋음</button>
-          <button type="button" class="favor-btn">반응보통</button>
-          <button type="button" class="favor-btn">반응나쁨</button>
-        </div>
-
+        <!-- 선생님/출판사, 연락처 영역을 과목 선택과 영업활동 사이로 이동 -->
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
           <input id="teacherName" type="text" placeholder="선생님 이름" style="flex:1">
           <input id="publisher" type="text" list="publishersList" placeholder="출판사" style="flex:0 0 140px">
@@ -665,6 +636,52 @@
         <div class="row">
           <input id="phone" type="tel" placeholder="전화번호">
           <input id="email" type="email" placeholder="이메일">
+        </div>
+
+        <label style="margin-top:8px">영업활동 (버튼형)</label>
+        <div id="activities" class="btn-row">
+          <button type="button" class="subject-btn">명함인사</button>
+          <button type="button" class="subject-btn">달력증정</button>  
+          <button type="button" class="subject-btn">티칭샘소개</button>
+          <button type="button" class="subject-btn">카톡방소개</button>
+          <button type="button" class="subject-btn">포스터전달</button>
+          <button type="button" class="subject-btn">브로슈어</button>
+          <button type="button" class="subject-btn">가이드북</button>
+          <button type="button" class="subject-btn">단행본안내</button>  
+          <button type="button" class="subject-btn">단행본증정</button>
+          <button type="button" class="subject-btn">워크북안내</button>
+          <button type="button" class="subject-btn">워크북증정</button>
+          <button type="button" class="subject-btn">교구재안내</button>
+          <button type="button" class="subject-btn">연수안내</button>
+          <button type="button" class="subject-btn subject-sky">AIDT사용경험有</button>  
+          <button type="button" class="subject-btn subject-sky">AIDT체험신청</button>
+          <button type="button" class="subject-btn subject-sky">구글클래스룸</button>
+          <button type="button" class="subject-btn subject-sky">하이러닝</button>
+          <button type="button" class="subject-btn subject-danger">부재중</button>
+          <button type="button" class="subject-btn subject-danger">미팅불가</button>
+          <button type="button" class="subject-btn subject-danger">자료거부</button>
+        </div>
+
+        <label style="margin-top:8px">전달자료 (버튼형)</label>
+        <div id="materials" class="btn-row">
+          <button type="button" class="subject-btn">구글시트브로셔</button>
+          <button type="button" class="subject-btn">정보단행본브로셔</button>
+          <button type="button" class="subject-btn">진로브로셔</button>
+          <button type="button" class="subject-btn">교과서샘플활동북</button>
+          <button type="button" class="subject-btn">교과서샘플워크북</button>
+          <button type="button" class="subject-btn">연수안내브로셔</button>
+          <button type="button" class="subject-btn">AIDT브로셔</button>
+          <button type="button" class="subject-btn">AIDT활용가이드북</button>
+          <button type="button" class="subject-btn">포스터</button>
+          <button type="button" class="subject-btn">평가문제집</button>
+          <button type="button" class="subject-btn">수업자료프린트물</button>
+        </div>
+
+        <label style="margin-top:8px">우호도</label>
+        <div id="favorBtns" class="btn-row">
+          <button type="button" class="favor-btn">반응좋음</button>
+          <button type="button" class="favor-btn">반응보통</button>
+          <button type="button" class="favor-btn">반응나쁨</button>
         </div>
 
         <label style="margin-top:8px">고객요청사항</label>
@@ -1036,29 +1053,26 @@
             btn.addEventListener('pointerdown', function(ev){
               try{
                 if (ev.button !== 0) return;
-                ev.preventDefault(); ev.stopPropagation();
 
-                // favor buttons: single-select within parent
-                if (btn.classList.contains('favor-btn')){
-                  const parent = btn.parentElement || document;
-                  Array.from(parent.querySelectorAll('.favor-btn')).forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
-                  btn.classList.add('active'); btn.setAttribute('aria-pressed','true');
-                  try{ btn.__cmass_ptr_handled = true; setTimeout(()=>{ try{ btn.__cmass_ptr_handled = false; }catch(e){} }, 50); }catch(e){}
-                  return;
-                }
+                // If this button belongs to activities, materials, or is a favor
+                // button, skip per-button pointer handling so the delegated
+                // click handlers can manage toggles. Doing this check before
+                // calling preventDefault prevents blocking the subsequent
+                // click event that those handlers rely on.
+                const act = btn.closest && btn.closest('#activities');
+                const mat = btn.closest && btn.closest('#materials');
+                const isFavor = btn.classList && btn.classList.contains('favor-btn');
+                if (act || mat || isFavor){ return; }
+
+                // prevent default only for buttons we intend to handle here
+                ev.preventDefault(); ev.stopPropagation();
 
                 // subjects: toggle multi-select (allow selecting multiple subjects)
                 const subj = btn.closest && btn.closest('#subjects');
                 if (subj){
                   const now = btn.classList.toggle('active');
                   btn.setAttribute('aria-pressed', String(!!now));
-                  return;
-                }
-
-                // activities list: toggle multi-select
-                const act = btn.closest && btn.closest('#activities');
-                if (act){
-                  const now = btn.classList.toggle('active'); btn.setAttribute('aria-pressed', String(!!now));
+                  try{ btn.__cmass_ptr_handled = true; }catch(e){}
                   return;
                 }
 
@@ -1069,11 +1083,12 @@
                   btn.classList.add('active'); btn.setAttribute('aria-pressed','true');
                   const hidden = document.getElementById('duration'); if (hidden) { hidden.value = btn.getAttribute('data-min') || ''; hidden.dispatchEvent(new Event('change',{bubbles:true})); }
                   try{ if (typeof window._cmass_computeEndTime === 'function') window._cmass_computeEndTime(); }catch(e){}
+                  try{ btn.__cmass_ptr_handled = true; }catch(e){}
                   return;
                 }
 
                 // fallback for any other subject-like buttons
-                if (btn.classList.contains('subject-btn')){ const now = btn.classList.toggle('active'); btn.setAttribute('aria-pressed', String(!!now)); }
+                if (btn.classList.contains('subject-btn')){ const now = btn.classList.toggle('active'); btn.setAttribute('aria-pressed', String(!!now)); try{ btn.__cmass_ptr_handled = true; }catch(e){} }
               }catch(e){ /* tolerate */ }
             }, true);
 

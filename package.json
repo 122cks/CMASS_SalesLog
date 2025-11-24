@@ -1,0 +1,40 @@
+{
+  "name": "cmass-sales-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CMASS Sales system - E2E test harness",
+  "scripts": {
+    "test:e2e": "npx playwright test",
+    "test:populate": "node tests/run_populate_test.js",
+    "test:report-screenshot": "node tests/run_report_screenshot.js"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "^8.0.0",
+    "acorn": "^8.15.0",
+    "firebase-admin": "^13.6.0",
+    "jsdom": "^22.1.0",
+    "minimist": "^1.2.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "playwright": "^1.56.1",
+    "puppeteer": "^24.29.1"
+  },
+  "main": "csv_helpers_live.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/122cks/CMASS_SalesLog.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/122cks/CMASS_SalesLog/issues"
+  },
+  "homepage": "https://github.com/122cks/CMASS_SalesLog#readme"
+}

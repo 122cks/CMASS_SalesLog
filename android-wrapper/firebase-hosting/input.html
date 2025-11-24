@@ -1,0 +1,186 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>?곸뾽?쇱? ?낅젰</title>
+  <!-- papaparse loader: prefer local bundled copy under assets/libs/, fallback to CDN -->
+  <script src="libs/papaparse-loader.js"></script>
+  <style>
+    /* Minimal styles copied from canonical source for consistent layout */
+    body{font-family: 'Segoe UI', Arial, sans-serif; background:#f5f6fa;margin:0;padding:16px;color:#10213a}
+    h1{font-size:1.6rem;color:#0b2b5a}
+    form{background:#fff;padding:16px;border-radius:12px;max-width:820px;margin:8px auto;box-shadow:0 10px 30px rgba(14,30,80,0.06)}
+    label{display:block;font-weight:700;margin:10px 0 6px}
+    input, select, textarea, button{font-size:1rem}
+    input, select, textarea{width:100%;padding:10px;border:1px solid #d6dbe8;border-radius:8px;box-sizing:border-box}
+    .btn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+    .grid-button{padding:12px;border-radius:10px;border:1px solid #dfe7ff;background:#fff;cursor:pointer}
+    .grid-button.selected{background:#0b2b5a;color:#fff;border-color:#071a36}
+    .subjects{display:flex;flex-wrap:wrap;gap:8px}
+    .subject-btn{padding:10px 12px;border-radius:10px;border:1px solid #d6dbe8;background:#eef3ff;cursor:pointer}
+    #generatedSummary{width:100%;padding:12px;border-radius:8px;border:1px solid #d6dbe8;min-height:140px}
+    /* landscape overlay styles */
+    #cmass-landscape-overlay{display:none;position:fixed;inset:0;align-items:center;justify-content:center;z-index:9999}
+    #cmass-landscape-overlay .cmass-overlay-dim{position:absolute;inset:0;background:rgba(3,10,24,0.72)}
+    #cmass-landscape-overlay .cmass-overlay-card{position:relative;z-index:10000;background:#0b2746;color:#fff;padding:28px;border-radius:14px;max-width:720px;width:94%;box-shadow:0 24px 60px rgba(2,6,23,0.6);text-align:center}
+    #cmass-landscape-overlay .cmass-overlay-card h3{margin:0 0 10px;font-size:1.6rem}
+    #cmass-landscape-overlay .cmass-overlay-card p{margin:0;color:rgba(255,255,255,0.9)}
+  </style>
+</head>
+<body>
+  <!-- landscape overlay -->
+  <div id="cmass-landscape-overlay" aria-hidden="true">
+    <div class="cmass-overlay-dim" aria-hidden="true"></div>
+    <div class="cmass-overlay-card" role="dialog" aria-modal="true">
+      <h3>세로 모드에서만 사용하세요</h3>
+      <p>기기를 세로로 돌려주세요. 화면을 가로로 돌리는 동안 입력이 사라지는 문제를 막기 위해 잠시 사용을 제한합니다.</p>
+      <div style="margin-top:12px;text-align:center">
+        <button id="cmass-overlay-lock-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px;margin-right:8px">세로로 전환</button>
+        <button id="cmass-overlay-retry-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px">다시 시도</button>
+        <div style="margin-top:8px;font-size:12px;opacity:0.95;color:#eef">(버튼을 누르면 가능하면 화면을 세로로 고정합니다)</div>
+      </div>
+    </div>
+  </div>
+  <h1>?곸뾽?쇱? ?낅젰 (?깆슜 ?섑띁)</h1>
+  <!-- PIN overlay logic: matches canonical behavior -->
+  <div id="pinOverlay" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);z-index:9999">
+    <div style="background:#fff;padding:20px;border-radius:10px;max-width:360px;width:90%">
+      <div style="font-weight:900;font-size:1.05rem;margin-bottom:8px">PIN ?낅젰</div>
+      <input id="pinInput" placeholder="4-digit PIN" maxlength="4" style="width:100%;padding:10px;font-size:1.05rem;border-radius:8px;border:1px solid #d6dbe8">
+      <div style="display:flex;gap:8px;margin-top:10px"><button id="pinProceed" style="flex:1;padding:10px;background:#1e3c72;color:#fff;border:none;border-radius:8px">?낆옣</button><button id="pinCancel" style="flex:1;padding:10px;background:#f2f3f8;border:none;border-radius:8px">痍⑥냼</button></div>
+    </div>
+  </div>
+
+  <form id="mainForm">
+  <label for="visitDate">諛⑸Ц??/label>
+  <input type="date" id="visitDate">
+
+    <label>吏??/label>
+    <div id="regionButtons" class="btn-grid"></div>
+
+    <label>?숆탳</label>
+    <div id="schoolButtons" class="btn-grid"></div>
+
+    <label>諛⑸Ц 怨쇰ぉ/?좎깮??/label>
+    <div id="subjectsContainer"></div>
+    <button type="button" id="addSubjectBtn" style="margin-top:8px;padding:10px;border-radius:8px;border:1px solid #d6dbe8;background:#eef3ff;">怨쇰ぉ異붽?</button>
+
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="optHumanLine" checked>?쒓? ?쇱씤</label>
+      <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="optHashtags">?댁떆?쒓렇 ?ы븿</label>
+      <label style="display:flex;align-items:center;gap:8px">理쒕??쒓렇??<input id="optMaxTags" type="number" value="8" min="1" max="20" style="width:60px;margin-left:6px"></label>
+    </div>
+
+    <div style="margin-top:12px">
+      <button type="button" id="copyKakaoBtn" style="padding:10px;border-radius:8px;background:#ffd39f;border:none;color:#7a3f00">移댁뭅??蹂듭궗</button>
+      <button type="button" id="saveToServerBtn" style="margin-left:8px;padding:10px;border-radius:8px;background:#e9f4ff;border:none;color:#0b3a72">?쒕쾭???/button>
+    </div>
+
+    <label style="margin-top:12px">?앹꽦 ?붿빟</label>
+    <textarea id="generatedSummary" readonly></textarea>
+  </form>
+
+  <script>
+    // Minimal canonical JS features: PIN flow, manualSummaryEdited protection, Jamo-aware search stubs, auto-tagging stub.
+
+    // PIN handling: client validates with server via /api/pin-check; session stored in sessionStorage
+    const pinOverlay = document.getElementById('pinOverlay');
+    const pinInput = document.getElementById('pinInput');
+    const pinProceed = document.getElementById('pinProceed');
+    const pinCancel = document.getElementById('pinCancel');
+
+    function hidePin() { pinOverlay.style.display='none'; sessionStorage.cmass_pin_authenticated = '1'; }
+    function showPin() { pinOverlay.style.display='flex'; }
+    if (sessionStorage.cmass_pin_authenticated === '1') hidePin(); else showPin();
+
+    pinProceed.addEventListener('click', async ()=>{
+      const pin = pinInput.value.trim();
+      // very small client POST to /api/pin-check; fallback URL list may be handled by canonical
+      try{
+        const resp = await fetch('/api/pin-check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({staff:'unknown',pin})});
+        const j = await resp.json();
+        if (j && j.ok) { hidePin(); } else { alert('PIN???щ컮瑜댁? ?딆뒿?덈떎.'); }
+      }catch(e){ alert('?쒕쾭 ?뺤씤 ?ㅽ뙣: '+e.message); }
+    });
+
+    pinCancel.addEventListener('click', ()=>{ alert('???ъ슜???꾪빐 PIN???꾩슂?⑸땲??'); });
+
+    // manualSummaryEdited protection: if user edits summary, future regenerations should append instead of overwrite
+    const generatedSummary = document.getElementById('generatedSummary');
+    let manualSummaryEdited = false; let _suppressSummaryInputHandler = false;
+    generatedSummary.addEventListener('input', ()=>{ if (_suppressSummaryInputHandler) return; manualSummaryEdited = true; });
+
+    function writeGeneratedSummary(text, opts = { replace:false }){
+      if (manualSummaryEdited && !opts.replace){
+        // append instead of replace
+        _suppressSummaryInputHandler = true;
+        generatedSummary.value = generatedSummary.value + '\n\n' + text;
+        _suppressSummaryInputHandler = false;
+      } else {
+        _suppressSummaryInputHandler = true;
+        generatedSummary.value = text;
+        _suppressSummaryInputHandler = false;
+        manualSummaryEdited = false;
+      }
+    }
+
+    // simplified Jamo-aware search helpers (placeholders matching canonical API)
+    function hangulToJamoKey(s){
+      // real implementation exists in canonical file; this is a stub for wrapper
+      return s.normalize('NFD').replace(/\p{M}/gu,'');
+    }
+
+    // auto-tag generation stub; canonical buildAutoTags is more advanced
+    function buildAutoTags(visits, maxTags){
+      const tags = new Map();
+      visits.forEach(v=>{ (v.teacher||'').split(/\s+/).forEach(t=>{ if(!t) return; tags.set('#'+t, (tags.get('#'+t)||0)+1); }); });
+      return Array.from(tags.entries()).sort((a,b)=>b[1]-a[1]).slice(0,maxTags).map(x=>x[0]);
+    }
+
+    // sample: regenerate summary from hypothetical visits list
+    document.getElementById('copyKakaoBtn').addEventListener('click', ()=>{
+      const visits = [{region:'吏?쵡', school:'?숆탳A', teacher:'源?좎깮', subject:'?뺣낫', minutes:60}];
+      const tags = buildAutoTags(visits, parseInt(document.getElementById('optMaxTags').value||8,10));
+      const humanLine = document.getElementById('optHumanLine').checked;
+      const hashtags = document.getElementById('optHashtags').checked;
+      let text = visits.map(v=> (humanLine?`${v.school} ${v.teacher} ${v.subject} ${v.minutes}遺?:`${v.school} ${v.subject}`)).join('\n');
+      if (hashtags && tags.length) text += '\n\n' + tags.join(' ');
+      writeGeneratedSummary(text, {replace: false});
+      navigator.clipboard.writeText(generatedSummary.value).then(()=>alert('?댁슜???대┰蹂대뱶??蹂듭궗?섏뿀?듬땲??'));
+    });
+
+    // saving to server (POST /api/visits) ??canonical does more robust error handling
+    document.getElementById('saveToServerBtn').addEventListener('click', async ()=>{
+      const payload = { date: document.getElementById('visitDate').value, summary: generatedSummary.value };
+      try{
+        const r = await fetch('/api/visits',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        const j = await r.json(); if (j && j.ok) alert('?쒕쾭 ????꾨즺'); else alert('????ㅽ뙣');
+      }catch(e){ alert('???以??ㅻ쪟: '+e.message); }
+    });
+
+    // Populate region and school grids using sample CSV (canonical reads sales_staff.csv)
+    (function buildSampleGrids(){
+      const regions = ['?쒖슱','寃쎄린','?몄쿇','???,'遺??,'?援?];
+      const regionButtons = document.getElementById('regionButtons');
+      regions.forEach(r=>{ const b=document.createElement('button'); b.className='grid-button'; b.textContent=r; b.addEventListener('click',()=>{ document.querySelectorAll('#regionButtons .grid-button').forEach(x=>x.classList.remove('selected')); b.classList.add('selected'); }); regionButtons.appendChild(b); });
+      const schools = ['媛?뚯큹?깊븰援?,'?ㅼ넄以묓븰援?,'?⑤늻由ш퀬?깊븰援?,'?섑뫖瑜멸퀬?깊븰援?,'臾댁?媛쒖큹'];
+      const schoolButtons = document.getElementById('schoolButtons');
+      schools.forEach(s=>{ const b=document.createElement('button'); b.className='grid-button'; b.textContent=s; b.addEventListener('click',()=>{ document.querySelectorAll('#schoolButtons .grid-button').forEach(x=>x.classList.remove('selected')); b.classList.add('selected'); }); schoolButtons.appendChild(b); });
+    })();
+
+    // Orientation handler: show landscape overlay when viewport is landscape
+    (function(){
+      const overlay = document.getElementById('cmass-landscape-overlay');
+      const lockBtn = document.getElementById('cmass-overlay-lock-btn');
+      const retryBtn = document.getElementById('cmass-overlay-retry-btn');
+      function updateOverlay(){ if(!overlay) return; const isLandscape = window.innerWidth > window.innerHeight; overlay.style.display = isLandscape ? 'flex' : 'none'; overlay.setAttribute('aria-hidden', (!isLandscape).toString()); }
+      try{ window.addEventListener('resize', updateOverlay); }catch(e){}
+      try{ window.addEventListener('orientationchange', updateOverlay); }catch(e){}
+      try{ document.addEventListener('DOMContentLoaded', updateOverlay); }catch(e){}
+      if (lockBtn) lockBtn.addEventListener('click', async ()=>{ try{ if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('portrait'); }catch(e){console.warn('orientation lock failed',e);} updateOverlay(); });
+      if (retryBtn) retryBtn.addEventListener('click', updateOverlay);
+    })();
+
+  </script>
+</body>

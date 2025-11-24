@@ -1,0 +1,14 @@
+{
+  "packageId": "com.example.cmass_saleslog",
+  "host": "cmass-sales.web.app",
+  "name": "CMASS SalesLog",
+  "launcherName": "SalesLog",
+  "startUrl": "/front.html?user=",
+  "display": "standalone",
+  "themeColor": "#1e3c72",
+  "backgroundColor": "#ffffff",
+  "icons": {
+    "192": "/icons/icon-192.png",
+    "512": "/icons/icon-512.png"
+  }
+}

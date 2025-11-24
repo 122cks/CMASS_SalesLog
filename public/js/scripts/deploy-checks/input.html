@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Input - 영업일지</title>
+  <link rel="manifest" href="/manifest.json">
+  <script src="js/silence-console.js"></script>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Noto Sans KR',sans-serif;margin:18px;color:#072042}
+    header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+    .topline{font-weight:800}
+    label{display:block;margin-top:10px;font-weight:700}
+    input,select,textarea,button{font-size:14px;padding:8px;border:1px solid #d6dbe8;border-radius:8px}
+    .row{display:flex;gap:8px;align-items:center}
+    .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+    .subject-btn{padding:8px 12px;border-radius:10px;border:1px solid #d6dbe8;background:#fff;cursor:pointer}
+    .subject-btn.active{background:linear-gradient(135deg,#1e3c72,#274b9f);color:#fff;border-color:#1e3c72}
+    .muted{color:#556}
+    .small{font-size:13px}
+  </style>
+</head>
+<body>
+  <script>
+    // defensive no-op stubs
+    if (!window.generateSummary) window.generateSummary = function(){ return ''; };
+    if (!window.copyToKakao) window.copyToKakao = function(){ alert('카카오복사 준비되지 않음'); };
+    console.log('[CMASS input.html] script loaded (index.html copy)');
+  </script>
+
+  <header>
+    <h1 class="topline">방문기록 생성</h1>
+  </header>
+
+  <main>
+    <section>
+      <label>담당자</label>
+      <select id="staff">
+        <option value="">담당자 선택...</option>
+        <option value="songhoonjae">송훈재</option>
+        <option value="imjunho">임준호</option>
+        <option value="joyounghwan">조영환</option>
+      </select>
+
+      <label>방문일</label>
+      <input id="visitDate" type="date">
+
+      <label>메모 (간단)</label>
+      <textarea id="notes" rows="4" style="width:100%"></textarea>
+
+      <div style="margin-top:12px">
+        <button id="btnNext">다음 (미팅 입력으로)</button>
+      </div>
+      <label>학교 선택</label>
+      <div class="row" style="align-items:flex-start;gap:8px">
+        <select id="schoolSelect" style="min-width:260px">
+          <option value="">학교 선택...</option>
+        </select>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="btnShowOrder" class="subject-btn">주문현황</button>
+        </div>
+      </div>
+
+      <div id="schoolCard" style="margin-top:12px;display:none;padding:12px;border-radius:10px;background:#f8fbff;border:1px solid #e2eaf6;color:#072042;max-width:720px">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="font-weight:800;font-size:1.05rem" id="sc_name">학교명</div>
+          <div style="margin-left:auto;color:#556" id="sc_type">급: -</div>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:10px">
+          <div style="flex:1">1학년: <strong id="sc_g1c">-</strong> 학급 / <strong id="sc_g1s">-</strong> 학생</div>
+          <div style="flex:1">2학년: <strong id="sc_g2c">-</strong> 학급 / <strong id="sc_g2s">-</strong> 학생</div>
+          <div style="flex:1">3학년: <strong id="sc_g3c">-</strong> 학급 / <strong id="sc_g3s">-</strong> 학생</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/csv-helpers.js" defer></script>
+  <script>
+    // CSV helper fallback wrapper — if the shared csv-helpers.js isn't available or
+    // fetchCsvRows wasn't defined, try direct fetching of /sales_staff.csv and parsing it.
+    (function(){
+      function parseCsvText(text){
+        const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+        if (!lines.length) return [];
+        const splitLine = line => line.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c=>{ let t=c||''; t=t.trim(); if (t.startsWith('"') && t.endsWith('"')) t=t.slice(1,-1).replace(/""/g,'"'); return t; });
+        const rows = lines.map(splitLine);
+        return rows;
+      }
+
+      async function tryDirectCsvFetch(){
+        try{
+          console.log('[CSV-Fallback] trying direct fetch /sales_staff.csv');
+          const r = await fetch('/sales_staff.csv', { cache: 'no-store' });
+          if (!r.ok) { console.warn('[CSV-Fallback] fetch responded', r.status); return []; }
+          const txt = await r.text();
+          const rows = parseCsvText(txt);
+          console.log('[CSV-Fallback] parsed rows count=', rows.length);
+          return rows;
+        }catch(e){ console.warn('[CSV-Fallback] fetch error', e); return []; }
+      }
+
+      // If the page loaded before csv-helpers, install a temporary implementation
+      if (typeof window.fetchCsvRows !== 'function'){
+        window.fetchCsvRows = async function(){
+          // Try to wait briefly for shared helpers to register
+          for (let i=0;i<6;i++){ if (typeof window.fetchCsvRows === 'function' && window.fetchCsvRows !== arguments.callee) break; await new Promise(r=>setTimeout(r,120)); }
+          if (typeof window.fetchCsvRows === 'function' && window.fetchCsvRows !== arguments.callee){
+            try{ return await window.fetchCsvRows(); }catch(e){}
+          }
+          // fallback to direct fetch parse
+          const rows = await tryDirectCsvFetch();
+          if (!rows || rows.length < 2) { console.warn('[CSV-Fallback] no rows parsed'); }
+          return rows;
+        };
+      }
+    })();
+
+    (function(){
+      // read staff query param and pre-fill staff select, then go to meeting
+      try{
+        const params = new URLSearchParams(location.search);
+        const staffParam = params.get('staff');
+        if (staffParam){
+          const sl = document.getElementById('staff');
+          try{ sl.value = staffParam; }catch(e){}
+        }
+      }catch(e){}
+
+      document.getElementById('btnNext').addEventListener('click', function(){
+        try{
+          const staffEl = document.getElementById('staff');
+          const dateEl = document.getElementById('visitDate');
+          const token = staffEl && staffEl.value ? staffEl.value : '';
+          const label = staffEl && staffEl.options && staffEl.selectedIndex >=0 ? staffEl.options[staffEl.selectedIndex].text : '';
+          const date = dateEl && dateEl.value ? dateEl.value : '';
+          try{ if (window.sessionStorage){ if (token) sessionStorage.setItem('cmass:next_staff_token', token); if (label) sessionStorage.setItem('cmass:next_staff_label', label); if (date) sessionStorage.setItem('cmass:next_visitDate', date); } }catch(e){}
+          const q = token ? ('?staff='+encodeURIComponent(token)) : '';
+          window.location.href = '/meeting' + q;
+        }catch(e){ window.location.href = '/meeting'; }
+      }, true);
+
+      // Populate school select from sales_staff.csv and hook 주문현황 button
+      (async function populateSchools(){
+        try{
+          const rows = await window.fetchCsvRows();
+          if(!rows || rows.length < 2) return;
+          const header = rows[0];
+          const data = rows.slice(1);
+          // detect code/name indices
+          function idxMatch(patterns){ for(let i=0;i<header.length;i++){ const h = (header[i]||'').toString(); for(const p of patterns){ if(new RegExp(p,'i').test(h)) return i; } } return -1 }
+          const codeIdx = idxMatch(['정보공시학교코드','학교코드','school[_ ]?code','schoolid','code']);
+          const nameIdx = idxMatch(['학교명','학교','school_name','school']);
+          const g1cIdx = idxMatch(['1학년학급수','1학년.*학급','g1_classes','1학년_학급수']);
+          const g1sIdx = idxMatch(['1학년학생수','1학년.*학생','g1_students','1학년_학생수']);
+          const g2cIdx = idxMatch(['2학년학급수','2학년.*학급','g2_classes']);
+          const g2sIdx = idxMatch(['2학년학생수','2학년.*학생','g2_students']);
+          const g3cIdx = idxMatch(['3학년학급수','3학년.*학급','g3_classes']);
+          const g3sIdx = idxMatch(['3학년학생수','3학년.*학생','g3_students']);
+
+          const sel = document.getElementById('schoolSelect');
+          data.forEach(cols=>{
+            const code = (codeIdx>=0 && codeIdx<cols.length) ? cols[codeIdx].trim() : '';
+            const name = (nameIdx>=0 && nameIdx<cols.length) ? cols[nameIdx].trim() : (code||'');
+            if(!code && !name) return;
+            const opt = document.createElement('option'); opt.value = code || name; opt.textContent = name + (code? (' ('+code+')') : ''); sel.appendChild(opt);
+          });
+
+          sel.addEventListener('change', function(){
+            const v = sel.value;
+            if(!v){ document.getElementById('schoolCard').style.display='none'; return; }
+            // find row
+            const row = data.find(cols=>{ const c = (codeIdx>=0?cols[codeIdx].trim():''); return c === v || cols[(nameIdx>=0?nameIdx:0)].trim() === v });
+            if(!row){ document.getElementById('schoolCard').style.display='none'; return; }
+            const name = row[nameIdx] || row[0] || '';
+            document.getElementById('sc_name').textContent = name;
+            document.getElementById('sc_g1c').textContent = (g1cIdx>=0? row[g1cIdx] : '-') || '-';
+            document.getElementById('sc_g1s').textContent = (g1sIdx>=0? row[g1sIdx] : '-') || '-';
+            document.getElementById('sc_g2c').textContent = (g2cIdx>=0? row[g2cIdx] : '-') || '-';
+            document.getElementById('sc_g2s').textContent = (g2sIdx>=0? row[g2sIdx] : '-') || '-';
+            document.getElementById('sc_g3c').textContent = (g3cIdx>=0? row[g3cIdx] : '-') || '-';
+            document.getElementById('sc_g3s').textContent = (g3sIdx>=0? row[g3sIdx] : '-') || '-';
+            document.getElementById('schoolCard').style.display='block';
+          });
+
+          document.getElementById('btnShowOrder').addEventListener('click', function(){
+            const v = sel.value; if(!v) return alert('학교를 선택하세요.');
+            // navigate to /order with school code param
+            const code = encodeURIComponent(v);
+            window.location.href = '/order?school=' + code;
+          });
+
+        }catch(e){ console.warn('populateSchools failed', e); }
+      })();
+    })();
+  </script>
+</body>
+</html>
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Redirecting…</title>
+  <meta http-equiv="refresh" content="0">
+  <script>
+    // Preserve query string and hash when redirecting to the canonical input.html
+    (function(){
+      try {
+        var qs = window.location.search || '';
+        var hash = window.location.hash || '';
+        // Use replace so back button doesn't create extra history entry
+        window.location.replace('/input.html' + qs + hash);
+      } catch(e) {
+        // As a fallback, navigate to input.html without params
+        try { window.location.replace('/input.html'); } catch(_) {}
+      }
+    })();
+  </script>
+</head>
+<body>
+  <noscript>
+    <p>Redirecting to <a href="/input.html">/input.html</a>. If the query string is important, append it manually to the link.</p>
+  </noscript>
+</body>
+</html>

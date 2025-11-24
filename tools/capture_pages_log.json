@@ -1,0 +1,127 @@
+[
+  {
+    "page": "index",
+    "url": "https://cmass-sales.web.app/",
+    "status": 200
+  },
+  {
+    "page": "index",
+    "screenshot": "tools/screenshots/index.png",
+    "html": "tools/screenshots/index.html"
+  },
+  {
+    "type": "console",
+    "text": "initFirebaseAndLoadLogs error FirebaseError: Missing or insufficient permissions."
+  },
+  {
+    "page": "front",
+    "url": "https://cmass-sales.web.app/front",
+    "error": "page.goto: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"https://cmass-sales.web.app/front\", waiting until \"networkidle\"\u001b[22m\n"
+  },
+  {
+    "type": "console",
+    "text": "[collectFormData.js] Loaded"
+  },
+  {
+    "type": "console",
+    "text": "[Firebase] Initialized successfully"
+  },
+  {
+    "type": "console",
+    "text": "[fetchCsvRows] 시작"
+  },
+  {
+    "type": "console",
+    "text": "[fetchCsvRows] 후보 파일: [/sales_staff.csv, /sales_staff.deployed.csv, /sales_staff_live.csv]"
+  },
+  {
+    "type": "console",
+    "text": "[fetchCsvRows] 시도: /sales_staff.csv"
+  },
+  {
+    "type": "console",
+    "text": "[Buttons] copyKakaoBtn handler attached"
+  },
+  {
+    "type": "console",
+    "text": "[Buttons] generateSummaryBtn handler attached"
+  },
+  {
+    "type": "console",
+    "text": "[Buttons] summaryRegenerateBtn handler attached"
+  },
+  {
+    "type": "console",
+    "text": "[Firestore] Save button handler attached"
+  },
+  {
+    "type": "console",
+    "text": "[Firestore] Save button handler attached"
+  },
+  {
+    "type": "console",
+    "text": "[fetchCsvRows] /sales_staff.csv fetch 결과: true"
+  },
+  {
+    "type": "console",
+    "text": "[fetchCsvRows] /sales_staff.csv content-type: text/csv; charset=utf-8"
+  },
+  {
+    "type": "console",
+    "text": "[fetchCsvRows] /sales_staff.csv text 길이: 292309 trim 후: 292308"
+  },
+  {
+    "type": "console",
+    "text": "[fetchCsvRows] /sales_staff.csv parseCsv 호출 전..."
+  },
+  {
+    "type": "console",
+    "text": "[fetchCsvRows] /sales_staff.csv parseCsv 결과: 2159행"
+  },
+  {
+    "type": "console",
+    "text": "[fetchCsvRows] ✅ 성공! /sales_staff.csv - 총 2159 행 파싱됨"
+  },
+  {
+    "type": "console",
+    "text": "[fetchCsvRows] 첫 3행: [Array(35), Array(35), Array(35)]"
+  },
+  {
+    "page": "input",
+    "url": "https://cmass-sales.web.app/input",
+    "status": 200
+  },
+  {
+    "page": "input",
+    "screenshot": "tools/screenshots/input.png",
+    "html": "tools/screenshots/input.html"
+  },
+  {
+    "type": "console",
+    "text": "Failed to load resource: the server responded with a status of 404 ()"
+  },
+  {
+    "page": "meeting",
+    "url": "https://cmass-sales.web.app/meeting",
+    "status": 404
+  },
+  {
+    "page": "meeting",
+    "screenshot": "tools/screenshots/meeting.png",
+    "html": "tools/screenshots/meeting.html"
+  },
+  {
+    "type": "console",
+    "text": "Failed to load resource: the server responded with a status of 404 ()"
+  },
+  {
+    "page": "report",
+    "url": "https://cmass-sales.web.app/report",
+    "status": 404
+  },
+  {
+    "page": "report",
+    "screenshot": "tools/screenshots/report.png",
+    "html": "tools/screenshots/report.html"
+  }
+]

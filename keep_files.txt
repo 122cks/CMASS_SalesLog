@@ -1,0 +1,40 @@
+# keep_files.txt
+# Edit this file to list the exact files and directories under `public/` that must remain for Firebase Hosting.
+# Each line is a path relative to the repository root. Lines starting with '#' are comments and ignored by the prune script.
+# After editing, run the provided prune script (dry-run first) or paste `public_file_list.txt` here and I will compute a precise keep list.
+
+# Core hosting pages (required by firebase.json rewrites)
+public/index.html
+public/meeting.html
+public/input.html
+public/front.html
+public/report.html
+
+# Client-side scripts referenced in HTML
+public/meeting.js
+public/report.js
+public/collectFormData.js
+public/csv-helpers.js
+public/neis_grid.js
+
+# PWA / manifest
+public/manifest.json
+# icons referenced by manifest (if used) — update names if different
+public/icon-192.png
+public/icon-512.png
+public/favicon.ico
+
+# Data directories and CSVs fetched by client code (keep directories or specific files)
+public/school_meta/
+public/school_mappings/
+public/mappings/
+public/sales_staff.csv
+
+# Test / dev pages (optional — remove if you don't need them in hosting)
+public/test_draft_preview.html
+
+# Additional static assets your pages reference (images/fonts/css). Add any you need below, one per line.
+# public/assets/logo.png
+# public/fonts/YourFont.woff2
+
+# End of template. Remove or comment any entries that don't exist in your public/ directory.

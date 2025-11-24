@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "cmass-sales",
+  "private_key_id": "dabccd916a67ca290954efcaf47f540382199ab3",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCfRLX3R3IOQx79\nGvGbPcUQwWVImf9NuBgga5FT7z4ffLwySlj8R8NYh9ZRsVdpEwjBJF/oPvv6iT7O\nwuXT2IzXo+x3Vscw1q/lwsmI0uRfYUJOTdT4zIv9Hp2N3N5QYPMY3btzXmJpaWm2\npv5u3E3etrcR6BBDBNrdodldZP6zYpyYs/TUbAYl6eMDYb1BZm/BwWuQrLbp1l2Z\n+sl4NcAAaFxmsmamOgdN1oU2gya9kUhtXBp6uRmJ3aVBgYVKFFWKxoIsCboN1wfd\nt7Z6Ghomy80jaV55NHVae7zxYFzkhoW9xo0sEGTPMWVCXM3Y2SOB+Xw/hq9oG4Jj\np0jI+2gpAgMBAAECggEANOLaEayVwQqkxaMmy0ftoiy19y+7yRDyYgGWFmsBE++V\nhpWNiuhBg6pHjoT245tAcvIjLrmLbpwYUQwCyR/FVO3H3bDhH+SKMB9IULjGwK1J\nGTtbFurFKV37L1pCMCqhToaCckLLJvmr8szs+98HtIazr6yBid+Y1bOivBKHSQVV\nOPXMN6go8+I6gWeSA0XkU8KbG8smE7FK/0LTVDkEFzZbyLUpeKnqSlc5a9/YlSm0\nALflQcjqjTOAUeqhfsF1fREJeo5sJCYPlt+t5q1r5vVXhOBFJUIYuzPor/R4WyQ4\nJMxcueqSoNgGQjagoNL165rQvIx9MKCLOkwA6TwQqQKBgQDajwlOfKlbPm/tVN5m\nkUw2T80sZslx/dwFQU84t/9BEMHb/pG5Bex5JecfT0bWjbgxj6HHgDhpwVcST/NY\ntEsdxgJwcO5RMwlbfKdg2sA9Aqdx/feB/X15S8WscAuRlylggqACUfjyMuCBt1vE\ntUHmyRH8AjaD3sVCGGro03+qFwKBgQC6jXpPmrDluMjRhk3YMgtoLKG//oAgfeC3\nP6+zBIgtw7I63wXy/I99rxTVLJpAjY29yXjZHHNRuFCVp/NxPq1JwsKImGfRYSpH\nmdf6Qw/FC3iH6oLxGUMc7usYn6rygM+pNPr/wWt1BGqXVd584EK384yQaQMrH5XG\nxAil0f4nvwKBgA/pJ9FJ6/5Tfkx1yDcJTtYJWzNnTDT7OSA8z+qeInv3H1XHo44n\nqz5qjvfNiqel64nYHfvrDrBMPe18WofToEBLoPPUlNTedUjuuzSm2CXY4p2+0lzp\nOlAxPvO9uGnh6kY3XDSvCQOAxq1Kzuh0FZcafi+tbZCOECgupOHMO9gDAoGAZiit\nz0QGFXbwuhTTMk6NgpnWZh6HqcNlONSucdlMfctKIgUZ6+u05H3paafIPQuHkGPx\nQuvalujZcGsN3HkXSmpWP5k+WSHdlmJALPNmgmB6u+uHk2JjJ0gLBGwDoFM75Qx3\nW3FfWDB38rH6aeYhgzzjP/3R116vla6qkawCg18CgYEAgdrTWPj0krLVN0+q6c5N\ntmJ/4MnOHryh0/j+UkxliwwI/z6YH+wzr5YJIorXx2nyosAtaZ39qyVv5A8mMHnX\nDDG4R6HiMJ3lHhppAGZjLtsifoagjhxWFK6z779l5zL6a7id/DCRh6XSX8f4dCRT\nf0GsPkrXzMnfw/6jII98PvE=\n-----END PRIVATE KEY-----\n",
+  "client_email": "cmass-sales-migrator@cmass-sales.iam.gserviceaccount.com",
+  "client_id": "101013895196619844303",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/cmass-sales-migrator%40cmass-sales.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

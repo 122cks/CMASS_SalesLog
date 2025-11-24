@@ -1,0 +1,17 @@
+{
+  "url": "https://cmass-sales.web.app/front?staff=SongHoonjae&debug=1",
+  "steps": [
+    "launch",
+    "goto https://cmass-sales.web.app/front?staff=SongHoonjae&debug=1",
+    "response status: 200",
+    "appearance detected: dashboard/table/canvas",
+    "found canvases: ",
+    "table rows: 0",
+    "#dashboardArea visible: false"
+  ],
+  "ok": true,
+  "canvases": 0,
+  "canvasIds": [],
+  "tableRows": 0,
+  "dashboardVisible": false
+}

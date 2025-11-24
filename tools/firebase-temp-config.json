@@ -1,0 +1,12 @@
+
+{
+  "hosting": {
+    "public": "C:\\Users\\PC\\OneDrive\\cmass-sales-system\\CMASS_SalesLog\\public",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "/input", "destination": "/input.html" },
+      { "source": "/meeting", "destination": "/meeting.html" },
+      { "source": "**", "destination": "/input.html" }
+    ]
+  }
+}

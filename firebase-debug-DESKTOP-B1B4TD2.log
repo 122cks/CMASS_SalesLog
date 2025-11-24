@@ -1,0 +1,448 @@
+[debug] [2025-11-13T04:55:51.645Z] ----------------------------------------------------------------------
+[debug] [2025-11-13T04:55:51.649Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\PC\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only functions --debug
+[debug] [2025-11-13T04:55:51.649Z] CLI Version:   14.24.1
+[debug] [2025-11-13T04:55:51.650Z] Platform:      win32
+[debug] [2025-11-13T04:55:51.650Z] Node Version:  v24.11.0
+[debug] [2025-11-13T04:55:51.650Z] Time:          Thu Nov 13 2025 13:55:51 GMT+0900 (대한민국 표준시)
+[debug] [2025-11-13T04:55:51.650Z] ----------------------------------------------------------------------
+[debug] 
+[error] 
+[error] Error: Cannot understand what targets to deploy/serve. No targets in firebase.json match '--only functions'. If you are using PowerShell make sure you place quotes around any comma-separated lists (ex: --only "functions,firestore").
+[debug] [2025-11-13T05:01:00.463Z] ----------------------------------------------------------------------
+[debug] [2025-11-13T05:01:00.468Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\PC\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only functions:api --debug
+[debug] [2025-11-13T05:01:00.468Z] CLI Version:   14.24.1
+[debug] [2025-11-13T05:01:00.468Z] Platform:      win32
+[debug] [2025-11-13T05:01:00.468Z] Node Version:  v24.11.0
+[debug] [2025-11-13T05:01:00.469Z] Time:          Thu Nov 13 2025 14:01:00 GMT+0900 (대한민국 표준시)
+[debug] [2025-11-13T05:01:00.469Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-11-13T05:01:00.635Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-11-13T05:01:00.637Z] > authorizing via signed-in user (122cks@gmail.com)
+[debug] [2025-11-13T05:01:00.637Z] [iam] checking project cmass-sales for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2025-11-13T05:01:00.637Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:00.638Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:00.638Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/cmass-sales:testIamPermissions [none]
+[debug] [2025-11-13T05:01:00.638Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/cmass-sales:testIamPermissions x-goog-quota-user=projects/cmass-sales
+[debug] [2025-11-13T05:01:00.639Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/cmass-sales:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2025-11-13T05:01:00.931Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/cmass-sales:testIamPermissions 200
+[debug] [2025-11-13T05:01:00.932Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/cmass-sales:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2025-11-13T05:01:00.933Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:00.933Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:00.933Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/cmass-sales/serviceAccounts/cmass-sales@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2025-11-13T05:01:00.934Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/cmass-sales/serviceAccounts/cmass-sales@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2025-11-13T05:01:01.948Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/cmass-sales/serviceAccounts/cmass-sales@appspot.gserviceaccount.com:testIamPermissions 200
+[debug] [2025-11-13T05:01:01.949Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/cmass-sales/serviceAccounts/cmass-sales@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[info] 
+[info] === Deploying to 'cmass-sales'...
+[info] 
+[info] i  deploying functions 
+[debug] [2025-11-13T05:01:01.955Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:01.955Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:01.955Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/cmass-sales [none]
+[debug] [2025-11-13T05:01:02.158Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/cmass-sales 200
+[debug] [2025-11-13T05:01:02.158Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/cmass-sales {"projectNumber":"918981476485","projectId":"cmass-sales","lifecycleState":"ACTIVE","name":"CMASS-SALES","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2025-10-20T07:58:28.430370Z"}
+[info] i  functions: preparing codebase default for deployment 
+[info] i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+[info] i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+[info] i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[debug] [2025-11-13T05:01:02.163Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:02.163Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:02.163Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/cmass-sales/adminSdkConfig [none]
+[debug] [2025-11-13T05:01:02.604Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/cmass-sales/adminSdkConfig 200
+[debug] [2025-11-13T05:01:02.605Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/cmass-sales/adminSdkConfig {"projectId":"cmass-sales","storageBucket":"cmass-sales.firebasestorage.app"}
+[debug] [2025-11-13T05:01:02.605Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:02.606Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:02.606Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/cmass-sales/configs [none]
+[debug] [2025-11-13T05:01:03.159Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/cmass-sales/configs 200
+[debug] [2025-11-13T05:01:03.159Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/cmass-sales/configs {}
+[debug] [2025-11-13T05:01:03.162Z] Validating nodejs source
+[warn] !  functions: package.json indicates an outdated version of firebase-functions. Please upgrade using npm install --save firebase-functions@latest in your functions directory. 
+[warn] !  functions: Please note that there will be breaking changes when you upgrade. 
+[debug] [2025-11-13T05:01:04.140Z] > [functions] package.json contents: {
+  "name": "cmass-sales-functions",
+  "version": "1.0.0",
+  "description": "Cloud Functions for CMASS-SALES",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "lint": "eslint .",
+    "serve": "firebase emulators:start --only functions",
+    "start": "firebase functions:shell",
+    "deploy": "firebase deploy --only functions"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "firebase-admin": "^13.6.0",
+    "firebase-functions": "^3.24.1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
+[debug] [2025-11-13T05:01:04.141Z] Building nodejs source
+[info] i  functions: Loading and analyzing source code for codebase default to determine what to deploy 
+[info] i  functions: You are using a version of firebase-functions SDK (3.24.1) that does not have support for the newest Firebase Extensions features. Please update firebase-functions SDK to >=5.1.0 to use them correctly 
+[debug] [2025-11-13T05:01:04.143Z] Could not find functions.yaml. Must use http discovery
+[debug] [2025-11-13T05:01:04.153Z] Found firebase-functions binary at 'C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\functions\node_modules\.bin\firebase-functions'
+[info] Serving at port 8811
+
+[debug] [2025-11-13T05:01:04.673Z] Got response from /__/functions.yaml {"endpoints":{"api":{"platform":"gcfv1","timeoutSeconds":540,"region":["asia-northeast3"],"availableMemoryMb":512,"httpsTrigger":{},"entryPoint":"api"}},"specVersion":"v1alpha1","requiredAPIs":[]}
+[info] shutdown requested via /__/quitquitquit
+
+[info] i  functions: preparing functions directory for uploading... 
+[info] i  functions: packaged C:\Users\PC\OneDrive\cmass-sales-system\CMASS_SalesLog\functions (47.14 KB) for uploading 
+[debug] [2025-11-13T05:01:08.766Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:08.766Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:08.767Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/projects/cmass-sales/locations/-/functions [none]
+[debug] [2025-11-13T05:01:09.631Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v1/projects/cmass-sales/locations/-/functions 200
+[debug] [2025-11-13T05:01:09.632Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v1/projects/cmass-sales/locations/-/functions {"functions":[{"name":"projects/cmass-sales/locations/asia-northeast3/functions/api","httpsTrigger":{"url":"https://asia-northeast3-cmass-sales.cloudfunctions.net/api","securityLevel":"SECURE_ALWAYS"},"status":"ACTIVE","entryPoint":"api","timeout":"540s","availableMemoryMb":512,"serviceAccountEmail":"cmass-sales@appspot.gserviceaccount.com","updateTime":"2025-11-06T12:51:08.114Z","versionId":"44","labels":{"deployment-tool":"cli-firebase","firebase-functions-hash":"112960716cbcb03c1dc251f80454f6e40825c985"},"sourceUploadUrl":"https://storage.googleapis.com/uploads-867907651011.asia-northeast3.cloudfunctions.appspot.com/1821faf3-4f6c-4eba-92c5-cc842a9ff574.zip","environmentVariables":{"FIREBASE_CONFIG":"{\"projectId\":\"cmass-sales\",\"storageBucket\":\"cmass-sales.firebasestorage.app\"}","GCLOUD_PROJECT":"cmass-sales","EVENTARC_CLOUD_EVENT_SOURCE":"projects/cmass-sales/locations/asia-northeast3/functions/api"},"runtime":"nodejs20","ingressSettings":"ALLOW_ALL","buildId":"6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","buildEnvironmentVariables":{"GOOGLE_NODE_RUN_SCRIPTS":""},"buildName":"projects/918981476485/locations/asia-northeast3/builds/6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","dockerRegistry":"ARTIFACT_REGISTRY","automaticUpdatePolicy":{},"buildServiceAccount":"projects/cmass-sales/serviceAccounts/918981476485-compute@developer.gserviceaccount.com","satisfiesPzs":true,"satisfiesPzi":true}]}
+[debug] [2025-11-13T05:01:09.634Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:09.634Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:09.635Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v2/projects/cmass-sales/locations/-/functions filter=environment%3D%22GEN_2%22
+[debug] [2025-11-13T05:01:10.992Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v2/projects/cmass-sales/locations/-/functions 200
+[debug] [2025-11-13T05:01:10.992Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v2/projects/cmass-sales/locations/-/functions {}
+[debug] [2025-11-13T05:01:10.999Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:10.999Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:11.000Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/cmass-sales [none]
+[debug] [2025-11-13T05:01:11.278Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/cmass-sales 200
+[debug] [2025-11-13T05:01:11.278Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/cmass-sales {"projectNumber":"918981476485","projectId":"cmass-sales","lifecycleState":"ACTIVE","name":"CMASS-SALES","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2025-10-20T07:58:28.430370Z"}
+[debug] [2025-11-13T05:01:11.281Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:11.281Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:11.282Z] >>> [apiv2][query] POST https://cloudfunctions.googleapis.com/v1/projects/cmass-sales/locations/asia-northeast3/functions:generateUploadUrl [none]
+[debug] [2025-11-13T05:01:11.282Z] >>> [apiv2][body] POST https://cloudfunctions.googleapis.com/v1/projects/cmass-sales/locations/asia-northeast3/functions:generateUploadUrl {}
+[debug] [2025-11-13T05:01:12.500Z] <<< [apiv2][status] POST https://cloudfunctions.googleapis.com/v1/projects/cmass-sales/locations/asia-northeast3/functions:generateUploadUrl 200
+[debug] [2025-11-13T05:01:12.501Z] <<< [apiv2][body] POST https://cloudfunctions.googleapis.com/v1/projects/cmass-sales/locations/asia-northeast3/functions:generateUploadUrl {"uploadUrl":"https://storage.googleapis.com/uploads-867907651011.asia-northeast3.cloudfunctions.appspot.com/ace11102-0d01-44c4-8b2e-7e05c34459f5.zip?GoogleAccessId=service-918981476485@gcf-admin-robot.iam.gserviceaccount.com&Expires=1763011872&Signature=tG5vrdySLGfVfr2zGSy7PYv4YeyRqP0mYbjCOXpQGs%2BRPPHn81u%2BRD4xwf%2FvCLcPYyjMAfTcI2CWDOlxvpe5FMiXrirES7sBEEZj7Z%2FRjeeRW5rvdQ73RgslBQG%2F6RZ%2BvTs71JldekObCLg2%2Bl1Bd8eJn6xHfHj5o3rCh1KzZnKdvI%2B48oqtQW5JEw4N49gLrUkw5w7mIjp%2Foh4lwKCyrdRMv0KISzqd7B%2B32aiuha1ZZIqiOkuS1UlAdkRqVUgl626NXZnJtdJfxsFzRsIvLHpjL%2BSvOI9gtEv5HZ17qzAoCracKPPfFRtQw9osW9vtnoK8MiASmV6o%2FfdC2PPZpg%3D%3D"}
+[debug] [2025-11-13T05:01:12.502Z] >>> [apiv2][query] PUT https://storage.googleapis.com/uploads-867907651011.asia-northeast3.cloudfunctions.appspot.com/ace11102-0d01-44c4-8b2e-7e05c34459f5.zip GoogleAccessId=service-918981476485%40gcf-admin-robot.iam.gserviceaccount.com&Expires=1763011872&Signature=tG5vrdySLGfVfr2zGSy7PYv4YeyRqP0mYbjCOXpQGs%2BRPPHn81u%2BRD4xwf%2FvCLcPYyjMAfTcI2CWDOlxvpe5FMiXrirES7sBEEZj7Z%2FRjeeRW5rvdQ73RgslBQG%2F6RZ%2BvTs71JldekObCLg2%2Bl1Bd8eJn6xHfHj5o3rCh1KzZnKdvI%2B48oqtQW5JEw4N49gLrUkw5w7mIjp%2Foh4lwKCyrdRMv0KISzqd7B%2B32aiuha1ZZIqiOkuS1UlAdkRqVUgl626NXZnJtdJfxsFzRsIvLHpjL%2BSvOI9gtEv5HZ17qzAoCracKPPfFRtQw9osW9vtnoK8MiASmV6o%2FfdC2PPZpg%3D%3D
+[debug] [2025-11-13T05:01:12.503Z] >>> [apiv2][body] PUT https://storage.googleapis.com/uploads-867907651011.asia-northeast3.cloudfunctions.appspot.com/ace11102-0d01-44c4-8b2e-7e05c34459f5.zip [stream]
+[debug] [2025-11-13T05:01:12.696Z] <<< [apiv2][status] PUT https://storage.googleapis.com/uploads-867907651011.asia-northeast3.cloudfunctions.appspot.com/ace11102-0d01-44c4-8b2e-7e05c34459f5.zip 200
+[debug] [2025-11-13T05:01:12.696Z] <<< [apiv2][body] PUT https://storage.googleapis.com/uploads-867907651011.asia-northeast3.cloudfunctions.appspot.com/ace11102-0d01-44c4-8b2e-7e05c34459f5.zip [omitted]
+[info] +  functions: functions source uploaded successfully 
+[info] i  functions: updating Node.js 20 (1st Gen) function api(asia-northeast3)... 
+[debug] [2025-11-13T05:01:12.702Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:12.703Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:12.704Z] >>> [apiv2][query] PATCH https://cloudfunctions.googleapis.com/v1/projects/cmass-sales/locations/asia-northeast3/functions/api updateMask=name%2CsourceUploadUrl%2CentryPoint%2Cruntime%2CdockerRegistry%2Clabels%2ChttpsTrigger.securityLevel%2CenvironmentVariables%2CavailableMemoryMb%2Ctimeout%2CsourceToken%2CbuildEnvironmentVariables
+[debug] [2025-11-13T05:01:12.705Z] >>> [apiv2][body] PATCH https://cloudfunctions.googleapis.com/v1/projects/cmass-sales/locations/asia-northeast3/functions/api {"name":"projects/cmass-sales/locations/asia-northeast3/functions/api","sourceUploadUrl":"https://storage.googleapis.com/uploads-867907651011.asia-northeast3.cloudfunctions.appspot.com/ace11102-0d01-44c4-8b2e-7e05c34459f5.zip?GoogleAccessId=service-918981476485@gcf-admin-robot.iam.gserviceaccount.com&Expires=1763011872&Signature=tG5vrdySLGfVfr2zGSy7PYv4YeyRqP0mYbjCOXpQGs%2BRPPHn81u%2BRD4xwf%2FvCLcPYyjMAfTcI2CWDOlxvpe5FMiXrirES7sBEEZj7Z%2FRjeeRW5rvdQ73RgslBQG%2F6RZ%2BvTs71JldekObCLg2%2Bl1Bd8eJn6xHfHj5o3rCh1KzZnKdvI%2B48oqtQW5JEw4N49gLrUkw5w7mIjp%2Foh4lwKCyrdRMv0KISzqd7B%2B32aiuha1ZZIqiOkuS1UlAdkRqVUgl626NXZnJtdJfxsFzRsIvLHpjL%2BSvOI9gtEv5HZ17qzAoCracKPPfFRtQw9osW9vtnoK8MiASmV6o%2FfdC2PPZpg%3D%3D","entryPoint":"api","runtime":"nodejs20","dockerRegistry":"ARTIFACT_REGISTRY","labels":{"deployment-tool":"cli-firebase","firebase-functions-hash":"0d3f97bc64cdbccf0685fba4db3dde0e1bbda897"},"httpsTrigger":{"securityLevel":"SECURE_ALWAYS"},"environmentVariables":{"FIREBASE_CONFIG":"{\"projectId\":\"cmass-sales\",\"storageBucket\":\"cmass-sales.firebasestorage.app\"}","GCLOUD_PROJECT":"cmass-sales","EVENTARC_CLOUD_EVENT_SOURCE":"projects/cmass-sales/locations/asia-northeast3/functions/api"},"availableMemoryMb":512,"timeout":"540s","buildEnvironmentVariables":{"GOOGLE_NODE_RUN_SCRIPTS":""}}
+[debug] [2025-11-13T05:01:13.888Z] <<< [apiv2][status] PATCH https://cloudfunctions.googleapis.com/v1/projects/cmass-sales/locations/asia-northeast3/functions/api 200
+[debug] [2025-11-13T05:01:13.889Z] <<< [apiv2][body] PATCH https://cloudfunctions.googleapis.com/v1/projects/cmass-sales/locations/asia-northeast3/functions/api {"name":"operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ","metadata":{"@type":"type.googleapis.com/google.cloud.functions.v1.OperationMetadataV1","target":"projects/cmass-sales/locations/asia-northeast3/functions/api","type":"UPDATE_FUNCTION","request":{"@type":"type.googleapis.com/google.cloud.functions.v1.CloudFunction","name":"projects/cmass-sales/locations/asia-northeast3/functions/api","httpsTrigger":{"url":"https://asia-northeast3-cmass-sales.cloudfunctions.net/api","securityLevel":"SECURE_ALWAYS"},"status":"ACTIVE","entryPoint":"api","timeout":"540s","availableMemoryMb":512,"serviceAccountEmail":"cmass-sales@appspot.gserviceaccount.com","updateTime":"2025-11-06T12:51:08.114Z","versionId":"44","labels":{"deployment-tool":"cli-firebase","firebase-functions-hash":"0d3f97bc64cdbccf0685fba4db3dde0e1bbda897"},"sourceUploadUrl":"https://storage.googleapis.com/uploads-867907651011.asia-northeast3.cloudfunctions.appspot.com/ace11102-0d01-44c4-8b2e-7e05c34459f5.zip?GoogleAccessId=service-918981476485@gcf-admin-robot.iam.gserviceaccount.com&Expires=1763011872&Signature=tG5vrdySLGfVfr2zGSy7PYv4YeyRqP0mYbjCOXpQGs%2BRPPHn81u%2BRD4xwf%2FvCLcPYyjMAfTcI2CWDOlxvpe5FMiXrirES7sBEEZj7Z%2FRjeeRW5rvdQ73RgslBQG%2F6RZ%2BvTs71JldekObCLg2%2Bl1Bd8eJn6xHfHj5o3rCh1KzZnKdvI%2B48oqtQW5JEw4N49gLrUkw5w7mIjp%2Foh4lwKCyrdRMv0KISzqd7B%2B32aiuha1ZZIqiOkuS1UlAdkRqVUgl626NXZnJtdJfxsFzRsIvLHpjL%2BSvOI9gtEv5HZ17qzAoCracKPPfFRtQw9osW9vtnoK8MiASmV6o%2FfdC2PPZpg%3D%3D","environmentVariables":{"FIREBASE_CONFIG":"{\"projectId\":\"cmass-sales\",\"storageBucket\":\"cmass-sales.firebasestorage.app\"}","GCLOUD_PROJECT":"cmass-sales","EVENTARC_CLOUD_EVENT_SOURCE":"projects/cmass-sales/locations/asia-northeast3/functions/api"},"runtime":"nodejs20","ingressSettings":"ALLOW_ALL","buildId":"6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","buildEnvironmentVariables":{"GOOGLE_NODE_RUN_SCRIPTS":""},"buildName":"projects/918981476485/locations/asia-northeast3/builds/6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","dockerRegistry":"ARTIFACT_REGISTRY","automaticUpdatePolicy":{},"buildServiceAccount":"projects/cmass-sales/serviceAccounts/918981476485-compute@developer.gserviceaccount.com"},"versionId":"46","updateTime":"2025-11-13T05:01:14Z"}}
+[debug] [2025-11-13T05:01:13.891Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:13.892Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:13.893Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ [none]
+[debug] [2025-11-13T05:01:14.245Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ 200
+[debug] [2025-11-13T05:01:14.246Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ {"name":"operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ","metadata":{"@type":"type.googleapis.com/google.cloud.functions.v1.OperationMetadataV1","target":"projects/cmass-sales/locations/asia-northeast3/functions/api","type":"UPDATE_FUNCTION","request":{"@type":"type.googleapis.com/google.cloud.functions.v1.CloudFunction","name":"projects/cmass-sales/locations/asia-northeast3/functions/api","httpsTrigger":{"url":"https://asia-northeast3-cmass-sales.cloudfunctions.net/api","securityLevel":"SECURE_ALWAYS"},"status":"ACTIVE","entryPoint":"api","timeout":"540s","availableMemoryMb":512,"serviceAccountEmail":"cmass-sales@appspot.gserviceaccount.com","updateTime":"2025-11-06T12:51:08.114Z","versionId":"44","labels":{"deployment-tool":"cli-firebase","firebase-functions-hash":"0d3f97bc64cdbccf0685fba4db3dde0e1bbda897"},"sourceUploadUrl":"https://storage.googleapis.com/uploads-867907651011.asia-northeast3.cloudfunctions.appspot.com/ace11102-0d01-44c4-8b2e-7e05c34459f5.zip?GoogleAccessId=service-918981476485@gcf-admin-robot.iam.gserviceaccount.com&Expires=1763011872&Signature=tG5vrdySLGfVfr2zGSy7PYv4YeyRqP0mYbjCOXpQGs%2BRPPHn81u%2BRD4xwf%2FvCLcPYyjMAfTcI2CWDOlxvpe5FMiXrirES7sBEEZj7Z%2FRjeeRW5rvdQ73RgslBQG%2F6RZ%2BvTs71JldekObCLg2%2Bl1Bd8eJn6xHfHj5o3rCh1KzZnKdvI%2B48oqtQW5JEw4N49gLrUkw5w7mIjp%2Foh4lwKCyrdRMv0KISzqd7B%2B32aiuha1ZZIqiOkuS1UlAdkRqVUgl626NXZnJtdJfxsFzRsIvLHpjL%2BSvOI9gtEv5HZ17qzAoCracKPPfFRtQw9osW9vtnoK8MiASmV6o%2FfdC2PPZpg%3D%3D","environmentVariables":{"FIREBASE_CONFIG":"{\"projectId\":\"cmass-sales\",\"storageBucket\":\"cmass-sales.firebasestorage.app\"}","GCLOUD_PROJECT":"cmass-sales","EVENTARC_CLOUD_EVENT_SOURCE":"projects/cmass-sales/locations/asia-northeast3/functions/api"},"runtime":"nodejs20","ingressSettings":"ALLOW_ALL","buildId":"6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","buildEnvironmentVariables":{"GOOGLE_NODE_RUN_SCRIPTS":""},"buildName":"projects/918981476485/locations/asia-northeast3/builds/6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","dockerRegistry":"ARTIFACT_REGISTRY","automaticUpdatePolicy":{},"buildServiceAccount":"projects/cmass-sales/serviceAccounts/918981476485-compute@developer.gserviceaccount.com"},"versionId":"46","updateTime":"2025-11-13T05:01:14Z"}}
+[debug] [2025-11-13T05:01:14.750Z] [update-default-asia-northeast3-api] Retrying task index 0
+[debug] [2025-11-13T05:01:14.750Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:14.752Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:14.752Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ [none]
+[debug] [2025-11-13T05:01:15.123Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ 200
+[debug] [2025-11-13T05:01:15.123Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ {"name":"operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ","metadata":{"@type":"type.googleapis.com/google.cloud.functions.v1.OperationMetadataV1","target":"projects/cmass-sales/locations/asia-northeast3/functions/api","type":"UPDATE_FUNCTION","request":{"@type":"type.googleapis.com/google.cloud.functions.v1.CloudFunction","name":"projects/cmass-sales/locations/asia-northeast3/functions/api","httpsTrigger":{"url":"https://asia-northeast3-cmass-sales.cloudfunctions.net/api","securityLevel":"SECURE_ALWAYS"},"status":"ACTIVE","entryPoint":"api","timeout":"540s","availableMemoryMb":512,"serviceAccountEmail":"cmass-sales@appspot.gserviceaccount.com","updateTime":"2025-11-06T12:51:08.114Z","versionId":"44","labels":{"deployment-tool":"cli-firebase","firebase-functions-hash":"0d3f97bc64cdbccf0685fba4db3dde0e1bbda897"},"sourceUploadUrl":"https://storage.googleapis.com/uploads-867907651011.asia-northeast3.cloudfunctions.appspot.com/ace11102-0d01-44c4-8b2e-7e05c34459f5.zip?GoogleAccessId=service-918981476485@gcf-admin-robot.iam.gserviceaccount.com&Expires=1763011872&Signature=tG5vrdySLGfVfr2zGSy7PYv4YeyRqP0mYbjCOXpQGs%2BRPPHn81u%2BRD4xwf%2FvCLcPYyjMAfTcI2CWDOlxvpe5FMiXrirES7sBEEZj7Z%2FRjeeRW5rvdQ73RgslBQG%2F6RZ%2BvTs71JldekObCLg2%2Bl1Bd8eJn6xHfHj5o3rCh1KzZnKdvI%2B48oqtQW5JEw4N49gLrUkw5w7mIjp%2Foh4lwKCyrdRMv0KISzqd7B%2B32aiuha1ZZIqiOkuS1UlAdkRqVUgl626NXZnJtdJfxsFzRsIvLHpjL%2BSvOI9gtEv5HZ17qzAoCracKPPfFRtQw9osW9vtnoK8MiASmV6o%2FfdC2PPZpg%3D%3D","environmentVariables":{"FIREBASE_CONFIG":"{\"projectId\":\"cmass-sales\",\"storageBucket\":\"cmass-sales.firebasestorage.app\"}","GCLOUD_PROJECT":"cmass-sales","EVENTARC_CLOUD_EVENT_SOURCE":"projects/cmass-sales/locations/asia-northeast3/functions/api"},"runtime":"nodejs20","ingressSettings":"ALLOW_ALL","buildId":"6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","buildEnvironmentVariables":{"GOOGLE_NODE_RUN_SCRIPTS":""},"buildName":"projects/918981476485/locations/asia-northeast3/builds/6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","dockerRegistry":"ARTIFACT_REGISTRY","automaticUpdatePolicy":{},"buildServiceAccount":"projects/cmass-sales/serviceAccounts/918981476485-compute@developer.gserviceaccount.com"},"versionId":"46","updateTime":"2025-11-13T05:01:15Z"}}
+[debug] [2025-11-13T05:01:16.127Z] [update-default-asia-northeast3-api] Retrying task index 0
+[debug] [2025-11-13T05:01:16.128Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:16.128Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:16.129Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ [none]
+[debug] [2025-11-13T05:01:16.468Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ 200
+[debug] [2025-11-13T05:01:16.469Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ {"name":"operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ","metadata":{"@type":"type.googleapis.com/google.cloud.functions.v1.OperationMetadataV1","target":"projects/cmass-sales/locations/asia-northeast3/functions/api","type":"UPDATE_FUNCTION","request":{"@type":"type.googleapis.com/google.cloud.functions.v1.CloudFunction","name":"projects/cmass-sales/locations/asia-northeast3/functions/api","httpsTrigger":{"url":"https://asia-northeast3-cmass-sales.cloudfunctions.net/api","securityLevel":"SECURE_ALWAYS"},"status":"ACTIVE","entryPoint":"api","timeout":"540s","availableMemoryMb":512,"serviceAccountEmail":"cmass-sales@appspot.gserviceaccount.com","updateTime":"2025-11-06T12:51:08.114Z","versionId":"44","labels":{"deployment-tool":"cli-firebase","firebase-functions-hash":"0d3f97bc64cdbccf0685fba4db3dde0e1bbda897"},"sourceUploadUrl":"https://storage.googleapis.com/uploads-867907651011.asia-northeast3.cloudfunctions.appspot.com/ace11102-0d01-44c4-8b2e-7e05c34459f5.zip?GoogleAccessId=service-918981476485@gcf-admin-robot.iam.gserviceaccount.com&Expires=1763011872&Signature=tG5vrdySLGfVfr2zGSy7PYv4YeyRqP0mYbjCOXpQGs%2BRPPHn81u%2BRD4xwf%2FvCLcPYyjMAfTcI2CWDOlxvpe5FMiXrirES7sBEEZj7Z%2FRjeeRW5rvdQ73RgslBQG%2F6RZ%2BvTs71JldekObCLg2%2Bl1Bd8eJn6xHfHj5o3rCh1KzZnKdvI%2B48oqtQW5JEw4N49gLrUkw5w7mIjp%2Foh4lwKCyrdRMv0KISzqd7B%2B32aiuha1ZZIqiOkuS1UlAdkRqVUgl626NXZnJtdJfxsFzRsIvLHpjL%2BSvOI9gtEv5HZ17qzAoCracKPPfFRtQw9osW9vtnoK8MiASmV6o%2FfdC2PPZpg%3D%3D","environmentVariables":{"FIREBASE_CONFIG":"{\"projectId\":\"cmass-sales\",\"storageBucket\":\"cmass-sales.firebasestorage.app\"}","GCLOUD_PROJECT":"cmass-sales","EVENTARC_CLOUD_EVENT_SOURCE":"projects/cmass-sales/locations/asia-northeast3/functions/api"},"runtime":"nodejs20","ingressSettings":"ALLOW_ALL","buildId":"6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","buildEnvironmentVariables":{"GOOGLE_NODE_RUN_SCRIPTS":""},"buildName":"projects/918981476485/locations/asia-northeast3/builds/6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","dockerRegistry":"ARTIFACT_REGISTRY","automaticUpdatePolicy":{},"buildServiceAccount":"projects/cmass-sales/serviceAccounts/918981476485-compute@developer.gserviceaccount.com"},"versionId":"46","updateTime":"2025-11-13T05:01:15Z","buildId":"beca48b3-bab5-497a-afea-7b6c76f71ebd","buildName":"projects/918981476485/locations/asia-northeast3/builds/beca48b3-bab5-497a-afea-7b6c76f71ebd"}}
+[debug] [2025-11-13T05:01:18.477Z] [update-default-asia-northeast3-api] Retrying task index 0
+[debug] [2025-11-13T05:01:18.478Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:18.478Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:18.479Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ [none]
+[debug] [2025-11-13T05:01:18.795Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ 200
+[debug] [2025-11-13T05:01:18.796Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ {"name":"operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ","metadata":{"@type":"type.googleapis.com/google.cloud.functions.v1.OperationMetadataV1","target":"projects/cmass-sales/locations/asia-northeast3/functions/api","type":"UPDATE_FUNCTION","request":{"@type":"type.googleapis.com/google.cloud.functions.v1.CloudFunction","name":"projects/cmass-sales/locations/asia-northeast3/functions/api","httpsTrigger":{"url":"https://asia-northeast3-cmass-sales.cloudfunctions.net/api","securityLevel":"SECURE_ALWAYS"},"status":"ACTIVE","entryPoint":"api","timeout":"540s","availableMemoryMb":512,"serviceAccountEmail":"cmass-sales@appspot.gserviceaccount.com","updateTime":"2025-11-06T12:51:08.114Z","versionId":"44","labels":{"deployment-tool":"cli-firebase","firebase-functions-hash":"0d3f97bc64cdbccf0685fba4db3dde0e1bbda897"},"sourceUploadUrl":"https://storage.googleapis.com/uploads-867907651011.asia-northeast3.cloudfunctions.appspot.com/ace11102-0d01-44c4-8b2e-7e05c34459f5.zip?GoogleAccessId=service-918981476485@gcf-admin-robot.iam.gserviceaccount.com&Expires=1763011872&Signature=tG5vrdySLGfVfr2zGSy7PYv4YeyRqP0mYbjCOXpQGs%2BRPPHn81u%2BRD4xwf%2FvCLcPYyjMAfTcI2CWDOlxvpe5FMiXrirES7sBEEZj7Z%2FRjeeRW5rvdQ73RgslBQG%2F6RZ%2BvTs71JldekObCLg2%2Bl1Bd8eJn6xHfHj5o3rCh1KzZnKdvI%2B48oqtQW5JEw4N49gLrUkw5w7mIjp%2Foh4lwKCyrdRMv0KISzqd7B%2B32aiuha1ZZIqiOkuS1UlAdkRqVUgl626NXZnJtdJfxsFzRsIvLHpjL%2BSvOI9gtEv5HZ17qzAoCracKPPfFRtQw9osW9vtnoK8MiASmV6o%2FfdC2PPZpg%3D%3D","environmentVariables":{"FIREBASE_CONFIG":"{\"projectId\":\"cmass-sales\",\"storageBucket\":\"cmass-sales.firebasestorage.app\"}","GCLOUD_PROJECT":"cmass-sales","EVENTARC_CLOUD_EVENT_SOURCE":"projects/cmass-sales/locations/asia-northeast3/functions/api"},"runtime":"nodejs20","ingressSettings":"ALLOW_ALL","buildId":"6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","buildEnvironmentVariables":{"GOOGLE_NODE_RUN_SCRIPTS":""},"buildName":"projects/918981476485/locations/asia-northeast3/builds/6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","dockerRegistry":"ARTIFACT_REGISTRY","automaticUpdatePolicy":{},"buildServiceAccount":"projects/cmass-sales/serviceAccounts/918981476485-compute@developer.gserviceaccount.com"},"versionId":"46","updateTime":"2025-11-13T05:01:15Z","buildId":"beca48b3-bab5-497a-afea-7b6c76f71ebd","buildName":"projects/918981476485/locations/asia-northeast3/builds/beca48b3-bab5-497a-afea-7b6c76f71ebd"}}
+[debug] [2025-11-13T05:01:22.812Z] [update-default-asia-northeast3-api] Retrying task index 0
+[debug] [2025-11-13T05:01:22.813Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:22.814Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:22.814Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ [none]
+[debug] [2025-11-13T05:01:23.160Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ 200
+[debug] [2025-11-13T05:01:23.160Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ {"name":"operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ","metadata":{"@type":"type.googleapis.com/google.cloud.functions.v1.OperationMetadataV1","target":"projects/cmass-sales/locations/asia-northeast3/functions/api","type":"UPDATE_FUNCTION","request":{"@type":"type.googleapis.com/google.cloud.functions.v1.CloudFunction","name":"projects/cmass-sales/locations/asia-northeast3/functions/api","httpsTrigger":{"url":"https://asia-northeast3-cmass-sales.cloudfunctions.net/api","securityLevel":"SECURE_ALWAYS"},"status":"ACTIVE","entryPoint":"api","timeout":"540s","availableMemoryMb":512,"serviceAccountEmail":"cmass-sales@appspot.gserviceaccount.com","updateTime":"2025-11-06T12:51:08.114Z","versionId":"44","labels":{"deployment-tool":"cli-firebase","firebase-functions-hash":"0d3f97bc64cdbccf0685fba4db3dde0e1bbda897"},"sourceUploadUrl":"https://storage.googleapis.com/uploads-867907651011.asia-northeast3.cloudfunctions.appspot.com/ace11102-0d01-44c4-8b2e-7e05c34459f5.zip?GoogleAccessId=service-918981476485@gcf-admin-robot.iam.gserviceaccount.com&Expires=1763011872&Signature=tG5vrdySLGfVfr2zGSy7PYv4YeyRqP0mYbjCOXpQGs%2BRPPHn81u%2BRD4xwf%2FvCLcPYyjMAfTcI2CWDOlxvpe5FMiXrirES7sBEEZj7Z%2FRjeeRW5rvdQ73RgslBQG%2F6RZ%2BvTs71JldekObCLg2%2Bl1Bd8eJn6xHfHj5o3rCh1KzZnKdvI%2B48oqtQW5JEw4N49gLrUkw5w7mIjp%2Foh4lwKCyrdRMv0KISzqd7B%2B32aiuha1ZZIqiOkuS1UlAdkRqVUgl626NXZnJtdJfxsFzRsIvLHpjL%2BSvOI9gtEv5HZ17qzAoCracKPPfFRtQw9osW9vtnoK8MiASmV6o%2FfdC2PPZpg%3D%3D","environmentVariables":{"FIREBASE_CONFIG":"{\"projectId\":\"cmass-sales\",\"storageBucket\":\"cmass-sales.firebasestorage.app\"}","GCLOUD_PROJECT":"cmass-sales","EVENTARC_CLOUD_EVENT_SOURCE":"projects/cmass-sales/locations/asia-northeast3/functions/api"},"runtime":"nodejs20","ingressSettings":"ALLOW_ALL","buildId":"6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","buildEnvironmentVariables":{"GOOGLE_NODE_RUN_SCRIPTS":""},"buildName":"projects/918981476485/locations/asia-northeast3/builds/6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","dockerRegistry":"ARTIFACT_REGISTRY","automaticUpdatePolicy":{},"buildServiceAccount":"projects/cmass-sales/serviceAccounts/918981476485-compute@developer.gserviceaccount.com"},"versionId":"46","updateTime":"2025-11-13T05:01:15Z","buildId":"beca48b3-bab5-497a-afea-7b6c76f71ebd","buildName":"projects/918981476485/locations/asia-northeast3/builds/beca48b3-bab5-497a-afea-7b6c76f71ebd"}}
+[debug] [2025-11-13T05:01:31.164Z] [update-default-asia-northeast3-api] Retrying task index 0
+[debug] [2025-11-13T05:01:31.165Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:31.165Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:31.166Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ [none]
+[debug] [2025-11-13T05:01:31.481Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ 200
+[debug] [2025-11-13T05:01:31.481Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ {"name":"operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ","metadata":{"@type":"type.googleapis.com/google.cloud.functions.v1.OperationMetadataV1","target":"projects/cmass-sales/locations/asia-northeast3/functions/api","type":"UPDATE_FUNCTION","request":{"@type":"type.googleapis.com/google.cloud.functions.v1.CloudFunction","name":"projects/cmass-sales/locations/asia-northeast3/functions/api","httpsTrigger":{"url":"https://asia-northeast3-cmass-sales.cloudfunctions.net/api","securityLevel":"SECURE_ALWAYS"},"status":"ACTIVE","entryPoint":"api","timeout":"540s","availableMemoryMb":512,"serviceAccountEmail":"cmass-sales@appspot.gserviceaccount.com","updateTime":"2025-11-06T12:51:08.114Z","versionId":"44","labels":{"deployment-tool":"cli-firebase","firebase-functions-hash":"0d3f97bc64cdbccf0685fba4db3dde0e1bbda897"},"sourceUploadUrl":"https://storage.googleapis.com/uploads-867907651011.asia-northeast3.cloudfunctions.appspot.com/ace11102-0d01-44c4-8b2e-7e05c34459f5.zip?GoogleAccessId=service-918981476485@gcf-admin-robot.iam.gserviceaccount.com&Expires=1763011872&Signature=tG5vrdySLGfVfr2zGSy7PYv4YeyRqP0mYbjCOXpQGs%2BRPPHn81u%2BRD4xwf%2FvCLcPYyjMAfTcI2CWDOlxvpe5FMiXrirES7sBEEZj7Z%2FRjeeRW5rvdQ73RgslBQG%2F6RZ%2BvTs71JldekObCLg2%2Bl1Bd8eJn6xHfHj5o3rCh1KzZnKdvI%2B48oqtQW5JEw4N49gLrUkw5w7mIjp%2Foh4lwKCyrdRMv0KISzqd7B%2B32aiuha1ZZIqiOkuS1UlAdkRqVUgl626NXZnJtdJfxsFzRsIvLHpjL%2BSvOI9gtEv5HZ17qzAoCracKPPfFRtQw9osW9vtnoK8MiASmV6o%2FfdC2PPZpg%3D%3D","environmentVariables":{"FIREBASE_CONFIG":"{\"projectId\":\"cmass-sales\",\"storageBucket\":\"cmass-sales.firebasestorage.app\"}","GCLOUD_PROJECT":"cmass-sales","EVENTARC_CLOUD_EVENT_SOURCE":"projects/cmass-sales/locations/asia-northeast3/functions/api"},"runtime":"nodejs20","ingressSettings":"ALLOW_ALL","buildId":"6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","buildEnvironmentVariables":{"GOOGLE_NODE_RUN_SCRIPTS":""},"buildName":"projects/918981476485/locations/asia-northeast3/builds/6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","dockerRegistry":"ARTIFACT_REGISTRY","automaticUpdatePolicy":{},"buildServiceAccount":"projects/cmass-sales/serviceAccounts/918981476485-compute@developer.gserviceaccount.com"},"versionId":"46","updateTime":"2025-11-13T05:01:15Z","buildId":"beca48b3-bab5-497a-afea-7b6c76f71ebd","buildName":"projects/918981476485/locations/asia-northeast3/builds/beca48b3-bab5-497a-afea-7b6c76f71ebd"}}
+[debug] [2025-11-13T05:01:41.484Z] [update-default-asia-northeast3-api] Retrying task index 0
+[debug] [2025-11-13T05:01:41.485Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:41.485Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:41.486Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ [none]
+[debug] [2025-11-13T05:01:42.163Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ 200
+[debug] [2025-11-13T05:01:42.163Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ {"name":"operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ","metadata":{"@type":"type.googleapis.com/google.cloud.functions.v1.OperationMetadataV1","target":"projects/cmass-sales/locations/asia-northeast3/functions/api","type":"UPDATE_FUNCTION","request":{"@type":"type.googleapis.com/google.cloud.functions.v1.CloudFunction","name":"projects/cmass-sales/locations/asia-northeast3/functions/api","httpsTrigger":{"url":"https://asia-northeast3-cmass-sales.cloudfunctions.net/api","securityLevel":"SECURE_ALWAYS"},"status":"ACTIVE","entryPoint":"api","timeout":"540s","availableMemoryMb":512,"serviceAccountEmail":"cmass-sales@appspot.gserviceaccount.com","updateTime":"2025-11-06T12:51:08.114Z","versionId":"44","labels":{"deployment-tool":"cli-firebase","firebase-functions-hash":"0d3f97bc64cdbccf0685fba4db3dde0e1bbda897"},"sourceUploadUrl":"https://storage.googleapis.com/uploads-867907651011.asia-northeast3.cloudfunctions.appspot.com/ace11102-0d01-44c4-8b2e-7e05c34459f5.zip?GoogleAccessId=service-918981476485@gcf-admin-robot.iam.gserviceaccount.com&Expires=1763011872&Signature=tG5vrdySLGfVfr2zGSy7PYv4YeyRqP0mYbjCOXpQGs%2BRPPHn81u%2BRD4xwf%2FvCLcPYyjMAfTcI2CWDOlxvpe5FMiXrirES7sBEEZj7Z%2FRjeeRW5rvdQ73RgslBQG%2F6RZ%2BvTs71JldekObCLg2%2Bl1Bd8eJn6xHfHj5o3rCh1KzZnKdvI%2B48oqtQW5JEw4N49gLrUkw5w7mIjp%2Foh4lwKCyrdRMv0KISzqd7B%2B32aiuha1ZZIqiOkuS1UlAdkRqVUgl626NXZnJtdJfxsFzRsIvLHpjL%2BSvOI9gtEv5HZ17qzAoCracKPPfFRtQw9osW9vtnoK8MiASmV6o%2FfdC2PPZpg%3D%3D","environmentVariables":{"FIREBASE_CONFIG":"{\"projectId\":\"cmass-sales\",\"storageBucket\":\"cmass-sales.firebasestorage.app\"}","GCLOUD_PROJECT":"cmass-sales","EVENTARC_CLOUD_EVENT_SOURCE":"projects/cmass-sales/locations/asia-northeast3/functions/api"},"runtime":"nodejs20","ingressSettings":"ALLOW_ALL","buildId":"6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","buildEnvironmentVariables":{"GOOGLE_NODE_RUN_SCRIPTS":""},"buildName":"projects/918981476485/locations/asia-northeast3/builds/6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","dockerRegistry":"ARTIFACT_REGISTRY","automaticUpdatePolicy":{},"buildServiceAccount":"projects/cmass-sales/serviceAccounts/918981476485-compute@developer.gserviceaccount.com"},"versionId":"46","updateTime":"2025-11-13T05:01:15Z","buildId":"beca48b3-bab5-497a-afea-7b6c76f71ebd","buildName":"projects/918981476485/locations/asia-northeast3/builds/beca48b3-bab5-497a-afea-7b6c76f71ebd"}}
+[debug] [2025-11-13T05:01:52.166Z] [update-default-asia-northeast3-api] Retrying task index 0
+[debug] [2025-11-13T05:01:52.167Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:52.167Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:01:52.168Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ [none]
+[debug] [2025-11-13T05:01:52.679Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ 200
+[debug] [2025-11-13T05:01:52.680Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ {"name":"operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ","metadata":{"@type":"type.googleapis.com/google.cloud.functions.v1.OperationMetadataV1","target":"projects/cmass-sales/locations/asia-northeast3/functions/api","type":"UPDATE_FUNCTION","request":{"@type":"type.googleapis.com/google.cloud.functions.v1.CloudFunction","name":"projects/cmass-sales/locations/asia-northeast3/functions/api","httpsTrigger":{"url":"https://asia-northeast3-cmass-sales.cloudfunctions.net/api","securityLevel":"SECURE_ALWAYS"},"status":"ACTIVE","entryPoint":"api","timeout":"540s","availableMemoryMb":512,"serviceAccountEmail":"cmass-sales@appspot.gserviceaccount.com","updateTime":"2025-11-06T12:51:08.114Z","versionId":"44","labels":{"deployment-tool":"cli-firebase","firebase-functions-hash":"0d3f97bc64cdbccf0685fba4db3dde0e1bbda897"},"sourceUploadUrl":"https://storage.googleapis.com/uploads-867907651011.asia-northeast3.cloudfunctions.appspot.com/ace11102-0d01-44c4-8b2e-7e05c34459f5.zip?GoogleAccessId=service-918981476485@gcf-admin-robot.iam.gserviceaccount.com&Expires=1763011872&Signature=tG5vrdySLGfVfr2zGSy7PYv4YeyRqP0mYbjCOXpQGs%2BRPPHn81u%2BRD4xwf%2FvCLcPYyjMAfTcI2CWDOlxvpe5FMiXrirES7sBEEZj7Z%2FRjeeRW5rvdQ73RgslBQG%2F6RZ%2BvTs71JldekObCLg2%2Bl1Bd8eJn6xHfHj5o3rCh1KzZnKdvI%2B48oqtQW5JEw4N49gLrUkw5w7mIjp%2Foh4lwKCyrdRMv0KISzqd7B%2B32aiuha1ZZIqiOkuS1UlAdkRqVUgl626NXZnJtdJfxsFzRsIvLHpjL%2BSvOI9gtEv5HZ17qzAoCracKPPfFRtQw9osW9vtnoK8MiASmV6o%2FfdC2PPZpg%3D%3D","environmentVariables":{"FIREBASE_CONFIG":"{\"projectId\":\"cmass-sales\",\"storageBucket\":\"cmass-sales.firebasestorage.app\"}","GCLOUD_PROJECT":"cmass-sales","EVENTARC_CLOUD_EVENT_SOURCE":"projects/cmass-sales/locations/asia-northeast3/functions/api"},"runtime":"nodejs20","ingressSettings":"ALLOW_ALL","buildId":"6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","buildEnvironmentVariables":{"GOOGLE_NODE_RUN_SCRIPTS":""},"buildName":"projects/918981476485/locations/asia-northeast3/builds/6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","dockerRegistry":"ARTIFACT_REGISTRY","automaticUpdatePolicy":{},"buildServiceAccount":"projects/cmass-sales/serviceAccounts/918981476485-compute@developer.gserviceaccount.com"},"versionId":"46","updateTime":"2025-11-13T05:01:15Z","buildId":"beca48b3-bab5-497a-afea-7b6c76f71ebd","buildName":"projects/918981476485/locations/asia-northeast3/builds/beca48b3-bab5-497a-afea-7b6c76f71ebd"}}
+[debug] [2025-11-13T05:02:02.692Z] [update-default-asia-northeast3-api] Retrying task index 0
+[debug] [2025-11-13T05:02:02.693Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:02:02.694Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:02:02.694Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ [none]
+[debug] [2025-11-13T05:02:03.143Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ 200
+[debug] [2025-11-13T05:02:03.144Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v1/operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ {"name":"operations/Y21hc3Mtc2FsZXMvYXNpYS1ub3J0aGVhc3QzL2FwaS9FX21aZFBLWVVXWQ","metadata":{"@type":"type.googleapis.com/google.cloud.functions.v1.OperationMetadataV1","target":"projects/cmass-sales/locations/asia-northeast3/functions/api","type":"UPDATE_FUNCTION","request":{"@type":"type.googleapis.com/google.cloud.functions.v1.CloudFunction","name":"projects/cmass-sales/locations/asia-northeast3/functions/api","httpsTrigger":{"url":"https://asia-northeast3-cmass-sales.cloudfunctions.net/api","securityLevel":"SECURE_ALWAYS"},"status":"ACTIVE","entryPoint":"api","timeout":"540s","availableMemoryMb":512,"serviceAccountEmail":"cmass-sales@appspot.gserviceaccount.com","updateTime":"2025-11-06T12:51:08.114Z","versionId":"44","labels":{"deployment-tool":"cli-firebase","firebase-functions-hash":"0d3f97bc64cdbccf0685fba4db3dde0e1bbda897"},"sourceUploadUrl":"https://storage.googleapis.com/uploads-867907651011.asia-northeast3.cloudfunctions.appspot.com/ace11102-0d01-44c4-8b2e-7e05c34459f5.zip?GoogleAccessId=service-918981476485@gcf-admin-robot.iam.gserviceaccount.com&Expires=1763011872&Signature=tG5vrdySLGfVfr2zGSy7PYv4YeyRqP0mYbjCOXpQGs%2BRPPHn81u%2BRD4xwf%2FvCLcPYyjMAfTcI2CWDOlxvpe5FMiXrirES7sBEEZj7Z%2FRjeeRW5rvdQ73RgslBQG%2F6RZ%2BvTs71JldekObCLg2%2Bl1Bd8eJn6xHfHj5o3rCh1KzZnKdvI%2B48oqtQW5JEw4N49gLrUkw5w7mIjp%2Foh4lwKCyrdRMv0KISzqd7B%2B32aiuha1ZZIqiOkuS1UlAdkRqVUgl626NXZnJtdJfxsFzRsIvLHpjL%2BSvOI9gtEv5HZ17qzAoCracKPPfFRtQw9osW9vtnoK8MiASmV6o%2FfdC2PPZpg%3D%3D","environmentVariables":{"FIREBASE_CONFIG":"{\"projectId\":\"cmass-sales\",\"storageBucket\":\"cmass-sales.firebasestorage.app\"}","GCLOUD_PROJECT":"cmass-sales","EVENTARC_CLOUD_EVENT_SOURCE":"projects/cmass-sales/locations/asia-northeast3/functions/api"},"runtime":"nodejs20","ingressSettings":"ALLOW_ALL","buildId":"6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","buildEnvironmentVariables":{"GOOGLE_NODE_RUN_SCRIPTS":""},"buildName":"projects/918981476485/locations/asia-northeast3/builds/6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","dockerRegistry":"ARTIFACT_REGISTRY","automaticUpdatePolicy":{},"buildServiceAccount":"projects/cmass-sales/serviceAccounts/918981476485-compute@developer.gserviceaccount.com"},"versionId":"46","updateTime":"2025-11-13T05:01:54Z","buildId":"beca48b3-bab5-497a-afea-7b6c76f71ebd","buildName":"projects/918981476485/locations/asia-northeast3/builds/beca48b3-bab5-497a-afea-7b6c76f71ebd"},"done":true,"error":{"code":3,"message":"Build failed: npm error code ERESOLVE\nnpm error ERESOLVE could not resolve\nnpm error\nnpm error While resolving: firebase-functions@3.24.1\nnpm error Found: firebase-admin@13.6.0\nnpm error node_modules/firebase-admin\nnpm error   firebase-admin@\"^13.6.0\" from the root project\nnpm error\nnpm error Could not resolve dependency:\nnpm error peer firebase-admin@\"^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0\" from firebase-functions@3.24.1\nnpm error node_modules/firebase-functions\nnpm error   firebase-functions@\"^3.24.1\" from the root project\nnpm error\nnpm error Conflicting peer dependency: firebase-admin@11.11.1\nnpm error node_modules/firebase-admin\nnpm error   peer firebase-admin@\"^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0\" from firebase-functions@3.24.1\nnpm error   node_modules/firebase-functions\nnpm error     firebase-functions@\"^3.24.1\" from the root project\nnpm error\nnpm error Fix the upstream dependency conflict, or retry\nnpm error this command with --force or --legacy-peer-deps\nnpm error to accept an incorrect (and potentially broken) dependency resolution.\nnpm error\nnpm error\nnpm error For a full report see:\nnpm error /www-data-home/.npm/_logs/2025-11-13T05_01_34_053Z-eresolve-report.txt\nnpm error A complete log of this run can be found in: /www-data-home/.npm/_logs/2025-11-13T05_01_34_053Z-debug-0.log; Error ID: 7fa33aaa"}}
+[debug] [2025-11-13T05:02:03.145Z] Got source token undefined for region asia-northeast3
+[error] Build failed: npm error code ERESOLVE
+npm error ERESOLVE could not resolve
+npm error
+npm error While resolving: firebase-functions@3.24.1
+npm error Found: firebase-admin@13.6.0
+npm error node_modules/firebase-admin
+npm error   firebase-admin@"^13.6.0" from the root project
+npm error
+npm error Could not resolve dependency:
+npm error peer firebase-admin@"^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0" from firebase-functions@3.24.1
+npm error node_modules/firebase-functions
+npm error   firebase-functions@"^3.24.1" from the root project
+npm error
+npm error Conflicting peer dependency: firebase-admin@11.11.1
+npm error node_modules/firebase-admin
+npm error   peer firebase-admin@"^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0" from firebase-functions@3.24.1
+npm error   node_modules/firebase-functions
+npm error     firebase-functions@"^3.24.1" from the root project
+npm error
+npm error Fix the upstream dependency conflict, or retry
+npm error this command with --force or --legacy-peer-deps
+npm error to accept an incorrect (and potentially broken) dependency resolution.
+npm error
+npm error
+npm error For a full report see:
+npm error /www-data-home/.npm/_logs/2025-11-13T05_01_34_053Z-eresolve-report.txt
+npm error A complete log of this run can be found in: /www-data-home/.npm/_logs/2025-11-13T05_01_34_053Z-debug-0.log; Error ID: 7fa33aaa
+[debug] [2025-11-13T05:02:03.153Z] Total Function Deployment time: 50435
+[debug] [2025-11-13T05:02:03.153Z] 1 Functions Deployed
+[debug] [2025-11-13T05:02:03.154Z] 1 Functions Errored
+[debug] [2025-11-13T05:02:03.154Z] 0 Function Deployments Aborted
+[debug] [2025-11-13T05:02:03.154Z] Average Function Deployment time: 50435
+[info] 
+[info] Functions deploy had errors with the following functions:
+	api(asia-northeast3)
+[debug] [2025-11-13T05:02:03.389Z] Not printing URL for HTTPS function. Typically this means it didn't match a filter or we failed deployment
+[debug] [2025-11-13T05:02:03.389Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:02:03.390Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:02:03.390Z] >>> [apiv2][query] GET https://artifactregistry.googleapis.com/v1/projects/cmass-sales/locations/asia-northeast3/repositories/gcf-artifacts [none]
+[debug] [2025-11-13T05:02:03.873Z] <<< [apiv2][status] GET https://artifactregistry.googleapis.com/v1/projects/cmass-sales/locations/asia-northeast3/repositories/gcf-artifacts 200
+[debug] [2025-11-13T05:02:03.874Z] <<< [apiv2][body] GET https://artifactregistry.googleapis.com/v1/projects/cmass-sales/locations/asia-northeast3/repositories/gcf-artifacts {"name":"projects/cmass-sales/locations/asia-northeast3/repositories/gcf-artifacts","format":"DOCKER","description":"This repository is created and used by Cloud Functions for storing function docker images.","labels":{"goog-managed-by":"cloudfunctions"},"createTime":"2025-10-27T08:18:13.310608Z","updateTime":"2025-11-13T04:58:41.783613Z","mode":"STANDARD_REPOSITORY","cleanupPolicies":{"firebase-functions-cleanup":{"id":"firebase-functions-cleanup","action":"DELETE","condition":{"tagState":"ANY","olderThan":"2592000s"}}},"sizeBytes":"889262909","satisfiesPzs":true,"vulnerabilityScanningConfig":{"lastEnableTime":"2025-10-27T08:18:04.743077304Z","enablementState":"SCANNING_DISABLED","enablementStateReason":"API containerscanning.googleapis.com is not enabled."},"satisfiesPzi":true,"registryUri":"asia-northeast3-docker.pkg.dev/cmass-sales/gcf-artifacts"}
+[debug] [2025-11-13T05:02:03.875Z] Functions deploy failed.
+[debug] [2025-11-13T05:02:03.875Z] {
+  "endpoint": {
+    "id": "api",
+    "project": "cmass-sales",
+    "region": "asia-northeast3",
+    "entryPoint": "api",
+    "platform": "gcfv1",
+    "runtime": "nodejs20",
+    "httpsTrigger": {},
+    "availableMemoryMb": 512,
+    "timeoutSeconds": 540,
+    "environmentVariables": {
+      "FIREBASE_CONFIG": "{\"projectId\":\"cmass-sales\",\"storageBucket\":\"cmass-sales.firebasestorage.app\"}",
+      "GCLOUD_PROJECT": "cmass-sales",
+      "EVENTARC_CLOUD_EVENT_SOURCE": "projects/cmass-sales/locations/asia-northeast3/functions/api"
+    },
+    "codebase": "default",
+    "securityLevel": "SECURE_ALWAYS",
+    "targetedByOnly": true,
+    "hash": "0d3f97bc64cdbccf0685fba4db3dde0e1bbda897",
+    "labels": {
+      "deployment-tool": "cli-firebase"
+    }
+  },
+  "op": "update",
+  "original": {
+    "name": "FirebaseError",
+    "children": [],
+    "exit": 1,
+    "message": "Build failed: npm error code ERESOLVE\nnpm error ERESOLVE could not resolve\nnpm error\nnpm error While resolving: firebase-functions@3.24.1\nnpm error Found: firebase-admin@13.6.0\nnpm error node_modules/firebase-admin\nnpm error   firebase-admin@\"^13.6.0\" from the root project\nnpm error\nnpm error Could not resolve dependency:\nnpm error peer firebase-admin@\"^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0\" from firebase-functions@3.24.1\nnpm error node_modules/firebase-functions\nnpm error   firebase-functions@\"^3.24.1\" from the root project\nnpm error\nnpm error Conflicting peer dependency: firebase-admin@11.11.1\nnpm error node_modules/firebase-admin\nnpm error   peer firebase-admin@\"^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0\" from firebase-functions@3.24.1\nnpm error   node_modules/firebase-functions\nnpm error     firebase-functions@\"^3.24.1\" from the root project\nnpm error\nnpm error Fix the upstream dependency conflict, or retry\nnpm error this command with --force or --legacy-peer-deps\nnpm error to accept an incorrect (and potentially broken) dependency resolution.\nnpm error\nnpm error\nnpm error For a full report see:\nnpm error /www-data-home/.npm/_logs/2025-11-13T05_01_34_053Z-eresolve-report.txt\nnpm error A complete log of this run can be found in: /www-data-home/.npm/_logs/2025-11-13T05_01_34_053Z-debug-0.log; Error ID: 7fa33aaa",
+    "original": {
+      "code": 3,
+      "message": "Build failed: npm error code ERESOLVE\nnpm error ERESOLVE could not resolve\nnpm error\nnpm error While resolving: firebase-functions@3.24.1\nnpm error Found: firebase-admin@13.6.0\nnpm error node_modules/firebase-admin\nnpm error   firebase-admin@\"^13.6.0\" from the root project\nnpm error\nnpm error Could not resolve dependency:\nnpm error peer firebase-admin@\"^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0\" from firebase-functions@3.24.1\nnpm error node_modules/firebase-functions\nnpm error   firebase-functions@\"^3.24.1\" from the root project\nnpm error\nnpm error Conflicting peer dependency: firebase-admin@11.11.1\nnpm error node_modules/firebase-admin\nnpm error   peer firebase-admin@\"^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0\" from firebase-functions@3.24.1\nnpm error   node_modules/firebase-functions\nnpm error     firebase-functions@\"^3.24.1\" from the root project\nnpm error\nnpm error Fix the upstream dependency conflict, or retry\nnpm error this command with --force or --legacy-peer-deps\nnpm error to accept an incorrect (and potentially broken) dependency resolution.\nnpm error\nnpm error\nnpm error For a full report see:\nnpm error /www-data-home/.npm/_logs/2025-11-13T05_01_34_053Z-eresolve-report.txt\nnpm error A complete log of this run can be found in: /www-data-home/.npm/_logs/2025-11-13T05_01_34_053Z-debug-0.log; Error ID: 7fa33aaa"
+    },
+    "status": 3,
+    "code": 3
+  }
+}
+[debug] [2025-11-13T05:02:03.956Z] Error: Failed to update function api in region asia-northeast3
+    at C:\Users\PC\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\release\fabricator.js:52:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async Fabricator.updateV1Function (C:\Users\PC\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\release\fabricator.js:364:32)
+    at async Fabricator.updateEndpoint (C:\Users\PC\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\release\fabricator.js:157:13)
+    at async handle (C:\Users\PC\AppData\Roaming\npm\node_modules\firebase-tools\lib\deploy\functions\release\fabricator.js:89:17)
+[error] 
+[error] Error: There was an error deploying functions
+[debug] [2025-11-13T05:04:45.904Z] ----------------------------------------------------------------------
+[debug] [2025-11-13T05:04:45.906Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\PC\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting --debug
+[debug] [2025-11-13T05:04:45.907Z] CLI Version:   14.24.1
+[debug] [2025-11-13T05:04:45.907Z] Platform:      win32
+[debug] [2025-11-13T05:04:45.907Z] Node Version:  v24.11.0
+[debug] [2025-11-13T05:04:45.907Z] Time:          Thu Nov 13 2025 14:04:45 GMT+0900 (대한민국 표준시)
+[debug] [2025-11-13T05:04:45.907Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-11-13T05:04:46.092Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-11-13T05:04:46.094Z] > authorizing via signed-in user (122cks@gmail.com)
+[debug] [2025-11-13T05:04:46.095Z] [iam] checking project cmass-sales for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2025-11-13T05:04:46.097Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:04:46.097Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:04:46.099Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/cmass-sales:testIamPermissions [none]
+[debug] [2025-11-13T05:04:46.099Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/cmass-sales:testIamPermissions x-goog-quota-user=projects/cmass-sales
+[debug] [2025-11-13T05:04:46.099Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/cmass-sales:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-11-13T05:04:46.385Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/cmass-sales:testIamPermissions 200
+[debug] [2025-11-13T05:04:46.385Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/cmass-sales:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-11-13T05:04:46.386Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:04:46.386Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:04:46.387Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/cmass-sales [none]
+[debug] [2025-11-13T05:04:46.835Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/cmass-sales 200
+[debug] [2025-11-13T05:04:46.836Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/cmass-sales {"projectId":"cmass-sales","projectNumber":"918981476485","displayName":"CMASS-SALES","name":"projects/cmass-sales","resources":{"hostingSite":"cmass-sales"},"state":"ACTIVE","etag":"1_ca5c8aaf-89ed-428c-a092-fc3cfb2f8c5f"}
+[info] 
+[info] === Deploying to 'cmass-sales'...
+[info] 
+[info] i  deploying hosting 
+[debug] [2025-11-13T05:04:46.845Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:04:46.845Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:04:46.846Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/cmass-sales/versions [none]
+[debug] [2025-11-13T05:04:46.846Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/cmass-sales/versions {"status":"CREATED","labels":{"deployment-tool":"cli-firebase"}}
+[debug] [2025-11-13T05:04:48.248Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/cmass-sales/versions 200
+[debug] [2025-11-13T05:04:48.248Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/cmass-sales/versions {"name":"projects/918981476485/sites/cmass-sales/versions/208ce09300bb4e20","status":"CREATED","config":{},"labels":{"deployment-tool":"cli-firebase"}}
+[info] i  hosting[cmass-sales]: beginning deploy... 
+[info] i  hosting[cmass-sales]: found 64 files in public 
+[debug] [2025-11-13T05:04:48.277Z] [hosting] uploading with 200 concurrency
+[debug] [2025-11-13T05:04:48.301Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:04:48.302Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:04:48.304Z] [hosting] hash cache [cHVibGlj] stored for 64 files
+[debug] [2025-11-13T05:04:48.305Z] [hosting][hash queue][FINAL] {"max":15,"min":0,"avg":0.5895784995110269,"active":0,"complete":64,"success":64,"errored":0,"retried":0,"total":64,"elapsed":25}
+[debug] [2025-11-13T05:04:48.306Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/918981476485/sites/cmass-sales/versions/208ce09300bb4e20:populateFiles [none]
+[debug] [2025-11-13T05:04:48.306Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/918981476485/sites/cmass-sales/versions/208ce09300bb4e20:populateFiles {"files":{"/server-ids-only.txt":"46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e","/sales_staff.csv":"4f1148ec99d1927ce78d8b991ac46f0d24cca90f2d72b9c472966c96121a4d06","/report_backup_251110_1835.html":"aaf285e35550b5d3eefb66a2ccf1e229acff59326cd8a5c331a710952123217a","/report.js":"c58b5046116a0f30c0f51d0855eb19e625fec80b2bb1f97ea6581fc03336767e","/report.html.backup-before-restore":"d161da13a4d353eccc57c6176cbbfc0e86822b5722202c7e375ecfa1810af0be","/report.html":"e1c41644baaf7050bcdf58733812a23649724f890dc53701147d669d25963174","/report.cleaned-inline.html":"b6e3ab80d3598af8d1a5d874f770fae647e78948ef4a573deececeb89d4c3b90","/report-main.cleaned.js":"c9602e08cdf5088887c6d47a6ef6a587eb865f8a03d8057ad111a75e48e74b59","/neis_grid.js":"d781d8147d826f8e846c54927ab6881c67809938c604f3521a2c6cffdd5c89dd","/migration-server-ids.txt":"46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e","/meeting_backup_2025-11-10.html":"28200cc4baaa6354fe8fa46c2c6e952b67267b76e7cbf58c2fe0e0f8ee912f0d","/meeting.js":"424f29b86de93e846e9c951da826db604b67c3a568c80c9acc4be8f1c967eb8c","/meeting.html.backup-before-edit":"46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e","/meeting.html":"b5e32a3e6906d85f98356e9674675a097e860875929028a01c3580e19f06686a","/manifest.json":"ea0cba94b074e471552c3eaeda4f43bbc108ccecc1aaaf910db3d0b8106ca09a","/input.html":"8639a2afedd3cb59fa00828d482ef7263dc77b98f7a7f5442c37c1e225e6565f","/index.html":"475502229437d9f230dbc54327c268c391120fbe066c245a4358416455bfe14e","/front.html":"f517aa28e8bdd93679f53ab2194e6c83b41531831371f7c5d64106b030a47bb2","/front(bakcup).html":"5162acb84570551ca5cd8fa1859d05f4dd9f8b771251d3b93c9c22272434f37d","/firebase-config.json":"c8e9f138a4deabcb10074288dd8678a638d255c155716449efde59ae7a667066","/favicon.ico":"2f3b808bbc79be8f4a5b442446b8e9f83c387d6b11cdd234f46e832ac15177af","/csv-helpers.js":"ae0422254d5498ad2cc3d37ccb9ca3d2332dea8b4de4091ad569d3d0d8275ba9","/collectFormData.js":"c6b0276f5cddcd91061b0df39b06c836dc9c9b1b72d23ff381a59ecb3fef1257","/app.py":"58a98b7260f03cf8d17e2ec7d418588cbd257577d93baaa74f514cd683e2dd91","/js/tmp_visits.json":"075eebeb18f208e3b13d0f670f4be830e8ee3b28fdaa63f3c7d5213a10dff375","/js/tmp_input_live.html":"afc51c583b1fe93ffe2a94ad27be4545b7819cd4f3d898af9266669f36bcc8b5","/js/tmp_front_staff.html":"e2bf59c2b9c2c391e4b2836741ca3797c19bd2f981b585e2275f4c3d17f54ef9","/js/tmp_front_live.html":"73acd5b84a233e34eff52a9aad2498576e9ae9d911d90828fb9ee5d01f1bc3be","/js/tmp_front_final.html":"0fc7db64f2125f50821e781a2c12b6c7125a8b6c36a00a24bd21a591ec3f8335","/js/tmp_front_deployed.html":"254a9214761e5ef39751fcae8e4f45425ab5ea8d70526e499f9a1f2b2524697c","/js/tmp_front_bak.html":"ed53ef340586ca5e2dd1cfc13540189db3bb417ca12e95a86aacd9839ec9b59b","/js/tmp_front_after_sw.html":"0fc7db64f2125f50821e781a2c12b6c7125a8b6c36a00a24bd21a591ec3f8335","/js/tmp_front_after.html":"57a02a2ea4a357c40b8e6ce9b149cd586e33a25fedf4b1d0d2577884ccebb18c","/js/tmp_front3.html":"0fc7db64f2125f50821e781a2c12b6c7125a8b6c36a00a24bd21a591ec3f8335","/js/tmp_front2.html":"0fc7db64f2125f50821e781a2c12b6c7125a8b6c36a00a24bd21a591ec3f8335","/js/tmp_front.html":"e2bf59c2b9c2c391e4b2836741ca3797c19bd2f981b585e2275f4c3d17f54ef9","/js/staff-store.js":"0fa4541494f5e6ac488f42a3fe763f2ff0d383d39cc578411e230c8d27307fd0","/js/silence-console.js":"a21f6a93f373ed83154f3d6dd9f2648ee74932ba75a697f1968bf0e3538767b3","/js/report_diff.txt":"0950da3525049f32c3bebdfe9e10f9ba938f955c2239b281834087d706436996","/js/package.json":"42c8eed07304fe7b47f552ad3d18654a111d7946cca5306ba912f3e6c192db57","/js/package-lock.json":"0d291624f4506533f6bd7b148ef4ff5ec612cf66e8857bf3f5d3648abc4996e4","/js/npm_version.txt":"e339a5e3e6fc1b26dac61695e688e7be566ec33c75db664ed028ec270b59fbfa","/js/node_version.txt":"db8be139b0f711a717356ca43b5a2d77cc8f15f39458d1ad6a15af60c2b58905","/js/node_procs.txt":"46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e","/js/netstat_8080.txt":"46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e","/js/iwr_error.txt":"31046c50220c2866d9858fa90b47dd6936434d958c84b64c98d27be20a81e7bd","/js/hosted_report_js_headers.txt":"878db6e8cf5135bc91161a904fb8b369b81876027403723f1cdfa758bf6b4cf7","/js/hosted_report_js.txt":"c58b5046116a0f30c0f51d0855eb19e625fec80b2bb1f97ea6581fc03336767e","/js/hosted_report.html":"5e655d21bdb9ed03a93d158711d4ebb9096f97150975fa201be156430baa868c","/js/hosted_meeting.html":"ade6aead40e555e534f720e1ce469c35ce59358f44e8f2ba9f27e5bde94ae895","/js/front_live.html":"0b2223fb3e15e7233ae705da7a79e4452dfd0d6e5e8c53b22cebd24ddceeacb4","/js/firebase_firestore_compat.js":"e0b8e36c30ed1f542313e5deee4b0a5c562141bdb45d803ea6bff9f7ac1e4898","/js/firebase_auth_compat.js":"c1973d3ea703928eaf933dbb86884507fc13e0b51a37c91bd5585eca0f24bca7","/js/firebase_app_compat.js":"bd0f85862a8ccc2890b807b42568755eb0bc194f7d56a3b5e942d6e0ace9464a","/js/firebase-firestore-compat.js":"e0b8e36c30ed1f542313e5deee4b0a5c562141bdb45d803ea6bff9f7ac1e4898","/js/firebase-auth-compat.js":"c1973d3ea703928eaf933dbb86884507fc13e0b51a37c91bd5585eca0f24bca7","/js/entries.js":"030dbad36dd09a6a1b50be8bfcb6aeec8db49c82400f8c1af6e3f35efef43c75","/js/dedupe_visit_entries.js":"f9ea9a69d0c558cb3c46f9959471217be0df1b92eafea520e2fd470b4a26f6d6","/js/capture_log.txt":"01b724e88719259f0c60acc175de9b449c661237c2457f0e46ede4d258b5ab24","/js/scripts/deploy-checks/input_index.html":"e5e8424d3efa247fa0717c1b80da619986640bb7725f725d6692ad7b75d58ca4","/js/scripts/deploy-checks/input.html":"e5e8424d3efa247fa0717c1b80da619986640bb7725f725d6692ad7b75d58ca4","/assets/CMASS_sales_logo.png":"10c1c4907b91562836cb2257e2891f1bd8e3a30a0e1109298f8f07cc59519dd5","/assets/CMASS_LOGO.png":"2f3b808bbc79be8f4a5b442446b8e9f83c387d6b11cdd234f46e832ac15177af","/dashboard.html":"b9c39c95881e6480f480019c0286ce34c587733940269bea7ecd9b68a8537a99"}}
+[debug] [2025-11-13T05:04:48.896Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/918981476485/sites/cmass-sales/versions/208ce09300bb4e20:populateFiles 200
+[debug] [2025-11-13T05:04:48.897Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/918981476485/sites/cmass-sales/versions/208ce09300bb4e20:populateFiles {"uploadRequiredHashes":["b9c39c95881e6480f480019c0286ce34c587733940269bea7ecd9b68a8537a99"],"uploadUrl":"https://upload-firebasehosting.googleapis.com/upload/sites/cmass-sales/versions/208ce09300bb4e20/files"}
+[debug] [2025-11-13T05:04:48.898Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:04:48.898Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:04:48.899Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/cmass-sales/versions/208ce09300bb4e20/files/b9c39c95881e6480f480019c0286ce34c587733940269bea7ecd9b68a8537a99 [none]
+[debug] [2025-11-13T05:04:48.899Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/cmass-sales/versions/208ce09300bb4e20/files/b9c39c95881e6480f480019c0286ce34c587733940269bea7ecd9b68a8537a99 [stream]
+[debug] [2025-11-13T05:04:48.902Z] [hosting][populate queue][FINAL] {"max":598,"min":598,"avg":598,"active":0,"complete":1,"success":1,"errored":0,"retried":0,"total":1,"elapsed":601}
+[debug] [2025-11-13T05:04:48.902Z] [hosting] uploads queued: 1
+[debug] [2025-11-13T05:04:50.018Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/cmass-sales/versions/208ce09300bb4e20/files/b9c39c95881e6480f480019c0286ce34c587733940269bea7ecd9b68a8537a99 200
+[debug] [2025-11-13T05:04:50.019Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/cmass-sales/versions/208ce09300bb4e20/files/b9c39c95881e6480f480019c0286ce34c587733940269bea7ecd9b68a8537a99 [stream]
+[debug] [2025-11-13T05:04:50.020Z] [hosting][upload queue][FINAL] {"max":1123,"min":1123,"avg":1123,"active":0,"complete":1,"success":1,"errored":0,"retried":0,"total":1,"elapsed":1123}
+[info] i  hosting: upload complete 
+[info] +  hosting[cmass-sales]: file upload complete 
+[debug] [2025-11-13T05:04:50.022Z] [hosting] deploy completed after 1769ms
+[debug] [2025-11-13T05:04:50.023Z] [
+  {
+    "config": {
+      "public": "public",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "cleanUrls": true,
+      "trailingSlash": false,
+      "rewrites": [
+        {
+          "source": "/api/**",
+          "function": {
+            "functionId": "api"
+          }
+        },
+        {
+          "source": "/input",
+          "destination": "/input.html"
+        },
+        {
+          "source": "/meeting",
+          "destination": "/meeting.html"
+        },
+        {
+          "source": "/report",
+          "destination": "/report.html"
+        },
+        {
+          "source": "/front",
+          "destination": "/front.html"
+        },
+        {
+          "source": "/front/",
+          "destination": "/front.html"
+        },
+        {
+          "source": "**",
+          "destination": "/front.html"
+        }
+      ],
+      "headers": [
+        {
+          "source": "/input.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0"
+            }
+          ]
+        },
+        {
+          "source": "/meeting.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0"
+            }
+          ]
+        },
+        {
+          "source": "/front.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0"
+            }
+          ]
+        },
+        {
+          "source": "/report.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0"
+            }
+          ]
+        }
+      ],
+      "site": "cmass-sales"
+    },
+    "version": "projects/918981476485/sites/cmass-sales/versions/208ce09300bb4e20"
+  }
+]
+[info] i  hosting[cmass-sales]: finalizing version... 
+[debug] [2025-11-13T05:04:50.026Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:04:50.027Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:04:50.028Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v1/projects/cmass-sales/locations/-/functions [none]
+[debug] [2025-11-13T05:04:50.928Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v1/projects/cmass-sales/locations/-/functions 200
+[debug] [2025-11-13T05:04:50.928Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v1/projects/cmass-sales/locations/-/functions {"functions":[{"name":"projects/cmass-sales/locations/asia-northeast3/functions/api","httpsTrigger":{"url":"https://asia-northeast3-cmass-sales.cloudfunctions.net/api","securityLevel":"SECURE_ALWAYS"},"status":"ACTIVE","entryPoint":"api","timeout":"540s","availableMemoryMb":512,"serviceAccountEmail":"cmass-sales@appspot.gserviceaccount.com","updateTime":"2025-11-06T12:51:08.114Z","versionId":"44","labels":{"firebase-functions-hash":"112960716cbcb03c1dc251f80454f6e40825c985","deployment-tool":"cli-firebase"},"sourceUploadUrl":"https://storage.googleapis.com/uploads-867907651011.asia-northeast3.cloudfunctions.appspot.com/1821faf3-4f6c-4eba-92c5-cc842a9ff574.zip","environmentVariables":{"FIREBASE_CONFIG":"{\"projectId\":\"cmass-sales\",\"storageBucket\":\"cmass-sales.firebasestorage.app\"}","GCLOUD_PROJECT":"cmass-sales","EVENTARC_CLOUD_EVENT_SOURCE":"projects/cmass-sales/locations/asia-northeast3/functions/api"},"runtime":"nodejs20","ingressSettings":"ALLOW_ALL","buildId":"6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","buildEnvironmentVariables":{"GOOGLE_NODE_RUN_SCRIPTS":""},"buildName":"projects/918981476485/locations/asia-northeast3/builds/6d3bb0da-8ee5-4807-8b3e-c4ad92b24dfd","dockerRegistry":"ARTIFACT_REGISTRY","automaticUpdatePolicy":{},"buildServiceAccount":"projects/cmass-sales/serviceAccounts/918981476485-compute@developer.gserviceaccount.com","satisfiesPzs":true,"satisfiesPzi":true}]}
+[debug] [2025-11-13T05:04:50.930Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:04:50.930Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:04:50.931Z] >>> [apiv2][query] GET https://cloudfunctions.googleapis.com/v2/projects/cmass-sales/locations/-/functions filter=environment%3D%22GEN_2%22
+[debug] [2025-11-13T05:04:52.263Z] <<< [apiv2][status] GET https://cloudfunctions.googleapis.com/v2/projects/cmass-sales/locations/-/functions 200
+[debug] [2025-11-13T05:04:52.263Z] <<< [apiv2][body] GET https://cloudfunctions.googleapis.com/v2/projects/cmass-sales/locations/-/functions {}
+[debug] [2025-11-13T05:04:52.266Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:04:52.266Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:04:52.266Z] >>> [apiv2][query] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/cmass-sales/versions/208ce09300bb4e20 updateMask=status%2Cconfig
+[debug] [2025-11-13T05:04:52.267Z] >>> [apiv2][body] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/cmass-sales/versions/208ce09300bb4e20 {"status":"FINALIZED","config":{"rewrites":[{"glob":"/api/**","function":"api","functionRegion":"asia-northeast3"},{"glob":"/input","path":"/input.html"},{"glob":"/meeting","path":"/meeting.html"},{"glob":"/report","path":"/report.html"},{"glob":"/front","path":"/front.html"},{"glob":"/front/","path":"/front.html"},{"glob":"**","path":"/front.html"}],"headers":[{"glob":"/input.html","headers":{"Cache-Control":"no-cache, no-store, max-age=0"}},{"glob":"/meeting.html","headers":{"Cache-Control":"no-cache, no-store, max-age=0"}},{"glob":"/front.html","headers":{"Cache-Control":"no-cache, no-store, max-age=0"}},{"glob":"/report.html","headers":{"Cache-Control":"no-cache, no-store, max-age=0"}}],"cleanUrls":true,"trailingSlashBehavior":"REMOVE"}}
+[debug] [2025-11-13T05:04:52.733Z] <<< [apiv2][status] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/cmass-sales/versions/208ce09300bb4e20 200
+[debug] [2025-11-13T05:04:52.734Z] <<< [apiv2][body] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/cmass-sales/versions/208ce09300bb4e20 {"name":"projects/918981476485/sites/cmass-sales/versions/208ce09300bb4e20","status":"FINALIZED","config":{"headers":[{"headers":{"Cache-Control":"no-cache, no-store, max-age=0"},"glob":"/input.html"},{"headers":{"Cache-Control":"no-cache, no-store, max-age=0"},"glob":"/meeting.html"},{"headers":{"Cache-Control":"no-cache, no-store, max-age=0"},"glob":"/front.html"},{"headers":{"Cache-Control":"no-cache, no-store, max-age=0"},"glob":"/report.html"}],"rewrites":[{"functionRegion":"asia-northeast3","glob":"/api/**","function":"api"},{"glob":"/input","path":"/input.html"},{"glob":"/meeting","path":"/meeting.html"},{"glob":"/report","path":"/report.html"},{"glob":"/front","path":"/front.html"},{"glob":"/front/","path":"/front.html"},{"glob":"**","path":"/front.html"}],"cleanUrls":true,"trailingSlashBehavior":"REMOVE"},"labels":{"deployment-tool":"cli-firebase"},"createTime":"2025-11-13T05:04:48.142924Z","createUser":{"email":"122cks@gmail.com"},"finalizeTime":"2025-11-13T05:04:53.015131Z","finalizeUser":{"email":"122cks@gmail.com"}}
+[debug] [2025-11-13T05:04:52.735Z] [hosting] finalized version for cmass-sales:[object Object]
+[info] +  hosting[cmass-sales]: version finalized 
+[info] i  hosting[cmass-sales]: releasing new version... 
+[debug] [2025-11-13T05:04:52.736Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:04:52.736Z] Checked if tokens are valid: true, expires at: 1763013225035
+[debug] [2025-11-13T05:04:52.737Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/cmass-sales/channels/live/releases versionName=projects%2F918981476485%2Fsites%2Fcmass-sales%2Fversions%2F208ce09300bb4e20
+[debug] [2025-11-13T05:04:52.737Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/cmass-sales/channels/live/releases {}
+[debug] [2025-11-13T05:04:53.181Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/cmass-sales/channels/live/releases 200
+[debug] [2025-11-13T05:04:53.182Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/cmass-sales/channels/live/releases {"name":"projects/918981476485/sites/cmass-sales/channels/live/releases/1763010292882000","version":{"name":"projects/918981476485/sites/cmass-sales/versions/208ce09300bb4e20","status":"FINALIZED","config":{"headers":[{"headers":{"Cache-Control":"no-cache, no-store, max-age=0"},"glob":"/input.html"},{"headers":{"Cache-Control":"no-cache, no-store, max-age=0"},"glob":"/meeting.html"},{"headers":{"Cache-Control":"no-cache, no-store, max-age=0"},"glob":"/front.html"},{"headers":{"Cache-Control":"no-cache, no-store, max-age=0"},"glob":"/report.html"}],"rewrites":[{"functionRegion":"asia-northeast3","glob":"/api/**","function":"api"},{"glob":"/input","path":"/input.html"},{"glob":"/meeting","path":"/meeting.html"},{"glob":"/report","path":"/report.html"},{"glob":"/front","path":"/front.html"},{"glob":"/front/","path":"/front.html"},{"glob":"**","path":"/front.html"}],"cleanUrls":true,"trailingSlashBehavior":"REMOVE"},"labels":{"deployment-tool":"cli-firebase"},"createTime":"2025-11-13T05:04:48.142924Z","createUser":{"email":"122cks@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocKMoOBGgQCWp8vVWQf0DkiR6EqaKIAIqUYbtJB881hOPT4j9vw"},"finalizeTime":"2025-11-13T05:04:53.015131Z","finalizeUser":{"email":"122cks@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocKMoOBGgQCWp8vVWQf0DkiR6EqaKIAIqUYbtJB881hOPT4j9vw"}},"type":"DEPLOY","releaseTime":"2025-11-13T05:04:52.882Z","releaseUser":{"email":"122cks@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocKMoOBGgQCWp8vVWQf0DkiR6EqaKIAIqUYbtJB881hOPT4j9vw"}}
+[debug] [2025-11-13T05:04:53.184Z] [hosting] release: {"name":"projects/918981476485/sites/cmass-sales/channels/live/releases/1763010292882000","version":{"name":"projects/918981476485/sites/cmass-sales/versions/208ce09300bb4e20","status":"FINALIZED","config":{"headers":[{"headers":{"Cache-Control":"no-cache, no-store, max-age=0"},"glob":"/input.html"},{"headers":{"Cache-Control":"no-cache, no-store, max-age=0"},"glob":"/meeting.html"},{"headers":{"Cache-Control":"no-cache, no-store, max-age=0"},"glob":"/front.html"},{"headers":{"Cache-Control":"no-cache, no-store, max-age=0"},"glob":"/report.html"}],"rewrites":[{"functionRegion":"asia-northeast3","glob":"/api/**","function":"api"},{"glob":"/input","path":"/input.html"},{"glob":"/meeting","path":"/meeting.html"},{"glob":"/report","path":"/report.html"},{"glob":"/front","path":"/front.html"},{"glob":"/front/","path":"/front.html"},{"glob":"**","path":"/front.html"}],"cleanUrls":true,"trailingSlashBehavior":"REMOVE"},"labels":{"deployment-tool":"cli-firebase"},"createTime":"2025-11-13T05:04:48.142924Z","createUser":{"email":"122cks@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocKMoOBGgQCWp8vVWQf0DkiR6EqaKIAIqUYbtJB881hOPT4j9vw"},"finalizeTime":"2025-11-13T05:04:53.015131Z","finalizeUser":{"email":"122cks@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocKMoOBGgQCWp8vVWQf0DkiR6EqaKIAIqUYbtJB881hOPT4j9vw"}},"type":"DEPLOY","releaseTime":"2025-11-13T05:04:52.882Z","releaseUser":{"email":"122cks@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocKMoOBGgQCWp8vVWQf0DkiR6EqaKIAIqUYbtJB881hOPT4j9vw"}}
+[info] +  hosting[cmass-sales]: release complete 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/cmass-sales/overview
+[info] Hosting URL: https://cmass-sales.web.app

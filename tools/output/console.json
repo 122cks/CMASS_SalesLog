@@ -1,0 +1,7 @@
+[
+  {
+    "type": "pageerror",
+    "text": "Cannot read properties of null (reading 'addEventListener')",
+    "stack": "TypeError: Cannot read properties of null (reading 'addEventListener')\n    at https://cmass-sales.web.app/meeting.js:878:11\n    at https://cmass-sales.web.app/meeting.js:945:3"
+  }
+]

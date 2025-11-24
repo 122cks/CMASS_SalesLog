@@ -1,0 +1,22 @@
+{
+  "staff": "송훈재 부장",
+  "date": "2025-09-29",
+  "region": "경기도가평군",
+  "school": "가평고등학교",
+  "teacher": "테스트선생",
+  "publisher": "씨마스",
+  "phone": "010-1111-2222",
+  "email": "test@example.com",
+  "requests": "요청사항 테스트",
+  "notes": "특이사항 테스트",
+  "deliveries": "납품테스트",
+  "durationMin": 30,
+  "startTime": "09:10",
+  "endTime": "09:40",
+  "subjects": [
+    "정보"
+  ],
+  "activities": [
+    "명함인사"
+  ]
+}

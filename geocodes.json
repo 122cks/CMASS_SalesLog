@@ -1,0 +1,3389 @@
+{
+  "대성중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7031182",
+      "SCHUL_NM": "대성중학교",
+      "ENG_SCHUL_NM": "Daeseong Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시서부교육지원청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "03322 ",
+      "ORG_RDNMA": "서울특별시 은평구 갈현로29길 51-24",
+      "ORG_RDNDA": "/ 대성중학교 (갈현동)",
+      "ORG_TELNO": "02-6252-1100",
+      "HMPG_ADRES": "https://dsms.sen.ms.kr",
+      "COEDU_SC_NM": "남",
+      "ORG_FAXNO": "02-386-2534",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19690115",
+      "FOAS_MEMRD": "19690115",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "선정중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7031193",
+      "SCHUL_NM": "선정중학교",
+      "ENG_SCHUL_NM": "Sunjung Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시서부교육지원청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "03327 ",
+      "ORG_RDNMA": "서울특별시 은평구 서오릉로20길 19",
+      "ORG_RDNDA": "/ 선정중학교 (갈현동)",
+      "ORG_TELNO": "02-3156-1400",
+      "HMPG_ADRES": "https://sunjung.sen.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-359-4758",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19500522",
+      "FOAS_MEMRD": "19500522",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "상신중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7031188",
+      "SCHUL_NM": "상신중학교",
+      "ENG_SCHUL_NM": "Sangsin Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시서부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "03447 ",
+      "ORG_RDNMA": "서울특별시 은평구 증산로15길 61",
+      "ORG_RDNDA": "(신사동)",
+      "ORG_TELNO": "02-305-5139",
+      "HMPG_ADRES": "http://sangsin.sen.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-374-4068",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19841208",
+      "FOAS_MEMRD": "19850506",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "증산중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7031217",
+      "SCHUL_NM": "증산중학교",
+      "ENG_SCHUL_NM": "Jeungsan Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시서부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "03493 ",
+      "ORG_RDNMA": "서울특별시 은평구 증산로5길 27-30",
+      "ORG_RDNDA": "/ 증산중학교 (증산동)",
+      "ORG_TELNO": "02-303-9294",
+      "HMPG_ADRES": "http://www.jeungsan.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-376-3496",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19860129",
+      "FOAS_MEMRD": "19860417",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "연서중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7031204",
+      "SCHUL_NM": "연서중학교",
+      "ENG_SCHUL_NM": "Yeonseo Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시서부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "03496 ",
+      "ORG_RDNMA": "서울특별시 은평구 증산서길 125-6",
+      "ORG_RDNDA": "(증산동/연서중학교)",
+      "ORG_TELNO": "02-6715-8000",
+      "HMPG_ADRES": "http://www.yeonseo.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-376-1534",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19711028",
+      "FOAS_MEMRD": "19711028",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "영락중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7031208",
+      "SCHUL_NM": "영락중학교",
+      "ENG_SCHUL_NM": "Youngnak Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시서부교육지원청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "03475 ",
+      "ORG_RDNMA": "서울특별시 은평구 백련산로 134-6",
+      "ORG_RDNDA": "/ 영락중학교 (응암동)",
+      "ORG_TELNO": "02-388-4033",
+      "HMPG_ADRES": "http://yn.sen.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-388-5497",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19520610",
+      "FOAS_MEMRD": "19520610",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "숭덕여중": null,
+  "인천성리중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "E10",
+      "ATPT_OFCDC_SC_NM": "인천광역시교육청",
+      "SD_SCHUL_CODE": "7341092",
+      "SCHUL_NM": "인천성리중학교",
+      "ENG_SCHUL_NM": "Incheon Sungri Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "인천광역시",
+      "JU_ORG_NM": "인천광역시동부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "21581 ",
+      "ORG_RDNMA": "인천광역시 남동구 성리로 26",
+      "ORG_RDNDA": "(구월동/ 성리중학교)",
+      "ORG_TELNO": "032-469-3924",
+      "HMPG_ADRES": "http://sungri.icems.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "032-469-3931",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "해당없음",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "후기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20060301",
+      "FOAS_MEMRD": "20060301",
+      "LOAD_DTM": "20230709",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "용현중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "E10",
+      "ATPT_OFCDC_SC_NM": "인천광역시교육청",
+      "SD_SCHUL_CODE": "7321084",
+      "SCHUL_NM": "용현중학교",
+      "ENG_SCHUL_NM": "Yong-Hyun Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "인천광역시",
+      "JU_ORG_NM": "인천광역시남부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "22189 ",
+      "ORG_RDNMA": "인천광역시 미추홀구 낙섬동로 16",
+      "ORG_RDNDA": "(용현동/ 용현중학교)",
+      "ORG_TELNO": "032-885-2509",
+      "HMPG_ADRES": "http://yong.icems.kr/",
+      "COEDU_SC_NM": "남",
+      "ORG_FAXNO": "032-888-9877",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "해당없음",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "후기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19860305",
+      "FOAS_MEMRD": "19860305",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "선화여자중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "C10",
+      "ATPT_OFCDC_SC_NM": "부산광역시교육청",
+      "SD_SCHUL_CODE": "7181107",
+      "SCHUL_NM": "선화여자중학교",
+      "ENG_SCHUL_NM": "seonhwa girls` middle school",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "부산광역시",
+      "JU_ORG_NM": "부산광역시남부교육지원청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "48805 ",
+      "ORG_RDNMA": "부산광역시 동구 초량로80번길 5",
+      "ORG_RDNDA": "/ 선화여자중학교 (초량동)",
+      "ORG_TELNO": "051-4600-600",
+      "HMPG_ADRES": "http://seonhwa-gm.ms.kr/",
+      "COEDU_SC_NM": "여",
+      "ORG_FAXNO": "051-462-0572",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19641010",
+      "FOAS_MEMRD": "19641010",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "화도진중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "E10",
+      "ATPT_OFCDC_SC_NM": "인천광역시교육청",
+      "SD_SCHUL_CODE": "7321090",
+      "SCHUL_NM": "화도진중학교",
+      "ENG_SCHUL_NM": "HwaDoJin Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "인천광역시",
+      "JU_ORG_NM": "인천광역시남부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "22513 ",
+      "ORG_RDNMA": "인천광역시 동구 화수로 64",
+      "ORG_RDNDA": "(화수동/ 화도진중학교)",
+      "ORG_TELNO": "032-761-4612",
+      "HMPG_ADRES": "http://hwadojin.icems.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "032-761-3247",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "해당없음",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "후기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19920301",
+      "FOAS_MEMRD": "19920301",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "압구정중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7091440",
+      "SCHUL_NM": "압구정중학교",
+      "ENG_SCHUL_NM": "Apgujeong Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시강남서초교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "06003 ",
+      "ORG_RDNMA": "서울특별시 강남구 압구정로 225",
+      "ORG_RDNDA": "/ 압구정중학교 (압구정동/압구정중학교)",
+      "ORG_TELNO": "02-543-1393",
+      "HMPG_ADRES": "http://www.apgujeong.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-514-7249",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19830301",
+      "FOAS_MEMRD": "19830429",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "봉은중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7091431",
+      "SCHUL_NM": "봉은중학교",
+      "ENG_SCHUL_NM": "Bong-eun Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시강남서초교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "06079 ",
+      "ORG_RDNMA": "서울특별시 강남구 영동대로128길 59",
+      "ORG_RDNDA": "(삼성동)",
+      "ORG_TELNO": "02-547-5628",
+      "HMPG_ADRES": "http://www.bongeun.ms.kr/",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-512-3809",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19860129",
+      "FOAS_MEMRD": "19860429",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "휘문중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7091457",
+      "SCHUL_NM": "휘문중학교",
+      "ENG_SCHUL_NM": "Whimoon Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시강남서초교육지원청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "06183 ",
+      "ORG_RDNMA": "서울특별시 강남구 역삼로 541",
+      "ORG_RDNDA": "(대치동)",
+      "ORG_TELNO": "02-500-9700",
+      "HMPG_ADRES": "http://whimoon.sen.ms.kr",
+      "COEDU_SC_NM": "남",
+      "ORG_FAXNO": "02-500-9799",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19060501",
+      "FOAS_MEMRD": "19060501",
+      "LOAD_DTM": "20241013",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "대부중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7611012",
+      "SCHUL_NM": "대부중학교",
+      "ENG_SCHUL_NM": "Daebu Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도안산교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "15645 ",
+      "ORG_RDNMA": "경기도 안산시 단원구 대부중앙로 3",
+      "ORG_RDNDA": "(대부북동)",
+      "ORG_TELNO": "032-886-4272",
+      "HMPG_ADRES": "daebu.hs.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "032-886-4279",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19580408",
+      "FOAS_MEMRD": "19580408",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "이목중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7541041",
+      "SCHUL_NM": "이목중학교",
+      "ENG_SCHUL_NM": "Imok Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도수원교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "16208 ",
+      "ORG_RDNMA": "경기도 수원시 장안구 장안로 426",
+      "ORG_RDNDA": "(이목동)",
+      "ORG_TELNO": "031-547-5210",
+      "HMPG_ADRES": "https://imok-m.goesw.kr/",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-207-4402",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19851228",
+      "FOAS_MEMRD": "19851228",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "수원공업고등학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7530344",
+      "SCHUL_NM": "수원공업고등학교",
+      "ENG_SCHUL_NM": "Suwon Technical High School",
+      "SCHUL_KND_SC_NM": "고등학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도교육청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "16472 ",
+      "ORG_RDNMA": "경기도 수원시 팔달구 세지로 254",
+      "ORG_RDNDA": "(인계동/수원공업고등학교)",
+      "ORG_TELNO": "031-80061-200",
+      "HMPG_ADRES": "www.sugong.org",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-80061-250",
+      "HS_SC_NM": "특성화고",
+      "INDST_SPECL_CCCCL_EXST_YN": "Y",
+      "HS_GNRL_BUSNS_SC_NM": "전문계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19700623",
+      "FOAS_MEMRD": "19700623",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "남수원중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7541017",
+      "SCHUL_NM": "남수원중학교",
+      "ENG_SCHUL_NM": "Namsuwon Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도수원교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "16557 ",
+      "ORG_RDNMA": "경기도 수원시 권선구 권중로 162",
+      "ORG_RDNDA": "(권선동/ 남수원중학교)",
+      "ORG_TELNO": "031-233-9732",
+      "HMPG_ADRES": "http://namsuwon-m.goesw.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-234-1794",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "해당없음",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19960301",
+      "FOAS_MEMRD": "19961001",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "삼일공업고등학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7530335",
+      "SCHUL_NM": "삼일공업고등학교",
+      "ENG_SCHUL_NM": "Samil Technical High School",
+      "SCHUL_KND_SC_NM": "고등학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도교육청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "16254 ",
+      "ORG_RDNMA": "경기도 수원시 팔달구 수원천로392번길 44-60",
+      "ORG_RDNDA": "(매향동/ 삼일공고)",
+      "ORG_TELNO": "031-257-3131",
+      "HMPG_ADRES": "www.samil-th.or.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-257-3135",
+      "HS_SC_NM": "특성화고",
+      "INDST_SPECL_CCCCL_EXST_YN": "Y",
+      "HS_GNRL_BUSNS_SC_NM": "전문계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19020507",
+      "FOAS_MEMRD": "19020507",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "삼일고등학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "H10",
+      "ATPT_OFCDC_SC_NM": "울산광역시교육청",
+      "SD_SCHUL_CODE": "7480252",
+      "SCHUL_NM": "울산삼일고등학교",
+      "ENG_SCHUL_NM": "ULSAN SAMIL HIGH SCHOOL",
+      "SCHUL_KND_SC_NM": "고등학교",
+      "LCTN_SC_NM": "울산광역시",
+      "JU_ORG_NM": "울산광역시교육청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "44773 ",
+      "ORG_RDNMA": "울산광역시 남구 두왕로190번길 59",
+      "ORG_RDNDA": "(선암동, 울산삼일고등학교)",
+      "ORG_TELNO": "052-271-6889",
+      "HMPG_ADRES": "http://www.samil-us.hs.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "052-276-4417",
+      "HS_SC_NM": "일반고",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "후기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19890707",
+      "FOAS_MEMRD": "19930531",
+      "LOAD_DTM": "20250511",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "목암중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7621010",
+      "SCHUL_NM": "목암중학교",
+      "ENG_SCHUL_NM": "Mokam Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도고양교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "10270 ",
+      "ORG_RDNMA": "경기도 고양시 덕양구 푸른마을로 65",
+      "ORG_RDNDA": "(고양동)",
+      "ORG_TELNO": "031-960-0610",
+      "HMPG_ADRES": "www.mokam.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-962-1584",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "해당없음",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20050301",
+      "FOAS_MEMRD": "20050501",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "지축중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7621375",
+      "SCHUL_NM": "지축중학교",
+      "ENG_SCHUL_NM": "jichuk middle school",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도고양교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "10583 ",
+      "ORG_RDNMA": "경기도 고양시 덕양구 오부자2길 14",
+      "ORG_RDNDA": "/ 지축중학교 (지축동)",
+      "ORG_TELNO": "02-3700-5600",
+      "HMPG_ADRES": "http://www.jichuk.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-381-9863",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": null,
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20210301",
+      "FOAS_MEMRD": "20210301",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "고양중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7621012",
+      "SCHUL_NM": "고양중학교",
+      "ENG_SCHUL_NM": "Goyang middle school",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도고양교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "10589 ",
+      "ORG_RDNMA": "경기도 고양시 덕양구 동세로 82",
+      "ORG_RDNDA": "(삼송동)",
+      "ORG_TELNO": "02-350-1115",
+      "HMPG_ADRES": "www.goyang.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-381-6499",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19470626",
+      "FOAS_MEMRD": "19470626",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "도래울중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7621327",
+      "SCHUL_NM": "도래울중학교",
+      "ENG_SCHUL_NM": "Doraeul",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도고양교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "10551 ",
+      "ORG_RDNMA": "경기도 고양시 덕양구 도래울로 57 ",
+      "ORG_RDNDA": "(도내동)",
+      "ORG_TELNO": "031-964-9572",
+      "HMPG_ADRES": "http://doraeul.ms.kr/",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-964-9573",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": null,
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전후기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20140301",
+      "FOAS_MEMRD": "20140604",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "별가람중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7652250",
+      "SCHUL_NM": "별가람중학교",
+      "ENG_SCHUL_NM": "byeolgaram middle school",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도구리남양주교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "12103 ",
+      "ORG_RDNMA": "경기도 남양주시 별내3로 ",
+      "ORG_RDNDA": " 232번지 ",
+      "ORG_TELNO": "031-524-9403",
+      "HMPG_ADRES": "http://www.byeolgaram.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-524-9412",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": null,
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20120301",
+      "FOAS_MEMRD": "20120506",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "언남고등학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7010095",
+      "SCHUL_NM": "언남고등학교",
+      "ENG_SCHUL_NM": "Eonnam High School",
+      "SCHUL_KND_SC_NM": "고등학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시교육청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "06780 ",
+      "ORG_RDNMA": "서울 서초구 동산로13길 35",
+      "ORG_RDNDA": "(양재동/언남고등학교)",
+      "ORG_TELNO": "02-575-2680",
+      "HMPG_ADRES": "http://eonnam.sen.hs.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-579-7227",
+      "HS_SC_NM": "일반고",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "후기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19860125",
+      "FOAS_MEMRD": "19860430",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "개원중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7091420",
+      "SCHUL_NM": "개원중학교",
+      "ENG_SCHUL_NM": "Gaewon Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시강남서초교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "06328 ",
+      "ORG_RDNMA": "서울특별시 강남구 영동대로 101",
+      "ORG_RDNDA": "/ 개원중학교 (개포동/개원중학교)",
+      "ORG_TELNO": "02-3411-8321",
+      "HMPG_ADRES": "http://gaewon.sen.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-3411-8329",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19841204",
+      "FOAS_MEMRD": "19841204",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "중동중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7091455",
+      "SCHUL_NM": "중동중학교",
+      "ENG_SCHUL_NM": "Joongdong Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시강남서초교육지원청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "06344 ",
+      "ORG_RDNMA": "서울특별시 강남구 일원로8길 37",
+      "ORG_RDNDA": "중동중학교",
+      "ORG_TELNO": "070-7092-9300",
+      "HMPG_ADRES": "https://joongdong.sen.ms.kr/ ",
+      "COEDU_SC_NM": "남",
+      "ORG_FAXNO": "02-445-9882",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19060510",
+      "FOAS_MEMRD": "19060510",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "대왕중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7091425",
+      "SCHUL_NM": "대왕중학교",
+      "ENG_SCHUL_NM": "Daewang Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시강남서초교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "06362 ",
+      "ORG_RDNMA": "서울특별시 강남구 광평로20길 7",
+      "ORG_RDNDA": "(수서동/ 대왕중학교)",
+      "ORG_TELNO": "02-2226-2646",
+      "HMPG_ADRES": "http://www.daewang.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-2226-2640",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19940105",
+      "FOAS_MEMRD": "19940506",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "수서중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7091435",
+      "SCHUL_NM": "수서중학교",
+      "ENG_SCHUL_NM": "Suseo Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시강남서초교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "06348 ",
+      "ORG_RDNMA": "서울특별시 강남구 광평로59길 57",
+      "ORG_RDNDA": "(수서동/수서중학교)",
+      "ORG_TELNO": "02-451-7092",
+      "HMPG_ADRES": "http://suseo.sen.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-451-7095",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19930430",
+      "FOAS_MEMRD": "19930430",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "상하중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7751305",
+      "SCHUL_NM": "상하중학교",
+      "ENG_SCHUL_NM": "Sangha Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도용인교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "17077 ",
+      "ORG_RDNMA": "경기도 용인시 기흥구 중부대로746번길 16-29",
+      "ORG_RDNDA": "(상하동)",
+      "ORG_TELNO": "031-548-6300",
+      "HMPG_ADRES": "https://sang-ha-m.goeyi.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-548-6339",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "해당없음",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20110301",
+      "FOAS_MEMRD": "20110301",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "성남테크노과학고등학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7531256",
+      "SCHUL_NM": "성남테크노과학고등학교",
+      "ENG_SCHUL_NM": "Seongnam Techno Science High School",
+      "SCHUL_KND_SC_NM": "고등학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도교육청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "13406 ",
+      "ORG_RDNMA": "경기도 성남시 중원구 둔촌대로258번길 7",
+      "ORG_RDNDA": "(하대원동)",
+      "ORG_TELNO": "031-753-0253",
+      "HMPG_ADRES": "https://sts-h.goesn.kr/sts-h/main.do",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-753-0255",
+      "HS_SC_NM": "특성화고",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "전문계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19980115",
+      "FOAS_MEMRD": "19980115",
+      "LOAD_DTM": "20240331",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "대지중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7751023",
+      "SCHUL_NM": "대지중학교",
+      "ENG_SCHUL_NM": "Daeji Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도용인교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "16872 ",
+      "ORG_RDNMA": "경기도 용인시 수지구 대지로51번길 22",
+      "ORG_RDNDA": "(죽전동)",
+      "ORG_TELNO": "031-8067-2100",
+      "HMPG_ADRES": "daeji-m.goeyi.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-8067-2190",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19981104",
+      "FOAS_MEMRD": "19980605",
+      "LOAD_DTM": "20250316",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "양일중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7731007",
+      "SCHUL_NM": "양일중학교",
+      "ENG_SCHUL_NM": "Yangil Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도양평교육지원청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "12552 ",
+      "ORG_RDNMA": "경기도 양평군 양평읍 관문2길 9",
+      "ORG_RDNDA": "/ 양일중학교 (양평읍)",
+      "ORG_TELNO": "031-772-2405",
+      "HMPG_ADRES": "https://yangil-m.goeyp.kr/yangil-m/main.do",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-773-2926",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19671028",
+      "FOAS_MEMRD": "19671028",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "백마중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7621020",
+      "SCHUL_NM": "백마중학교",
+      "ENG_SCHUL_NM": "Baekma middle school",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도고양교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "10417 ",
+      "ORG_RDNMA": "경기도 고양시 일산동구 강촌로 189",
+      "ORG_RDNDA": "(마두동)",
+      "ORG_TELNO": "031-902-2813",
+      "HMPG_ADRES": "www.baekma.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-902-2816",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19930601",
+      "FOAS_MEMRD": "19930601",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "한수중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7621035",
+      "SCHUL_NM": "한수중학교",
+      "ENG_SCHUL_NM": "Han-Su Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도고양교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "10384 ",
+      "ORG_RDNMA": "경기도 고양시 일산서구 주엽로 117",
+      "ORG_RDNDA": "(주엽동)",
+      "ORG_TELNO": "031-929-4700",
+      "HMPG_ADRES": "www.hansu.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-912-4070",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19940228",
+      "FOAS_MEMRD": "19940301",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "대화중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "G10",
+      "ATPT_OFCDC_SC_NM": "대전광역시교육청",
+      "SD_SCHUL_CODE": "7441017",
+      "SCHUL_NM": "대전대화중학교",
+      "ENG_SCHUL_NM": "Daejeon Daehwa Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "대전광역시",
+      "JU_ORG_NM": "대전광역시동부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "34379 ",
+      "ORG_RDNMA": "대전광역시 대덕구 대오길 9",
+      "ORG_RDNDA": "(오정동/ 대화중학교)",
+      "ORG_TELNO": "042-634-4623",
+      "HMPG_ADRES": "http://daehwams.djsch.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "042-633-6451",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19920508",
+      "FOAS_MEMRD": "19930304",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "장성중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7621030",
+      "SCHUL_NM": "장성중학교",
+      "ENG_SCHUL_NM": "Jangsung Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도고양교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "10367 ",
+      "ORG_RDNMA": "경기도 고양시 일산서구 대산로 254",
+      "ORG_RDNDA": "(대화동)",
+      "ORG_TELNO": "031-929-1821",
+      "HMPG_ADRES": "www.jangsung.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-911-1767",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19941101",
+      "FOAS_MEMRD": "19941101",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "덕이중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7621299",
+      "SCHUL_NM": "덕이중학교",
+      "ENG_SCHUL_NM": "deogi middle school ",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도고양교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "10230 ",
+      "ORG_RDNMA": "경기도 고양시 일산서구 하이파크3로",
+      "ORG_RDNDA": "/ 122 (덕이동)",
+      "ORG_TELNO": "031-913-7861",
+      "HMPG_ADRES": "www.deogi.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-913-7864",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "해당없음",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20110301",
+      "FOAS_MEMRD": "20110605",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "서문여자중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7091451",
+      "SCHUL_NM": "서문여자중학교",
+      "ENG_SCHUL_NM": "Suhmoon Girls’ Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시강남서초교육지원청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "06565 ",
+      "ORG_RDNMA": "서울특별시 서초구 동광로12길 84",
+      "ORG_RDNDA": "(방배동)",
+      "ORG_TELNO": "02-3015-3600",
+      "HMPG_ADRES": "https://suhmoon.sen.ms.kr/",
+      "COEDU_SC_NM": "여",
+      "ORG_FAXNO": "02-594-6063",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19781229",
+      "FOAS_MEMRD": "19781229",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "동작중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7132136",
+      "SCHUL_NM": "동작중학교",
+      "ENG_SCHUL_NM": "Dongjak Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시동작관악교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "06992 ",
+      "ORG_RDNMA": "서울특별시 동작구 동작대로39가길 83",
+      "ORG_RDNDA": "(동작동)",
+      "ORG_TELNO": "02-591-6595",
+      "HMPG_ADRES": "http://dongjak.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-535-7156",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19841208",
+      "FOAS_MEMRD": "19841208",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "내곡중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7091486",
+      "SCHUL_NM": "내곡중학교",
+      "ENG_SCHUL_NM": "NAEGOK MIDDLE SCHOOL",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시강남서초교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "06799 ",
+      "ORG_RDNMA": "서울특별시 서초구 청계산로7길 9-20",
+      "ORG_RDNDA": "(신원동)",
+      "ORG_TELNO": "02-571-9532",
+      "HMPG_ADRES": "https://naegok.sen.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-571-9533",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "해당없음",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "후기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20180208",
+      "FOAS_MEMRD": "20180501",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "영동중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7091445",
+      "SCHUL_NM": "영동중학교",
+      "ENG_SCHUL_NM": "Youngdong Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시강남서초교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "06765 ",
+      "ORG_RDNMA": "서울특별시 서초구 성촌길 14",
+      "ORG_RDNDA": "(우면동/영동중학교)",
+      "ORG_TELNO": "02-3474-7386",
+      "HMPG_ADRES": "http://youngdong.sen.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-3474-1960",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19691111",
+      "FOAS_MEMRD": "19700525",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "원촌중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7091446",
+      "SCHUL_NM": "원촌중학교",
+      "ENG_SCHUL_NM": "Wonchon Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시강남서초교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "06544 ",
+      "ORG_RDNMA": "서울특별시 서초구 사평대로45길 10",
+      "ORG_RDNDA": "(반포동/원촌중학교)",
+      "ORG_TELNO": "02-3482-6053",
+      "HMPG_ADRES": "http://wonchon.sen.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-535-0238",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19821209",
+      "FOAS_MEMRD": "19830426",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "화성신동중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7679518",
+      "SCHUL_NM": "화성신동중학교",
+      "ENG_SCHUL_NM": "Hwaseong Sindong Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도화성오산교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": null,
+      "ORG_RDNMA": null,
+      "ORG_RDNDA": null,
+      "ORG_TELNO": " ",
+      "HMPG_ADRES": null,
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": null,
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": null,
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20220519",
+      "FOAS_MEMRD": "20250301",
+      "LOAD_DTM": "20251026",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "과천율목중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7569217",
+      "SCHUL_NM": "과천율목중학교",
+      "ENG_SCHUL_NM": "과천율목중학교",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도안양과천교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "13824 ",
+      "ORG_RDNMA": "경기도 과천시 옥탑로 15",
+      "ORG_RDNDA": "(갈현동)",
+      "ORG_TELNO": "111-1111",
+      "HMPG_ADRES": "http://",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": null,
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": null,
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20240301",
+      "FOAS_MEMRD": "20240607",
+      "LOAD_DTM": "20240310",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "백운중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7051182",
+      "SCHUL_NM": "백운중학교",
+      "ENG_SCHUL_NM": "Baekwoon Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시북부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "01432 ",
+      "ORG_RDNMA": "서울특별시 도봉구 도봉로129길 50",
+      "ORG_RDNDA": "(쌍문동)",
+      "ORG_TELNO": "02-998-4035",
+      "HMPG_ADRES": "http://www.baekwoon.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-998-4034",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19920301",
+      "FOAS_MEMRD": "19920506",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "갈뫼중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7642035",
+      "SCHUL_NM": "갈뫼중학교",
+      "ENG_SCHUL_NM": "Galmoe Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도군포의왕교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "16041 ",
+      "ORG_RDNMA": "경기도 의왕시 갈미로 61",
+      "ORG_RDNDA": "(내손동/갈뫼중학교)",
+      "ORG_TELNO": "031-400-9004",
+      "HMPG_ADRES": "https://galmoejung.goegu.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-425-3216",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20020301",
+      "FOAS_MEMRD": "20020301",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "태평중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "G10",
+      "ATPT_OFCDC_SC_NM": "대전광역시교육청",
+      "SD_SCHUL_CODE": "7441030",
+      "SCHUL_NM": "대전태평중학교",
+      "ENG_SCHUL_NM": "Daejeon Tae-pyeong Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "대전광역시",
+      "JU_ORG_NM": "대전광역시동부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "34877 ",
+      "ORG_RDNMA": "대전광역시 중구 수침로111번길 12",
+      "ORG_RDNDA": "(태평동)",
+      "ORG_TELNO": "042-481-0870",
+      "HMPG_ADRES": "http://tp02ms.djsch.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "042-537-0869",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20020218",
+      "FOAS_MEMRD": "20020302",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "성남동중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7551021",
+      "SCHUL_NM": "성남동중학교",
+      "ENG_SCHUL_NM": "Seongnam Dong Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도성남교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "13173 ",
+      "ORG_RDNMA": "경기도 성남시 중원구 광명로361번길 23",
+      "ORG_RDNDA": "(금광동)",
+      "ORG_TELNO": "031-747-5538",
+      "HMPG_ADRES": "https://snd-m.goesn.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-747-8197",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19810117",
+      "FOAS_MEMRD": "19810117",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "대원중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7551253",
+      "SCHUL_NM": "대원중학교",
+      "ENG_SCHUL_NM": "Daewon Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도성남교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "13183 ",
+      "ORG_RDNMA": "경기도 성남시 중원구 황송로 35",
+      "ORG_RDNDA": "(금광동)",
+      "ORG_TELNO": "031-747-0547",
+      "HMPG_ADRES": "daewon-m.goesn.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-744-5849",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": null,
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19830122",
+      "FOAS_MEMRD": "19830622",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "금광중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7551012",
+      "SCHUL_NM": "금광중학교",
+      "ENG_SCHUL_NM": "Keumgwang Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도성남교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "13183 ",
+      "ORG_RDNMA": "경기도 성남시 중원구 황송로 25",
+      "ORG_RDNDA": "(금광동)",
+      "ORG_TELNO": "031-735-7922",
+      "HMPG_ADRES": "http://keumgwang-m.goesn.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-735-7923",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19940301",
+      "FOAS_MEMRD": "19940301",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "숭신여자중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7551043",
+      "SCHUL_NM": "숭신여자중학교",
+      "ENG_SCHUL_NM": "Sungshin Girls Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도성남교육지원청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "13165 ",
+      "ORG_RDNMA": "경기도 성남시 중원구 황송로 77번길",
+      "ORG_RDNDA": "/ 34 (금광동)",
+      "ORG_TELNO": "031-747-0448",
+      "HMPG_ADRES": "http://sungshin.ms.kr",
+      "COEDU_SC_NM": "여",
+      "ORG_FAXNO": "031-741-6454",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19710528",
+      "FOAS_MEMRD": "19710528",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "도촌중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7551151",
+      "SCHUL_NM": "도촌중학교",
+      "ENG_SCHUL_NM": "Dochon middle school",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도성남교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "13420 ",
+      "ORG_RDNMA": "경기도 성남시 중원구 도촌북로 50",
+      "ORG_RDNDA": "/ 도촌중학교 (도촌동/도촌중학교)",
+      "ORG_TELNO": "031-755-2703",
+      "HMPG_ADRES": "https://dochon-m.goesn.kr/",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-755-2718",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "해당없음",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20080301",
+      "FOAS_MEMRD": "20080301",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "문산수억중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7681123",
+      "SCHUL_NM": "문산수억중학교",
+      "ENG_SCHUL_NM": "Munsansueok Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도파주교육지원청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "10836 ",
+      "ORG_RDNMA": "경기도 파주시 파주읍 우계로 357",
+      "ORG_RDNDA": "(파주읍/문산수억중학교)",
+      "ORG_TELNO": "031-952-2401",
+      "HMPG_ADRES": "sueok.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-954-2982",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "해당없음",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19690302",
+      "FOAS_MEMRD": "19690302",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "문산동중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7681013",
+      "SCHUL_NM": "문산동중학교",
+      "ENG_SCHUL_NM": "Munsandong Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도파주교육지원청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "10821 ",
+      "ORG_RDNMA": "경기도 파주시 문산읍 독산로31번길 39",
+      "ORG_RDNDA": "(문산읍/ 파주고등학교/문산동중학교)",
+      "ORG_TELNO": "031-952-2645",
+      "HMPG_ADRES": "munsandong.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-954-2646",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "해당없음",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19700925",
+      "FOAS_MEMRD": "19700925",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "문산북중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7681005",
+      "SCHUL_NM": "문산북중학교",
+      "ENG_SCHUL_NM": "Munsanbuk Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도파주교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "10819 ",
+      "ORG_RDNMA": "경기도 파주시 문산읍 당동1로 22",
+      "ORG_RDNDA": "/ 문산북중학교 (문산읍)",
+      "ORG_TELNO": "031-950-9661",
+      "HMPG_ADRES": "munsanbuk.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-953-5149",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19610228",
+      "FOAS_MEMRD": "19610228",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "문산중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "F10",
+      "ATPT_OFCDC_SC_NM": "광주광역시교육청",
+      "SD_SCHUL_CODE": "7391136",
+      "SCHUL_NM": "문산중학교",
+      "ENG_SCHUL_NM": "Munsan Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "광주광역시",
+      "JU_ORG_NM": "광주광역시동부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "61126 ",
+      "ORG_RDNMA": "광주광역시 북구 대천로 174",
+      "ORG_RDNDA": "(문흥동/ 문산중학교)",
+      "ORG_TELNO": "062-260-3500",
+      "HMPG_ADRES": "http://kms.gen.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "062-260-3588",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19950301",
+      "FOAS_MEMRD": "19950306",
+      "LOAD_DTM": "20250406",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "교하중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7681004",
+      "SCHUL_NM": "교하중학교",
+      "ENG_SCHUL_NM": "Kyoha Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도파주교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "10874 ",
+      "ORG_RDNMA": "경기도 파주시 책향기로 194",
+      "ORG_RDNDA": "/ (동패동/ 교하중학교) ",
+      "ORG_TELNO": "031-8071-9600/9601",
+      "HMPG_ADRES": "http://kyoha.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-941-9698",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19710109",
+      "FOAS_MEMRD": "19710422",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "두일중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7681110",
+      "SCHUL_NM": "두일중학교",
+      "ENG_SCHUL_NM": "Duil Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도파주교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "10885 ",
+      "ORG_RDNMA": "경기도 파주시 책향기숲길 39",
+      "ORG_RDNDA": "(동패동)",
+      "ORG_TELNO": "031-940-6900",
+      "HMPG_ADRES": "www.duil.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-940-6919",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "해당없음",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20051226",
+      "FOAS_MEMRD": "20060301",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "천왕중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7041238",
+      "SCHUL_NM": "천왕중학교",
+      "ENG_SCHUL_NM": "Cheonwang Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시남부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "08364 ",
+      "ORG_RDNMA": "서울특별시 구로구 천왕로 63",
+      "ORG_RDNDA": "(천왕동/ 천왕중학교)",
+      "ORG_TELNO": "02-2618-2832",
+      "HMPG_ADRES": "http://cheonwang.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-2618-2851",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "해당없음",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20130301",
+      "FOAS_MEMRD": "20130301",
+      "LOAD_DTM": "20240121",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "영남중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7041187",
+      "SCHUL_NM": "영남중학교",
+      "ENG_SCHUL_NM": "Yeongnam Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시남부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "07411 ",
+      "ORG_RDNMA": "서울특별시 영등포구 대림로31나길 17",
+      "ORG_RDNDA": "/ 영남중학교 (대림동)",
+      "ORG_TELNO": "02-848-9333",
+      "HMPG_ADRES": "http://yeongnam.sen.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-831-7730",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19800124",
+      "FOAS_MEMRD": "19801002",
+      "LOAD_DTM": "20240204",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "서울삼광초등학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7061068",
+      "SCHUL_NM": "서울삼광초등학교",
+      "ENG_SCHUL_NM": "Seoul Samgwang Elementary School",
+      "SCHUL_KND_SC_NM": "초등학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시중부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "04335 ",
+      "ORG_RDNMA": "서울특별시 용산구 두텁바위로1나길 19",
+      "ORG_RDNDA": "/ 서울삼광초등학교 (후암동)",
+      "ORG_TELNO": "02-754-0251",
+      "HMPG_ADRES": "http://www.seoulsamkwang.es.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-754-7785",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19451101",
+      "FOAS_MEMRD": "19451101",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "신광초등학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7061092",
+      "SCHUL_NM": "신광초등학교",
+      "ENG_SCHUL_NM": "Shinkwang Elementary School",
+      "SCHUL_KND_SC_NM": "초등학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시중부교육지원청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "04313 ",
+      "ORG_RDNMA": "서울특별시 용산구 청파로 263",
+      "ORG_RDNDA": "/ 신광초등학교 청파동 3가 100 (청파동3가)",
+      "ORG_TELNO": "02-710-7900",
+      "HMPG_ADRES": "http://www.shinkwang.es.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-703-6910",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19641126",
+      "FOAS_MEMRD": "19641126",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "신광여자중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7061108",
+      "SCHUL_NM": "신광여자중학교",
+      "ENG_SCHUL_NM": "Shinkwang Girls’ Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시중부교육지원청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "04313 ",
+      "ORG_RDNMA": "서울특별시 용산구 청파로 263",
+      "ORG_RDNDA": "(청파동3가)",
+      "ORG_TELNO": "02-710-6990",
+      "HMPG_ADRES": "http://www.shinkwang.ms.kr",
+      "COEDU_SC_NM": "여",
+      "ORG_FAXNO": "02-703-6910",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19460817",
+      "FOAS_MEMRD": "19461001",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "선린중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7061105",
+      "SCHUL_NM": "선린중학교",
+      "ENG_SCHUL_NM": "Sunrin Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시중부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "04314 ",
+      "ORG_RDNMA": "서울특별시 용산구 원효로97길 33-4",
+      "ORG_RDNDA": "(청파동3가)",
+      "ORG_TELNO": "02-713-6214",
+      "HMPG_ADRES": "http://www.sunrin.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-712-6918",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "18990624",
+      "FOAS_MEMRD": "18990624",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "마장중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7134131",
+      "SCHUL_NM": "마장중학교",
+      "ENG_SCHUL_NM": "Majang Junior High School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시성동광진교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "04753 ",
+      "ORG_RDNMA": "서울특별시 성동구 마장로35나길 31",
+      "ORG_RDNDA": "/ 마장중학교 (마장동)",
+      "ORG_TELNO": "02-2282-2933",
+      "HMPG_ADRES": "http://mj.sen.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-2282-2656",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "해당없음",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20050301",
+      "FOAS_MEMRD": "20050405",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "설봉중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7741008",
+      "SCHUL_NM": "설봉중학교",
+      "ENG_SCHUL_NM": "Seolbong Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도이천교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "17358 ",
+      "ORG_RDNMA": "경기도 이천시 향교로 117",
+      "ORG_RDNDA": "(창전동)",
+      "ORG_TELNO": "031-645-9846",
+      "HMPG_ADRES": "https://seolbong.goeic.kr/",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-633-6339",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19890126",
+      "FOAS_MEMRD": "19890126",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "이천양정여자중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7741014",
+      "SCHUL_NM": "이천양정여자중학교",
+      "ENG_SCHUL_NM": "Icheonyangjeong Girls Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도이천교육지원청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "17354 ",
+      "ORG_RDNMA": "경기도 이천시 영창로 119",
+      "ORG_RDNDA": "(관고동)",
+      "ORG_TELNO": "031-633-7804",
+      "HMPG_ADRES": "https://icyjms.goeic.kr/",
+      "COEDU_SC_NM": "여",
+      "ORG_FAXNO": "031-633-7927",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19461015",
+      "FOAS_MEMRD": "19461015",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "송정중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7081499",
+      "SCHUL_NM": "송정중학교",
+      "ENG_SCHUL_NM": "Songjeong Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시강서양천교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "07628 ",
+      "ORG_RDNMA": "서울특별시 강서구 남부순환로 121",
+      "ORG_RDNDA": "(공항동/송정중학교)",
+      "ORG_TELNO": "02-2661-0478",
+      "HMPG_ADRES": "http://songjeong.sen.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-2667-0021",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19910121",
+      "FOAS_MEMRD": "19910516",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "증포중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7741080",
+      "SCHUL_NM": "증포중학교",
+      "ENG_SCHUL_NM": "JEUNGPO MIDDLE SCHOOL",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도이천교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "17351 ",
+      "ORG_RDNMA": "경기도 이천시 애련정로 218",
+      "ORG_RDNDA": "/ 증포중학교 (증포동)",
+      "ORG_TELNO": "031-638-2738",
+      "HMPG_ADRES": "https://jpo-ms.goeic.kr/",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-638-2901",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "해당없음",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20050301",
+      "FOAS_MEMRD": "20060301",
+      "LOAD_DTM": "20230615",
+      "count": 2,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        },
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "효양중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7741013",
+      "SCHUL_NM": "효양중학교",
+      "ENG_SCHUL_NM": "Hyoyang Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도이천교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "17322 ",
+      "ORG_RDNMA": "경기도 이천시 부발읍 대산로545번길 18",
+      "ORG_RDNDA": "(부발읍)",
+      "ORG_TELNO": "031-645-5002",
+      "HMPG_ADRES": "hyoyang-m.goeic.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-637-4675",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19960126",
+      "FOAS_MEMRD": "19980301",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "성서중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7031196",
+      "SCHUL_NM": "성서중학교",
+      "ENG_SCHUL_NM": "Seongseo Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시서부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "03965 ",
+      "ORG_RDNMA": "서울특별시 마포구 성산로4길 42",
+      "ORG_RDNDA": "(성산동)",
+      "ORG_TELNO": "02-3140-7100",
+      "HMPG_ADRES": "http://www.sungseo.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-338-1520",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19840109",
+      "FOAS_MEMRD": "19840419",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "향동중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7621365",
+      "SCHUL_NM": "향동중학교",
+      "ENG_SCHUL_NM": "Hyangdong Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도고양교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "10546 ",
+      "ORG_RDNMA": "경기도 고양시 덕양구 향동1로 38",
+      "ORG_RDNDA": "(향동동)",
+      "ORG_TELNO": "02-3153-5300",
+      "HMPG_ADRES": "http://www.hyangdong.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-3159-3991",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": null,
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20190901",
+      "FOAS_MEMRD": "20190901",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "행신중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7621036",
+      "SCHUL_NM": "행신중학교",
+      "ENG_SCHUL_NM": "Haengshin Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도고양교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "10530 ",
+      "ORG_RDNMA": "경기도 고양시 덕양구 화신로 22",
+      "ORG_RDNDA": "/ 행신중학교 (행신동)",
+      "ORG_TELNO": "031-970-2334",
+      "HMPG_ADRES": "www.haengshin.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-970-2336",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "해당없음",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19950501",
+      "FOAS_MEMRD": "19950501",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "신원중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7081504",
+      "SCHUL_NM": "신원중학교",
+      "ENG_SCHUL_NM": "Shinwon Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시강서양천교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "07909 ",
+      "ORG_RDNMA": "서울특별시 양천구 가로공원로55길 19",
+      "ORG_RDNDA": "(신월동/신원중학교)",
+      "ORG_TELNO": "02-2699-0183",
+      "HMPG_ADRES": "http://shinwon.sen.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-2698-7635",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19860129",
+      "FOAS_MEMRD": "19860502",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "송훈재"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "부발중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7741006",
+      "SCHUL_NM": "부발중학교",
+      "ENG_SCHUL_NM": "Bubal Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도이천교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "17321 ",
+      "ORG_RDNMA": "경기도 이천시 부발읍 죽당로 21",
+      "ORG_RDNDA": "/ 부발중학교 (부발읍)",
+      "ORG_TELNO": "031-631-9352",
+      "HMPG_ADRES": "bubal.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-631-9354",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20020305",
+      "FOAS_MEMRD": "20020305",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "이천사동중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7741102",
+      "SCHUL_NM": "이천사동중학교",
+      "ENG_SCHUL_NM": "Icheonsadong Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도이천교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "17335 ",
+      "ORG_RDNMA": "경기도 이천시 대월면 경충대로2050번길 68-13",
+      "ORG_RDNDA": "/ 이천사동중학교 (대월면)",
+      "ORG_TELNO": "031-637-6269",
+      "HMPG_ADRES": "https://icsadongms.goeic.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-637-6270",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "해당없음",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20100301",
+      "FOAS_MEMRD": "20100301",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "여주제일중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7661004",
+      "SCHUL_NM": "여주제일중학교",
+      "ENG_SCHUL_NM": "Yeojufirst Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도여주교육지원청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "12661 ",
+      "ORG_RDNMA": "경기도 여주시 가남읍 여주남로 1155-15",
+      "ORG_RDNDA": "(가남읍)",
+      "ORG_TELNO": "031-882-3303",
+      "HMPG_ADRES": "yeojufirst-m.goeyj.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-882-2933",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19540426",
+      "FOAS_MEMRD": "19540426",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "여주중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7661008",
+      "SCHUL_NM": "여주중학교",
+      "ENG_SCHUL_NM": "YEOJU MIDDLE SCHOOL",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도여주교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "12643 ",
+      "ORG_RDNMA": "경기도 여주시 세종대왕면 농도원1길 78",
+      "ORG_RDNDA": "(세종대왕면/ 여주중학교)",
+      "ORG_TELNO": "031-880-8993",
+      "HMPG_ADRES": "https://yeoju-m.goeyj.kr/",
+      "COEDU_SC_NM": "남",
+      "ORG_FAXNO": "031-884-9805",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19450331",
+      "FOAS_MEMRD": "19450510",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "솔뫼중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7561082",
+      "SCHUL_NM": "솔뫼중학교",
+      "ENG_SCHUL_NM": "Solmoe Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도의정부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "11796 ",
+      "ORG_RDNMA": "경기도 의정부시 시민로 464-14",
+      "ORG_RDNDA": "(용현동/ 솔뫼중학교)",
+      "ORG_TELNO": "031-840-8612",
+      "HMPG_ADRES": "https://solmoe-m.goeujb.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-840-8614",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20080301",
+      "FOAS_MEMRD": "20080301",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "부용중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7561007",
+      "SCHUL_NM": "부용중학교",
+      "ENG_SCHUL_NM": "Bu-Yong Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도의정부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "11811 ",
+      "ORG_RDNMA": "경기도 의정부시 오목로 86",
+      "ORG_RDNDA": "(민락동/ 부용중학교)",
+      "ORG_TELNO": "031-852-6301",
+      "HMPG_ADRES": "https://buyong-m.goeujb.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-852-6304",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20020114",
+      "FOAS_MEMRD": "20020114",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "송양중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7561125",
+      "SCHUL_NM": "송양중학교",
+      "ENG_SCHUL_NM": "songyang middle school",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도의정부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "11812 ",
+      "ORG_RDNMA": "경기도 의정부시 용민로 308",
+      "ORG_RDNDA": "(낙양동/ 송양중학교)",
+      "ORG_TELNO": "031-853-6551",
+      "HMPG_ADRES": "https://songyang-m.goeujb.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-853-6553",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "해당없음",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20120301",
+      "FOAS_MEMRD": "20140421",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "천보중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "J10",
+      "ATPT_OFCDC_SC_NM": "경기도교육청",
+      "SD_SCHUL_CODE": "7561012",
+      "SCHUL_NM": "천보중학교",
+      "ENG_SCHUL_NM": "Cheonbo Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "경기도",
+      "JU_ORG_NM": "경기도의정부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "11752 ",
+      "ORG_RDNMA": "경기도 의정부시 부용로 61",
+      "ORG_RDNDA": "/ 천보중학교 (금오동)",
+      "ORG_TELNO": "031-849-8600",
+      "HMPG_ADRES": "https://chunbo-m.goeujb.kr/",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "031-852-3767",
+      "HS_SC_NM": "  ",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "20020114",
+      "FOAS_MEMRD": "20020114",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "신곡중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "C10",
+      "ATPT_OFCDC_SC_NM": "부산광역시교육청",
+      "SD_SCHUL_CODE": "7211018",
+      "SCHUL_NM": "신곡중학교",
+      "ENG_SCHUL_NM": "Singok Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "부산광역시",
+      "JU_ORG_NM": "부산광역시해운대교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "48110 ",
+      "ORG_RDNMA": "부산광역시 해운대구 좌동순환로 316",
+      "ORG_RDNDA": "(좌동)",
+      "ORG_TELNO": "051-709-9900",
+      "HMPG_ADRES": "www.singok.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "051-709-9999",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19970301",
+      "FOAS_MEMRD": "19970506",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "임준호"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "서라벌고등학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7010182",
+      "SCHUL_NM": "서라벌고등학교",
+      "ENG_SCHUL_NM": "Sorabol High School",
+      "SCHUL_KND_SC_NM": "고등학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시교육청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "01745 ",
+      "ORG_RDNMA": "서울특별시 노원구 한글비석로5길 18",
+      "ORG_RDNDA": "/ (중계1동 313/ 서라벌고등학교) ",
+      "ORG_TELNO": "02-2092-2200",
+      "HMPG_ADRES": "http://sorabol.sen.hs.kr",
+      "COEDU_SC_NM": "남",
+      "ORG_FAXNO": "02-2092-2270",
+      "HS_SC_NM": "일반고",
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "후기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19560305",
+      "FOAS_MEMRD": "19560305",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "상계중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7051187",
+      "SCHUL_NM": "상계중학교",
+      "ENG_SCHUL_NM": "Sanggye Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시북부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "01705 ",
+      "ORG_RDNMA": "서울특별시 노원구 노원로 398",
+      "ORG_RDNDA": "(상계동/ 상계중학교)",
+      "ORG_TELNO": "02-936-6450",
+      "HMPG_ADRES": "http://sanggye.sen.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-933-9025",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19860301",
+      "FOAS_MEMRD": "19860501",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "중계중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7051202",
+      "SCHUL_NM": "중계중학교",
+      "ENG_SCHUL_NM": "Junggye Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시북부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "01712 ",
+      "ORG_RDNMA": "서울특별시 노원구 덕릉로76길 23",
+      "ORG_RDNDA": "(중계동)",
+      "ORG_TELNO": "02-932-2545",
+      "HMPG_ADRES": "http://junggye.sen.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-932-2544",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19940105",
+      "FOAS_MEMRD": "19940506",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "재현중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7051200",
+      "SCHUL_NM": "재현중학교",
+      "ENG_SCHUL_NM": "Jaehyun Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시북부교육지원청",
+      "FOND_SC_NM": "사립",
+      "ORG_RDNZC": "01717 ",
+      "ORG_RDNMA": "서울특별시 노원구 덕릉로82길 64",
+      "ORG_RDNDA": "(중계동/재현중/고등학교)",
+      "ORG_TELNO": "02-932-4816",
+      "HMPG_ADRES": "http://jaehyun.sen.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-6000-9358",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19710303",
+      "FOAS_MEMRD": "19710401",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  },
+  "상원중학교": {
+    "neis": {
+      "ATPT_OFCDC_SC_CODE": "B10",
+      "ATPT_OFCDC_SC_NM": "서울특별시교육청",
+      "SD_SCHUL_CODE": "7051189",
+      "SCHUL_NM": "상원중학교",
+      "ENG_SCHUL_NM": "Sangwon Middle School",
+      "SCHUL_KND_SC_NM": "중학교",
+      "LCTN_SC_NM": "서울특별시",
+      "JU_ORG_NM": "서울특별시북부교육지원청",
+      "FOND_SC_NM": "공립",
+      "ORG_RDNZC": "01670 ",
+      "ORG_RDNMA": "서울특별시 노원구 수락산로 182",
+      "ORG_RDNDA": "(상계동)",
+      "ORG_TELNO": "02-930-0761",
+      "HMPG_ADRES": "http://sangwon.sen.ms.kr",
+      "COEDU_SC_NM": "남여공학",
+      "ORG_FAXNO": "02-930-0764",
+      "HS_SC_NM": null,
+      "INDST_SPECL_CCCCL_EXST_YN": "N",
+      "HS_GNRL_BUSNS_SC_NM": "일반계",
+      "SPCLY_PURPS_HS_ORD_NM": null,
+      "ENE_BFE_SEHF_SC_NM": "전기",
+      "DGHT_SC_NM": "주간",
+      "FOND_YMD": "19930115",
+      "FOAS_MEMRD": "19930607",
+      "LOAD_DTM": "20230615",
+      "count": 1,
+      "examples": [
+        {
+          "date": "2025-10-29",
+          "staff": "조영환"
+        }
+      ]
+    },
+    "lat": null,
+    "lon": null
+  }
+}

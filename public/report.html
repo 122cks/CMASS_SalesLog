@@ -64,6 +64,17 @@
     <header>
       <a href="#" id="backLink">◀ 입력으로 돌아가기</a>
       <div style="margin-left:12px"> <strong id="staffName"></strong> - <span id="reportDate"></span></div>
+      <!-- Local debug: show localStorage count and allow manual refresh -->
+      <div style="margin-left:auto; display:flex; gap:8px; align-items:center">
+        <label class="muted" style="font-weight:700">보기:</label>
+        <select id="viewModeSelect" style="padding:6px;border-radius:6px">
+          <option value="local">로컬만</option>
+          <option value="server">서버만</option>
+          <option value="both" selected>모두</option>
+        </select>
+        <span id="localReportsInfo" class="muted" style="font-weight:700">로컬: -- / 서버: -- / 총: --</span>
+        <button id="btnReloadLocal" style="padding:6px 8px;">새로고침</button>
+      </div>
     </header>
 
     <div class="card">
@@ -146,11 +157,70 @@
   function qs(id){ return document.getElementById(id); }
   function qsParam(k){ try{ return (new URLSearchParams(window.location.search || '').get(k) || '').toString(); }catch(e){ return ''; } }
   // normalize/trim URL params to avoid accidental mismatches
-  const staff = (qsParam('staff') || '').toString().trim();
+  let staff = (qsParam('staff') || '').toString().trim();
+  // Helper: normalize common legacy staff tokens to canonical tokens used in UI/DB
+  function normalizeStaffToken(raw){
+    try{
+      const s = (raw||'').toString().trim(); if (!s) return '';
+      const lower = s.toLowerCase();
+        const canon = {
+        // Korean display variants
+  '송훈재': 'SongHoonjae', '송훈재 부장': 'SongHoonjae', '송훈재부장': 'SongHoonjae',
+        '임준호': 'LimJunho', '임준호 차장': 'LimJunho', '임준호차장': 'LimJunho',
+        '조영환': 'ChoYounghwan', '조영환 부장': 'ChoYounghwan', '조영환부장': 'ChoYounghwan'
+      };
+      // If the input already looks like a canonical token, normalize casing
+  const candidates = ['SongHoonjae','LimJunho','ChoYounghwan'];
+      for (const c of candidates){ if (c.toLowerCase() === lower) return c; }
+      return canon[lower] || s;
+    }catch(e){ return raw || ''; }
+  }
+  // canonicalize the incoming staff URL param immediately so subsequent logic
+  // can compare tokens reliably.
+  staff = normalizeStaffToken(staff);
   const visitDate = (qsParam('visitDate') || qsParam('date') || '').toString().trim();
       document.getElementById('subtitle').textContent = `담당자: ${staff || '-'} · 방문일: ${visitDate || '-'}`;
       document.getElementById('staffName').textContent = staff || '';
       document.getElementById('reportDate').textContent = visitDate || '';
+
+      // Helpers: fetch server reports and update header counts
+      async function fetchServerReports(){
+        try{
+          if (!window.firebaseDb) return [];
+          const snap = await window.firebaseDb.collection('visit_entries').get();
+          const arr = [];
+          snap.forEach(d=>{
+            try{
+              const raw = d.data() || {};
+              raw.server_id = d.id;
+              // Normalize server doc into the internal entry shape so consumers
+              // (renderEntries, buildOfficeSummary) see consistent field names
+              if (typeof mapServerDocToEntry === 'function'){
+                arr.push(mapServerDocToEntry(raw));
+              } else {
+                arr.push(raw);
+              }
+            }catch(_){ /* tolerate per-doc parse errors */ }
+          });
+          return arr;
+        }catch(e){ console.warn('fetchServerReports failed', e); return []; }
+      }
+
+      async function updateLocalReportsInfo(){
+        try{
+          let local = [];
+          try{ local = (typeof loadLocalReports === 'function') ? loadLocalReports() : (JSON.parse(localStorage.getItem('cmass_reports')||'[]')||[]); }catch(e){ local = []; }
+          let server = [];
+          try{ server = await fetchServerReports(); }catch(e){ server = []; }
+          const tot = new Map();
+          // key by server_id if present, else by _savedAt or JSON
+          local.forEach(it=>{ const key = it && it.server_id ? ('s:'+String(it.server_id)) : ('l:'+String(it._savedAt||JSON.stringify(it))); tot.set(key, it); });
+          server.forEach(it=>{ const key = it && it.server_id ? ('s:'+String(it.server_id)) : ('l:'+String(it._savedAt||JSON.stringify(it))); tot.set(key, it); });
+          const el = qs('localReportsInfo'); if (el) el.textContent = `로컬: ${local.length} / 서버: ${server.length} / 총: ${tot.size}`;
+        }catch(e){ /* ignore */ }
+      }
+
+      document.addEventListener('DOMContentLoaded', function(){ try{ const btn = qs('btnReloadLocal'); if (btn){ btn.addEventListener('click', function(){ try{ if (typeof _reRenderUI === 'function'){ _reRenderUI(); } updateLocalReportsInfo(); }catch(e){ updateLocalReportsInfo(); } }, true); } }catch(e){} updateLocalReportsInfo(); });
 
       // Ensure anonymous authentication before Firestore write/delete operations.
       // Uses the compat SDK firebase.auth() when available.
@@ -168,62 +238,215 @@
         }
       }
 
-      // PIN 인증 상태 확인: index.html에서 sessionStorage에 `cmass_pin_authenticated`를
-      // 설정하면 서버 쓰기 권한(클라이언트 쪽 UI)을 허용합니다. 없는 경우 업로드 버튼을 비활성화합니다.
+      // Attach onAuthStateChanged listener so the UI reflects authentication state reliably
       try{
-        const pinFlagRaw = (window.sessionStorage && sessionStorage.getItem('cmass_pin_authenticated')) || null;
-        const pinBtn = document.getElementById('cmass-save-server-btn');
-        if (!pinFlagRaw){
-          if (pinBtn){ pinBtn.disabled = true; pinBtn.title = '업로드를 위해서는 시작 페이지에서 PIN 인증이 필요합니다.'; }
-          try{ const authStatusEl = document.getElementById('cmass-auth-status'); if (authStatusEl) authStatusEl.textContent = '(인증 상태: PIN 필요)'; }catch(e){}
-        } else {
-          // Enable the upload button in the UI when PIN flag present
-          if (pinBtn){ pinBtn.disabled = false; pinBtn.title = '서버 업로드 가능 (PIN 인증됨)'; }
-
-          // 자동 익명 로그인: sessionStorage에 PIN 플래그가 있으면 시도
-          (function(){
-            try {
-              const pinFlag = (window.sessionStorage && sessionStorage.getItem('cmass_pin_authenticated')) || null;
-              if (!pinFlag) return;
-
-              // 방어: firebase.auth가 준비될 때까지 대기
-              function trySignIn() {
-                try {
-                  if (!window.firebase || !firebase.auth) {
-                    // 아직 SDK 비동기 로딩중이면 재시도
-                    setTimeout(trySignIn, 200);
-                    return;
-                  }
-                  // 이미 로그인돼 있으면 무시
-                  if (firebase.auth().currentUser) {
-                    console.debug('[auth] already signed in', firebase.auth().currentUser && firebase.auth().currentUser.uid);
-                    try{ const authStatusEl = document.getElementById('cmass-auth-status'); if (authStatusEl) authStatusEl.textContent = '(인증 상태: 익명 로그인됨)'; }catch(e){}
-                    return;
-                  }
-                  firebase.auth().signInAnonymously()
-                    .then(res => {
-                      console.debug('[auth] 익명 로그인 성공', res && res.user && res.user.uid);
-                      try{ const authStatusEl = document.getElementById('cmass-auth-status'); if (authStatusEl) authStatusEl.textContent = '(인증 상태: 익명 로그인됨)'; }catch(e){}
-                    })
-                    .catch(err => {
-                      console.error('[auth] 익명 로그인 실패', err);
-                      try{ const authStatusEl = document.getElementById('cmass-auth-status'); if (authStatusEl) authStatusEl.textContent = '(인증 상태: 익명 로그인 실패)'; }catch(e){}
-                      // UI에 추가 안내가 필요하면 여기에 토스트/배너 호출을 추가할 수 있습니다.
-                    });
-                } catch(e) { console.warn('[auth] trySignIn 예외', e); }
+        if (window.firebase && firebase.auth){
+          firebase.auth().onAuthStateChanged(function(user){
+            try{
+              const authEl = document.getElementById('cmass-auth-status');
+              if (!authEl) return;
+              if (user){ authEl.textContent = '(인증 상태: 익명 로그인됨)'; }
+              else {
+                const pin = (window.sessionStorage && sessionStorage.getItem('cmass_pin_authenticated')) || null;
+                authEl.textContent = pin ? '(인증 상태: PIN 필요)' : '(인증 상태: 확인 중)';
               }
-
-              trySignIn();
-            } catch(e) { console.warn('[auth] auto-anon init error', e); }
-          })();
+              console.debug('[auth] onAuthStateChanged fired', user);
+            }catch(e){ console.warn('onAuthStateChanged handler failed', e); }
+          });
         }
-      }catch(e){ /* tolerate */ }
+      }catch(e){ console.warn('attach onAuthStateChanged failed', e); }
 
-      // Build a textual summary for the current staff+visitDate using local entries and office data
+      // Wire the manual anonymous-signin button to attempt sign-in and update UI
+      try{
+        const anonBtn = document.getElementById('cmass-anon-signin');
+        if (anonBtn){
+          anonBtn.addEventListener('click', async function(){
+            try{
+              if (!window.firebase || !firebase.auth){ alert('Firebase SDK가 아직 로드되지 않았습니다. 잠시 후 다시 시도하세요.'); return; }
+              if (firebase.auth().currentUser){ alert('이미 로그인되어 있습니다.'); return; }
+              await firebase.auth().signInAnonymously();
+              try{ const authEl = document.getElementById('cmass-auth-status'); if (authEl) authEl.textContent = '(인증 상태: 익명 로그인됨)'; }catch(e){}
+              alert('익명 로그인 시도 완료');
+            }catch(err){ console.error('anon signin failed', err); alert('익명 로그인 실패: ' + (err && err.message ? err.message : String(err))); }
+          }, true);
+        }
+      }catch(e){ console.warn('wire anon button failed', e); }
       function buildOfficeSummary(){
         try{
           const entries = (window._cmass_report_lastFiltered && window._cmass_report_lastFiltered.length) ? window._cmass_report_lastFiltered.slice() : (computeMetrics(loadLocalReports()).filtered || []);
-          if (!entries || entries.length === 0) return '';
+          if (!entries || entries.length === 0) {
+            // 향상된 폴백: 렌더된 DOM에서 항목 정보를 추출해 가능한 한 원본 포맷에 가깝게 요약을 생성합니다.
+            try{
+              const domList = Array.from(document.querySelectorAll('.report-entry'));
+              if (!domList.length) return '';
+
+              // FIELD_LABELS (renderEntries와 동일한 한글 레이블 맵)
+              const FIELD_LABELS = {
+                server_id: '서버 ID', staff: '직원', staffLabel: '직원(표시명)', region: '지역', school: '학교', visitDate: '방문일', startHour: '방문시작시간', startMinute: '방문시작분', duration: '총 방문시간', endTime: '방문종료시간', subject: '과목', activities: '영업활동', favor: '우호도', teacherName: '선생님 이름', publisher: '출판사', phone: '연락처', email: '이메일', requests: '고객 요청사항', notes: '특이사항', deliveries: '납품사항', followUp: '후속조치', _savedAt: '저장시기'
+              };
+
+              function reverseLabelToKey(lbl){
+                for (const k in FIELD_LABELS){ if (FIELD_LABELS[k] === lbl) return k; }
+                return null;
+              }
+
+              const parsed = domList.map(div => {
+                const out = {};
+                try{
+                  const title = div.querySelector('.school-title'); if (title && title.textContent){ const t = title.textContent.trim(); const parts = t.split('·'); out.school = (parts[0]||'').trim(); if (parts[1]) out.visitDate = (parts[1]||'').trim(); }
+                  const meta = div.querySelector('.muted'); if (meta && meta.textContent){ const m = meta.textContent.trim(); const parts = m.split('·').map(s=>s.trim()); out.staffLabel = parts[0] || ''; out.region = parts[1] || ''; }
+                  const summaryLeft = div.querySelector('.report-entry-summary .meta-left'); if (summaryLeft && summaryLeft.textContent){ out.compact = summaryLeft.textContent.trim(); }
+                  const details = div.querySelector('.report-entry-details');
+                  if (details){
+                    const childs = Array.from(details.querySelectorAll('div'));
+                    childs.forEach(p => {
+                      try{
+                        const strong = p.querySelector('strong'); if (!strong) return;
+                        const label = strong.textContent.replace(':','').trim();
+                        const val = p.textContent.replace(strong.textContent,'').trim();
+                        const key = reverseLabelToKey(label);
+                        if (key){
+                          // normalize certain fields
+                          if (key === 'duration'){ out.duration = Number(String(val).replace(/[^0-9]/g,'')) || 0; }
+                          else if (key === 'startHour'){
+                            // value may be 'HH:MM'
+                            const m = val.match(/(\d{1,2}):(\d{1,2})/);
+                            if (m){ out.startHour = String(m[1]).padStart(2,'0'); out.startMinute = String(m[2]).padStart(2,'0'); }
+                          } else if (key === 'subject'){
+                            out.subject = val.split(',').map(s=>s.trim()).filter(Boolean);
+                          } else if (key === 'phone'){
+                            out.phone = val;
+                          } else {
+                            out[key] = val;
+                          }
+                        }
+                      }catch(e){}
+                    });
+                  }
+                }catch(e){}
+                return out;
+              }).filter(Boolean);
+
+              // group by school
+              const bySchool = {};
+              parsed.forEach(p=>{ const s = (p.school||'학교 미정'); bySchool[s] = bySchool[s] || []; bySchool[s].push(p); });
+
+              // metrics
+              const uniqueSchools = Object.keys(bySchool);
+              const totalMeetings = parsed.length;
+              const contacts = parsed.filter(p=> p.phone && String(p.phone).trim()).length;
+
+              // office times
+              const office = loadOfficeData() || {};
+              const internalM = (Number(office.internalHours||0) * 60) + Number(office.internalMinutes||0);
+              const meetingTotalM = parsed.reduce((s,it)=> s + (Number(it.duration)||0), 0);
+              const startTimes = parsed.map(it=>{ try{ if (it.startHour !== undefined && it.startHour !== '') return (Number(it.startHour||0)*60 + Number(it.startMinute||0)); }catch(e){} return null; }).filter(x=>x!==null).sort((a,b)=>a-b);
+              const earliestStart = startTimes.length ? startTimes[0] : null;
+              const latestEnd = parsed.reduce((acc,it)=>{ try{ const st = (it.startHour !== undefined && it.startHour !== '') ? (Number(it.startHour||0)*60 + Number(it.startMinute||0)) : null; const dur = Number(it.duration||0); if (st!==null){ const end = st + dur; return Math.max(acc,end); } }catch(e){} return acc; }, 0);
+              const cleanupM = Number(office.endMinutes || 0) || 30;
+              function fmtHM(totalMin){ const h = Math.floor(totalMin/60); const m = totalMin % 60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; }
+              // Determine check-in.
+              // If there is no office internal time (internalM === 0) prefer the earliest visit start as check-in.
+              let checkinTotal = null;
+              try{
+                const checkinH = Number(office.checkinHour || 0);
+                const checkinM = Number(office.checkinMinute || 0);
+                const officeCheckin = (Number.isFinite(checkinH) || Number.isFinite(checkinM)) ? (checkinH*60 + checkinM) : null;
+                if ((Number(internalM) === 0) && earliestStart !== null){
+                  // No office internal time: use earliest visit start when available
+                  checkinTotal = earliestStart;
+                } else if (earliestStart !== null && officeCheckin !== null){
+                  checkinTotal = Math.min(earliestStart, officeCheckin);
+                } else if (earliestStart !== null){
+                  checkinTotal = earliestStart;
+                } else { checkinTotal = (officeCheckin !== null) ? officeCheckin : null; }
+              }catch(e){ if (earliestStart !== null) checkinTotal = earliestStart; }
+              const checkoutTotal = (latestEnd > 0 ? (latestEnd + cleanupM) : (checkinTotal + internalM + meetingTotalM + cleanupM));
+
+              const lines = [];
+              lines.push(`(${staff || ''} 퇴근보고)`);
+              lines.push(`방문일: ${visitDate || ''}`);
+              lines.push(`총 방문 학교: ${uniqueSchools.length}개 · 총 미팅수: ${totalMeetings}건 · 연락처 확보: ${contacts}건 · 추가선정 확인: 0건`);
+
+              // 1. 출근/퇴근
+              const externalM = meetingTotalM + cleanupM;
+              // 근무시간은 첫 방문 시작시간(checkinTotal)부터 퇴근자료정리 완료시간(checkoutTotal)까지로 계산
+              const workedM = (checkoutTotal !== null && checkinTotal !== null) ? (checkoutTotal - checkinTotal) : (internalM + externalM);
+              lines.push(`1. 출근: ${fmtHM(checkinTotal)} · 퇴근: ${fmtHM(checkoutTotal)} (근무시간 ${Math.floor(workedM/60)}H ${workedM%60}M)`);
+              // Show office internal time only when office internal values were saved
+              const hasOfficeInternal = ((office.internalHours !== undefined && office.internalHours !== null && office.internalHours !== '') || (office.internalMinutes !== undefined && office.internalMinutes !== null && office.internalMinutes !== ''));
+              if (hasOfficeInternal) lines.push(`   사무실 내근 (${Math.floor(internalM/60)}H ${internalM%60}M)`);
+              lines.push('');
+              lines.push('2. 세부업무');
+
+              const korNums = ['가','나','다','라','마','바','사','아','자','차','카','타','파','하'];
+              let idx = 0;
+              for (const sch of uniqueSchools){
+                idx++; const list = bySchool[sch] || [];
+                // compute school start/end and max duration
+                const sTimes = list.map(it=>{ if (it.startHour !== undefined && it.startHour !== '') return (Number(it.startHour||0)*60 + Number(it.startMinute||0)); return null; }).filter(x=>x!==null).sort((a,b)=>a-b);
+                const first = sTimes.length ? sTimes[0] : null;
+                const lastEnd = list.reduce((acc,it)=>{ const st = (it.startHour !== undefined && it.startHour !== '') ? (Number(it.startHour||0)*60 + Number(it.startMinute||0)) : null; const dur = Number(it.duration||0); if (st!==null){ const end = st + dur; return Math.max(acc,end); } return acc; }, 0);
+                const schStart = first !== null ? fmtHM(first) : '';
+                const schEnd = lastEnd ? fmtHM(lastEnd) : '';
+                const durations = list.map(it=> Number(it.duration)||0);
+                const maxDur = durations.length ? Math.max.apply(null,durations) : 0;
+                const metaText = (list[0] && list[0].compact) ? (' (' + list[0].compact.split('·').slice(1).join('·').trim() + ')') : '';
+                const schoolLabel = korNums[idx-1] || String(idx);
+                lines.push(`${schoolLabel}. ${sch}: ${schStart}${schStart && schEnd ? ('~'+schEnd) : ''} (${maxDur}분)${metaText}`);
+                // append school metadata (설립, 총학생수, 특성) when available
+                try{
+                  const norm = (String(sch||'').toLowerCase().replace(/\s+/g,' ').trim());
+                  const smap = window._cmass_staffMapReport || (window.loadStaffMapReport ? (window.loadStaffMapReport().catch(()=>{}), null) : null);
+                  const meta = smap ? (smap.byName && smap.byName[sch] ? smap.byName[sch] : (smap.byNorm && smap.byNorm[norm] ? smap.byNorm[norm] : null)) : null;
+                  if (meta){
+                    const est = meta.establish || '-';
+                    const stu = meta.students || '-';
+                    const feat = meta.feature || '-';
+                    lines.push(`   설립: ${est} · 총학생수: ${stu} · 특성: ${feat}`);
+                    lines.push('');
+                  } else {
+                    lines.push('');
+                  }
+                }catch(e){ lines.push(''); }
+                // per meeting bullets
+                list.forEach((it,j)=>{
+                  const subj = (Array.isArray(it.subject) ? it.subject.join(', ') : (it.subject||''));
+                  const teacher = it.teacherName || '';
+                  const pub = it.publisher || '';
+                  const favor = it.favor || '';
+                  // Ensure textual fields appear per-meeting with clear labels
+                  // Pull raw backend fields: ask / conversation / delivery — show only their contents (use '-' if empty)
+                  const req = (it.requests && String(it.requests).trim()) ? String(it.requests).trim() : '-';
+                  const note = (it.notes && String(it.notes).trim()) ? String(it.notes).trim() : '-';
+                  const del = (it.deliveries && String(it.deliveries).trim()) ? String(it.deliveries).trim() : '-';
+                  const activitiesText = Array.isArray(it.activities) ? (it.activities.length ? it.activities.join(', ') : '-') : (it.activities ? String(it.activities).trim() : '-');
+                  const favorText = it.favor && String(it.favor).trim() ? String(it.favor).trim() : '-';
+                  const extra = [activitiesText, favorText, req, note, del].join('  ');
+                  lines.push(`-  ${schoolLabel}${j+1}. ${subj} (${teacher}${pub?'-'+pub:''}) : ${extra}`);
+                });
+                lines.push('');
+              }
+
+              lines.push(`3. 퇴근보고 자료 정리 (${fmtHM(checkoutTotal - cleanupM)}~${fmtHM(checkoutTotal)}) (${cleanupM}분)`);
+              lines.push('');
+              lines.push('- 끝.');
+              lines.push('');
+              // simple auto tags
+              const tags = [];
+              // try to gather subject counts
+              const subjCounts = {};
+              parsed.forEach(it=>{ (Array.isArray(it.subject)?it.subject:[it.subject||'']).forEach(s=>{ if (!s) return; subjCounts[s] = (subjCounts[s]||0)+1; }); });
+              const subjEntries = Object.entries(subjCounts).sort((a,b)=>b[1]-a[1]);
+              if (subjEntries.length){ tags.push('주요과목: ' + subjEntries[0][0] + '('+subjEntries[0][1]+'회)'); if (subjEntries[0][1] > 1) tags.push(subjEntries[0][0] + ' 다수 방문'); }
+              // '재방문' 태그는 화면에 표시하지 않도록 변경됨 (백엔드 표기는 유지 가능)
+              // 이전 로직: 재방문 조건 검사(2건 이상 + 서버 저장 문서 존재)
+              // 관련 태그는 더 이상 자동 태그에 추가하지 않습니다.
+              if (tags.length) lines.push('자동 태그: ' + tags.join(', '));
+
+              return lines.join('\n');
+            }catch(e){ return ''; }
+          }
           const office = loadOfficeData() || {};
           // Prefer a human-friendly display name (staffLabel) from entries if available
           let staffLabel = staff || '';
@@ -238,7 +461,14 @@
           const totalSchools = schools.length;
           const totalMeetings = entries.length;
           const contacts = entries.filter(e=> (e.phone || '').toString().trim()).length;
-          const additional = entries.filter(e=> (e.followUp || '').toString().trim()).length;
+          // Count entries whose publisher is present and NOT '씨마스'
+          const additional = entries.filter(e=> {
+            try{
+              const pub = (e.publisher || '').toString().trim();
+              // only count when publisher exists and is not the excluded publisher
+              return !!pub && pub !== '씨마스';
+            }catch(_){ return false; }
+          }).length;
           lines.push(`총 방문 학교: ${totalSchools}개 · 총 미팅수: ${totalMeetings}건 · 연락처 확보: ${contacts}건 · 추가선정 확인: ${additional}건`);
 
           // 1. 출근/퇴근
@@ -251,17 +481,30 @@
           const latestEnd = entries.reduce((acc,it)=>{ try{ const st = (it.startHour !== undefined && it.startHour !== '') ? (Number(it.startHour||0)*60 + Number(it.startMinute||0)) : null; const dur = Number(it.duration||0); if (st!==null){ const end = st + dur; return Math.max(acc,end); } }catch(e){} return acc; }, 0);
           const cleanupM = Number(office.endMinutes || 0) || 30;
           function fmtHM(totalMin){ const h = Math.floor(totalMin/60); const m = totalMin % 60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; }
-          // compute displayed checkin (use earliest visit start when available)
+          // compute displayed checkin: if no office internal time prefer earliest visit start
           let checkinTotal = null;
-          if (earliestStart !== null){ checkinTotal = earliestStart; }
-          else { const checkinH = Number(office.checkinHour || 0); const checkinM = Number(office.checkinMinute || 0); checkinTotal = (checkinH*60) + checkinM; }
+          try{
+            const checkinH = Number(office.checkinHour || 0);
+            const checkinM = Number(office.checkinMinute || 0);
+            const officeCheckin = (Number.isFinite(checkinH) || Number.isFinite(checkinM)) ? (checkinH*60 + checkinM) : null;
+            if ((Number(internalM) === 0) && earliestStart !== null){
+              checkinTotal = earliestStart;
+            } else if (earliestStart !== null && officeCheckin !== null){
+              checkinTotal = Math.min(earliestStart, officeCheckin);
+            } else if (earliestStart !== null){
+              checkinTotal = earliestStart;
+            } else { checkinTotal = (officeCheckin !== null) ? officeCheckin : null; }
+          }catch(e){ if (earliestStart !== null) checkinTotal = earliestStart; }
           // checkout is defined as latest visit end + cleanup (퇴근보고 자료 정리 끝나는 시간)
           const checkoutTotal = (latestEnd > 0 ? (latestEnd + cleanupM) : (checkinTotal + internalM + meetingTotalM + cleanupM));
           // external work should include meeting durations plus the cleanup time
           const externalM = meetingTotalM + cleanupM;
-          const totalWorkM = internalM + externalM;
-          lines.push(`1. 출근: ${fmtHM(checkinTotal)} · 퇴근: ${fmtHM(checkoutTotal)} ( ${Math.floor(totalWorkM/60)}H ${totalWorkM%60}M)`);
-          lines.push(`   사무실 내근 (${Math.floor(internalM/60)}H ${internalM%60}M) 외근 (${Math.floor(externalM/60)}H ${externalM%60}M)`);
+          // 근무시간은 첫 방문 시작시간(checkinTotal)부터 퇴근자료정리 완료시간(checkoutTotal)까지로 계산
+          const workedM = (checkoutTotal !== null && checkinTotal !== null) ? (checkoutTotal - checkinTotal) : (internalM + externalM);
+          lines.push(`1. 출근: ${fmtHM(checkinTotal)} · 퇴근: ${fmtHM(checkoutTotal)} (근무시간 ${Math.floor(workedM/60)}H ${workedM%60}M)`);
+          // Show office internal time only when office internal values were saved
+          const hasOfficeInternal = ((office.internalHours !== undefined && office.internalHours !== null && office.internalHours !== '') || (office.internalMinutes !== undefined && office.internalMinutes !== null && office.internalMinutes !== ''));
+          if (hasOfficeInternal) lines.push(`   사무실 내근 (${Math.floor(internalM/60)}H ${internalM%60}M)`);
 
           // 2. 세부업무
           lines.push('');
@@ -271,13 +514,64 @@
           entries.forEach(it=>{ const s = (it.school||'학교 미정'); bySchool[s] = bySchool[s] || []; bySchool[s].push(it); });
           let idxSchool = 0;
           const korNums = ['가','나','다','라','마','바','사','아','자','차','카','타','파','하'];
-          for (const sch of Object.keys(bySchool)){
-            idxSchool++;
-            const list = bySchool[sch];
-            // determine school-level start/end
-            const startTimes = list.map(it=>{ if (it.startHour !== undefined && it.startHour !== '') return (Number(it.startHour||0)*60 + Number(it.startMinute||0)); return null; }).filter(x=>x!==null).sort((a,b)=>a-b);
+          // Sort schools by earliest visit start time so labels 가/나/다 follow chronological order
+          const schoolEntries = Object.keys(bySchool).map(sch => {
+            const list = bySchool[sch] || [];
+            const startTimes = list.map(it=>{
+              try{
+                if (it.visitStart && String(it.visitStart).trim()){
+                  const m = String(it.visitStart).trim().match(/(\d{1,2}):(\d{1,2})/);
+                  if (m) return Number(m[1])*60 + Number(m[2]);
+                }
+                if (it.startHour !== undefined && it.startHour !== '') return (Number(it.startHour||0)*60 + Number(it.startMinute||0));
+              }catch(e){}
+              return null;
+            }).filter(x=>x!==null).sort((a,b)=>a-b);
             const first = startTimes.length ? startTimes[0] : null;
-            const lastEnd = list.reduce((acc,it)=>{ const st = (it.startHour !== undefined && it.startHour !== '') ? (Number(it.startHour||0)*60 + Number(it.startMinute||0)) : null; const dur = Number(it.duration||0); if (st!==null){ const end = st + dur; return Math.max(acc,end); } return acc; }, 0);
+            return { school: sch, list: list, earliest: first };
+          });
+          schoolEntries.sort((a,b)=>{
+            if (a.earliest === null && b.earliest === null) return 0;
+            if (a.earliest === null) return 1;
+            if (b.earliest === null) return -1;
+            return a.earliest - b.earliest;
+          });
+          for (const se of schoolEntries){
+            idxSchool++;
+            const sch = se.school;
+            const list = se.list;
+            // determine school-level start/end
+            // Determine per-meeting start/end minutes robustly from multiple possible fields
+            const getStartMin = it => {
+              try{
+                if (it.visitStart && String(it.visitStart).trim()){
+                  const m = String(it.visitStart).trim().match(/(\d{1,2}):(\d{1,2})/);
+                  if (m) return Number(m[1]) * 60 + Number(m[2]);
+                }
+                if (it.startHour !== undefined && it.startHour !== '') return (Number(it.startHour||0) * 60 + Number(it.startMinute||0));
+              }catch(e){}
+              return null;
+            };
+            const getEndMin = it => {
+              try{
+                if (it.visitEnd && String(it.visitEnd).trim()){
+                  const m = String(it.visitEnd).trim().match(/(\d{1,2}):(\d{1,2})/);
+                  if (m) return Number(m[1]) * 60 + Number(m[2]);
+                }
+                if (it.endTime && String(it.endTime).trim()){
+                  const m = String(it.endTime).trim().match(/(\d{1,2}):(\d{1,2})/);
+                  if (m) return Number(m[1]) * 60 + Number(m[2]);
+                }
+                const st = getStartMin(it);
+                if (st !== null){ const dur = Number(it.duration||0); return st + (isNaN(dur) ? 0 : dur); }
+              }catch(e){}
+              return null;
+            };
+
+            const startTimes = list.map(getStartMin).filter(x=>x!==null).sort((a,b)=>a-b);
+            const first = startTimes.length ? startTimes[0] : null;
+            const endTimes = list.map(getEndMin).filter(x=>x!==null);
+            const lastEnd = endTimes.length ? Math.max.apply(null, endTimes) : 0;
             const schStart = first !== null ? fmtHM(first) : '';
             const schEnd = lastEnd ? fmtHM(lastEnd) : '';
             // For Kakao copy/display: use the largest single meeting duration for the school
@@ -288,16 +582,52 @@
             const metaText = (list[0] && list[0].meta) ? (' (' + list[0].meta + ')') : '';
             const schoolLabel = korNums[idxSchool-1] || String(idxSchool);
             lines.push(`${schoolLabel}. ${sch}: ${schStart}${schStart && schEnd ? ('~'+schEnd) : ''} (${totalMinForSchool}분)${metaText}`);
-            lines.push('');
-            // per-meeting bullets
-            list.forEach((it, j)=>{
-              const subjArr = Array.isArray(it.subjects) ? it.subjects : (it.subjects ? [it.subjects] : []);
+            // append school metadata (설립, 총학생수, 특성) when available
+            try{
+              const norm = (String(sch||'').toLowerCase().replace(/\s+/g,' ').trim());
+              const smap = window._cmass_staffMapReport || (window.loadStaffMapReport ? (window.loadStaffMapReport().catch(()=>{}), null) : null);
+              const meta = smap ? (smap.byName && smap.byName[sch] ? smap.byName[sch] : (smap.byNorm && smap.byNorm[norm] ? smap.byNorm[norm] : null)) : null;
+              if (meta){
+                const est = meta.establish || '-';
+                const stu = meta.students || '-';
+                const feat = meta.feature || '-';
+                lines.push(`   설립: ${est} · 총학생수: ${stu} · 특성: ${feat}`);
+                lines.push('');
+              } else {
+                lines.push('');
+              }
+            }catch(e){ lines.push(''); }
+            // per-meeting bullets (sort meetings by start time within the school)
+            const listSorted = (list||[]).slice().sort((a,b)=>{
+              const getStart = it => {
+                try{
+                  if (it.visitStart && String(it.visitStart).trim()){ const m = String(it.visitStart).trim().match(/(\d{1,2}):(\d{1,2})/); if (m) return Number(m[1])*60 + Number(m[2]); }
+                  if (it.startHour !== undefined && it.startHour !== '') return (Number(it.startHour||0)*60 + Number(it.startMinute||0));
+                }catch(e){}
+                return 1e9;
+              };
+              return getStart(a) - getStart(b);
+            });
+            listSorted.forEach((it, j)=>{
+              const subjArr = Array.isArray(it.subject) ? it.subject : (it.subject ? [it.subject] : []);
               const subjText = subjArr.length ? subjArr.join(', ') : '';
               const teacher = it.teacherName || '';
               const pub = it.publisher || '';
               const dur = Number(it.duration||0);
-              const start = (it.startHour !== undefined && it.startHour !== '') ? fmtHM(Number(it.startHour||0)*60 + Number(it.startMinute||0)) : '';
-              lines.push(`-  ${String.fromCharCode(97 + j)}. ${subjText} (${teacher}${pub?'-'+pub:''}) : ${subjText} ${it.favor||''} ${it.activities||''} ${it.requests||''} ${it.notes||''} ${it.deliveries||''}`);
+              // prefer raw visitStart string when available, otherwise formatted startHour/startMinute
+              const startRaw = (it.visitStart && String(it.visitStart).trim()) ? String(it.visitStart).trim() : ((it.startHour !== undefined && it.startHour !== '') ? fmtHM(Number(it.startHour||0)*60 + Number(it.startMinute||0)) : '');
+              const endRaw = (it.visitEnd && String(it.visitEnd).trim()) ? String(it.visitEnd).trim() : (it.endTime || '');
+              const timeRange = startRaw ? (startRaw + (endRaw ? ('~' + endRaw) : '')) : (endRaw ? ('~' + endRaw) : '');
+              // per-meeting textual fields — always include with labels for Kakao copy
+              // Pull raw backend fields: ask / conversation / delivery — show only their contents (use '-' if empty)
+              const req = (it.requests && String(it.requests).trim()) ? String(it.requests).trim() : '-';
+              const note = (it.notes && String(it.notes).trim()) ? String(it.notes).trim() : '-';
+              const del = (it.deliveries && String(it.deliveries).trim()) ? String(it.deliveries).trim() : '-';
+              const activitiesText = Array.isArray(it.activities) ? (it.activities.length ? it.activities.join(', ') : '-') : (it.activities ? String(it.activities).trim() : '-');
+              const favorText = it.favor && String(it.favor).trim() ? String(it.favor).trim() : '-';
+              const extra = [activitiesText, favorText, req, note, del].join('  ');
+              // use 학교 label + index for bullet (가1., 가2.); remove per-meeting time (school header shows time once)
+              lines.push(`-  ${korNums[idxSchool-1]}${j+1}.${subjText} (${teacher}${pub?'-'+pub:''}) : ${extra}`);
             });
             lines.push('');
           }
@@ -312,35 +642,110 @@
 
           // auto tags simple heuristic
           const subjCounts = {};
-          entries.forEach(it=>{ const arr = Array.isArray(it.subjects) ? it.subjects : (it.subjects? [it.subjects] : []); arr.forEach(s=>{ const k = (s||'').toString(); if (!k) return; subjCounts[k] = (subjCounts[k]||0)+1; }); });
+          entries.forEach(it=>{ const arr = Array.isArray(it.subject) ? it.subject : (it.subject? [it.subject] : []); arr.forEach(s=>{ const k = (s||'').toString(); if (!k) return; subjCounts[k] = (subjCounts[k]||0)+1; }); });
           const subjEntries = Object.entries(subjCounts).sort((a,b)=>b[1]-a[1]);
           const tags = [];
           if (subjEntries.length){ tags.push('주요과목: ' + subjEntries[0][0] + '('+subjEntries[0][1]+'회)'); if (subjEntries[0][1] > 1) tags.push(subjEntries[0][0] + ' 다수 방문'); }
-          const revisit = Object.entries(bySchool).filter(([k,v])=> v.length>1).map(x=>x[0]);
-          if (revisit.length) tags.push('재방문: ' + revisit.join(', '));
+          // 화면에 '재방문' 태그를 표시하지 않도록 변경: 이전에는
+          // (학교에 미팅이 2건 이상이고 그 중 하나가 서버에 저장된 경우)
+          // 자동 태그에 '재방문'을 추가했으나, 이제는 표시 목록에서 제외합니다.
           if (tags.length) lines.push('자동 태그: ' + tags.join(', '));
 
           return lines.join('\n');
         }catch(e){ console.warn('buildOfficeSummary failed', e); return ''; }
       }
 
+      // Expose buildOfficeSummary globally so diagnostic snippets can call it from DevTools
+      try{ window.buildOfficeSummary = buildOfficeSummary; }catch(e){}
+
       function loadLocalReports(){
         try{ const raw = localStorage.getItem('cmass_reports') || '[]'; return JSON.parse(raw) || []; }catch(e){ return []; }
       }
+      try{ window.loadLocalReports = loadLocalReports; }catch(e){}
+
+      // Load sales_staff.csv into a lightweight map for report enrichment
+      (function(){
+        async function parseCsvText(text){
+          try{
+            const lines = (text||'').replace(/^\uFEFF/, '').split(/\r?\n/).filter(l=>l.trim());
+            if (!lines.length) return null;
+            const rows = lines.map(l=>{
+              // simple CSV splitter (handles quoted fields)
+              const cols = [];
+              let cur = '';
+              let inQ = false;
+              for (let i=0;i<l.length;i++){
+                const ch = l[i];
+                if (ch === '"') { if (inQ && l[i+1] === '"'){ cur += '"'; i++; } else inQ = !inQ; continue; }
+                if (ch === ',' && !inQ){ cols.push(cur); cur = ''; continue; }
+                cur += ch;
+              }
+              cols.push(cur);
+              return cols.map(c=> (c||'').trim());
+            });
+            return rows;
+          }catch(e){ return null; }
+        }
+
+        async function loadStaffMap(){
+          if (window._cmass_staffMapReport) return window._cmass_staffMapReport;
+          const byName = {};
+          const byNorm = {};
+          try{
+            let rows = null;
+            if (typeof window.fetchCsvRows === 'function'){
+              try{ rows = await window.fetchCsvRows(); }catch(e){ rows = null; }
+            }
+            if (!rows){
+              try{ const res = await fetch('/sales_staff.csv', { cache: 'no-store' }); if (res && res.ok){ const txt = await res.text(); rows = await parseCsvText(txt); } }catch(e){ rows = null; }
+            }
+            if (rows && rows.length>1){
+              const header = rows[0].map(h=>String(h||'').trim());
+              const nameKeys = header.filter(h=> /학교명|school[_ ]?name|name/i.test(h));
+              const establishKeys = header.filter(h=> /설립|설립구분|establish|establishment|type/i.test(h));
+              const studentsKeys = header.filter(h=> /총학생수|학생수|students|student/i.test(h));
+              const featureKeys = header.filter(h=> /특성|feature|character/i.test(h));
+              for (let r=1;r<rows.length;r++){
+                const row = rows[r];
+                const obj = {};
+                for (let i=0;i<header.length;i++) obj[header[i]] = String(row[i]||'').trim();
+                const name = (nameKeys.map(k=>obj[k]).find(v=>v) || obj['학교명'] || obj['name'] || '').trim();
+                if (!name) continue;
+                const establish = (establishKeys.map(k=>obj[k]).find(v=>v) || obj['설립'] || obj['establish'] || '').trim();
+                const students = (studentsKeys.map(k=>obj[k]).find(v=>v) || obj['총학생수'] || obj['students'] || '').trim();
+                const feature = (featureKeys.map(k=>obj[k]).find(v=>v) || obj['특성'] || obj['feature'] || '').trim();
+                const meta = { establish: establish || '', students: students || '', feature: feature || '' };
+                byName[name] = meta;
+                const norm = (String(name||'').toLowerCase().replace(/\s+/g,' ').trim());
+                byNorm[norm] = meta;
+              }
+            }
+          }catch(e){ /* tolerate */ }
+          window._cmass_staffMapReport = { byName, byNorm };
+          return window._cmass_staffMapReport;
+        }
+        // start loading in background
+        try{ loadStaffMap().catch(()=>{}); }catch(e){}
+        window.loadStaffMapReport = loadStaffMap;
+      })();
 
       function computeMetrics(entries){
+        try{ window.computeMetrics = computeMetrics; }catch(e){}
         try{
           const targetVisit = (visitDate || '').toString().trim();
-          const targetStaff = (staff || '').toString().trim();
+          // allow an effective staff override (set by _reRenderUI) so the UI can infer
+          // the viewer's staff token when URL param is missing
+          // normalize both the target and entry staff tokens for reliable comparisons
+          const targetStaff = normalizeStaffToken((window._cmass_effectiveStaff || staff) || '');
           // Start by filtering with visitDate/staff from the provided array
           let rawFiltered = (entries||[]).filter(e => {
             try{
               const evd = (e.visitDate || '').toString().trim();
-              const est = (e.staff || '').toString().trim();
+              const est = (e.staff || e.staffLabel || '').toString().trim();
               // visitDate: allow prefix match (handles full ISO timestamps)
               const visitMatch = !targetVisit || (evd.indexOf(targetVisit) === 0);
-              // staff: require exact token match when provided
-              const staffMatch = !targetStaff || (est === targetStaff);
+              // staff: require exact token match when provided (compare canonical tokens)
+              const staffMatch = !targetStaff || (normalizeStaffToken(est) === targetStaff);
               return visitMatch && staffMatch;
             }catch(ex){ return false; }
           });
@@ -349,7 +754,9 @@
           // handles cases where the saved entry uses a different staff token (e.g.
           // label vs token mismatch) but is still the same visit day.
           let usedStaffFallback = false;
-          if ((rawFiltered || []).length === 0 && targetVisit){
+          // If no entries matched both visitDate+staff, we used to fall back to visitDate-only.
+          // Do NOT do this when an explicit staff filter (targetStaff) was provided via URL.
+          if ((rawFiltered || []).length === 0 && targetVisit && !targetStaff){
             const looser = (entries||[]).filter(e => { try{ const evd = (e.visitDate||'').toString().trim(); return (!targetVisit) || (evd.indexOf(targetVisit) === 0); }catch(x){ return false; } });
             if ((looser||[]).length > 0){ rawFiltered = looser; usedStaffFallback = true; }
           }
@@ -369,7 +776,13 @@
           const schools = new Set(filtered.map(it => (it.school||'').toString().trim()).filter(Boolean));
           const totalSchools = schools.size;
           const contactsSecured = filtered.reduce((s,it)=> s + (((it.phone && String(it.phone).trim()) || (it.email && String(it.email).trim())) ? 1:0), 0);
-          const additionalSelections = filtered.reduce((s,it)=>{ const text = ((it.followUp||'') + ' ' + (it.requests||'') + ' ' + (it.notes||'')).toString(); return s + ((text.indexOf('선정') !== -1) ? 1 : 0); },0);
+          const additionalSelections = filtered.reduce((s,it)=>{
+            try{
+              const pub = (it.publisher||'').toString().trim();
+              // Count only entries where publisher exists and is not '씨마스'
+              return s + ((pub && pub !== '씨마스') ? 1 : 0);
+            }catch(e){ return s; }
+          },0);
           return { totalMeetings, totalSchools, contactsSecured, additionalSelections, filtered };
         }catch(e){ return { totalMeetings:0, totalSchools:0, contactsSecured:0, additionalSelections:0, filtered:[] }; }
       }
@@ -393,7 +806,8 @@
         try{
           // store last filtered list for school-button callbacks
           // Ensure we only expose entries that match the current staff (defensive filter)
-          const filteredByStaffRaw = (m.filtered || []).filter(it => { try{ return !staff || ((it.staff||'').toString().trim() === staff); }catch(e){ return false; } });
+          const normalizedStaff = normalizeStaffToken(staff);
+          const filteredByStaffRaw = (m.filtered || []).filter(it => { try{ const est = (it.staff || it.staffLabel || '').toString().trim(); return !normalizedStaff || (normalizeStaffToken(est) === normalizedStaff); }catch(e){ return false; } });
           // Deduplicate entries by server_id when present, otherwise by _savedAt fallback.
           // This prevents showing multiple duplicate cards when local copies and server docs
           // or multiple local copies share the same server_id.
@@ -495,7 +909,7 @@
               localIndex = localArr.findIndex(it => it && e && (it._savedAt && e._savedAt && it._savedAt === e._savedAt));
             }
             if (localIndex === -1){
-              localIndex = localArr.findIndex(it => it && e && (String(it.school||'') === String(e.school||'')) && (String(it.visitDate||'') === String(e.visitDate||'')) && (String(it.startHour||'') === String(e.startHour||'')));
+              localIndex = localArr.findIndex(it => it && e && (String(it.school||'') === String(e.school||'')) && (String(it.visitDate||'') === (e.visitDate||'')) && (String(it.startHour||'') === (e.startHour||'')));
             }
             const isServer = !!(e && e.server_id);
             const chk = document.createElement('input'); chk.type = 'checkbox'; chk.className = 'cmass-upload-check';
@@ -524,10 +938,10 @@
           meta.style.display = 'none';
           div.appendChild(title); div.appendChild(meta);
 
-          // Compact summary visible when collapsed: show school, subjects, teacher, phone
+          // Compact summary visible when collapsed: show school, subject, teacher, phone
           const summaryDiv = document.createElement('div'); summaryDiv.className = 'report-entry-summary';
           const left = document.createElement('div'); left.className = 'meta-left';
-          const subjectsText = Array.isArray(e.subjects) ? (e.subjects.join(', ')) : (e.subjects || '');
+          const subjectsText = Array.isArray(e.subject) ? (e.subject.join(', ')) : (e.subject || '');
           const parts = [];
           if (e.school) parts.push(e.school);
           if (subjectsText) parts.push(subjectsText);
@@ -549,34 +963,39 @@
             region: '지역',
             school: '학교',
             visitDate: '방문일',
+            visitStart: '방문시작',
             startHour: '방문시작시간',
             startMinute: '방문시작분',
             duration: '총 방문시간',
+            visitEnd: '방문종료',
             endTime: '방문종료시간',
-            subjects: '과목',
+            subject: '과목',
             activities: '영업활동',
             favor: '우호도',
             teacherName: '선생님 이름',
             publisher: '출판사',
             phone: '연락처',
             email: '이메일',
-            requests: '고객 요청사항',
+            requests: '고객요청사항',
             notes: '특이사항',
             deliveries: '납품사항',
             followUp: '후속조치',
             _savedAt: '저장시기'
           };
 
-          // Preferred order for display
-          const fields = ['server_id','staff','staffLabel','region','school','visitDate','startHour','startMinute','duration','endTime','subjects','activities','favor','teacherName','publisher','phone','email','requests','notes','deliveries','followUp','_savedAt'];
+          // Preferred order for display (match requested output order)
+          const fields = [
+            'server_id','staff','staffLabel','region','school','visitDate',
+            'visitStart','duration','visitEnd',
+            'subject','teacherName','activities','favor','publisher','phone',
+            'requests','notes','deliveries','followUp','_savedAt'
+          ];
 
           // Details container (hidden by default)
           const details = document.createElement('div'); details.className = 'report-entry-details'; details.style.display = 'none';
 
           fields.forEach(f=>{
             const v = e[f];
-            // skip undefined/empty (allow 0 value)
-            if ((v === undefined || v === null || v === '') && v !== 0) return;
             const p = document.createElement('div'); p.style.marginTop='6px';
 
             // combine startHour and startMinute into a single readable time when available
@@ -594,6 +1013,20 @@
             if (f === 'startMinute') return;
 
             const label = FIELD_LABELS[f] || f;
+
+            // For these three textual fields, always render the label and show '-' when empty
+            const alwaysShowKeys = ['requests','notes','deliveries'];
+            if (alwaysShowKeys.indexOf(f) !== -1){
+              const raw = Array.isArray(v) ? (v.length ? v.join(', ') : '') : (v || '');
+              const display = (raw === '' || raw === undefined || raw === null) ? '-' : raw;
+              p.innerHTML = `<strong>${label}:</strong> ${display}`;
+              details.appendChild(p);
+              return;
+            }
+
+            // skip undefined/empty (allow 0 value) for other fields
+            if ((v === undefined || v === null || v === '') && v !== 0) return;
+
             const display = Array.isArray(v) ? (v.length ? v.join(', ') : '') : v;
             if ((display === '' || display === undefined || display === null) && display !== 0) return;
             p.innerHTML = `<strong>${label}:</strong> ${display}`;
@@ -623,7 +1056,26 @@
 
           // Edit button (in details)
           const btnEdit = document.createElement('button'); btnEdit.textContent='수정'; btnEdit.style.marginTop='8px';
-          btnEdit.addEventListener('click', function(){ try{ if (window.sessionStorage){ sessionStorage.setItem('cmass:edit_entry', JSON.stringify(e)); sessionStorage.setItem('cmass:edit_index', String(idx)); } const staffToken = e && e.staff ? encodeURIComponent(String(e.staff)) : ''; const target = '/meeting.html' + (staffToken ? ('?staff='+staffToken) : ''); window.location.href = target; }catch(ex){} });
+          btnEdit.addEventListener('click', function(){
+            try {
+              if (window.sessionStorage) {
+                sessionStorage.setItem('cmass:edit_entry', JSON.stringify(e));
+                sessionStorage.setItem('cmass:edit_index', String(idx));
+                // Diagnostic log
+                console.log('[CMASS debug] Edit button clicked:', {
+                  entry: e,
+                  idx: idx,
+                  sessionEdit: sessionStorage.getItem('cmass:edit_entry'),
+                  sessionIndex: sessionStorage.getItem('cmass:edit_index')
+                });
+              }
+              const staffToken = e && e.staff ? encodeURIComponent(String(e.staff)) : '';
+              const target = '/meeting.html' + (staffToken ? ('?staff='+staffToken) : '');
+              window.location.href = target;
+            } catch(ex) {
+              console.warn('[CMASS debug] Edit button error', ex);
+            }
+          });
           details.appendChild(btnEdit);
 
           // Delete button (in details)
@@ -710,37 +1162,72 @@
 
       function mapServerDocToEntry(doc){
         try{
-          const start = (doc.visitStart || doc.visitstart || doc.visitstart || '');
+          // Accept multiple possible field names for visit start (handles legacy/variant schemas)
+          const possibleStarts = ['visitStart','visitstart','visit_start','start','startTime','start_time','visitTime','visit_time','visitstarttime'];
+          let start = '';
+          for (const k of possibleStarts){ if (doc[k]){ start = doc[k]; break; } }
+          // fallback to separate hour/minute fields
           let startHour = '';
           let startMinute = '';
-          if (start && String(start).indexOf(':') !== -1){ const parts = String(start).split(':'); startHour = parts[0]; startMinute = parts[1]; }
+          try{
+            if (start && String(start).indexOf(':') !== -1){ const parts = String(start).split(':'); startHour = parts[0]; startMinute = parts[1]; }
+            else if (doc.startHour || doc.start_hour){ startHour = String(doc.startHour || doc.start_hour || ''); startMinute = String(doc.startMinute || doc.start_minute || ''); }
+          }catch(e){}
+
+          // Accept multiple possible field names for visit end
+          const possibleEnds = ['visitEnd','visitend','visit_end','endTime','end_time','visitEndTime','visit_end_time'];
+          let endTime = '';
+          for (const k of possibleEnds){ if (doc[k]){ endTime = doc[k]; break; } }
+          // also preserve raw visitStart/visitEnd strings for direct display
+          const visitStartRaw = start || '';
+          const visitEndRaw = endTime || '';
+
           return {
             server_id: doc.server_id || doc._id || '',
-            staff: doc.staff || '',
-            staffLabel: doc.staffLabel || '',
+            // normalize staff token from server document to canonical token when possible
+            staff: (function(){
+              try{
+                const raw = (doc.staff || doc.staffToken || doc.staff_token || '').toString().trim();
+                if (!raw) return '';
+                const lower = raw.toLowerCase();
+                const canon = {
+                  '송훈재': 'SongHoonjae', '송훈재 부장': 'SongHoonjae', '송훈재부장': 'SongHoonjae',
+                  '임준호': 'LimJunho', '임준호 차장': 'LimJunho', '임준호차장': 'LimJunho',
+                  '조영환': 'ChoYounghwan', '조영환 부장': 'ChoYounghwan', '조영환부장': 'ChoYounghwan'
+                };
+                const candidates = ['SongHoonjae','LimJunho','ChoYounghwan'];
+                for (const c of candidates){ if (c.toLowerCase() === lower) return c; }
+                return canon[lower] || raw;
+              }catch(e){ return doc.staff || ''; }
+            })(),
+            staffLabel: doc.staffLabel || doc.staff || '',
             region: doc.region || '',
             school: doc.school || '',
             meta: doc.meta || doc.schoolMeta || '',
             visitDate: doc.visitDate || '',
+            // keep both parsed hour/minute and raw visitStart string
+            visitStart: visitStartRaw,
             startHour: startHour,
             startMinute: startMinute,
             duration: doc.duration || 0,
-            endTime: doc.visitEnd || doc.visitend || '',
-            subjects: Array.isArray(doc.subjects) ? doc.subjects : (doc.subjects ? [doc.subjects] : []),
+            visitEnd: visitEndRaw,
+            endTime: endTime || '',
+            subject: Array.isArray(doc.subject) ? doc.subject : (doc.subject ? [doc.subject] : []),
             activities: Array.isArray(doc.activities) ? doc.activities : (doc.activities ? [doc.activities] : []),
             favor: doc.favor || '',
-            teacherName: doc.teacher || doc.teacherName || '',
+            teacherName: doc.teacher || doc.teacherName || doc.teacher_name || doc.instructor || doc.teacherFullName || doc.tchr || '',
             publisher: doc.publisher || '',
             phone: doc.Phonenumber || doc.phone || '',
             email: doc.email || '',
-            requests: doc.ask || doc.requests || '',
-            notes: doc.conversation || doc.notes || '',
-            deliveries: doc.delivery || doc.deliveries || '',
+            requests: doc.ask || doc.askText || doc.requests || doc.request || doc.requestText || doc.request_text || doc.customerRequests || doc.customer_request || doc.req || doc.client_request || doc.memo || '',
+            notes: doc.conversation || doc.conversationText || doc.convo || doc.notes || doc.remark || doc.remarks || doc.specialNotes || doc.note || doc.memo || doc.memoText || '',
+            deliveries: doc.delivery || doc.delivery_note || doc.deliveryNotes || doc.deliveries || doc.delivered || doc.delivery_info || doc.deliveries_info || doc.deliv || '',
             followUp: doc.followUp || '' ,
             _savedAt: doc._savedAt || ''
           };
         }catch(e){ return {}; }
       }
+      try{ window.mapEntryToServerPayload = mapEntryToServerPayload; }catch(e){}
 
         // Map local entry shape back to server payload
         function mapEntryToServerPayload(e){
@@ -753,7 +1240,7 @@
             visitStart: (e.startHour ? (String(e.startHour).padStart(2,'0') + ':' + (e.startMinute ? String(e.startMinute).padStart(2,'0') : '00')) : ''),
             duration: (e.duration !== undefined) ? Number(e.duration) : 0,
             visitEnd: e.endTime || '',
-            subjects: Array.isArray(e.subjects) ? e.subjects : (e.subjects ? [e.subjects] : []),
+            subject: Array.isArray(e.subject) ? e.subject : (e.subject ? [e.subject] : []),
             activities: Array.isArray(e.activities) ? e.activities : (e.activities ? [e.activities] : []),
             favor: e.favor || '',
             teacher: e.teacherName || e.teacher || '',
@@ -767,6 +1254,39 @@
             followUp: e.followUp || '',
             _savedAt: e._savedAt || new Date().toISOString()
           };
+        }
+
+        // Prevent duplicate server uploads for the same entry
+        async function uploadEntryToServer(entry) {
+          if (!window.firebaseDb) {
+            console.error('[서버업로드] firebaseDb가 없습니다');
+            return;
+          }
+          const payload = mapEntryToServerPayload(entry);
+          try {
+            let query = window.firebaseDb.collection('visit_entries')
+              .where('school', '==', payload.school)
+              .where('visitDate', '==', payload.visitDate)
+              .where('staff', '==', payload.staff);
+            if (payload.visitStart) query = query.where('visitStart', '==', payload.visitStart);
+            const snap = await query.limit(2).get();
+            if (!snap.empty) {
+              // If found, update the first matching doc instead of adding a new one
+              const doc = snap.docs[0];
+              await window.firebaseDb.collection('visit_entries').doc(doc.id).set(payload, { merge: true });
+              console.log('[서버업로드] 기존 문서 업데이트:', doc.id, payload);
+              return doc.id;
+            } else {
+              // If not found, add new
+              const ref = await window.firebaseDb.collection('visit_entries').add(payload);
+              console.log('[서버업로드] 새 문서 추가:', ref.id, payload);
+              return ref.id;
+            }
+          } catch (err) {
+            console.error('[서버업로드] Firestore 에러:', err, payload);
+            alert('서버 저장 실패: ' + (err && err.message ? err.message : String(err)));
+            return null;
+          }
         }
 
         // If the meeting page left an edited entry in sessionStorage, apply it (local + server)
@@ -839,7 +1359,7 @@
                     if (idxLocal !== -1){ arr.splice(idxLocal,1); removed = true; }
                   }
                   if (!removed){
-                    const idxLocal = arr.findIndex(it => (it.school||'')=== (e.school||'') && (it.visitDate||'') === (e.visitDate||'') && (e.staff||'') === (e.staff||'') && ((it.startHour||'') === (e.startHour||'')));
+                    const idxLocal = arr.findIndex(it => (it.school||'')=== (e.school||'') && (it.visitDate||'') === (e.visitDate||'') && (it.staff||'') === (e.staff||'') && ((it.startHour||'') === (e.startHour||'')));
                     if (idxLocal !== -1){ arr.splice(idxLocal,1); removed = true; }
                   }
                   if (!removed){
@@ -862,7 +1382,7 @@
               try{
                 console.log('[CMASS TEST] 시작');
                 const testEntry = {
-                  server_id: '', staff: staff || '김영업', staffLabel: staff || '김영업', region: '테스트', school: '테스트학교-삭제', visitDate: visitDate || new Date().toISOString().slice(0,10), startHour: '09', startMinute: '05', duration: 30, endTime: '09:35', subjects: ['테스트과목'], activities: ['테스트행동'], favor: '보통', teacherName: '테스트선생', publisher: '', phone: '010-0000-9999', email: '', requests:'', notes:'테스트 노트', deliveries:'', followUp:'', _savedAt: new Date().toISOString()
+                  server_id: '', staff: staff || '김영업', staffLabel: staff || '김영업', region: '테스트', school: '테스트학교-삭제', visitDate: visitDate || new Date().toISOString().slice(0,10), startHour: '09', startMinute: '05', duration: 30, endTime: '09:35', subject: ['테스트과목'], activities: ['테스트행동'], favor: '보통', teacherName: '테스트선생', publisher: '', phone: '010-0000-9999', email: '', requests:'', notes:'테스트 노트', deliveries:'', followUp:'', _savedAt: new Date().toISOString()
                 };
                 // save locally
                 const arr = loadLocalReports(); arr.push(testEntry); localStorage.setItem('cmass_reports', JSON.stringify(arr));
@@ -987,10 +1507,44 @@
   try{ window._reRenderUI = window._reRenderUI || function(){ console.warn('reRenderUI: not ready yet'); }; }catch(e){}
 
   // Re-render summary and entries, preserving any active per-school filter.
-  function _reRenderUI(){
+  async function _reRenderUI(){
           try{
-            const entries = loadLocalReports();
-            const metrics = computeMetrics(entries);
+            const mode = (qs('viewModeSelect') && qs('viewModeSelect').value) || 'both';
+            let local = [];
+            try{ local = loadLocalReports() || []; }catch(e){ local = []; }
+            let server = [];
+            if (mode === 'server' || mode === 'both'){
+              try{ server = await fetchServerReports(); }catch(e){ server = []; }
+            }
+
+            // Build merged array according to mode
+            let merged = [];
+            if (mode === 'local') merged = local.slice();
+            else if (mode === 'server') merged = server.slice();
+            else {
+              // both: merge with dedupe (server entries prefered when server_id matches)
+              const map = new Map();
+              // add server entries first so they take precedence
+              server.forEach(it=>{ try{ const key = it && it.server_id ? ('s:'+String(it.server_id)) : ('l:'+String(it._savedAt||JSON.stringify(it))); map.set(key, it); }catch(e){} });
+              local.forEach(it=>{ try{ const key = it && it.server_id ? ('s:'+String(it.server_id)) : ('l:'+String(it._savedAt||JSON.stringify(it))); if (!map.has(key)) map.set(key, it); }catch(e){} });
+              merged = Array.from(map.values());
+            }
+
+            // Determine effective staff token to filter by.
+            // Priority: URL param `staff` (already in `staff`), session edit entry, local reports first entry.
+            let effectiveStaff = (window._cmass_effectiveStaff || staff || '').toString().trim();
+            if (!effectiveStaff){
+              try{
+                const rawEdit = sessionStorage.getItem('cmass:edit_entry');
+                if (rawEdit){ const parsed = JSON.parse(rawEdit || '{}'); if (parsed && (parsed.staff || parsed.staffLabel)) effectiveStaff = String(parsed.staff || parsed.staffLabel).trim(); }
+              }catch(e){}
+            }
+            if (!effectiveStaff){
+              try{ if (local && local.length){ const candidate = local.find(x=> x && (x.staff || x.staffLabel)); if (candidate) effectiveStaff = String(candidate.staff || candidate.staffLabel || '').trim(); } }catch(e){}
+            }
+            // canonicalize effectiveStaff and expose for debugging/tests
+            try{ effectiveStaff = normalizeStaffToken(effectiveStaff); window._cmass_effectiveStaff = effectiveStaff; }catch(e){}
+            const metrics = computeMetrics(merged);
             // update stored lastFiltered for other code
             window._cmass_report_lastFiltered = (metrics.filtered || []).slice();
             renderSummary(metrics);
@@ -1001,27 +1555,33 @@
             }else{
               renderEntries(metrics.filtered);
             }
+            try{ updateLocalReportsInfo(); }catch(e){}
           }catch(e){ console.warn('_reRenderUI failed', e); }
         }
         try{ window._reRenderUI = _reRenderUI; }catch(e){}
 
-        // wire office buttons
-        function wireOfficeButtons(){
+
+        // qs 함수 전역 선언 (window에 노출)
+        window.qs = function qs(id) { return document.getElementById(id); };
+
+        // wireOfficeButtons 함수 전역 선언 (window에 노출)
+        window.wireOfficeButtons = function wireOfficeButtons(){
           try{
-            const btnSave = qs('btnSaveOffice');
-            const btnClear = qs('btnClearOffice');
+            const btnSave = window.qs('btnSaveOffice');
+            const btnClear = window.qs('btnClearOffice');
             if (btnSave){ btnSave.addEventListener('click', function(){
               const payload = {
-                checkinHour: qs('officeCheckinHour').value || '',
-                checkinMinute: qs('officeCheckinMinute').value || '',
-                internalHours: qs('officeInternalHours').value ? Number(qs('officeInternalHours').value) : 0,
-                internalMinutes: qs('officeInternalMinutes').value ? Number(qs('officeInternalMinutes').value) : 0,
-                endMinutes: qs('officeEndMinutes').value ? Number(qs('officeEndMinutes').value) : 0
+                checkinHour: window.qs('officeCheckinHour').value || '',
+                checkinMinute: window.qs('officeCheckinMinute').value || '',
+                internalHours: window.qs('officeInternalHours').value ? Number(window.qs('officeInternalHours').value) : 0,
+                internalMinutes: window.qs('officeInternalMinutes').value ? Number(window.qs('officeInternalMinutes').value) : 0,
+                endMinutes: window.qs('officeEndMinutes').value ? Number(window.qs('officeEndMinutes').value) : 0
               };
               const saved = saveOfficeData(payload);
               if (saved){ renderOfficeSection(); alert('사무실 기록이 저장되었습니다.'); }
               else alert('저장에 실패했습니다. 콘솔을 확인하세요.');
-            }); }
+            }, true);
+            console.debug('[CMASS] wired btnSaveOffice'); }
 
             if (btnClear){ btnClear.addEventListener('click', function(){
               if (!confirm('사무실 기록을 삭제하시겠습니까?')) return;
@@ -1032,24 +1592,54 @@
                 localStorage.setItem('cmass_office_reports', JSON.stringify(map));
                 renderOfficeSection();
               }catch(e){ console.warn('clear office failed', e); }
-            }); }
+            }, true); }
+            console.debug('[CMASS] wired btnClearOffice');
             // Copy summary to clipboard for KakaoTalk paste
             try{
-              const btnCopy = qs('btnCopyKakao');
+              const btnCopy = window.qs('btnCopyKakao');
               if (btnCopy){ btnCopy.addEventListener('click', async function(){
                 try{
-                  const text = buildOfficeSummary();
-                  if (!text) { alert('요약할 내용이 없습니다.'); return; }
+                  // Ensure staff map (school metadata) is loaded before building summary
+                  try{ if (typeof loadStaffMapReport === 'function') await loadStaffMapReport().catch(()=>{}); }catch(e){}
+                  const raw = buildOfficeSummary();
+                  if (!raw) { alert('요약할 내용이 없습니다.'); return; }
+                  // sanitize for Kakao: remove any '재방문' tag occurrences
+                  const sanitizeKakaoText = (t)=>{
+                    try{
+                      let s = String(t || '');
+                      // remove '재방문: ...' anywhere
+                      s = s.replace(/\b재방문:\s*[^,\n\r]*/g, '');
+                      // Collapse repeated commas introduced by removal
+                      s = s.replace(/,\s*,/g, ',');
+                      s = s.replace(/자동 태그:\s*,/g, '자동 태그:');
+                      s = s.replace(/자동 태그:\s*$/g, '');
+                      // Trim trailing comma/space at line ends
+                      const lines = s.split('\n').map(l => l.replace(/\s+,\s*$/,'').replace(/\s+$/,'').replace(/^\s+/,'') );
+                      // Collapse multiple consecutive blank lines into a single blank line
+                      const out = [];
+                      let prevBlank = false;
+                      for (const L of lines){
+                        const isBlank = (L.trim().length === 0);
+                        if (isBlank){
+                          if (!prevBlank){ out.push(''); prevBlank = true; }
+                        } else { out.push(L); prevBlank = false; }
+                      }
+                      return out.join('\n');
+                    }catch(e){ return t; }
+                  };
+
+                  const text = sanitizeKakaoText(raw);
                   // copy to clipboard
                   if (navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(text); alert('요약이 클립보드에 복사되었습니다. 카톡에 붙여넣기하세요.'); }
                   else {
                     const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert('요약이 클립보드에 복사되었습니다. 카톡에 붙여넣기하세요.');
                   }
                 }catch(e){ console.warn('copy kakao failed', e); alert('복사에 실패했습니다. 콘솔을 확인하세요.'); }
-              }); }
+              }, true); }
+              console.debug('[CMASS] wired btnCopyKakao');
             }catch(e){}
           }catch(e){ /* tolerate */ }
-        }
+        };
 
       // initial render from localStorage
       (async function(){
@@ -1066,6 +1656,156 @@
           renderOfficeSection();
           wireOfficeButtons();
         }catch(e){ /* tolerate */ }
+
+        // Document-level delegated copy handler as a robust fallback in case
+        // the button's direct listener was not attached (helps when other
+        // scripts/elements intercept or replace the button node).
+        try{
+          document.addEventListener('click', async function delegatedCopyHandler(ev){
+            try{
+              const target = ev.target || ev.srcElement;
+              if (!target) return;
+              const btn = (target.id === 'btnCopyKakao') ? target : (target.closest ? target.closest('#btnCopyKakao') : null);
+              if (!btn) return; // not our button
+              console.debug('[CMASS] delegatedCopyHandler triggered');
+
+              // Try to build summary via exposed function first
+              let text = '';
+              try{ if (typeof window.loadStaffMapReport === 'function') await window.loadStaffMapReport().catch(()=>{}); }catch(e){}
+              try{ if (typeof window.buildOfficeSummary === 'function') text = window.buildOfficeSummary() || ''; }catch(e){ console.warn('buildOfficeSummary call failed', e); }
+
+              // Fallback: build a minimal summary from available entries
+              if (!text){
+                let entries = [];
+                try{ if (typeof window._cmass_report_lastFiltered !== 'undefined') entries = window._cmass_report_lastFiltered || []; }catch(e){}
+                try{ if ((!entries || entries.length===0) && typeof window.loadLocalReports === 'function') entries = window.loadLocalReports() || []; }catch(e){}
+                try{ if ((!entries || entries.length===0)) entries = JSON.parse(localStorage.getItem('cmass_reports')||'[]') || []; }catch(e){}
+
+                if (entries && entries.length){
+                  try{
+                    const e0 = entries[0] || {};
+                    const staffLabel = e0.staffLabel || e0.staff || '';
+                    const visitDate = e0.visitDate || '';
+                    const schools = Array.from(new Set(entries.map(it => (it.school||'').toString().trim()).filter(Boolean)));
+                    const totalMeetings = entries.length;
+                    const contacts = entries.reduce((s,it)=> s + (((it.phone && String(it.phone).trim()) || (it.email && String(it.email).trim())) ? 1:0), 0);
+                    const additional = entries.reduce((s,it)=> s + ((String(it.followUp||'') + String(it.requests||'') + String(it.notes||'')).indexOf('선정') !== -1 ? 1:0), 0);
+                    const lines = [];
+                    lines.push(`(${staffLabel} 퇴근보고)`);
+                    lines.push(`방문일: ${visitDate || ''}`);
+                    lines.push(`총 방문 학교: ${schools.length}개 · 총 미팅수: ${totalMeetings}건 · 연락처 확보: ${contacts}건 · 추가선정 확인: ${additional}건`);
+                    if (schools.length) lines.push('방문학교: ' + schools.join(', '));
+                    text = lines.join('\n');
+                  }catch(e){ console.warn('fallback summary build failed', e); }
+                }
+              }
+
+              if (!text){ alert('복사할 요약이 없습니다.'); return; }
+
+              // sanitize text for Kakao (remove '재방문' tags)
+              const sanitizeKakaoText = (t)=>{
+                try{
+                  let s = String(t || '');
+                  s = s.replace(/\b재방문:\s*[^,\n\r]*/g, '');
+                  s = s.replace(/,\s*,/g, ',');
+                  s = s.replace(/자동 태그:\s*,/g, '자동 태그:');
+                  s = s.replace(/자동 태그:\s*$/g, '');
+                  const lines = s.split('\n').map(l => l.replace(/\s+,\s*$/,'').replace(/\s+$/,'').replace(/^\s+/,'') );
+                  const out = [];
+                  let prevBlank = false;
+                  for (const L of lines){
+                    const isBlank = (L.trim().length === 0);
+                    if (isBlank){ if (!prevBlank){ out.push(''); prevBlank = true; } }
+                    else { out.push(L); prevBlank = false; }
+                  }
+                  return out.join('\n');
+                }catch(e){ return t; }
+              };
+
+              const textToCopy = sanitizeKakaoText(text);
+
+              // Attempt clipboard API then fallback to execCommand
+              try{
+                if (navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(textToCopy); alert('요약이 클립보드에 복사되었습니다. 카톡에 붙여넣기하세요.'); return; }
+              }catch(e){ console.warn('clipboard.writeText failed', e); }
+
+              try{
+                const ta = document.createElement('textarea'); ta.value = textToCopy; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert('요약이 클립보드에 복사되었습니다. 카톡에 붙여넣기하세요.'); return;
+              }catch(e){ console.warn('fallback execCommand failed', e); alert('복사에 실패했습니다. 콘솔을 확인하세요.'); }
+
+            }catch(e){ console.warn('delegatedCopyHandler unexpected error', e); }
+          }, true);
+          console.debug('[CMASS] delegated copy handler attached');
+        }catch(e){ console.warn('attach delegated copy handler failed', e); }
+
+        // Diagnostic helpers: make testCopyToKakao2 and checkCopyButtonListeners2 available
+        try{
+          window.testCopyToKakao2 = async function testCopyToKakao2(){
+            try{
+              console.group('[CMASS debug] testCopyToKakao2 start');
+              // prefer buildOfficeSummary if present
+              if (typeof window.buildOfficeSummary === 'function'){
+                try{
+                  if (typeof window.loadStaffMapReport === 'function') await window.loadStaffMapReport().catch(()=>{});
+                  const s = window.buildOfficeSummary();
+                  console.log('[step] used existing buildOfficeSummary, length=', s && s.length);
+                  if (s){
+                    try{ await navigator.clipboard.writeText(s); console.log('[ok] clipboard.writeText succeeded with buildOfficeSummary'); console.groupEnd(); return {ok:true, method:'clipboard.writeText', source:'buildOfficeSummary'}; }catch(e){ console.warn('[fail] clipboard.writeText failed (buildOfficeSummary)', e); }
+                  }
+                }catch(e){ console.warn('calling existing buildOfficeSummary failed', e); }
+              }
+
+              // fallback build from entries
+              let entries = [];
+              try{ if (window._cmass_report_lastFiltered && window._cmass_report_lastFiltered.length) entries = window._cmass_report_lastFiltered.slice(); }catch(e){}
+              try{ if ((!entries || entries.length===0) && typeof window.loadLocalReports === 'function') entries = window.loadLocalReports() || []; }catch(e){}
+              try{ if ((!entries || entries.length===0)) entries = JSON.parse(localStorage.getItem('cmass_reports')||'[]') || []; }catch(e){}
+              console.log('[step] entries length', entries.length || 0);
+              if (!entries || entries.length===0){ console.warn('[abort] 복사할 텍스트가 없습니다 (항목 없음).'); console.groupEnd(); return {ok:false, reason:'no_entries'}; }
+
+              // build minimal summary
+              const e0 = entries[0] || {};
+              const staffLabel = e0.staffLabel || e0.staff || '';
+              const visitDate = e0.visitDate || '';
+              const schools = Array.from(new Set(entries.map(it => (it.school||'').toString().trim()).filter(Boolean)));
+              const totalMeetings = entries.length;
+              const contacts = entries.reduce((s,it)=> s + (((it.phone && String(it.phone).trim()) || (it.email && String(it.email).trim())) ? 1:0), 0);
+              const additional = entries.reduce((s,it)=> s + ((String(it.followUp||'') + String(it.requests||'') + String(it.notes||'')).indexOf('선정') !== -1 ? 1:0), 0);
+              const lines = [];
+              lines.push(`(${staffLabel} 퇴근보고)`);
+              lines.push(`방문일: ${visitDate || ''}`);
+              lines.push(`총 방문 학교: ${schools.length}개 · 총 미팅수: ${totalMeetings}건 · 연락처 확보: ${contacts}건 · 추가선정 확인: ${additional}건`);
+              if (schools.length) lines.push('방문학교: ' + schools.join(', '));
+              const text = lines.join('\n');
+              console.log('[step] built summary length', text.length, '\n', text.slice(0,1000));
+
+              try{
+                if (navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(text); console.log('[ok] navigator.clipboard.writeText succeeded'); console.groupEnd(); return {ok:true, method:'clipboard.writeText', source:'entries'}; }
+              }catch(err){ console.error('[fail] navigator.clipboard.writeText failed', err); }
+
+              // fallback execCommand
+              try{
+                const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); console.log('[ok] fallback execCommand copy succeeded'); console.groupEnd(); return {ok:true, method:'execCommand', source:'entries'};
+              }catch(e){ console.error('[error] execCommand fallback failed', e); }
+
+              console.error('[error] 모든 복사 시도 실패'); console.groupEnd(); return {ok:false, reason:'all_failed'};
+            }catch(e){ console.error('[testCopyToKakao2] unexpected error', e); return {ok:false, reason:'exception', error:e}; }
+          };
+
+          window.checkCopyButtonListeners2 = function checkCopyButtonListeners2(){
+            try{
+              const btn = document.getElementById('btnCopyKakao');
+              if (!btn){ console.warn('버튼 #btnCopyKakao 를 찾을 수 없음'); return {found:false}; }
+              console.log('btn found:', btn);
+              if (typeof getEventListeners === 'function'){ const ev = getEventListeners(btn); console.log('getEventListeners(btn):', ev); return {found:true, devtools:true, listeners:ev}; }
+              try{ btn.style.outline = '3px dashed red'; btn.scrollIntoView({block:'center'}); }catch(e){}
+              console.log('버튼 주위에 테두리 표시(빨간 점선). 클릭이 막히는지 육안확인하세요.');
+              return {found:true, devtools:false};
+            }catch(e){ console.error('checkCopyButtonListeners2 error', e); return {found:false, error:e}; }
+          };
+
+          console.debug('[CMASS] diagnostic helpers attached: testCopyToKakao2, checkCopyButtonListeners2');
+        }catch(e){ console.warn('attach diagnostics failed', e); }
 
         // attach realtime listener to Firestore visit_entries once firebase is ready
         (async function attachRealtime(){
@@ -1107,11 +1847,14 @@
                   // If multiple local entries share the same server_id, preserve them as additional
                   // entries rather than collapsing them into a single server doc.
                   docs.forEach(d => {
-                    try{
-                      if (!d) { merged.push(d); return; }
+                    try {
+                      if (!d) {
+                        merged.push(d);
+                        return;
+                      }
                       const sid = String(d.server_id || d.serverId || '');
                       const localList = sid && localById[sid] ? localById[sid].slice() : [];
-                      if (localList && localList.length){
+                      if (localList && localList.length) {
                         // Use first local item to enrich missing display fields on the server doc
                         const local = localList.shift();
                         const enriched = Object.assign({}, d);
@@ -1120,42 +1863,62 @@
                         if ((!enriched.startHour || enriched.startHour === '') && local.startHour) enriched.startHour = local.startHour;
                         if ((!enriched.startMinute || enriched.startMinute === '') && local.startMinute) enriched.startMinute = local.startMinute;
                         if ((!enriched.duration || Number(enriched.duration) === 0) && local.duration) enriched.duration = local.duration;
+                        // copy teacher name from local when server doc lacks it
+                        if ((!enriched.teacherName || String(enriched.teacherName).trim() === '') && (local.teacherName || local.teacher)){
+                          enriched.teacherName = local.teacherName || local.teacher || '';
+                        }
+                        // Enrich textual fields if server doc lacks them
+                        if ((!enriched.requests || String(enriched.requests).trim() === '') && (local.requests || local.ask || local.askText || local.request || local.requestText)) {
+                          enriched.requests = local.requests || local.ask || local.askText || local.request || local.requestText || '';
+                        }
+                        if ((!enriched.notes || String(enriched.notes).trim() === '') && (local.notes || local.conversation || local.memo || local.note)) {
+                          enriched.notes = local.notes || local.conversation || local.memo || local.note || '';
+                        }
+                        if ((!enriched.deliveries || String(enriched.deliveries).trim() === '') && (local.deliveries || local.delivery || local.delivery_note)) {
+                          enriched.deliveries = local.deliveries || local.delivery || local.delivery_note || '';
+                        }
                         merged.push(enriched);
                         // Any remaining local entries that share the same server_id but are distinct
                         // (for example, multiple sessions recorded locally before server consolidation)
                         // should be preserved as separate entries so they remain visible to the user.
-                        localList.forEach(extraLocal => {
-                          try{ merged.push(extraLocal); }catch(e){}
-                        });
+                        try {
+                          localList.forEach(extraLocal => {
+                            merged.push(extraLocal);
+                          });
+                        } catch (e) {
+                          console.error('[CMASS debug] Failed to process extra local entry:', e);
+                        }
                       } else {
                         merged.push(d);
                       }
-                    }catch(e){ merged.push(d); }
+                    } catch (e) {
+                      console.error('[CMASS debug] Failed to merge entry:', e);
+                      merged.push(d);
+                    }
                   });
 
                   // Add local entries that are not represented on server (by server_id or by _savedAt)
                   localFiltered.forEach(l => {
-                    try{
+                    try {
                       const sid = l.server_id || l.serverId || '';
-                      // if it has a server id and serverById has been handled above, but there may be
-                      // local entries without server_id or with server_id that wasn't in serverById
-                      if (sid && serverById[String(sid)]) return; // already represented (or already appended above)
-                      // try to detect by _savedAt match to avoid dupes
+                      if (sid && serverById[String(sid)]) return;
                       const exists = merged.find(mdoc => mdoc && mdoc._savedAt && l._savedAt && String(mdoc._savedAt) === String(l._savedAt));
                       if (!exists) merged.push(l);
-                    }catch(e){}
+                    } catch (e) {
+                      console.error('[CMASS debug] Failed to process local entry:', e);
+                    }
                   });
 
                   const m = computeMetrics(merged || docs || []);
                   renderSummary(m);
-                  renderEntries(m.filtered);
-                }catch(e){ /* tolerate */ }
-              }, (err)=>{ /* tolerate */ });
+                  renderEntries(m.filtered); // 전체 리스트 표시
+                } catch(e){ /* tolerate */ }
+              });
               window._cmass_report_unsub = unsub;
-            }catch(e){ /* tolerate */ }
-          }catch(e){ /* tolerate */ }
-        })();
-      })();
+            } catch(e){ /* tolerate */ }
+          } catch(e){ /* tolerate */ }
+        });
+      });
 
       // Wire buttons
       qs('btnClearSummary').addEventListener('click', async function(){
@@ -1169,7 +1932,7 @@
               if (!it) return true;
               // keep entries that do NOT match the target date (or staff if provided)
               if (String(it.visitDate||'') !== String(visitDate)) return true;
-              if (staff && String(it.staff||'') !== String(staff)) return true;
+              if (staff && normalizeStaffToken(it.staff || it.staffLabel || '') !== staff) return true;
               return false; // remove this entry
             });
             if (filtered.length !== before){ localStorage.setItem('cmass_reports', JSON.stringify(filtered)); }
@@ -1203,6 +1966,21 @@
         }catch(e){ console.error('clear all handler', e); alert('모두 삭제 중 오류가 발생했습니다. 콘솔을 확인하세요.'); }
       });
       qs('backLink').addEventListener('click', function(ev){ ev.preventDefault(); const q = new URLSearchParams(); if (staff) q.set('staff', staff); if (visitDate) q.set('visitDate', visitDate); window.location.href = '/meeting.html' + (q.toString() ? ('?' + q.toString()) : ''); });
+      qs('backLink').addEventListener('click', function(ev){
+        ev.preventDefault();
+        // region 값 sessionStorage에 저장
+        try {
+          let region = '';
+          if (window._cmass_filteredEntries && window._cmass_filteredEntries.length) {
+            region = window._cmass_filteredEntries[0].region || '';
+          }
+          if (region) sessionStorage.setItem('cmass:next_region', region);
+        } catch(e) {}
+        const q = new URLSearchParams();
+        if (staff) q.set('staff', staff);
+        if (visitDate) q.set('visitDate', visitDate);
+        window.location.href = '/meeting.html' + (q.toString() ? ('?' + q.toString()) : '');
+      });
 
       // Test button wiring (best-effort)
       try{
@@ -1287,11 +2065,12 @@
           finally{ if (btn) btn.disabled = false; }
         }
 
-        document.addEventListener('DOMContentLoaded', function(){ try{ const b = qs('cmass-save-server-btn'); if (b){ b.addEventListener('click', function(){ // require PIN flag
-              const pin = (window.sessionStorage && sessionStorage.getItem('cmass_pin_authenticated')) || null; if (!pin){ alert('서버 업로드를 위해서는 PIN 인증이 필요합니다. 시작 페이지에서 인증해 주세요.'); return; } uploadSelected(); }); } }catch(e){ console.warn('uploader wire failed', e); } });
+            try{ window.uploadSelected = uploadSelected; }catch(e){}
+
+    // 중복 바인딩 제거: 아래에서 한 번만 바인딩
     })();
     </script>
-    <script src="/js/report_upload_integration.js"></script>
+  <!-- external integration script removed: not present on hosting and causes HTML/404 to be loaded as JS -->
   <script>
     // Ensure local-storage-backed view is re-applied after full reloads or navigation restores
     (function(){
@@ -1300,13 +2079,14 @@
           if (typeof _reRenderUI === 'function'){
             console.debug('[report] reapply local render');
             _reRenderUI();
+            try{ if (typeof updateLocalReportsInfo === 'function') updateLocalReportsInfo(); }catch(e){}
           }
         }catch(e){ console.warn('[report] reapply failed', e); }
       }
       // pageshow fires on load and when navigating back/forward; use it to reapply local view
       window.addEventListener('pageshow', function(ev){ try{ setTimeout(tryRerender, 120); }catch(e){} });
       // also ensure on full load we re-render after other scripts
-      window.addEventListener('load', function(){ try{ setTimeout(tryRerender, 200); }catch(e){} });
+      window.addEventListener('load', function(){ try{ setTimeout(tryRerender, 200); try{ if (typeof updateLocalReportsInfo === 'function') updateLocalReportsInfo(); }catch(e){} }catch(e){} });
     })();
   </script>
   <script>
@@ -1317,9 +2097,12 @@ function reloadServerReports() {
     window.firebaseDb.collection('visit_entries').get().then(snapshot => {
       const entries = [];
       snapshot.forEach(doc => {
-        const data = doc.data();
-        data.server_id = doc.id;
-        entries.push(data);
+        const raw = doc.data() || {};
+        raw.server_id = doc.id;
+        try{
+          if (typeof mapServerDocToEntry === 'function') entries.push(mapServerDocToEntry(raw));
+          else entries.push(raw);
+        }catch(e){ entries.push(raw); }
       });
       // 학교 필터를 강제로 초기화
       if (window._setActiveSchoolSelection) window._setActiveSchoolSelection('');
@@ -1339,10 +2122,10 @@ function reloadServerReports() {
     try{
       const b = document.getElementById('cmass-save-server-btn');
       if (b){
-        b.addEventListener('click', function(){
+        b.addEventListener('click', async function(){
           const pin = (window.sessionStorage && sessionStorage.getItem('cmass_pin_authenticated')) || null;
           if (!pin){ alert('서버 업로드를 위해서는 PIN 인증이 필요합니다. 시작 페이지에서 인증해 주세요.'); return; }
-          uploadSelected();
+          await uploadSelected();
           setTimeout(reloadServerReports, 1200); // 업로드 후 서버 데이터로 갱신
         });
       }
@@ -1350,5 +2133,87 @@ function reloadServerReports() {
   });
 })();
 </script>
+  <script>
+  // 추가 진단 스크립트: 페이지 로드 시 버튼 상태를 자동으로 검사하고
+  // 캡처 단계(click capture)에서 클릭을 기록하여 클릭이 차단되는지 확인합니다.
+  (function(){
+    function log(...args){ try{ console.log('[CMASS diag]', ...args); }catch(e){} }
+    function warn(...args){ try{ console.warn('[CMASS diag]', ...args); }catch(e){} }
+
+    window.addEventListener('load', function(){
+      try{
+        console.group('[CMASS diag] report.html auto-check');
+        const ids = ['btnSaveOffice','btnClearOffice','btnCopyKakao'];
+        ids.forEach(id => {
+          try{
+            const el = document.getElementById(id);
+            if (!el){ warn('요소 없음:', id); return; }
+            log('요소 발견:', id, el);
+            try{ el.style.outline = '2px dashed yellow'; }catch(e){}
+
+            // add a capture-phase listener so we see clicks even if propagation is stopped
+            const cap = function(ev){
+              try{
+                console.group(`[CMASS diag] capture click ${id}`);
+                console.log('event:', ev.type, 'target:', ev.target, 'currentTarget:', ev.currentTarget, 'eventPhase:', ev.eventPhase);
+                // elementFromPoint at center
+                const r = ev.currentTarget.getBoundingClientRect();
+                const cx = Math.round(r.left + r.width/2);
+                const cy = Math.round(r.top + r.height/2);
+                const topEl = document.elementFromPoint(cx, cy);
+                console.log('elementFromPoint center:', topEl);
+                try{ console.log('computed pointer-events:', window.getComputedStyle(topEl).pointerEvents); }catch(e){}
+                console.groupEnd();
+              }catch(e){ console.warn('capture handler error', e); }
+            };
+            el.addEventListener('click', cap, true);
+
+            // also attach a non-capture test handler (bubble) that logs when reached
+            // and show a one-time alert to make the click result obvious to the user.
+            const bub = function(ev){
+              try{
+                console.log(`[CMASS diag] bubble click reached ${id}`);
+                if (!ev.currentTarget.dataset || !ev.currentTarget.dataset._cmassDiagFired){
+                  try{ ev.currentTarget.dataset._cmassDiagFired = '1'; }catch(e){}
+                  try{ alert('버튼 클릭 감지: ' + id); }catch(e){ console.log('alert blocked', e); }
+                  // remove marker after short delay so repeated tests possible
+                  setTimeout(()=>{ try{ delete ev.currentTarget.dataset._cmassDiagFired }catch(e){} }, 2000);
+                }
+              }catch(e){ console.warn('bubble handler error', e); }
+            };
+            el.addEventListener('click', bub, false);
+
+            // Log what element is currently at the center of the button (possible overlay)
+            try{
+              const r = el.getBoundingClientRect();
+              const cx = Math.round(r.left + r.width/2);
+              const cy = Math.round(r.top + r.height/2);
+              const topEl = document.elementFromPoint(cx, cy);
+              log('elementFromPoint for', id, topEl);
+            }catch(e){ }
+
+          }catch(e){ warn('check per-id failed', id, e); }
+        });
+
+        // Try calling wireOfficeButtons again if present to re-attach listeners
+        try{ if (typeof window.wireOfficeButtons === 'function'){ window.wireOfficeButtons(); log('wireOfficeButtons() 호출 완료'); } }catch(e){ warn('wireOfficeButtons 호출 실패', e); }
+
+        // Ensure diagnostic helpers exist (redefine lightly if missing)
+        try{
+          if (typeof window.checkCopyButtonListeners2 !== 'function'){
+            window.checkCopyButtonListeners2 = function(){ try{ const b = document.getElementById('btnCopyKakao'); if (!b) return {found:false}; try{ b.style.outline='3px dashed red'; b.scrollIntoView({block:'center'}); }catch(e){} return {found:true}; }catch(e){ return {found:false, error:e}; } };
+            log('checkCopyButtonListeners2 재정의됨');
+          }
+          if (typeof window.testCopyToKakao2 !== 'function'){
+            window.testCopyToKakao2 = async function(){ try{ log('testCopyToKakao2 호출'); return {ok:false, reason:'not-implemented-in-diagnostic'}; }catch(e){ return {ok:false,error:e}; } };
+            log('testCopyToKakao2 재정의됨');
+          }
+        }catch(e){ warn('diagnostic helper 정의 실패', e); }
+
+        console.groupEnd();
+      }catch(e){ console.error('[CMASS diag] load listener failed', e); }
+    });
+  })();
+  </script>
   </body>
   </html>

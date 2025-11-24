@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "url": "https://cmass-sales.web.app/order?school=S020000338"
+  },
+  "logs": [
+    {
+      "ts": 1763352163961,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order?school=S020000338",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763352166800,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order?school=S020000338",
+      "status": 200,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "cache-control": "max-age=3600",
+        "content-encoding": "br",
+        "content-length": "572",
+        "content-type": "text/html; charset=UTF-8",
+        "date": "Mon, 17 Nov 2025 04:02:46 GMT",
+        "etag": "\"37783aa60cf0436d5d5e405ee841cc1dce67e08df39eb6f992d3e7c1ad9c4c63-br\"",
+        "last-modified": "Mon, 17 Nov 2025 03:58:24 GMT",
+        "strict-transport-security": "max-age=31556926; includeSubDomains; preload",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "HIT",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450050-ICN",
+        "x-timer": "S1763352167.872437,VS0,VE1"
+      }
+    },
+    {
+      "ts": 1763352166815,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338",
+      "method": "GET",
+      "headers": {
+        "referer": "https://cmass-sales.web.app/order?school=S020000338",
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763352166911,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order.html?school=S020000338",
+      "status": 301,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "content-length": "39",
+        "content-type": "text/plain; charset=utf-8",
+        "date": "Mon, 17 Nov 2025 04:02:46 GMT",
+        "location": "/order?school=S020000338",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "MISS",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450050-ICN",
+        "x-timer": "S1763352167.912615,VS0,VE79"
+      }
+    },
+    {
+      "ts": 1763352166911,
+      "type": "request",
+      "url": "https://cmass-sales.web.app/order?school=S020000338",
+      "method": "GET",
+      "headers": {
+        "referer": "https://cmass-sales.web.app/order?school=S020000338",
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.7390.37 Safari/537.36",
+        "sec-ch-ua": "\"HeadlessChrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"Windows\""
+      }
+    },
+    {
+      "ts": 1763352166912,
+      "type": "response",
+      "url": "https://cmass-sales.web.app/order?school=S020000338",
+      "status": 200,
+      "headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "cache-control": "max-age=3600",
+        "content-encoding": "br",
+        "content-length": "572",
+        "content-type": "text/html; charset=UTF-8",
+        "date": "Mon, 17 Nov 2025 04:02:46 GMT",
+        "etag": "\"37783aa60cf0436d5d5e405ee841cc1dce67e08df39eb6f992d3e7c1ad9c4c63-br\"",
+        "last-modified": "Mon, 17 Nov 2025 03:58:24 GMT",
+        "vary": "x-fh-requested-host, accept-encoding",
+        "x-cache": "HIT",
+        "x-cache-hits": "0",
+        "x-served-by": "cache-icn1450050-ICN",
+        "x-timer": "S1763352167.872437,VS0,VE1"
+      }
+    },
+    {
+      "ts": 1763352172457,
+      "type": "page-content",
+      "length": 1598
+    }
+  ],
+  "pageHtml": "<!DOCTYPE html><html><head><meta charset=\"utf-8\">\n<title>Redirecting…</title>\n<script>\n  // Guarded redirect: only perform once per session to avoid loops\n  try{\n    const qs = window.location.search || '';\n    const h = window.location.hash || '';\n    const target = '/order.html' + qs + h;\n    // if we've already attempted a redirect this session, show a link instead of redirecting again\n    if(!sessionStorage.getItem('order_redirected')){\n      sessionStorage.setItem('order_redirected','1');\n      // only redirect if not already on the target\n      if(location.pathname !== '/order.html'){\n        location.replace(target);\n      }\n    } else {\n      // render a small message with a manual link so user can proceed without a loop\n      document.write('<div style=\"font-family:Segoe UI,Arial,sans-serif;padding:18px;color:#111;background:#f4f8fb;\">');\n      document.write('<p>자동 리다이렉트가 이미 시도되었습니다. 아래 링크를 클릭해 수동으로 이동하세요.</p>');\n      document.write('<p><a href=\"'+target+'\">order.html로 이동하기</a></p>');\n      document.write('</div>');\n    }\n  }catch(e){\n    // fallback: simple location replace\n    try{ location.replace('/order.html' + (window.location.search||'') + (window.location.hash||'')); }catch(_){/*ignore*/}\n  }\n</script></head><body><div style=\"font-family:Segoe UI,Arial,sans-serif;padding:18px;color:#111;background:#f4f8fb;\"><p>자동 리다이렉트가 이미 시도되었습니다. 아래 링크를 클릭해 수동으로 이동하세요.</p><p><a href=\"/order.html?school=S020000338\">order.html로 이동하기</a></p></div>\n<noscript>\n  <meta http-equiv=\"refresh\" content=\"0; url=/order.html\">\n  Redirecting to /order.html\n</noscript>\n</body></html>"
+}

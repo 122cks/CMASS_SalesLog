@@ -1,0 +1,6 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "jscpd minimal stub schema",
+  "description": "Minimal permissive schema used as a local fallback when schemastore.org is unavailable.",
+  "type": ["object","array","string","number","boolean","null"]
+}

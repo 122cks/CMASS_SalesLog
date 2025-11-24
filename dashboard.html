@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>영업일지 대시보드</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+  /* Reuse input look & feel (simplified) */
+    :root{
+      --bg-page:#eef3fb;
+      --card-bg:#ffffff;
+      --accent:#0d6efd;
+      --accent-dark:#0f2a4a;
+      --muted:#6b7280;
+      --border:rgba(15,34,74,0.04);
+      --card-grad:linear-gradient(180deg,#ffffff,#fbfdff);
+      --shadow:0 12px 40px rgba(15,30,60,0.08);
+      --success:#16a34a; --warning:#f59e0b; --danger:#ef4444;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI','Malgun Gothic',sans-serif;background:var(--bg-page);min-height:100vh;padding:20px}
+    .wrap{max-width:1150px;margin:0 auto;background:var(--card-grad);border-radius:12px;padding:22px;box-shadow:var(--shadow)}
+    .header{text-align:center;margin-bottom:12px}
+  h1{font-size:22px;color:var(--accent-dark);margin-bottom:6px}
+  .card h3{font-size:13px;margin:0 0 8px 0;color:var(--accent-dark);font-weight:700}
+    .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .card{background:linear-gradient(180deg,#ffffff,#f6fbff);border-radius:10px;padding:14px;min-height:120px;border:1px solid rgba(15,34,74,0.04)}
+  .card.small{display:flex;flex-direction:column;justify-content:space-between}
+  .card.small canvas.mini{height:44px!important;width:100%!important}
+  .card .muted{font-size:12px;color:var(--muted)}
+  .hero{min-height:80px}
+  .stat-value{font-size:28px;font-weight:700}
+    canvas{width:100%!important;height:260px!important}
+    table{width:100%;border-collapse:collapse}
+    table th,table td{border-bottom:1px solid #f1f5f9;padding:10px 8px;text-align:left;font-size:13px}
+    table thead th{background:#fbfdff;font-weight:700;color:#0f2a4a}
+    .full{grid-column:1/-1}
+    .muted{color:#6b7280;font-size:13px}
+    .refresh{margin-left:auto}
+  .btn{background:var(--accent);color:#fff;padding:8px 12px;border-radius:10px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+  .btn.secondary{background:var(--card-bg);border:1px solid rgba(13,110,253,0.12);color:var(--accent)}
+  .quickBtn{background:var(--card-bg);border:1px solid rgba(13,110,253,0.08);padding:6px 8px;border-radius:8px}
+    @media (max-width:900px){.grid{grid-template-columns:repeat(1,1fr)}canvas{height:200px!important}}
+    @media (max-width:700px){
+      .controls{flex-direction:column;align-items:stretch}
+      .controls > *{width:100%}
+      .controls .quickBtn{width:auto}
+      .card{padding:12px}
+      canvas{height:180px!important}
+      table th,table td{font-size:12px;padding:8px}
+      .wrap{padding:12px}
+      #recentTable{min-width:800px}
+      .recent-table-wrapper{overflow:auto}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div id="fileNotice" style="display:none;padding:12px;margin-bottom:12px;border-radius:8px;background:#fff3cd;color:#856404;border:1px solid #ffeeba">
+      <strong>알림 — 파일로 열렸습니다</strong>
+      <div style="margin-top:8px">이 파일을 파일 시스템(file://)에서 직접 열면 백엔드와의 통신(fetch)이 차단되어 차트가 비어있거나 동작하지 않습니다. 아래 버튼을 눌러 로컬 서버에서 열어주세요.</div>
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button id="openHttpBtn">로컬 서버로 열기 (http://127.0.0.1:5000/dashboard.html)</button>
+        <button id="copyUrlBtn">주소 복사</button>
+      </div>
+    </div>
+
+    <div class="header">
+      <h1>CMASS 영업일지 대시보드</h1>
+    </div>
+    <div style="display:flex;justify-content:center;margin:10px 0;gap:10px;flex-wrap:wrap">
+      <button class="btn secondary" id="filterSong"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="margin-right:6px"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>송훈재</button>
+      <button class="btn secondary" id="filterLim"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="margin-right:6px"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>임준호</button>
+      <button class="btn secondary" id="filterCho"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="margin-right:6px"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>조영환</button>
+      <button class="btn" id="filterReset" title="필터 초기화" style="background:transparent;color:var(--accent);border:1px solid rgba(13,110,253,0.08);padding:6px 10px;border-radius:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="margin-right:6px"><path d="M20 12a8 8 0 1 0-2.3 5.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 8v4h-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>초기화</button>
+    </div>
+
+    <div class="controls">
+      <label for="refreshInterval">새로고침 간격:</label>
+      <select id="refreshInterval">
+        <option value="0">수동</option>
+        <option value="15">15초</option>
+        <option value="30" selected>30초</option>
+        <option value="60">60초</option>
+      </select>
+      <button id="refreshBtn" class="refresh">지금 새로고침</button>
+      <label for="dateFrom" style="margin-left:12px">기간:</label>
+      <input id="dateFrom" type="date" style="margin-left:6px;padding:.3rem;border-radius:.4rem;border:1px solid #e6eefc;">
+      <input id="dateTo" type="date" style="margin-left:6px;padding:.3rem;border-radius:.4rem;border:1px solid #e6eefc;">
+      <div style="margin-left:8px;display:flex;gap:6px;align-items:center">
+        <button class="quickBtn" data-range="yesterday">어제</button>
+        <button class="quickBtn" data-range="today">오늘</button>
+        <button class="quickBtn" data-range="lastWeek">지난주</button>
+        <button class="quickBtn" data-range="thisWeek">이번주</button>
+        <button class="quickBtn" data-range="lastMonth">지난달</button>
+        <button class="quickBtn" data-range="thisMonth">이번달</button>
+        <button id="applyRange">적용</button>
+        <button id="resetRange">초기화</button>
+      </div>
+      <select id="staffFilter" style="margin-left:8px;padding:.35rem;border-radius:.4rem;border:1px solid #e6eefc;"><option value="">전체 담당자</option></select>
+      <select id="subjectFilter" style="margin-left:8px;padding:.35rem;border-radius:.4rem;border:1px solid #e6eefc;"><option value="">전체 과목</option></select>
+  <input id="recentFilterInput" type="search" placeholder="학교/담당자 검색" style="margin-left:8px;padding:.4rem;border-radius:.5rem;border:1px solid rgba(13,110,253,0.08);">
+  <button id="exportRecentCsv" title="현재 필터된 테이블을 CSV로 내보내기" class="btn secondary" style="margin-left:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>CSV</button>
+  <button id="exportRecentJson" title="현재 필터된 테이블을 JSON으로 내보내기" class="btn secondary" style="margin-left:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M7 7h10v10H7z" stroke="currentColor" stroke-width="1.4"/><path d="M9 9h6v6H9z" stroke="currentColor" stroke-width="1"/></svg>JSON</button>
+  <button id="exportAllCsv" title="전체 데이터(서버에서 가져온)를 CSV로 내보내기" class="btn secondary" style="margin-left:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>전체 CSV</button>
+  <button id="exportAllJson" title="전체 데이터(서버에서 가져온)를 JSON으로 내보내기" class="btn secondary" style="margin-left:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M7 7h10v10H7z" stroke="currentColor" stroke-width="1.4"/><path d="M9 9h6v6H9z" stroke="currentColor" stroke-width="1"/></svg>전체 JSON</button>
+    </div>
+
+    <div class="grid" id="topCards">
+      <div class="card small">
+        <h3>총 기록 수</h3>
+        <div id="totalRecords" style="font-size:28px;font-weight:700">-</div>
+        <canvas class="mini" id="sparkTotal"></canvas>
+        <div class="muted">최근 레코드 생성 시간: <span id="lastCreated">-</span></div>
+      </div>
+
+      <div class="card small">
+        <h3>고유 방문(날짜 기준)</h3>
+        <div id="uniqueDates" style="font-size:28px;font-weight:700">-</div>
+        <canvas class="mini" id="sparkUniqueDates"></canvas>
+        <div class="muted">최근 30일 기준</div>
+      </div>
+
+      <div class="card small">
+        <h3>고유 담당자 수</h3>
+        <div id="uniqueStaff" style="font-size:28px;font-weight:700">-</div>
+        <canvas class="mini" id="sparkUniqueStaff"></canvas>
+        <div class="muted">localStorage에 저장된 담당자와 비교</div>
+      </div>
+
+      <div class="card small">
+        <h3>평균 방문 시간(분)</h3>
+        <div id="avgVisitMinutes" style="font-size:28px;font-weight:700">-</div>
+        <canvas class="mini" id="sparkAvg"></canvas>
+        <div class="muted">입력에 minutes/duration 필드가 있으면 계산</div>
+      </div>
+
+      <div class="card small">
+        <h3>수집된 연락처</h3>
+        <div id="contactsCount" style="font-size:28px;font-weight:700">-</div>
+        <canvas class="mini" id="sparkContacts"></canvas>
+        <div class="muted">명함/연락처가 들어있는 기록 수</div>
+      </div>
+
+      <div class="card small">
+        <h3>후속조치 항목</h3>
+        <div id="followUpCount" style="font-size:28px;font-weight:700">-</div>
+        <canvas class="mini" id="sparkFollow"></canvas>
+        <div class="muted">후속 요청/조치로 표기된 항목 수</div>
+      </div>
+
+      <div class="card full">
+        <h3>일자별 방문 수 (타임시리즈)</h3>
+        <canvas id="visitsByDate"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>담당자별 기록 수</h3>
+        <canvas id="byStaff"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>과목 분포 (Top)</h3>
+        <canvas id="bySubject"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>상위 학교</h3>
+        <canvas id="bySchool"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>위치별 카운트</h3>
+        <canvas id="byLocation"></canvas>
+      </div>
+
+      <div class="card full" id="mapCard">
+        <h3>지역별 방문 지도 (서울/경기/인천)</h3>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+          <button id="loadMapBtn" class="btn secondary">지도 생성</button>
+          <button id="toggleMarkersBtn" class="btn secondary">마커 토글</button>
+          <button id="clearGeocodeCache" class="btn secondary">지오코드 캐시 초기화</button>
+          <div id="mapStatus" style="margin-left:8px;color:var(--muted)"></div>
+        </div>
+        <div id="map" style="height:480px;border-radius:8px;border:1px solid var(--border)"></div>
+      </div>
+
+      <div class="card full">
+        <h3>최근 입력 (행 단위, payload 펼침)</h3>
+          <div class="recent-table-wrapper" style="overflow:auto;max-height:340px;padding-top:8px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <label>페이지 크기:</label>
+            <select id="pageSize"><option>10</option><option selected>20</option><option>50</option><option>100</option></select>
+            <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+              <button id="prevPage">이전</button>
+              <div id="pageInfo" style="min-width:90px;text-align:center">1 / 1</div>
+              <button id="nextPage">다음</button>
+            </div>
+          </div>
+          <table id="recentTable"><thead><tr><th data-sort="id">id</th><th data-sort="created_at">created_at</th><th data-sort="staff">staff</th><th data-sort="visit_date">visit_date</th><th data-sort="school">학교</th><th data-sort="location">위치</th><th data-sort="summary">요약</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Chart.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Leaflet, MarkerCluster, Turf for map visualizations -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+  <style>
+    /* Marker badge + popup styling for dashboard map */
+    .school-marker { display:flex;align-items:center;justify-content:center;border-radius:20px;padding:6px 8px;color:#fff;font-weight:600;font-size:13px;border:2px solid rgba(255,255,255,0.9);box-shadow:0 2px 6px rgba(0,0,0,0.25); }
+    .marker-badge { background:rgba(255,255,255,0.12);padding:2px 6px;border-radius:12px;margin-left:6px;font-weight:700;color:#fff;font-size:11px }
+    .marker-popup .school-title{font-weight:700;margin-bottom:6px}
+    .marker-popup .visit-list{margin:6px 0;padding-left:14px}
+    .marker-popup .visit-list li{margin-bottom:3px}
+    /* cluster override for better contrast */
+    .leaflet-marker-icon .cluster-count { color:#fff; }
+    /* custom cluster icon */
+    .marker-cluster-custom { display:flex;align-items:center;justify-content:center;border-radius:999px;color:#fff;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid rgba(255,255,255,0.85); }
+    .marker-cluster-custom div{padding:6px 10px;border-radius:999px;}
+    /* popup button small style */
+    .marker-popup button{background:#0b5fff;color:#fff;border:none;padding:6px 8px;border-radius:6px;cursor:pointer;}
+    .marker-popup a{background:#fff;border:1px solid #eee;padding:6px 8px;border-radius:6px;color:#0b5fff;text-decoration:none;}
+  /* popup finer typography */
+  .marker-popup{font-family:Inter, Roboto, "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;}
+  .marker-popup .school-title{font-size:15px}
+  .marker-popup .visit-list{font-size:13px;line-height:1.45}
+  .marker-popup .visit-date{color:#666;margin-right:6px}
+  .staff-link{color:#0b5fff;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+  .staff-link svg{width:14px;height:14px;flex:0 0 14px}
+  </style>
+  <script>
+    // 파일로 열렸을 때 사용자에게 안내 (file:// 환경에서는 fetch -> backend 불가)
+    (function(){
+      try{
+        if(window.location && window.location.protocol === 'file:'){
+          document.getElementById('fileNotice').style.display = 'block';
+          // hide charts/controls so user clearly sees the notice
+          const wrap = document.querySelector('.wrap');
+          // move notice to top and reduce visibility of other elements
+          wrap.style.opacity = '1';
+          // wire buttons
+          document.getElementById('openHttpBtn').addEventListener('click', function(){
+            // open default browser to local server URL
+            try{ window.open('http://127.0.0.1:5000/dashboard.html', '_blank'); }catch(e){}
+            alert('가능하면 브라우저에서 아래 주소로 열어주세요:\nhttp://127.0.0.1:5000/dashboard.html');
+          });
+          document.getElementById('copyUrlBtn').addEventListener('click', function(){
+            try{ navigator.clipboard && navigator.clipboard.writeText('http://127.0.0.1:5000/dashboard.html'); alert('주소가 복사되었습니다. 브라우저에 붙여넣어 열어주세요.'); }catch(e){ prompt('복사 실패 - 아래 주소를 복사하세요:', 'http://127.0.0.1:5000/dashboard.html'); }
+          });
+        }
+      }catch(e){/* ignore */}
+    })();
+
+    // helper: safe fetch JSON
+    async function fetchVisits(limit=500){
+      try{
+        const r = await fetch('/api/visits?limit='+limit);
+        if(!r.ok) throw new Error('fetch failed: '+r.status);
+        const j = await r.json();
+        if(!j || !j.rows) return [];
+        return j.rows;
+      }catch(e){console.error('fetchVisits', e); return []}
+    }
+
+    // helper: flatten visits payloads into an array of visit objects
+    function flattenRows(rows){
+      const out = [];
+      for(const r of rows){
+        const payload = (r.payload && typeof r.payload==='object') ? r.payload : (r.payload ? JSON.parse(r.payload||'{}') : {});
+  const staff = r.staff || (payload.staff||'');
+  // created_at might be stored at top-level (r.created_at) or inside payload (payload.created_at or payload.visitDate)
+  const created_at = r.created_at || payload.created_at || payload.visitDate || payload.visit_date || payload.createdAt || '';
+        const rid = r.id;
+        const visits = Array.isArray(payload.visits)? payload.visits : (payload.visit? [payload.visit] : []);
+        if(!visits.length){ out.push({ rid, created_at, staff, visit_date: r.visit_date, school:'', location:'', summary:'' }); continue; }
+        for(const v of visits){
+          const school = v.school || v.schoolName || v.schoolname || '';
+          const location = v.location || v.district || v.region || '';
+          const visitDate = v.visitDate || v.visit_date || r.visit_date || '';
+          const subjects = (v.subjects || (v.subject? [v] : []) ).map(s=> (s.subject||s.subjectName||s).toString());
+          const subjText = subjects.join(', ');
+          const teacher = v.teacher || '';
+          // include raw payload and original row for inspection in UI
+          out.push({ rid, created_at, staff, visit_date: visitDate, school, location, subjects: subjText, teacher, summary: subjText + (teacher? ' / ' + teacher : ''), raw_payload: v, raw_row: r });
+        }
+      }
+      return out;
+    }
+
+    // helper: return the canonical date string (YYYY-MM-DD) for a flattened row
+    function rowDate(r){
+      try{
+        // prefer explicit visit_date (set by flattenRows)
+        if (r.visit_date && String(r.visit_date).trim()) return String(r.visit_date).slice(0,10);
+        // fall back to created timestamps (various possible keys)
+        const created = r.created_at || r.createdAt || (r.raw_row && (r.raw_row.created_at || r.raw_row.createdAt)) || (r.raw_payload && (r.raw_payload.created_at || r.raw_payload.createdAt || r.raw_payload.visitDate || r.raw_payload.visit_date)) || '';
+        if (created && String(created).length) return String(created).slice(0,10);
+      }catch(e){}
+      return 'unknown';
+    }
+
+    // Chart instances
+    let chartVisitsByDate, chartByStaff, chartBySubject, chartBySchool, chartByLocation;
+  // mini sparklines for top stat cards
+  let sparkTotalChart, sparkUniqueDatesChart, sparkUniqueStaffChart, sparkAvgChart, sparkContactsChart, sparkFollowChart;
+
+    function makeBar(ctx, labels, data, title){
+      return new Chart(ctx, { type:'bar', data:{labels, datasets:[{label:title, data}]}, options:{plugins:{legend:{display:false}},responsive:true, maintainAspectRatio:false}});
+    }
+    function makePie(ctx, labels, data, title){
+      return new Chart(ctx, { type:'pie', data:{labels, datasets:[{label:title, data}]}, options:{responsive:true, maintainAspectRatio:false}});
+    }
+
+    // update charts from provided rows array (filtered or full)
+    function updateCharts(rows){
+      try{
+        // by date
+        const countsByDate = {};
+  for(const v of rows){ const d = rowDate(v); countsByDate[d]=(countsByDate[d]||0)+1 }
+        const dateLabels = Object.keys(countsByDate).sort(); const dateVals = dateLabels.map(k=>countsByDate[k]);
+        if(chartVisitsByDate) { chartVisitsByDate.data = { labels: dateLabels, datasets:[{label:'visits', data:dateVals}] }; chartVisitsByDate.update(); }
+        else chartVisitsByDate = makeBar(document.getElementById('visitsByDate').getContext('2d'), dateLabels, dateVals, '일자별 방문');
+
+        // by staff
+        const countsByStaff = {};
+        for(const v of rows){ const s = (v.staff||'').trim()||'(unknown)'; countsByStaff[s]=(countsByStaff[s]||0)+1 }
+        const sfLabels = Object.keys(countsByStaff).sort((a,b)=>countsByStaff[b]-countsByStaff[a]).slice(0,20);
+        const sfVals = sfLabels.map(k=>countsByStaff[k]);
+        if(chartByStaff) { chartByStaff.data = { labels: sfLabels, datasets:[{label:'by staff', data:sfVals}] }; chartByStaff.update(); }
+        else chartByStaff = makeBar(document.getElementById('byStaff').getContext('2d'), sfLabels, sfVals, '담당자별');
+
+        // by subject
+        const countsBySubject = {};
+        for(const v of rows){ (v.subjects||'').split(',').map(s=>s.trim()).filter(Boolean).forEach(s=> countsBySubject[s]=(countsBySubject[s]||0)+1) }
+        const subLabels = Object.keys(countsBySubject).sort((a,b)=>countsBySubject[b]-countsBySubject[a]).slice(0,20);
+        const subVals = subLabels.map(k=>countsBySubject[k]);
+        if(chartBySubject) { chartBySubject.data = { labels: subLabels, datasets:[{label:'by subject', data:subVals}] }; chartBySubject.update(); }
+        else chartBySubject = makePie(document.getElementById('bySubject').getContext('2d'), subLabels, subVals, '과목');
+
+        // by school
+        const countsBySchool = {};
+        for(const v of rows){ const s = v.school || '(unknown)'; countsBySchool[s]=(countsBySchool[s]||0)+1 }
+        const schoolLabels = Object.keys(countsBySchool).sort((a,b)=>countsBySchool[b]-countsBySchool[a]).slice(0,20);
+        const schoolVals = schoolLabels.map(k=>countsBySchool[k]);
+        if(chartBySchool) { chartBySchool.data = { labels: schoolLabels, datasets:[{label:'top schools', data:schoolVals}] }; chartBySchool.update(); }
+        else chartBySchool = makeBar(document.getElementById('bySchool').getContext('2d'), schoolLabels, schoolVals, '학교');
+
+        // by location
+        const countsByLocation = {};
+        for(const v of rows){ const s = v.location || '(none)'; countsByLocation[s]=(countsByLocation[s]||0)+1 }
+        const locLabels = Object.keys(countsByLocation).sort((a,b)=>countsByLocation[b]-countsByLocation[a]).slice(0,20);
+        const locVals = locLabels.map(k=>countsByLocation[k]);
+        if(chartByLocation) { chartByLocation.data = { labels: locLabels, datasets:[{label:'locations', data:locVals}] }; chartByLocation.update(); }
+        else chartByLocation = makePie(document.getElementById('byLocation').getContext('2d'), locLabels, locVals, '위치');
+      }catch(e){ console.error('updateCharts', e); }
+    }
+
+    // create/update mini sparkline charts for the small stat cards
+    function makeSpark(ctx, data, color){
+      return new Chart(ctx, {
+        type: 'line',
+        data: { labels: data.map((_,i)=>i), datasets: [{ data: data, borderColor: color, backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.3 }] },
+        options: { plugins: { legend: { display: false } }, responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } } }
+      });
+    }
+    function renderSparks(rows){
+      try{
+        // build date window (last 30 days)
+        const days = 30; const d0 = new Date(); d0.setHours(0,0,0,0);
+        const dateKeys = [];
+        for(let i=days-1;i>=0;i--){ const d=new Date(d0); d.setDate(d.getDate()-i); dateKeys.push(d.toISOString().slice(0,10)); }
+        const countsByDate = {};
+        const contactByDate = {};
+        const followByDate = {};
+        const minutesByDate = {};
+        const staffByDate = {};
+        for(const v of rows){ const d = (v.visit_date || v.created_at || '').toString().slice(0,10) || null; if(!d) continue; countsByDate[d] = (countsByDate[d]||0)+1; if(v.subjects && v.subjects.length){} // placeholder
+          // contact heuristic
+          const p = (v.raw_payload && typeof v.raw_payload==='object')? v.raw_payload : {};
+          const hasContact = Object.keys(p).some(k=> /contact|phone|mobile|tel|연락처|연락/i.test(k)) || (v.teacher && String(v.teacher).trim());
+          if(hasContact) contactByDate[d] = (contactByDate[d]||0)+1;
+          const hasFollow = Object.keys(p).some(k=> /follow|후속/i.test(k)) || Object.values(p).some(val=> typeof val==='string' && /후속|follow/i.test(val));
+          if(hasFollow) followByDate[d] = (followByDate[d]||0)+1;
+          // minutes
+          const durKeys = ['minutes','duration','visitMinutes','visit_minutes','visit_time_minutes','time_minutes'];
+          for(const k of durKeys){ if(p[k] != null && !isNaN(Number(p[k]))){ minutesByDate[d] = minutesByDate[d] || []; minutesByDate[d].push(Number(p[k])); break; } }
+          // staff
+          const s = (v.staff||'(unknown)'); staffByDate[d] = staffByDate[d]||{}; staffByDate[d][s] = (staffByDate[d][s]||0)+1;
+        }
+        const totalSeries = dateKeys.map(k=> countsByDate[k]||0);
+        const contactSeries = dateKeys.map(k=> contactByDate[k]||0);
+        const followSeries = dateKeys.map(k=> followByDate[k]||0);
+        const avgMinutesSeries = dateKeys.map(k=> { const arr = minutesByDate[k]||[]; return arr.length? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : 0 });
+        const uniqueDatesSeries = dateKeys.map(k=> countsByDate[k]?1:0);
+        const uniqueStaffSeries = dateKeys.map(k=> Object.keys(staffByDate[k]||{}).length );
+
+        // create or update charts
+        if(document.getElementById('sparkTotal')){
+          const ctx = document.getElementById('sparkTotal').getContext('2d');
+          if(sparkTotalChart) { sparkTotalChart.data.datasets[0].data = totalSeries; sparkTotalChart.update(); } else sparkTotalChart = makeSpark(ctx, totalSeries, 'rgba(13,110,253,0.9)');
+        }
+        if(document.getElementById('sparkUniqueDates')){
+          const ctx = document.getElementById('sparkUniqueDates').getContext('2d');
+          if(sparkUniqueDatesChart) { sparkUniqueDatesChart.data.datasets[0].data = uniqueDatesSeries; sparkUniqueDatesChart.update(); } else sparkUniqueDatesChart = makeSpark(ctx, uniqueDatesSeries, '#0ea5a4');
+        }
+        if(document.getElementById('sparkUniqueStaff')){
+          const ctx = document.getElementById('sparkUniqueStaff').getContext('2d');
+          if(sparkUniqueStaffChart) { sparkUniqueStaffChart.data.datasets[0].data = uniqueStaffSeries; sparkUniqueStaffChart.update(); } else sparkUniqueStaffChart = makeSpark(ctx, uniqueStaffSeries, '#8b5cf6');
+        }
+        if(document.getElementById('sparkAvg')){
+          const ctx = document.getElementById('sparkAvg').getContext('2d');
+          if(sparkAvgChart) { sparkAvgChart.data.datasets[0].data = avgMinutesSeries; sparkAvgChart.update(); } else sparkAvgChart = makeSpark(ctx, avgMinutesSeries, '#f59e0b');
+        }
+        if(document.getElementById('sparkContacts')){
+          const ctx = document.getElementById('sparkContacts').getContext('2d');
+          if(sparkContactsChart) { sparkContactsChart.data.datasets[0].data = contactSeries; sparkContactsChart.update(); } else sparkContactsChart = makeSpark(ctx, contactSeries, '#16a34a');
+        }
+        if(document.getElementById('sparkFollow')){
+          const ctx = document.getElementById('sparkFollow').getContext('2d');
+          if(sparkFollowChart) { sparkFollowChart.data.datasets[0].data = followSeries; sparkFollowChart.update(); } else sparkFollowChart = makeSpark(ctx, followSeries, '#ef4444');
+        }
+      }catch(e){ console.warn('renderSparks', e); }
+    }
+
+    /* MAP: load GeoJSON (Seoul/Gyeonggi/Incheon), geocode schools, assign to regions, render choropleth + markers */
+    const GEOJSON_URLS = [
+      'https://raw.githubusercontent.com/southkorea/sido-maps/master/geojson/seoul_municipalities_geo.json',
+      'https://raw.githubusercontent.com/southkorea/sido-maps/master/geojson/gyeonggi_municipalities_geo.json',
+      'https://raw.githubusercontent.com/southkorea/sido-maps/master/geojson/incheon_municipalities_geo.json'
+    ];
+    let map, geojsonLayer, markerCluster, geoFeatures = null, markersOn = true;
+
+    function initMapIfNeeded(){
+      if(map) return;
+      map = L.map('map', {preferCanvas:true}).setView([37.56,126.97], 9);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap, &copy; CARTO'}).addTo(map);
+      markerCluster = L.markerClusterGroup({
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        iconCreateFunction: function(cluster){
+          const c = cluster.getChildCount();
+          const color = getMarkerColorByCount ? getMarkerColorByCount(c) : '#666';
+          const size = c > 50 ? 48 : (c > 20 ? 40 : (c > 10 ? 34 : 28));
+          const html = `<div style="background:${color};width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;border-radius:999px"><div style="color:#fff;font-weight:800">${c}</div></div>`;
+          return L.divIcon({ html: html, className: 'marker-cluster-custom', iconSize: [size, size] });
+        }
+      });
+      // add legend control for counts/colors
+      addMapLegend();
+    }
+
+    function addMapLegend(){
+      if(!map) return;
+      if(map._cmassLegend) { map.removeControl(map._cmassLegend); }
+      const legend = L.control({ position: 'topright' });
+      legend.onAdd = function(){
+        const div = L.DomUtil.create('div', 'map-legend');
+        div.style.background = 'rgba(255,255,255,0.96)';
+        div.style.padding = '10px';
+        div.style.borderRadius = '10px';
+        div.style.boxShadow = '0 8px 22px rgba(0,0,0,0.12)';
+        const grades = [0,1,6,11,21,51];
+        const labels = [];
+        const getColor = getMarkerColorByCount;
+        for(let i=0;i<grades.length-1;i++){
+          const from = grades[i]; const to = grades[i+1]-1;
+          const color = getColor(from+1);
+          const span = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:13px;color:#222"><span style="width:14px;height:14px;background:${color};display:inline-block;border-radius:3px;border:1px solid rgba(0,0,0,0.06)"></span><span>${from}${to? ' - '+to : '+'} 회</span></div>`;
+          labels.push(span);
+        }
+        div.innerHTML = '<div style="font-weight:700;margin-bottom:6px">방문수 범주</div><div>' + labels.join('') + '</div><div style="margin-top:6px;font-size:12px;color:#666">클러스터 숫자는 해당 지역의 총 방문 횟수입니다.</div>';
+        return div;
+      };
+      map._cmassLegend = legend;
+      legend.addTo(map);
+    }
+
+    async function loadGeoJSONs(){
+      const all = { type:'FeatureCollection', features:[] };
+      for(const u of GEOJSON_URLS){
+        try{ const r = await fetch(u); if(!r.ok) throw new Error('geo fetch failed'); const j = await r.json(); if(j && j.features) all.features.push(...j.features); }
+        catch(e){ console.warn('geo load', u, e); }
+      }
+      geoFeatures = all;
+      return all;
+    }
+
+    // geocode cache in localStorage
+    function loadGeocodeCache(){ try{ return JSON.parse(localStorage.getItem('geocode_cache')||'{}'); }catch(e){ return {}; } }
+    function saveGeocodeCache(c){ try{ localStorage.setItem('geocode_cache', JSON.stringify(c)); }catch(e){} }
+
+    async function geocodeSchool(name){
+      if(!name) return null;
+      const cache = loadGeocodeCache();
+      if(cache[name]) return cache[name];
+      // Nominatim geocode (limit=1, countrycodes=kr)
+      try{
+        const q = encodeURIComponent(name + ' 학교');
+        const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=kr&q=' + q;
+        const r = await fetch(url, { headers: { 'User-Agent': 'CMASS-Dashboard/1.0 (your-email@example.com)' } });
+        if(!r.ok) throw new Error('geocode failed');
+        const arr = await r.json();
+        if(arr && arr.length){ const v = { lat: Number(arr[0].lat), lon: Number(arr[0].lon), display_name: arr[0].display_name }; cache[name] = v; saveGeocodeCache(cache); return v; }
+      }catch(e){ console.warn('geocode error', name, e); }
+      cache[name] = null; saveGeocodeCache(cache); return null;
+    }
+
+    // assign geocoded points to geojson features using turf
+    function assignPointsToRegions(geojson, geocodedMap){
+      // initialize counts and school lists
+      geojson.features.forEach(f=>{ f.properties._visits = 0; f.properties._schools = new Set(); });
+      for(const [school, info] of Object.entries(geocodedMap)){
+        if(!info || !info.lat) continue;
+        const pt = turf.point([info.lon, info.lat]);
+        for(const f of geojson.features){
+          try{
+            if(turf.booleanPointInPolygon(pt, f)){
+              f.properties._visits = (f.properties._visits||0) + (info.count||1);
+              if(info.countNames){ info.countNames.forEach(n=> f.properties._schools.add(n)); }
+              else f.properties._schools.add(school);
+              break;
+            }
+          }catch(e){/* ignore */}
+        }
+      }
+      // convert sets to arrays for popups
+      geojson.features.forEach(f=>{ f.properties._schools = Array.from(f.properties._schools||[]); });
+      return geojson;
+    }
+
+    function getChoroplethColor(v){ if(v>50) return '#08306b'; if(v>20) return '#08519c'; if(v>10) return '#2171b5'; if(v>5) return '#4292c6'; if(v>0) return '#9ecae1'; return '#f0f7fb'; }
+
+    function renderChoropleth(geojson){
+      if(geojsonLayer) map.removeLayer(geojsonLayer);
+      geojsonLayer = L.geoJSON(geojson, {
+        style: f => ({ color:'#e6eefc', weight:1, fillColor: getChoroplethColor(f.properties._visits||0), fillOpacity:0.85 }),
+        onEachFeature: function(feature, layer){
+          const name = feature.properties && (feature.properties.name || feature.properties.SIG_KOR_NM || feature.properties.adm_nm || feature.properties['ADM_DR_NM']) || '지역';
+          const visits = feature.properties._visits || 0;
+          const schools = (feature.properties._schools || []).slice(0,200).map(s=>'<li>'+s+'</li>').join('');
+          const html = '<strong>'+name+'</strong><div>방문 수: '+visits+'</div>' + (schools? '<details style="margin-top:6px"><summary>방문 학교 ('+ (feature.properties._schools?feature.properties._schools.length:0) +')</summary><ul style="margin:6px 0;padding-left:18px">'+schools+'</ul></details>':'' );
+          layer.bindPopup(html);
+        }
+      }).addTo(map);
+      map.fitBounds(geojsonLayer.getBounds(), { maxZoom:12 });
+    }
+    // helper to open the recent table and apply a school text filter
+    function openSchoolInTable(name){ try{ document.getElementById('recentFilterInput').value = name; _currentPage = 1; applyFiltersAndRender(); const el = document.getElementById('recentTable'); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); }catch(e){ console.warn('openSchoolInTable', e); } }
+
+    function getMarkerColorByCount(c){ if(c>50) return '#b30000'; if(c>20) return '#ff7f0f'; if(c>10) return '#ffbf00'; if(c>5) return '#2ca02c'; if(c>0) return '#1f77b4'; return '#888'; }
+
+    function renderMarkers(geocodedMap){
+      if(!markerCluster) markerCluster = L.markerClusterGroup();
+      markerCluster.clearLayers();
+      // staff -> front user mapping for quick links
+      const staffUserMap = { '송훈재': 'songhoonjae', '임준호': 'LimJunho', '조영환': 'Choyounghwan' };
+      for(const [school, info] of Object.entries(geocodedMap)){
+        if(!info || !info.lat) continue;
+        const count = info.count || 1;
+        const color = getMarkerColorByCount(count);
+        const badgeHtml = `<div class="school-marker" style="background:${color}">` +
+                          `<span class="school-name">${school}</span>` +
+                          `<span class="marker-badge">${count}</span>` +
+                          `</div>`;
+        const icon = L.divIcon({ html: badgeHtml, className: 'custom-school-icon', iconSize: [110, 28], iconAnchor: [55, 14] });
+        const m = L.marker([info.lat, info.lon], { icon: icon });
+        // build popup with top 7 entries (date + staff) and staff quick-links
+        let listHtml = '';
+        if(info.entries && info.entries.length){
+          const entries = info.entries.slice(0,7);
+          listHtml = '<ul class="visit-list">' + entries.map(e=>{
+            const d = (e.date||'').slice(0,10);
+            const staff = (e.staff||'').trim();
+            let staffHtml = '';
+            if(staff){
+              const user = staffUserMap[staff] || '';
+              if(user){
+                // inline SVG person icon + staff name
+                staffHtml = ` - <a class="staff-link" target="_blank" href="https://cmass-sales.web.app/front.html?user=${encodeURIComponent(user)}">` +
+                           `<svg viewBox="0 0 24 24" width="14" height="14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg><span>${staff}</span></a>`;
+              }else{
+                staffHtml = ' - ' + staff;
+              }
+            }
+            return `<li><span class="visit-date">${d}</span>${staffHtml}</li>`;
+          }).join('') + '</ul>';
+        }
+        const safeSchool = (''+school).replace(/'/g, "\\'");
+  const popupHtml = `<div class="marker-popup"><div class="school-title">${school} <small style="color:#666;font-weight:600">(${count}회)</small></div>` +
+        `${listHtml}` +
+        `<div style="margin-top:8px;display:flex;gap:8px;align-items:center"><button onclick="(function(n){ try{ window.openSchoolInTable && window.openSchoolInTable(n); }catch(e){} })('${safeSchool}')">표에서 보기</button>` +
+        ` <a class="open-form-link" target="_blank" href="https://cmass-sales.web.app/front.html?school=${encodeURIComponent(school)}">` +
+        `<svg viewBox="0 0 24 24" width="14" height="14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="margin-right:6px;vertical-align:middle"><path fill="#0b5fff" d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3z"></path><path fill="#0b5fff" d="M5 5h5V3H3v7h2V5z"></path></svg>입력폼 열기</a></div></div>`;
+        m.bindPopup(popupHtml, { minWidth: 180 });
+        markerCluster.addLayer(m);
+      }
+      if(markersOn) map.addLayer(markerCluster);
+    }
+
+    // build geocodedMap: { schoolName: {lat,lon,count,entries:[{date,staff}],names:[...]} }
+    async function buildGeocodeMap(flatRows){
+      const bySchool = {};
+      flatRows.forEach(r=>{
+        const s = (r.school||'').trim(); if(!s) return;
+        if(!bySchool[s]) bySchool[s] = { count:0, entries:[], names:[] };
+        bySchool[s].count++;
+        bySchool[s].entries.push({ date: r.visit_date || r.created_at || '', staff: r.staff || '' });
+        bySchool[s].names.push(r.visit_date || r.created_at || '');
+      });
+      const geocodedMap = {};
+      const cache = loadGeocodeCache();
+      const names = Object.keys(bySchool);
+      for(let i=0;i<names.length;i++){
+        const name = names[i];
+        document.getElementById('mapStatus').textContent = `지오코딩 ${i+1}/${names.length}: ${name}`;
+        let info = cache[name] === null ? null : cache[name];
+        if(info === undefined){
+          // throttle requests to be polite
+          info = await geocodeSchool(name);
+          await new Promise(r=>setTimeout(r, 450));
+        }
+        if(info){
+          info.count = bySchool[name].count;
+          info.entries = bySchool[name].entries;
+          info.names = bySchool[name].names;
+        }
+        geocodedMap[name] = info;
+      }
+      document.getElementById('mapStatus').textContent = '지오코딩 완료';
+      return geocodedMap;
+    }
+
+    // orchestrator: load geojson, build geocode map, assign and render
+    async function createMapVisualization(){
+      try{
+        initMapIfNeeded();
+        document.getElementById('mapStatus').textContent = 'GeoJSON 불러오는 중...';
+        const gj = await loadGeoJSONs();
+        document.getElementById('mapStatus').textContent = '데이터 준비 중...';
+        // build geocoded map from current filtered rows (respect staff filter)
+        const allRows = window._allFlatRows || [];
+        const staffVal = (document.getElementById('staffFilter') && document.getElementById('staffFilter').value) || '';
+        const rowsForMap = staffVal ? allRows.filter(r=> (r.staff||'') === staffVal) : allRows.slice();
+
+        let geocoded = {};
+        try{
+          const resp = await fetch('/geocodes.json', { cache: 'no-store' });
+          if(resp.ok){
+            const pre = await resp.json();
+            // aggregate rowsForMap by school
+            const bySchool = {};
+            rowsForMap.forEach(r=>{ const s = (r.school||'').trim(); if(!s) return; if(!bySchool[s]) bySchool[s] = { count:0, entries:[] }; bySchool[s].count++; bySchool[s].entries.push({ date: r.visit_date||r.created_at, staff: r.staff||'' }); });
+            // construct geocoded using precomputed coords where available
+            const missing = [];
+            Object.entries(bySchool).forEach(([s,info])=>{
+              const v = pre[s];
+              if(v && v.lat != null){
+                geocoded[s] = { lat: v.lat, lon: v.lon, count: info.count, entries: info.entries, names: (v.names||[]) };
+              }else{
+                // mark for client-side geocode fallback
+                missing.push(s);
+              }
+            });
+            document.getElementById('mapStatus').textContent = '사전 계산된 좌표 로드 완료';
+            // geocode missing schools on client (throttled)
+            for(let i=0;i<missing.length;i++){
+              const name = missing[i];
+              document.getElementById('mapStatus').textContent = `지오코드 누락 보정 ${i+1}/${missing.length}: ${name}`;
+              const info = await geocodeSchool(name);
+              await new Promise(r=>setTimeout(r, 350));
+              if(info){ const bs = bySchool[name]; geocoded[name] = { lat: info.lat, lon: info.lon, count: bs.count, entries: bs.entries, names: bs.names || [] }; }
+            }
+          }
+        }catch(e){ console.warn('no precomputed geocodes', e); }
+        // if precomputed not present or geocoded empty, fall back to full client geocode
+        if(!geocoded || Object.keys(geocoded).length === 0){
+          document.getElementById('mapStatus').textContent = '지오코딩 중 (클라이언트)';
+          geocoded = await buildGeocodeMap(rowsForMap || []);
+        }
+        // assign schools to regions
+        const assigned = assignPointsToRegions(gj, geocoded);
+        renderChoropleth(assigned);
+        renderMarkers(geocoded);
+      }catch(e){ console.error('createMapVisualization', e); document.getElementById('mapStatus').textContent = '지도 생성 중 오류'; }
+    }
+
+    // controls
+    document.getElementById('loadMapBtn').addEventListener('click', ()=>{ createMapVisualization(); });
+    document.getElementById('toggleMarkersBtn').addEventListener('click', ()=>{ if(!map) return; markersOn = !markersOn; if(markersOn) map.addLayer(markerCluster); else map.removeLayer(markerCluster); });
+    document.getElementById('clearGeocodeCache').addEventListener('click', ()=>{ localStorage.removeItem('geocode_cache'); alert('지오코드 캐시를 초기화했습니다. 다시 지도 생성하세요.'); });
+
+    async function refresh(){
+      const rows = await fetchVisits(500);
+      document.getElementById('totalRecords').innerText = rows.length;
+      document.getElementById('lastCreated').innerText = rows.length? rows[0].created_at : '-';
+
+      const flat = flattenRows(rows);
+
+      // store and update UI counts
+      window._allFlatRows = flat;
+      const dates = Array.from(new Set(flat.map(x=>x.visit_date).filter(Boolean))).sort();
+      document.getElementById('uniqueDates').innerText = dates.length;
+      const staffSet = new Set(flat.map(x=> (x.staff||'').trim()).filter(Boolean));
+      document.getElementById('uniqueStaff').innerText = staffSet.size;
+
+      // compute additional quick stats: avg visit minutes, contacts collected, follow-ups
+      try{
+        const minutes = [];
+        let contacts = 0;
+        let followups = 0;
+        let mostRecent = '';
+        for(const f of flat){
+          const p = (f.raw_payload && typeof f.raw_payload === 'object') ? f.raw_payload : {};
+          // duration heuristics
+          const durKeys = ['minutes','duration','visitMinutes','visit_minutes','visit_time_minutes','time_minutes'];
+          for(const k of durKeys){ if(p[k] != null && !isNaN(Number(p[k]))) { minutes.push(Number(p[k])); break; } }
+          // contact heuristics (field names suggesting contact info) or teacher present
+          const contactKeyMatch = Object.keys(p).some(k=> /contact|phone|mobile|tel|연락처|연락/i.test(k));
+          if(contactKeyMatch || (f.teacher && String(f.teacher).trim())) contacts++;
+          // follow-up heuristics
+          const followKey = Object.keys(p).some(k=> /follow|후속/i.test(k));
+          const followVal = Object.values(p).some(v=> typeof v === 'string' && /후속|follow/i.test(v));
+          if(followKey || followVal) followups++;
+          // most recent visit date
+          const cand = (f.visit_date || f.created_at || '').toString().slice(0,10);
+          if(cand){ if(!mostRecent || cand > mostRecent) mostRecent = cand; }
+        }
+        if(minutes.length){ const avg = Math.round((minutes.reduce((a,b)=>a+b,0)/minutes.length)); document.getElementById('avgVisitMinutes').innerText = avg + ' 분'; } else { document.getElementById('avgVisitMinutes').innerText = '-'; }
+        document.getElementById('contactsCount').innerText = contacts || '-';
+        document.getElementById('followUpCount').innerText = followups || '-';
+        // set recent visit (reuse lastCreated element for full timestamp; also expose recentVisitDate if exists)
+        try{ document.getElementById('recentVisitDate') && (document.getElementById('recentVisitDate').innerText = mostRecent || '-'); }catch(e){}
+      }catch(e){ console.warn('quick stats compute', e); }
+
+      // charts: update from full flat initially (filters may override)
+  updateCharts(flat);
+  // mini sparklines for quick visual cues
+  renderSparks(flat);
+
+      // ensure lastRefreshed element exists (create if not) and update
+      try{
+        let el = document.getElementById('lastRefreshed');
+        if(!el){ el = document.createElement('div'); el.id='lastRefreshed'; el.style.marginTop='8px'; document.querySelector('.controls').appendChild(el); }
+        el.textContent = '마지막 갱신: ' + (new Date()).toLocaleString();
+      }catch(e){}
+
+
+    // polling controller: start/stop refresh interval based on select
+    (function setupAutoRefresh(){
+      const sel = document.getElementById('refreshInterval');
+      const btn = document.getElementById('refreshBtn');
+      let timer = null;
+      function setIntervalSec(sec){
+        if(timer) { clearInterval(timer); timer = null; }
+        if(sec && sec > 0){ timer = setInterval(()=>{ try{ refresh(); }catch(e){} }, sec * 1000); }
+      }
+      if(sel){
+        sel.addEventListener('change', (e)=>{ const v = Number(e.target.value||0); setIntervalSec(v); });
+        // start with current value
+        setIntervalSec(Number(sel.value||0));
+      }
+      if(btn){ btn.addEventListener('click', ()=>{ try{ refresh(); }catch(e){} }); }
+      // when the page is hidden (user switches tab), pause polling to save resources
+      document.addEventListener('visibilitychange', ()=>{
+        if(document.hidden){ if(timer){ clearInterval(timer); } }
+        else { if(sel) setIntervalSec(Number(sel.value||0)); }
+      });
+    })();
+      // recent table (store flattened rows and render via client-side filters/paging)
+      window._allFlatRows = flat;
+      // populate staff filter dropdown
+      try{
+        const sf = document.getElementById('staffFilter'); if(sf){
+          const current = sf.value || '';
+          sf.innerHTML = '<option value="">전체 담당자</option>' + Array.from(new Set(flat.map(x=> (x.staff||'').trim()).filter(Boolean))).sort().map(s=> `<option value="${s}">${s}</option>`).join('');
+          if(current) sf.value = current;
+        }
+        // populate subject filter from flattened subjects
+        const subjSel = document.getElementById('subjectFilter');
+        if(subjSel){
+          const subjSet = new Set();
+          flat.forEach(r=>{
+            (r.subjects||'').split(',').map(s=>s.trim()).filter(Boolean).forEach(s=> subjSet.add(s));
+          });
+          const currentSub = subjSel.value || '';
+          subjSel.innerHTML = '<option value="">전체 과목</option>' + Array.from(subjSet).sort().map(s=> `<option value="${s}">${s}</option>`).join('');
+          if(currentSub) subjSel.value = currentSub;
+        }
+      }catch(e){console.warn('staff/subject populate', e)}
+      _currentPage = 1;
+      applyFiltersAndRender();
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', refresh);
+    document.getElementById('refreshInterval').addEventListener('change', function(){
+      const v = Number(this.value);
+      if(window._dashInterval) clearInterval(window._dashInterval);
+      if(v>0) window._dashInterval = setInterval(refresh, v*1000);
+    });
+
+    // initialize
+  // Admin gate: simple client-side check
+  const ADMIN_PASSWORD = '1590'; // change before production or implement server auth
+    function showAdminModal(){ document.getElementById('adminModal').style.display = 'flex'; }
+    function hideAdminModal(){ document.getElementById('adminModal').style.display = 'none'; }
+    // helper: log dashboard access attempts to server
+    async function logAccess(viewer, note){
+      try{
+        const payload = { viewer: viewer || '', href: window.location.href || '', ua: navigator.userAgent || '' };
+        if(note) payload.note = note;
+        // fire-and-forget but await to reduce race with navigation
+        await fetch('/api/log-access', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      }catch(e){ /* ignore logging errors */ }
+    }
+
+    (function(){
+      const adminUnlockBtn = document.getElementById('adminUnlock');
+      const adminCancelBtn = document.getElementById('adminCancel');
+      if(adminUnlockBtn){
+        adminUnlockBtn.addEventListener('click', async ()=>{
+          const v = (document.getElementById('adminPassword') && document.getElementById('adminPassword').value) || '';
+          if(v === ADMIN_PASSWORD){
+            try{ sessionStorage.setItem('cmass_admin_ok', '1'); hideAdminModal(); await logAccess( (document.getElementById('staffFilter')&&document.getElementById('staffFilter').value) || 'admin', 'unlock-success' ); initAfterAuth(); }
+            catch(e){ hideAdminModal(); await logAccess('admin','unlock-success-post-error'); initAfterAuth(); }
+          }
+          else { await logAccess('admin','unlock-failed'); alert('비밀번호가 일치하지 않습니다.'); }
+        });
+      }
+      if(adminCancelBtn){
+        adminCancelBtn.addEventListener('click', ()=>{ alert('대시보드 접근이 취소되었습니다.'); });
+      }
+    })();
+
+    function initAfterAuth(){
+      refresh();
+      window._dashInterval = setInterval(refresh, 30*1000);
+      // record access event (who accessed the dashboard and when)
+      try{
+        const staffSel = document.getElementById('staffFilter');
+        const viewer = (staffSel && staffSel.value) ? staffSel.value : 'admin';
+        logAccess(viewer);
+      }catch(e){/* ignore logging errors */}
+    }
+
+    // if session has admin flag, init directly; otherwise show modal
+    try{
+      if(sessionStorage.getItem('cmass_admin_ok') === '1') initAfterAuth(); else showAdminModal();
+    }catch(e){ initAfterAuth(); }
+
+    // Client-side state for recent table
+    window._allFlatRows = [];
+    let _currentPage = 1;
+    let _pageSize = Number(document.getElementById('pageSize').value || 20);
+    let _sortKey = null; // e.g. 'created_at'
+    let _sortDir = 1; // 1 asc, -1 desc
+
+    function downloadBlob(filename, blob){ const a = document.createElement('a'); const url = URL.createObjectURL(blob); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
+
+    // record access to dashboard (fire-and-forget, best-effort)
+    async function logAccess(viewer){
+      try{
+        const payload = { viewer: viewer || '(unknown)', href: window.location.href, ua: navigator.userAgent };
+        // don't block UI if logging fails
+        await fetch('/api/log-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      }catch(e){ console.warn('logAccess failed', e); }
+    }
+
+    function applyFiltersAndRender(){
+      const q = (document.getElementById('recentFilterInput').value||'').toLowerCase().trim();
+      const from = document.getElementById('dateFrom').value || '';
+      const to = document.getElementById('dateTo').value || '';
+      const staff = document.getElementById('staffFilter').value || '';
+      let rows = window._allFlatRows.slice();
+  if(from) rows = rows.filter(r=> rowDate(r).slice(0,10) >= from);
+  if(to) rows = rows.filter(r=> rowDate(r).slice(0,10) <= to);
+      if(staff) rows = rows.filter(r=> ((r.staff||'') === staff));
+      if(q) rows = rows.filter(r=> {
+        const text = ((r.school||'') + ' ' + (r.staff||'') + ' ' + (r.location||'') + ' ' + (r.summary||'')).toLowerCase();
+        return text.indexOf(q) !== -1;
+      });
+      // sorting
+      if(_sortKey){ rows.sort((a,b)=>{
+        const va = (a[_sortKey]||'').toString(); const vb = (b[_sortKey]||'').toString();
+        return va < vb ? -1 * _sortDir : (va > vb ? 1 * _sortDir : 0);
+      }); }
+      renderRecentTable(rows);
+    }
+
+    function renderRecentTable(filteredRows){
+      const tbody = document.querySelector('#recentTable tbody'); if(!tbody) return;
+      _pageSize = Number(document.getElementById('pageSize').value||20);
+      const total = filteredRows.length;
+      const totalPages = Math.max(1, Math.ceil(total/_pageSize));
+      if(_currentPage > totalPages) _currentPage = totalPages;
+      const start = (_currentPage-1)*_pageSize; const end = start + _pageSize;
+      const pageRows = filteredRows.slice(start, end);
+      tbody.innerHTML = '';
+      for(const r of pageRows){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${r.rid}</td><td>${r.created_at}</td><td>${r.staff||''}</td><td>${r.visit_date||''}</td><td>${r.school||''}</td><td>${r.location||''}</td><td>${(r.summary||'').replace(/</g,'&lt;')}</td>`;
+        // click to view original payload
+        tr.style.cursor = 'pointer';
+        tr.title = '클릭하여 원본 payload 보기';
+        tr.addEventListener('click', ()=>{
+          try{
+            const payload = r.raw_payload || r.raw_row || r;
+            const pretty = JSON.stringify(payload, null, 2);
+            const pre = document.getElementById('payloadPre'); if(pre) pre.textContent = pretty;
+            document.getElementById('payloadModal').style.display = 'flex';
+          }catch(e){ alert('원본 표시 중 오류'); console.error(e); }
+        });
+        tbody.appendChild(tr);
+      }
+      document.getElementById('pageInfo').textContent = `${_currentPage} / ${totalPages} (${total}건)`;
+    }
+
+    // header sorting
+    Array.from(document.querySelectorAll('#recentTable thead th')).forEach(th=>{
+      th.style.cursor='pointer';
+      th.addEventListener('click', ()=>{
+        const key = th.getAttribute('data-sort'); if(!key) return;
+        if(_sortKey === key) _sortDir = -_sortDir; else { _sortKey = key; _sortDir = -1; }
+        applyFiltersAndRender();
+      });
+    });
+
+    // page controls
+    document.getElementById('prevPage').addEventListener('click', ()=>{ if(_currentPage>1) { _currentPage--; applyFiltersAndRender(); } });
+    document.getElementById('nextPage').addEventListener('click', ()=>{ _currentPage++; applyFiltersAndRender(); });
+    document.getElementById('pageSize').addEventListener('change', ()=>{ _currentPage=1; applyFiltersAndRender(); });
+
+    // filter controls
+    document.getElementById('recentFilterInput').addEventListener('input', ()=>{ _currentPage=1; applyFiltersAndRender(); });
+    document.getElementById('dateFrom').addEventListener('change', ()=>{ _currentPage=1; applyFiltersAndRender(); });
+    document.getElementById('dateTo').addEventListener('change', ()=>{ _currentPage=1; applyFiltersAndRender(); });
+    document.getElementById('staffFilter').addEventListener('change', ()=>{ _currentPage=1; applyFiltersAndRender(); });
+
+    // export filtered view
+    document.getElementById('exportRecentCsv').addEventListener('click', function(){
+      // export currently filtered set (all pages)
+      const q = (document.getElementById('recentFilterInput').value||'').toLowerCase().trim();
+      const from = document.getElementById('dateFrom').value || '';
+      const to = document.getElementById('dateTo').value || '';
+      const staff = document.getElementById('staffFilter').value || '';
+      let rows = window._allFlatRows.slice();
+  if(from) rows = rows.filter(r=> rowDate(r).slice(0,10) >= from);
+  if(to) rows = rows.filter(r=> rowDate(r).slice(0,10) <= to);
+      if(staff) rows = rows.filter(r=> ((r.staff||'') === staff));
+      if(q) rows = rows.filter(r=> ((r.school||'') + ' ' + (r.staff||'') + ' ' + (r.location||'') + ' ' + (r.summary||'')).toLowerCase().indexOf(q) !== -1);
+      if(!rows.length){ alert('내보낼 항목이 없습니다.'); return; }
+      const csv = [];
+      csv.push(['id','created_at','staff','visit_date','school','location','summary'].join(','));
+      rows.forEach(r=>{ const vals = ['rid','created_at','staff','visit_date','school','location','summary'].map(k=> '"'+ (String(r[k]||'').replace(/"/g,'""')) +'"'); csv.push(vals.join(',')); });
+      downloadBlob('recent_filtered.csv', new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' }));
+    });
+
+    document.getElementById('exportRecentJson').addEventListener('click', function(){
+      // same filtering as CSV
+      const q = (document.getElementById('recentFilterInput').value||'').toLowerCase().trim();
+      const from = document.getElementById('dateFrom').value || '';
+      const to = document.getElementById('dateTo').value || '';
+      const staff = document.getElementById('staffFilter').value || '';
+      let rows = window._allFlatRows.slice();
+  if(from) rows = rows.filter(r=> rowDate(r).slice(0,10) >= from);
+  if(to) rows = rows.filter(r=> rowDate(r).slice(0,10) <= to);
+      if(staff) rows = rows.filter(r=> ((r.staff||'') === staff));
+      if(q) rows = rows.filter(r=> ((r.school||'') + ' ' + (r.staff||'') + ' ' + (r.location||'') + ' ' + (r.summary||'')).toLowerCase().indexOf(q) !== -1);
+      if(!rows.length){ alert('내보낼 항목이 없습니다.'); return; }
+      downloadBlob('recent_filtered.json', new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' }));
+    });
+
+    // export ALL (server data flattened)
+    document.getElementById('exportAllCsv').addEventListener('click', function(){
+      const rows = window._allFlatRows || [];
+      if(!rows.length){ alert('내보낼 항목이 없습니다.'); return; }
+      const csv = [];
+      csv.push(['id','created_at','staff','visit_date','school','location','summary'].join(','));
+      rows.forEach(r=>{ const vals = ['rid','created_at','staff','visit_date','school','location','summary'].map(k=> '"'+ (String(r[k]||'').replace(/"/g,'""')) +'"'); csv.push(vals.join(',')); });
+      downloadBlob('recent_all.csv', new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' }));
+    });
+
+    document.getElementById('exportAllJson').addEventListener('click', function(){
+      const rows = window._allFlatRows || [];
+      if(!rows.length){ alert('내보낼 항목이 없습니다.'); return; }
+      downloadBlob('recent_all.json', new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' }));
+    });
+
+    // quick user buttons (only wire if present)
+    (function(){
+      const b1 = document.getElementById('openUserSong'); if(b1) b1.addEventListener('click', ()=>{ window.open('https://cmass-sales.web.app/front.html?user=songhoonjae', '_blank'); });
+      const b2 = document.getElementById('openUserLim'); if(b2) b2.addEventListener('click', ()=>{ window.open('https://cmass-sales.web.app/front.html?user=LimJunho', '_blank'); });
+      const b3 = document.getElementById('openUserCho'); if(b3) b3.addEventListener('click', ()=>{ window.open('https://cmass-sales.web.app/front.html?user=choyounghwan', '_blank'); });
+    })();
+
+    // staff filter quick buttons: set the staff filter dropdown and re-render
+    (function(){
+      function setStaffAndFilter(name){
+        const sel = document.getElementById('staffFilter');
+        if(!sel) return;
+        // if option doesn't exist, add it
+        const exists = Array.from(sel.options).some(o=> o.value === name || o.text === name);
+        if(!exists){ const opt = document.createElement('option'); opt.value = name; opt.text = name; sel.appendChild(opt); }
+  sel.value = name;
+  _currentPage = 1;
+  applyFiltersAndRender();
+  // NOTE: removed automatic scroll so dashboard remains at the top when selecting a staff.
+  // If you want the old behavior, set `window.CMASS_SCROLL_TO_TABLE = true` elsewhere.
+  if (window.CMASS_SCROLL_TO_TABLE) { const el = document.getElementById('recentTable'); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); }
+      }
+  // Map staff display names to canonical front user tokens
+  const _staffUserMap_quick = { '송훈재': 'Songhoonjae', '임준호': 'LimJunho', '조영환': 'ChoYounghwan' };
+  const f1 = document.getElementById('filterSong'); if(f1) f1.addEventListener('click', async ()=>{ try{ sessionStorage.setItem('cmass_admin_ok','1'); document.getElementById('adminModal') && (document.getElementById('adminModal').style.display='none'); }catch(e){} // open front form in new tab
+    try{ window.open('https://cmass-sales.web.app/front.html?user=' + encodeURIComponent(_staffUserMap_quick['송훈재']), '_blank'); }catch(e){}
+    setStaffAndFilter('송훈재'); try{ await logAccess('송훈재','quick-button'); }catch(e){} });
+  const f2 = document.getElementById('filterLim'); if(f2) f2.addEventListener('click', async ()=>{ try{ sessionStorage.setItem('cmass_admin_ok','1'); document.getElementById('adminModal') && (document.getElementById('adminModal').style.display='none'); }catch(e){} try{ window.open('https://cmass-sales.web.app/front.html?user=' + encodeURIComponent(_staffUserMap_quick['임준호']), '_blank'); }catch(e){} setStaffAndFilter('임준호'); try{ await logAccess('임준호','quick-button'); }catch(e){} });
+  const f3 = document.getElementById('filterCho'); if(f3) f3.addEventListener('click', async ()=>{ try{ sessionStorage.setItem('cmass_admin_ok','1'); document.getElementById('adminModal') && (document.getElementById('adminModal').style.display='none'); }catch(e){} try{ window.open('https://cmass-sales.web.app/front.html?user=' + encodeURIComponent(_staffUserMap_quick['조영환']), '_blank'); }catch(e){} setStaffAndFilter('조영환'); try{ await logAccess('조영환','quick-button'); }catch(e){} });
+  const fr = document.getElementById('filterReset'); if(fr) fr.addEventListener('click', ()=>{ try{ const sel = document.getElementById('staffFilter'); if(sel){ sel.value = ''; _currentPage = 1; applyFiltersAndRender(); } }catch(e){} });
+    })();
+
+    // quick range helpers
+    function toYMD(d){ return d.toISOString().slice(0,10); }
+    function startOfWeek(d){ const dd = new Date(d); const day = dd.getDay(); const diff = (day + 6) % 7; dd.setDate(dd.getDate() - diff); dd.setHours(0,0,0,0); return dd; }
+    function endOfWeek(d){ const s = startOfWeek(d); s.setDate(s.getDate() + 6); return s; }
+    function startOfMonth(d){ return new Date(d.getFullYear(), d.getMonth(), 1); }
+    function endOfMonth(d){ return new Date(d.getFullYear(), d.getMonth()+1, 0); }
+
+    Array.from(document.querySelectorAll('.quickBtn')).forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const r = btn.getAttribute('data-range');
+        const now = new Date(); let from='', to='';
+        if(r === 'today'){ from = to = toYMD(now); }
+        else if(r === 'yesterday'){ const y = new Date(now); y.setDate(y.getDate()-1); from = to = toYMD(y); }
+        else if(r === 'thisWeek'){ from = toYMD(startOfWeek(now)); to = toYMD(now); }
+        else if(r === 'lastWeek'){ const thisStart = startOfWeek(now); const lastEnd = new Date(thisStart); lastEnd.setDate(lastEnd.getDate()-1); const lastStart = startOfWeek(lastEnd); from = toYMD(lastStart); to = toYMD(lastEnd); }
+        else if(r === 'thisMonth'){ from = toYMD(startOfMonth(now)); to = toYMD(now); }
+        else if(r === 'lastMonth'){ const lmStart = startOfMonth(new Date(now.getFullYear(), now.getMonth()-1, 1)); const lmEnd = endOfMonth(lmStart); from = toYMD(lmStart); to = toYMD(lmEnd); }
+        // set inputs and apply
+        try{ document.getElementById('dateFrom').value = from; document.getElementById('dateTo').value = to; }catch(e){}
+        _currentPage = 1; applyFiltersAndRender();
+      });
+    });
+
+    document.getElementById('applyRange').addEventListener('click', ()=>{ _currentPage = 1; applyFiltersAndRender(); });
+    document.getElementById('resetRange').addEventListener('click', ()=>{ document.getElementById('dateFrom').value=''; document.getElementById('dateTo').value=''; _currentPage = 1; applyFiltersAndRender(); });
+
+    // subject filter change handler
+    const subjEl = document.getElementById('subjectFilter'); if(subjEl) subjEl.addEventListener('change', ()=>{ _currentPage=1; applyFiltersAndRender(); });
+
+    // payload modal controls (guard elements because modal markup is after this script)
+    const _closePayloadBtn = document.getElementById('closePayloadBtn');
+    if (_closePayloadBtn) {
+      _closePayloadBtn.addEventListener('click', ()=>{ const m = document.getElementById('payloadModal'); if(m) m.style.display = 'none'; });
+    }
+    const _copyPayloadBtn = document.getElementById('copyPayloadBtn');
+    if (_copyPayloadBtn) {
+      _copyPayloadBtn.addEventListener('click', ()=>{
+        const pre = document.getElementById('payloadPre'); if(!pre) return; const text = pre.textContent || '';
+        try{ navigator.clipboard.writeText(text).then(()=> alert('클립보드로 복사되었습니다.')); }catch(e){ prompt('복사 실패 - 아래 텍스트를 수동 복사하세요', text); }
+      });
+    }
+  </script>
+  <!-- Payload modal -->
+  <div id="payloadModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;z-index:9999">
+    <div style="background:#fff;color:#111;padding:16px;border-radius:10px;max-width:90%;max-height:90%;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <strong>원본 payload</strong>
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button id="copyPayloadBtn">복사</button>
+          <button id="closePayloadBtn">닫기</button>
+        </div>
+      </div>
+        <!-- Admin unlock modal (client-side gate) -->
+        <div id="adminModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;z-index:10000">
+          <div style="background:#fff;color:#111;padding:18px;border-radius:10px;max-width:420px;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+            <h3 style="margin-bottom:8px">관리자 인증</h3>
+            <div style="margin-bottom:10px">대시보드 접근을 위해 비밀번호를 입력하세요.</div>
+            <input id="adminPassword" type="password" placeholder="비밀번호" style="width:100%;padding:8px;border:1px solid #e6eefc;border-radius:6px;margin-bottom:8px">
+            <div style="display:flex;gap:8px;justify-content:flex-end">
+              <button id="adminCancel">취소</button>
+              <button id="adminUnlock" class="btn">인증</button>
+            </div>
+            <div style="margin-top:10px;color:#666;font-size:12px">주의: 이 클라이언트측 잠금은 간단한 보호용입니다. 진짜 보안이 필요하면 서버측 인증을 구성하세요.</div>
+          </div>
+        </div>
+      <pre id="payloadPre" style="white-space:pre-wrap;word-break:break-word;background:#f6f8fa;padding:12px;border-radius:6px;max-height:70vh;overflow:auto;font-size:13px"></pre>
+    </div>
+  </div>
+</body>
+</html>

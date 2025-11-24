@@ -1,0 +1,34 @@
+
+{
+  "hosting": {
+    "public": "public",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "cleanUrls": true,
+    "trailingSlash": false,
+    "rewrites": [
+      { "source": "/input", "destination": "/input.html" },
+      { "source": "/meeting", "destination": "/meeting.html" },
+      { "source": "/front", "destination": "/front(bakcup).html" },
+      { "source": "/report", "destination": "/report.html" },
+      { "source": "**", "destination": "/input.html" }
+    ],
+    "headers": [
+      {
+        "source": "/input.html",
+        "headers": [ { "key": "Cache-Control", "value": "no-cache, no-store, max-age=0" } ]
+      },
+      {
+        "source": "/meeting.html",
+        "headers": [ { "key": "Cache-Control", "value": "no-cache, no-store, max-age=0" } ]
+      },
+      {
+        "source": "/front(bakcup).html",
+        "headers": [ { "key": "Cache-Control", "value": "no-cache, no-store, max-age=0" } ]
+      },
+      {
+        "source": "/report.html",
+        "headers": [ { "key": "Cache-Control", "value": "no-cache, no-store, max-age=0" } ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "apiKey": "<REPLACE_WITH_API_KEY>",
+  "authDomain": "cmass-sales.firebaseapp.com",
+  "projectId": "cmass-sales",
+  "storageBucket": "cmass-sales.appspot.com",
+  "messagingSenderId": "918981476485",
+  "appId": "1:918981476485:web:7939150e23500e2703a9ec"
+}

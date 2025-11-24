@@ -1,0 +1,95 @@
+[
+  {
+    "type": "response",
+    "url": "https://cmass-sales.web.app/meeting",
+    "status": 200,
+    "contentType": "text/html; charset=utf-8"
+  },
+  {
+    "type": "response",
+    "url": "https://cmass-sales.web.app/csv-helpers.js",
+    "status": 200,
+    "contentType": "text/javascript; charset=utf-8"
+  },
+  {
+    "type": "response",
+    "url": "https://cmass-sales.web.app/meeting.js",
+    "status": 200,
+    "contentType": "text/javascript; charset=utf-8"
+  },
+  {
+    "type": "console",
+    "text": "[CMASS_DEBUG] selector counts [{\"sel\":\".entry-favor-btn\",\"count\":3},{\"sel\":\".friend-btn\",\"count\":0},{\"sel\":\"#addSubjectBtn\",\"count\":0},{\"sel\":\"#addEntryBtn\",\"count\":1},{\"sel\":\"#duration\",\"count\":1},{\"sel\":\".entry-subject-btn\",\"count\":8},{\"sel\":\".entry-activity-btn\",\"count\":13}]",
+    "location": {
+      "url": "https://cmass-sales.web.app/meeting.js",
+      "lineNumber": 660,
+      "columnNumber": 16
+    }
+  },
+  {
+    "type": "console",
+    "text": "[CMASS_DEBUG] disabled overlays []",
+    "location": {
+      "url": "https://cmass-sales.web.app/meeting.js",
+      "lineNumber": 662,
+      "columnNumber": 16
+    }
+  },
+  {
+    "type": "console",
+    "text": "[CMASS_DEBUG] selector counts [{\"sel\":\".entry-favor-btn\",\"count\":3},{\"sel\":\".friend-btn\",\"count\":0},{\"sel\":\"#addSubjectBtn\",\"count\":0},{\"sel\":\"#addEntryBtn\",\"count\":1},{\"sel\":\"#duration\",\"count\":1},{\"sel\":\".entry-subject-btn\",\"count\":8},{\"sel\":\".entry-activity-btn\",\"count\":13}]",
+    "location": {
+      "url": "https://cmass-sales.web.app/meeting.js",
+      "lineNumber": 660,
+      "columnNumber": 16
+    }
+  },
+  {
+    "type": "console",
+    "text": "[CMASS_DEBUG] disabled overlays []",
+    "location": {
+      "url": "https://cmass-sales.web.app/meeting.js",
+      "lineNumber": 662,
+      "columnNumber": 16
+    }
+  },
+  {
+    "type": "response",
+    "url": "https://cmass-sales.web.app/sales_staff.csv",
+    "status": 200,
+    "contentType": "text/csv; charset=utf-8"
+  },
+  {
+    "type": "response",
+    "url": "https://cmass-sales.web.app/get-draft?staff=&date=&region=&school=",
+    "status": 404,
+    "contentType": "text/html; charset=utf-8"
+  },
+  {
+    "type": "console",
+    "text": "Failed to load resource: the server responded with a status of 404 ()",
+    "location": {
+      "url": "https://cmass-sales.web.app/get-draft?staff=&date=&region=&school=",
+      "lineNumber": 0,
+      "columnNumber": 0
+    }
+  },
+  {
+    "type": "console",
+    "text": "[CMASS_REPAIR] clicked #addEntryBtn addEntryBtn",
+    "location": {
+      "url": "https://cmass-sales.web.app/meeting.js",
+      "lineNumber": 625,
+      "columnNumber": 77
+    }
+  },
+  {
+    "type": "console",
+    "text": "[CMASS_REPAIR] clicked #addEntryBtn addEntryBtn",
+    "location": {
+      "url": "https://cmass-sales.web.app/meeting.js",
+      "lineNumber": 625,
+      "columnNumber": 77
+    }
+  }
+]

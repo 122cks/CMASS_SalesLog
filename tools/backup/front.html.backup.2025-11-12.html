@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script>
+    // Early diagnostics: capture parsing/runtime errors (includes resource/script errors)
+    // so we can surface filenames/lines for live debugging (logged to console).
+    try{
+      window.__cmass_errors = window.__cmass_errors || [];
+      window.addEventListener('error', function(ev){
+        try{
+          const info = {
+            message: ev.message || null,
+            filename: ev.filename || (ev.target && ev.target.src) || null,
+            lineno: ev.lineno || 0,
+            colno: ev.colno || 0,
+            stack: ev.error && ev.error.stack ? ev.error.stack : null,
+            targetTag: ev.target && ev.target.tagName ? ev.target.tagName : null
+          };
+          window.__cmass_errors.push(info);
+          console.error('__cmass_error__', info);
+        }catch(e){}
+      }, true);
+      window.addEventListener('unhandledrejection', function(ev){
+        try{
+          const info = { reason: ev.reason && (ev.reason.stack || ev.reason.message || String(ev.reason)), type: 'unhandledrejection' };
+          window.__cmass_errors.push(info);
+          console.error('__cmass_unhandledrej__', info);
+        }catch(e){}
+      });
+    }catch(e){}
+  </script>
+  <title>CMASS - 시작</title>
+  <!-- Version: 2025-11-01-v2 Clean URLs -->
+  <style>
+    :root{ --bg:#f5f6fa; --card-bg:#fff; --muted:#556; --brand-1:#12325a; --brand-2:#1e3c72; --accent:#6b8bff }
+    body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:#071a2e;margin:0;padding:20px 16px}
+    .container{max-width:1100px;margin:0 auto}
+    h1{text-align:center;color:var(--brand-1);margin:6px 0 14px 0;font-size:28px}
+    .hero{background:var(--card-bg);border-radius:14px;padding:18px 20px;box-shadow:0 12px 40px rgba(10,20,60,0.06);margin-bottom:14px}
+    .btn-row{display:flex;gap:12px;align-items:center;justify-content:center;margin:14px 0}
+    .big-btn{padding:12px 18px;border-radius:12px;border:none;background:linear-gradient(90deg,var(--brand-1),var(--brand-2));color:#fff;font-weight:800;font-size:15px;cursor:pointer}
+    .alt-btn{padding:10px 14px;border-radius:12px;border:1px solid #e1e7f6;background:var(--card-bg);color:var(--brand-1);font-weight:800;cursor:pointer}
+    .card{background:var(--card-bg);border-radius:12px;padding:14px;margin-top:12px;box-shadow:0 10px 30px rgba(10,20,60,0.04)}
+    /* stats grid: responsive auto-fit */
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:12px}
+    .stat{background:#f7fbff;border-radius:10px;padding:12px;border:1px solid #e6eefc;display:flex;flex-direction:column;justify-content:center}
+    .stat div { line-height:1 }
+    .stat .small{margin-top:6px;color:var(--muted);font-size:13px}
+  table{width:100%;border-collapse:collapse;margin-top:8px;background:transparent}
+  th,td{padding:.5rem .6rem;border:1px solid #eef2ff;text-align:left;font-size:13px}
+  /* notes table: fixed layout, wrap long text and sticky header for better UX */
+  .notes-table{table-layout:fixed;width:100%;border-collapse:collapse}
+  .notes-table th{position:sticky;top:0;background:var(--card-bg);z-index:3}
+  /* make the table denser: smaller padding and font-size for compactness */
+  .notes-table th, .notes-table td{padding:.28rem .4rem;border:1px solid #eef2ff;text-align:left;font-size:12px;vertical-align:top}
+  /* allow long notes to wrap and preserve line breaks; make notes column the most flexible */
+  .notes-table td{word-break:break-word;white-space:normal}
+  /* column width suggestions:
+    1) 방문일 - short
+    2) 방문시간 - short
+    3) 선생님명 - medium-short
+    4) 과목명 - short
+    5) 영업활동 - slightly wider
+    6) 특이사항 - flexible / remaining space (wide)
+  */
+  /* Make first columns compact and give more room to activity/note columns */
+  .notes-table th:nth-child(1), .notes-table td:nth-child(1){width:70px}   /* 방문일 */
+  .notes-table th:nth-child(2), .notes-table td:nth-child(2){width:140px}  /* 학교 */
+  .notes-table th:nth-child(3), .notes-table td:nth-child(3){width:70px}   /* 방문시간 */
+  .notes-table th:nth-child(4), .notes-table td:nth-child(4){width:90px}   /* 선생님명 */
+  .notes-table th:nth-child(5), .notes-table td:nth-child(5){width:90px}   /* 과목명 */
+  .notes-table th:nth-child(6), .notes-table td:nth-child(6){width:220px}  /* 영업활동 - wider */
+  .notes-table th:nth-child(7), .notes-table td:nth-child(7){width:auto}    /* 특이사항 - flexible */
+    .small{font-size:13px;color:var(--muted)}
+  /* charts responsive height */
+  canvas{width:100% !important; height:220px !important}
+    /* card sections */
+    #dashboardArea > div { margin-top:8px }
+    /* top teachers list styling */
+    #topTeachers div{padding:6px 8px;border-bottom:1px solid #f1f5ff;font-size:14px}
+    /* follow-up badges grid */
+    #followUpSummary div{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+
+    /* mobile tweaks */
+    @media (max-width:720px){
+      body{padding:12px}
+      h1{font-size:20px}
+      .hero{padding:12px}
+      .big-btn{padding:10px 12px;font-size:14px}
+      canvas{height:180px !important}
+      .card{padding:12px}
+    }
+
+    /* Mobile-specific dashboard tweaks: compact buttons, horizontal scroll for button bars,
+       denser table cells, and responsive chart sizes for small screens */
+    @media (max-width:720px){
+      /* make school/subject button rows scrollable horizontally */
+      #schoolButtons, #subjectButtons { overflow-x:auto; -webkit-overflow-scrolling:touch; gap:8px; flex-wrap:nowrap; white-space:nowrap; padding-bottom:6px }
+      #schoolButtons .alt-btn, #subjectButtons .alt-btn { padding:6px 8px; font-size:13px; white-space:nowrap; border-radius:8px }
+
+      /* reduce stats card density */
+      .stat { padding:10px 8px }
+
+      /* table tweaks: denser and mobile-friendly */
+      .notes-table th, .notes-table td { font-size:11px; padding:.25rem .35rem }
+      .notes-table th { position:sticky; top:0; z-index:4; background:var(--card-bg) }
+      #schoolVisitsTableContainer { max-height:320px }
+
+n... (file content truncated for brevity)

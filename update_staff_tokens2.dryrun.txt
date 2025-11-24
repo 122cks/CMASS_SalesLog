@@ -1,0 +1,127 @@
+Starting update_staff_tokens.js { project: 'cmass-sales', apply: false }
+Documents fetched: 348
+
+Dry-run report: documents to update: 243
+{
+  id: '0G2WOEnxDEMGTNy76OhZ',
+  before: '?≫썕??遺??,
+  after: 'SongHoonjae',
+  staffLabel: '?≫썕??遺??
+}
+{
+  id: '0dZTlZPC7iuVpUfyspoF',
+  before: '?≫썕??遺??,
+  after: 'SongHoonjae',
+  staffLabel: '?≫썕??遺??
+}
+{
+  id: '1QMX7eb2to1S6qckNZr9',
+  before: '?꾩???李⑥옣',
+  after: 'LimJunho',
+  staffLabel: '?꾩???李⑥옣'
+}
+{
+  id: '1eeztUsQ2TDEiwqIHl4f',
+  before: '?꾩???李⑥옣',
+  after: 'LimJunho',
+  staffLabel: '?꾩???李⑥옣'
+}
+{
+  id: '1u9hvTt7e9fFFOve6oPl',
+  before: '?≫썕??遺??,
+  after: 'SongHoonjae',
+  staffLabel: '?≫썕??遺??
+}
+{
+  id: '2IwPBugEMscu432w68NH',
+  before: '?≫썕??遺??,
+  after: 'SongHoonjae',
+  staffLabel: '?≫썕??遺??
+}
+{
+  id: '2L6LvhHs3nVwttYMqoHP',
+  before: '議곗쁺??遺??,
+  after: 'ChoYounghwan',
+  staffLabel: '議곗쁺??遺??
+}
+{
+  id: '2NQZURVLxw0MWbgYDiaC',
+  before: '?꾩???李⑥옣',
+  after: 'LimJunho',
+  staffLabel: '?꾩???李⑥옣'
+}
+{
+  id: '2QWr46DAZOZTFVF99lXL',
+  before: '?꾩???李⑥옣',
+  after: 'LimJunho',
+  staffLabel: '?꾩???李⑥옣'
+}
+{
+  id: '2Wz2mXhZM0s4gx22dmyK',
+  before: '?≫썕??遺??,
+  after: 'SongHoonjae',
+  staffLabel: '?≫썕??遺??
+}
+{
+  id: '2elMlnro1SIWHeDWUarD',
+  before: '?≫썕??遺??,
+  after: 'SongHoonjae',
+  staffLabel: '?≫썕??遺??
+}
+{
+  id: '3EQy0xQneHC8m5PyPr8X',
+  before: '?≫썕??遺??,
+  after: 'SongHoonjae',
+  staffLabel: '?≫썕??遺??
+}
+{
+  id: '3Xdsx0ibmn8m3e3ztzB2',
+  before: '?≫썕??遺??,
+  after: 'SongHoonjae',
+  staffLabel: '?≫썕??遺??
+}
+{
+  id: '3ofMtJhQqIGAUm2Gb083',
+  before: '?꾩???李⑥옣',
+  after: 'LimJunho',
+  staffLabel: '?꾩???李⑥옣'
+}
+{
+  id: '46BxKzXfEraSieuZRzpX',
+  before: '議곗쁺??遺??,
+  after: 'ChoYounghwan',
+  staffLabel: '議곗쁺??遺??
+}
+{
+  id: '4LBXfzUC49sfhpE9k5MY',
+  before: '?≫썕??遺??,
+  after: 'SongHoonjae',
+  staffLabel: '?≫썕??遺??
+}
+{
+  id: '4SnUsC76z9QwkAK5oWLi',
+  before: '議곗쁺??遺??,
+  after: 'ChoYounghwan',
+  staffLabel: '議곗쁺??遺??
+}
+{
+  id: '4TB0I63Afn9s2gbVCDzr',
+  before: '?꾩???李⑥옣',
+  after: 'LimJunho',
+  staffLabel: '?꾩???李⑥옣'
+}
+{
+  id: '4TpTjcKwNAKPErV3c4qD',
+  before: '?≫썕??遺??,
+  after: 'SongHoonjae',
+  staffLabel: '?≫썕??遺??
+}
+{
+  id: '4eCdiUFMYnFTEOgGW7er',
+  before: '?≫썕??遺??,
+  after: 'SongHoonjae',
+  staffLabel: '?≫썕??遺??
+}
+(showing 20 of 243)
+
+Dry-run complete. To apply changes run with --apply (and ensure credentials are set).

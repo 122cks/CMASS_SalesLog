@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Order 현황</title>
+  <style>
+    body{font-family:Segoe UI, Arial, sans-serif;background:linear-gradient(180deg,#0b2540,#08243a);color:#eaf6ff;margin:0;padding:18px}
+    h1{font-size:1.6rem;text-align:center;margin:8px 0 18px}
+    .summary{max-width:1100px;margin:8px auto;color:#cfe7f6}
+    .empty{color:#9fb1c0;text-align:center;padding:18px}
+    table{width:100%;max-width:1100px;margin:12px auto;border-collapse:collapse;background:rgba(255,255,255,0.02);border-radius:8px;overflow:hidden}
+    th,td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:left;font-size:0.95rem}
+    thead th{background:linear-gradient(90deg,#063248,#0b4a6a);color:#dff6ff}
+  </style>
+</head>
+<body>
+  <div style="display:flex;align-items:center;gap:12px;max-width:1100px;margin:0 auto 8px">
+    <button id="backBtn" style="background:transparent;border:1px solid rgba(255,255,255,0.08);color:#dff6ff;padding:6px 10px;border-radius:8px;cursor:pointer">← 뒤로가기</button>
+    <h1 style="flex:1;margin:0">주문 현황</h1>
+  </div>
+  
+  <div class="summary"><span id="totalCount">로딩 중...</span></div>
+  <div id="yearFilter" class="summary" style="max-width:1100px;margin:6px auto;padding:6px 0"></div>
+  <div id="schoolSummary" class="summary" style="display:none;">
+    <div id="schoolName" style="font-weight:700;color:#fff;font-size:1.1rem;margin-bottom:6px"></div>
+    <div style="line-height:1.4;margin-bottom:8px">
+      <div><strong>1학년:</strong> <span id="g1c"></span> 학급 / <span id="g1s"></span> 학생</div>
+      <div><strong>2학년:</strong> <span id="g2c"></span> 학급 / <span id="g2s"></span> 학생</div>
+      <div><strong>3학년:</strong> <span id="g3c"></span> 학급 / <span id="g3s"></span> 학생</div>
+      <div style="margin-top:6px"><strong>총계:</strong> <span id="totc"></span> 학급 / <span id="tots"></span> 학생</div>
+    </div>
+    <div id="schoolSummaryLine" style="color:#e8f6ff;font-weight:600;margin-top:6px;display:none"></div>
+  </div>
+  <table id="orderTable">
+    <thead>
+      <tr><th>연도</th><th>교과군</th><th>과목명</th><th>부수</th></tr>
+    </thead>
+    <tbody id="orderBody"><tr><td colspan="4" class="empty">데이터를 불러오는 중입니다...</td></tr></tbody>
+
+<script>
+// year color mapping (populated after years are detected)
+const YEAR_PALETTE = ['#0b3b50','#0e566e','#114f5a','#16384b','#1b2f3a','#113244','#0a2b36','#123341','#0b2630'];
+let YEAR_COLOR_MAP = {};
+
+// back button handler (go back to input page)
+try{
+  const _back = document.getElementById && document.getElementById('backBtn');
+  if(_back){ _back.addEventListener('click', ()=>{ try{ if(history.length>1) history.back(); else window.location.href='/input.html'; }catch(e){ window.location.href='/input.html'; } }); }
+}catch(e){}
+
+async function fetchCsv(url){
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('fetch failed');
+  const buf = await res.arrayBuffer();
+  const tryDecode = enc => { try{ return new TextDecoder(enc).decode(buf); } catch(e){ return null; } };
+  let txt = tryDecode('utf-8');
+  if(!txt || txt.indexOf(',')===-1){ txt = tryDecode('euc-kr') || tryDecode('windows-949') || tryDecode('shift_jis') || tryDecode('utf-8'); }
+  if(!txt) txt = new TextDecoder().decode(buf);
+  const lines = String(txt).split(/\r?\n/).filter(Boolean);
+  if(!lines.length) return { header: [], rows: [] };
+  function parseLine(line){ const out=[]; let cur=''; let inQ=false; for(let i=0;i<line.length;i++){ const ch=line[i]; if(ch==='"'){ inQ=!inQ; continue; } if(ch===',' && !inQ){ out.push(cur); cur=''; continue; } cur+=ch; } out.push(cur); return out.map(s=>s.trim()); }
+  const headerArr = parseLine(lines[0]).map(h=>h.replace(/"/g,'').trim());
+  const rowsObj = [];
+  for(let i=1;i<lines.length;i++){ try{ const cols = parseLine(lines[i]); if(cols.length===0) continue; const obj={}; for(let j=0;j<headerArr.length;j++){ obj[headerArr[j] || ('c'+j)] = cols[j] || ''; } rowsObj.push(obj); } catch(e){ continue; } }
+  const looksLikeHeader = headerArr.some(h=> /교재명|교지명|도서명|학교|school|정가|금액|교과군|과목명|정보공시학교코드/i.test(h));
+  if(!looksLikeHeader){ const all = [headerArr].concat(rowsObj.map(r=> Object.values(r))); const hdr = headerArr.map((_,i)=> 'c'+i); const resultRows = all.map(cols=>{ const o={}; for(let j=0;j<hdr.length;j++) o[hdr[j]] = cols[j]||''; return o; }); return { header: hdr, rows: resultRows }; }
+  return { header: headerArr, rows: rowsObj };
+}
+
+function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function normalizeSchool(s){ if(!s) return '__unknown__'; s=String(s).trim().toLowerCase(); s=s.replace(/\s+/g,''); s=s.replace(/["'`\.,\-\/\\()\[\]]+/g,''); s=s.replace(/(초등학교|초등|중학교|중등학교|중등|고등학교|고등|학교|학교명)$/g,''); return s||'__unknown__'; }
+
+async function loadStaffCsv(){
+  try{
+    const data = await fetchCsv('/sales_staff.csv');
+    const rows = data.rows || [];
+    const byCode = {};
+    const byName = {};
+    for(const r of rows){
+      const code = String(r['정보공시학교코드'] || r['학교코드'] || r['school'] || r['code'] || '').trim();
+      if(code) byCode[code] = r;
+      const sname = String(r['school'] || r['학교'] || r['학교명'] || r['school_name'] || '').trim();
+      if(sname){ const n = normalizeSchool(sname); if(n) byName[n] = r; }
+    }
+    return { byCode, byName };
+  }catch(e){ console.warn('loadStaffCsv failed', e); return {}; }
+}
+
+function renderTable(filteredRows){
+  const body = document.getElementById('orderBody');
+  if(!filteredRows || filteredRows.length===0){ body.innerHTML = '<tr><td colspan="4" class="empty">표시할 항목이 없습니다</td></tr>'; return; }
+  filteredRows.sort((a,b)=>{
+    // sort by year (numeric when possible), then by 교과군, then 과목명
+    const ay = Number(a.year) || 0; const by = Number(b.year) || 0;
+    if(ay !== by) return ay - by;
+    const ag = String(a.subjectGroup||a['교과군']||a.subjectName||'').localeCompare(String(b.subjectGroup||b['교과군']||b.subjectName||'')); if(ag!==0) return ag;
+    return String(a.subjectName||a['과목명']||'').localeCompare(String(b.subjectName||b['과목명']||''));
+  });
+  body.innerHTML = filteredRows.map(r=>{
+    const year = escapeHtml(r.year || r['연도'] || '');
+    const subjectGroup = escapeHtml(r.subjectGroup || r['교과군'] || r.subjectName || '');
+    const subjectName = escapeHtml(r.subjectName || r['과목명'] || '');
+    const copies = (r.copiesNum!=null)? String(r.copiesNum) : escapeHtml(r.copies || r.qty || '');
+    const color = (YEAR_COLOR_MAP && YEAR_COLOR_MAP[String(year)]) ? YEAR_COLOR_MAP[String(year)] : '';
+    const trStyle = color ? `style="background:${color};"` : '';
+    return `<tr ${trStyle}><td>${year}</td><td>${subjectGroup}</td><td>${subjectName}</td><td style="text-align:right">${copies}</td></tr>`;
+  }).join('');
+}
+
+(async function init(){
+  try{
+    const data = await fetchCsv('/order.csv');
+    const staffMaps = await loadStaffCsv();
+    const rows = data.rows || [];
+    const header = data.header || [];
+    const schoolCandidates = header.filter(h=> /학교|school|schoolname|학교명/i.test(h));
+    const itemCandidates = header.filter(h=> /품목|상품|item|product/i.test(h));
+    const qtyCandidates = header.filter(h=> /수량|qty|quantity|부수/i.test(h));
+    const statusCandidates = header.filter(h=> /상태|status|진행/i.test(h));
+    const noteCandidates = header.filter(h=> /비고|note|remark/i.test(h));
+    const curriculumCandidates = header.filter(h=> /교육과정|curriculum|과정/i.test(h));
+    const bookNameCandidates = header.filter(h=> /교재명|교지명|도서명|bookname|title/i.test(h));
+    const bookCodeCandidates = header.filter(h=> /도서코드|bookcode|code|ISBN/i.test(h));
+    const schoolCodeCandidates = header.filter(h=> /정보공시학교코드|학교코드|school[_ ]?code|schoolid|school_id|code/i.test(h));
+    const subjectGroupCandidates = header.filter(h=> /교과군|계열|과목군|subject ?group/i.test(h));
+    const subjectNameCandidates = header.filter(h=> /과목명|subject|과목/i.test(h));
+    const priceCandidates = header.filter(h=> /정가|가격|price|단가/i.test(h));
+    const copiesCandidates = header.filter(h=> /부수|수량|qty|quantity/i.test(h));
+    const amountCandidates = header.filter(h=> /금액|amount|total/i.test(h));
+    const levelCandidates = header.filter(h=> /학교급|급|school ?level|level|학급/i.test(h));
+
+    // detect year column names before normalizing rows
+    const yearCandidates = header.filter(h=> /연도|학년도|학년|year|年度/i.test(h));
+
+    const norm = rows.map(r=>{
+      const o = {};
+      // extract year if present
+      for(const k of yearCandidates){ if(r[k]){ o.year = String(r[k]).trim(); break; } }
+      if(!o.year){ const bn = String(r[bookNameCandidates[0]] || r.bookName || '').match(/(19|20)\d{2}/); if(bn) o.year = bn[0]; }
+      for(const k of schoolCandidates){ if(r[k]){ o.school = r[k]; break; } }
+      for(const k of itemCandidates){ if(r[k]){ o.item = r[k]; break; } }
+      for(const k of qtyCandidates){ if(r[k]){ o.qty = r[k]; break; } }
+      for(const k of statusCandidates){ if(r[k]){ o.status = r[k]; break; } }
+      for(const k of noteCandidates){ if(r[k]){ o.note = r[k]; break; } }
+      for(const k of curriculumCandidates){ if(r[k]){ o.curriculum = r[k]; break; } }
+      for(const k of bookNameCandidates){ if(r[k]){ o.bookName = r[k]; break; } }
+      for(const k of bookCodeCandidates){ if(r[k]){ o.bookCode = r[k]; break; } }
+      for(const k of subjectGroupCandidates){ if(r[k]){ o.subjectGroup = r[k]; break; } }
+      for(const k of subjectNameCandidates){ if(r[k]){ o.subjectName = r[k]; break; } }
+      for(const k of levelCandidates){ if(r[k]){ o.schoolLevel = r[k]; break; } }
+      for(const k of priceCandidates){ if(r[k]){ o.price = r[k]; break; } }
+      for(const k of copiesCandidates){ if(r[k]){ o.copies = r[k]; break; } }
+      for(const k of amountCandidates){ if(r[k]){ o.amount = r[k]; break; } }
+      for(const k of schoolCodeCandidates){ if(r[k]){ o.schoolCode = String(r[k]).trim(); break; } }
+      if(!o.school) o.school = rows.length && (r[header[0]] || '');
+      if(!o.item) o.item = r[header[1]] || '';
+      o.schoolNorm = normalizeSchool(o.school);
+      function toNum(v){ if(v==null || v==='') return 0; const n = Number(String(v).replace(/[^0-9.-]+/g,'')); return isNaN(n)?0:n; }
+      o.priceNum = toNum(o.price || r['정가'] || r['price']);
+      o.copiesNum = toNum(o.copies || o.qty || r['부수'] || r['수량']);
+      o.amountNum = toNum(o.amount || r['금액'] || r['amount']);
+      return o;
+    });
+
+    // build year list from detected year columns or fallback extraction
+    const yearsSet = new Set();
+    for(const r of rows){
+      let y = '';
+      for(const k of yearCandidates){ if(r[k]){ y = String(r[k]).trim(); break; } }
+      if(!y){ const bn = String(r[bookNameCandidates[0]] || r.bookName || '').match(/(19|20)\d{2}/); if(bn) y = bn[0]; }
+      if(y) yearsSet.add(y);
+    }
+    const years = Array.from(yearsSet).sort();
+
+    // populate global year->color map (deterministic by sorted year order)
+    if(years && years.length>0){
+      for(let i=0;i<years.length;i++){
+        const y = String(years[i]);
+        YEAR_COLOR_MAP[y] = YEAR_PALETTE[i % YEAR_PALETTE.length];
+      }
+    }
+
+    function renderYearFilterUI(years){
+      const container = document.getElementById('yearFilter');
+      if(!years || years.length===0){ container.style.display='none'; return; }
+      const visibleDefault = new Set(['2025','2026']);
+      let html = '<strong>연도:</strong> ';
+      years.forEach(y=>{
+        const hidden = !visibleDefault.has(y);
+        html += `<label style="margin-right:8px" class="${hidden? 'hidden-year':''}"><input type="checkbox" class="year-chk" value="${escapeHtml(y)}" ${visibleDefault.has(y)?'checked':''}> ${escapeHtml(y)}</label>`;
+      });
+      if(years.length>2) html += '<button id="yearMoreBtn" style="margin-left:6px">더보기</button>';
+      container.innerHTML = html;
+      document.querySelectorAll('.year-chk').forEach(chk=> chk.addEventListener('change', ()=> applyFilters()));
+      const moreBtn = document.getElementById('yearMoreBtn');
+      if(moreBtn){
+        moreBtn.addEventListener('click', ()=>{
+          const hiddenEls = container.querySelectorAll('.hidden-year');
+          hiddenEls.forEach(el=> el.classList.toggle('show-year'));
+          moreBtn.textContent = moreBtn.textContent === '더보기' ? '접기' : '더보기';
+        });
+      }
+      const style = document.createElement('style');
+      style.textContent = `.hidden-year{display:none} .hidden-year.show-year{display:inline-block}`;
+      document.head.appendChild(style);
+    }
+
+    function getSelectedYears(){ const chks = document.querySelectorAll('.year-chk:checked'); return new Set(Array.from(chks).map(c=>c.value)); }
+
+    function applyFilters(){
+      const urlParams = new URLSearchParams(location.search);
+      const schoolParam = (urlParams.get('school') || urlParams.get('code') || '').trim();
+      const selectedYears = getSelectedYears();
+      let passIdx = [];
+      // Always start by selecting only rows whose any field contains '교과서' (book entries)
+      for(let i=0;i<norm.length;i++){
+        const orig = rows[i] || {};
+        const joined = Object.values(orig).join(' ').toLowerCase();
+        if(joined.includes('교과서')) passIdx.push(i);
+      }
+
+      if(selectedYears && selectedYears.size>0){
+        passIdx = passIdx.filter(i=>{
+          const r = rows[i] || {};
+          let y = '';
+          for(const k of yearCandidates){ if(r[k]){ y = String(r[k]).trim(); break; } }
+          if(!y){ const bn = String(r[bookNameCandidates[0]] || '').match(/(19|20)\d{2}/); if(bn) y = bn[0]; }
+          if(!y) return false;
+          return selectedYears.has(String(y));
+        });
+      }
+
+      console.log('ORDER_DEBUG after_book_filter_count', passIdx.length);
+
+      let finalIdx = passIdx.slice();
+      if(schoolParam){
+        const param = String(schoolParam).trim();
+        const paramNorm = normalizeSchool(param);
+        const before = finalIdx.length;
+        finalIdx = finalIdx.filter(i=>{
+          const r = norm[i];
+          const orig = rows[i] || {};
+          if(r && r.schoolCode && String(r.schoolCode).toLowerCase() === param.toLowerCase()) return true;
+          if(r && r.schoolNorm && r.schoolNorm === paramNorm) return true;
+          const any = Object.values(orig).join(' ').toLowerCase();
+          // still require '교과서' (we already filtered by it above) but allow matching by school name/code in the row
+          if(any.includes(param.toLowerCase())) return true;
+          return false;
+        });
+        console.log('ORDER_DEBUG after_school_filter', before, '->', finalIdx.length);
+      }
+
+      const filtered = finalIdx.map(i=> norm[i]);
+      const totalCount = document.getElementById('totalCount');
+      console.log('ORDER_DEBUG filtered_length', filtered.length, filtered.slice(0,3).map((r,i)=>({ idx: finalIdx[i], schoolCode: r.schoolCode, schoolNorm: r.schoolNorm, school: r.school }))); 
+      totalCount.textContent = `총 항목(교과서): ${filtered.length}`;
+
+      // school summary
+      const schoolParamNow = (new URLSearchParams(location.search).get('school') || new URLSearchParams(location.search).get('code') || '').trim();
+      if(schoolParamNow){
+        // prefer staff lookup by explicit code when the param looks like a school code (e.g. S020000338)
+        let code = '';
+        let staff = null;
+        const codeLike = /^s?\d+$/i.test(schoolParamNow) || /^s\d+/i.test(schoolParamNow);
+        if(codeLike && staffMaps.byCode){
+          // try exact and case-insensitive lookups
+          code = schoolParamNow;
+          staff = staffMaps.byCode[code] || staffMaps.byCode[code.toUpperCase()] || staffMaps.byCode[code.toLowerCase()] || null;
+        }
+        // if not found yet, try to get code from filtered rows
+        if(!staff){ code = (filtered.find(r=> r.schoolCode && r.schoolCode.length>0) || {}).schoolCode || ''; staff = code && staffMaps.byCode ? staffMaps.byCode[code] : null; }
+        // fallback: lookup by normalized school name
+        if(!staff){
+          const paramNorm = normalizeSchool(schoolParamNow);
+          staff = staffMaps.byName ? staffMaps.byName[paramNorm] : null;
+          if(!staff){
+            for(const k in (staffMaps.byCode||{})){
+              const srow = staffMaps.byCode[k];
+              const sname = String(srow['school'] || srow['학교'] || srow['학교명'] || srow['school_name'] || '').trim();
+              if(sname && normalizeSchool(sname) === paramNorm){ staff = srow; code = k; break; }
+            }
+          }
+        }
+        if(staff){
+          document.getElementById('schoolName').textContent = staff['school'] || staff['학교'] || filtered[0].school || '';
+          const g1c = staff['1학년학급수'] || staff['1학년_학급수'] || staff['g1_classes'] || '';
+          const g1s = staff['1학년학생수'] || staff['1학년_학생수'] || staff['g1_students'] || '';
+          const g2c = staff['2학년학급수'] || staff['2학년_학급수'] || staff['g2_classes'] || '';
+          const g2s = staff['2학년학생수'] || staff['2학년_학생수'] || staff['g2_students'] || '';
+          const g3c = staff['3학년학급수'] || staff['3학년_학급수'] || staff['g3_classes'] || '';
+          const g3s = staff['3학년학생수'] || staff['3학년_학생수'] || staff['g3_students'] || '';
+          const totc = staff['학급수계'] || staff['학급수_계'] || staff['total_classes'] || '';
+          const tots = staff['학생수계'] || staff['학생수_계'] || staff['total_students'] || '';
+          document.getElementById('g1c').textContent = g1c;
+          document.getElementById('g1s').textContent = g1s;
+          document.getElementById('g2c').textContent = g2c;
+          document.getElementById('g2s').textContent = g2s;
+          document.getElementById('g3c').textContent = g3c;
+          document.getElementById('g3s').textContent = g3s;
+          document.getElementById('totc').textContent = totc;
+          document.getElementById('tots').textContent = tots;
+          document.getElementById('schoolSummary').style.display = 'block';
+        } else {
+          // staff not found: show school name from data and blank placeholders for counts
+          if(filtered && filtered.length>0){
+            document.getElementById('schoolName').textContent = filtered[0].school || '';
+            document.getElementById('g1c').textContent = '-';
+            document.getElementById('g1s').textContent = '-';
+            document.getElementById('g2c').textContent = '-';
+            document.getElementById('g2s').textContent = '-';
+            document.getElementById('g3c').textContent = '-';
+            document.getElementById('g3s').textContent = '-';
+            document.getElementById('totc').textContent = '-';
+            document.getElementById('tots').textContent = '-';
+            document.getElementById('schoolSummary').style.display = 'block';
+          } else {
+            document.getElementById('schoolSummary').style.display = 'none';
+          }
+        }
+      } else {
+        document.getElementById('schoolSummary').style.display = 'none';
+      }
+
+      renderTable(filtered);
+    }
+
+    // render year UI and perform initial filter
+    renderYearFilterUI(years);
+    applyFilters();
+  }catch(e){ console.error(e); document.getElementById('orderBody').innerHTML = '<tr><td colspan="4" class="empty">데이터를 불러오지 못했습니다.</td></tr>'; document.getElementById('totalCount').textContent = '에러'; }
+})();
+</script>
+</body>
+</html>

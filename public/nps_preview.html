@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NPS Preview - 반응 시각화 미리보기</title>
+  <style>
+    :root{--bg:#f3f7fb;--card:#fff;--muted:#6b7a89;--accent:#07243a}
+    body{font-family:Inter, 'Segoe UI', Arial, sans-serif;background:var(--bg);color:var(--accent);margin:0;padding:28px}
+    .wrap{max-width:720px;margin:0 auto}
+    .card{background:var(--card);border-radius:12px;padding:24px;box-shadow:0 10px 30px rgba(2,12,27,0.06)}
+    h1{margin:0 0 8px 0;font-size:20px}
+    .small{color:#607489;font-size:13px}
+
+    .gauge-wrap{display:flex;flex-direction:column;align-items:center;margin:20px 0}
+    canvas#gauge{width:520px;height:220px;display:block;box-sizing:border-box}
+    .nps-score{margin-top:8px;text-align:center}
+    .nps-score .val{font-size:34px;font-weight:800;color:var(--accent)}
+    .nps-sub{color:var(--muted);font-size:13px;margin-top:6px}
+
+    .breakdown{margin-top:18px}
+    .list-item{display:flex;align-items:center;gap:16px;padding:14px;border-radius:10px;background:#fff;margin-bottom:12px;border:1px solid rgba(10,60,100,0.06)}
+    .swatch{width:56px;height:56px;border-radius:28px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:15px}
+    .break-main{flex:1}
+    .break-title{font-weight:800;font-size:16px;color:var(--accent)}
+    .break-sub{color:var(--muted);font-size:13px;margin-top:4px}
+    .break-right{text-align:right;min-width:72px}
+    .break-count{font-weight:800;font-size:18px}
+    .break-pct{color:var(--muted);font-size:13px;margin-top:6px}
+
+    /* responsive */
+    @media (max-width:560px){
+      canvas#gauge{width:360px;height:160px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>NPS (반응) 미리보기</h1>
+      <div class="small">데이터 원본: Firestore `visit_entries` (로컬에 인증없으면 샘플 데이터 사용)</div>
+
+      <div class="gauge-wrap">
+        <canvas id="gauge" aria-label="NPS vertical gauge" tabindex="-1"></canvas>
+        <div class="nps-score"><div id="npsScore" class="val">-</div><div class="nps-sub">NPS = Promoters% - Detractors%</div></div>
+      </div>
+
+      <div class="breakdown" id="breakdownList"></div>
+    </div>
+  </div>
+
+<script>
+// Firebase config (kept for optional live reads)
+const firebaseConfig = {
+  apiKey: "AIzaSyARdXNfFCUShNeFXV8cTDzFbKa4GId5EvU",
+  authDomain: "cmass-sales.firebaseapp.com",
+  projectId: "cmass-sales",
+  storageBucket: "cmass-sales.firebasestorage.app",
+  messagingSenderId: "918981476485",
+  appId: "1:918981476485:web:7939150e23500e2703a9ec",
+  measurementId: "G-9188JJXRWX"
+};
+try{ if(window.firebase){ firebase.initializeApp(firebaseConfig); } }catch(e){}
+
+// Sample/mock data fallback
+const MOCK = [
+  { favor: '반응좋음' },{ favor: '반응좋음' },{ favor: '반응좋음' },
+  { favor: '반응보통' },{ favor: '반응보통' },
+  { favor: '반응나쁨' }
+];
+
+// Simulate data for testing
+const TEST_DATA = [
+  { favor: '반응보통' }, { favor: '반응보통' }, { favor: '반응보통' }, { favor: '반응보통' },
+  { favor: '반응보통' }, { favor: '반응보통' }, { favor: '반응보통' }, { favor: '반응보통' },
+  { favor: '반응좋음' }, { favor: '반응좋음' }, { favor: '반응좋음' }, { favor: '반응좋음' }, { favor: '반응좋음' }
+];
+
+function computeNps(visits){
+  let promoters=0, passives=0, detractors=0;
+  (visits||[]).forEach(v=>{
+    const raw = String(v.favor || v.favorValue || v.favor_raw || v.reaction || v.반응 || '').trim();
+    if(raw === '반응좋음') promoters++;
+    else if(raw === '반응보통') passives++;
+    else if(raw === '반응나쁨') detractors++;
+  });
+  const total = promoters+passives+detractors;
+  const pPct = total? Math.round(promoters/total*100):0;
+  const paPct = total? Math.round(passives/total*100):0;
+  const dPct = total? Math.round(detractors/total*100):0;
+  const nps = Math.round(pPct - dPct);
+  return {promoters,passives,detractors,total,pPct,paPct,dPct,nps};
+}
+
+// prevent focus scroll
+function preventFocusScroll(){
+  const cnv = document.getElementById('gauge'); if(!cnv) return;
+  cnv.setAttribute('tabindex','-1'); cnv.addEventListener('focus', e=>{ e.preventDefault(); setTimeout(()=>cnv.blur(),0); }, true);
+}
+
+function ensureCanvasSize(){
+  const cnv = document.getElementById('gauge'); if(!cnv) return;
+  const w = Math.round(480 * 0.7); const h = Math.round(240 * 0.7); const dpr = window.devicePixelRatio || 1; // Reduced size by 30%
+  try{ cnv.style.setProperty('width', w + 'px', 'important'); }catch(e){ cnv.style.width = w + 'px'; }
+  try{ cnv.style.setProperty('height', h + 'px', 'important'); }catch(e){ cnv.style.height = h + 'px'; }
+  cnv.width = Math.round(w * dpr); cnv.height = Math.round(h * dpr);
+}
+
+function drawDonutGauge(b){
+  ensureCanvasSize();
+  const cnv = document.getElementById('gauge'); if(!cnv) return;
+  const ctx = cnv.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+
+  // Clear canvas
+  ctx.clearRect(0, 0, cnv.width, cnv.height);
+
+  // Logical CSS sizes
+  const cssW = parseInt(getComputedStyle(cnv).width, 10) || 480;
+  const cssH = parseInt(getComputedStyle(cnv).height, 10) || 240; // Adjusted height for semi-donut
+
+  // Geometry
+  const centerX = cssW / 2;
+  const centerY = cssH; // Center at the bottom for semi-donut
+  const radius = Math.min(cssW, cssH * 2) * 0.4;
+  const cols = ['#2ecc71', '#f1c40f', '#e74c3c'];
+
+  // Draw semi-donut segments
+  const angles = [
+    { start: Math.PI, end: Math.PI + Math.PI / 3 },
+    { start: Math.PI + Math.PI / 3, end: Math.PI + 2 * Math.PI / 3 },
+    { start: Math.PI + 2 * Math.PI / 3, end: Math.PI * 2 },
+  ];
+
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath();
+    ctx.arc(centerX * dpr, centerY * dpr, radius * dpr, angles[i].start, angles[i].end);
+    ctx.lineWidth = Math.round(radius * 0.2 * dpr);
+    ctx.strokeStyle = cols[i];
+    ctx.stroke();
+  }
+
+  // Needle
+  const v = Math.max(-100, Math.min(100, Number(b.nps) || 0));
+  const angle = (v / 100) * Math.PI / 2 + Math.PI; // Adjusted for semi-donut orientation
+  const needleLen = radius * 0.8 * dpr;
+  const tipX = centerX * dpr + Math.cos(angle) * needleLen;
+  const tipY = centerY * dpr + Math.sin(angle) * needleLen;
+
+  // Draw needle
+  ctx.beginPath();
+  ctx.moveTo(centerX * dpr, centerY * dpr);
+  ctx.lineTo(tipX, tipY);
+  ctx.lineWidth = Math.round(radius * 0.05 * dpr);
+  ctx.strokeStyle = '#07243a';
+  ctx.stroke();
+
+  // Draw hub
+  ctx.beginPath();
+  ctx.arc(centerX * dpr, centerY * dpr, Math.round(radius * 0.1 * dpr), 0, Math.PI * 2);
+  ctx.fillStyle = '#07243a';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(centerX * dpr, centerY * dpr, Math.round(radius * 0.05 * dpr), 0, Math.PI * 2);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+}
+
+function renderBreakdown(b){
+  const el = document.getElementById('breakdownList');
+  const rows = [];
+  rows.push(`<div class="list-item"><div class="swatch" style="background:#2ecc71">${b.pPct}%</div><div class="break-main"><div class="break-title">Promoters</div><div class="break-sub">반응좋음</div></div><div class="break-right"><div class="break-count">${b.promoters}</div><div class="break-pct">${b.pPct}%</div></div></div>`);
+  rows.push(`<div class="list-item"><div class="swatch" style="background:#f1c40f">${b.paPct}%</div><div class="break-main"><div class="break-title">Passives</div><div class="break-sub">반응보통</div></div><div class="break-right"><div class="break-count">${b.passives}</div><div class="break-pct">${b.paPct}%</div></div></div>`);
+  rows.push(`<div class="list-item"><div class="swatch" style="background:#e74c3c">${b.dPct}%</div><div class="break-main"><div class="break-title">Detractors</div><div class="break-sub">반응나쁨</div></div><div class="break-right"><div class="break-count">${b.detractors}</div><div class="break-pct">${b.dPct}%</div></div></div>`);
+  el.innerHTML = rows.join('');
+}
+
+async function fetchVisits(){
+  try{
+    if(window.firebase && window.firebase.firestore){
+      const db = firebase.firestore();
+      const snap = await db.collection('visit_entries').limit(5000).get();
+      const docs = (snap && snap.docs)? snap.docs.map(d=>{const o=d.data(); o.id=d.id; return o;}):[];
+      return docs;
+    }
+  }catch(e){ console.warn('firestore failed', e); }
+  return null;
+}
+
+async function refresh(useMock=false, mockData=null){
+  let visits = null;
+  if(!useMock) visits = await fetchVisits();
+  if(!visits) visits = mockData || MOCK;
+  const b = computeNps(visits);
+  // Draw
+  drawDonutGauge(b);
+  renderBreakdown(b);
+  const npsEl = document.getElementById('npsScore'); if(npsEl) npsEl.textContent = (b.nps>0? '+'+b.nps: b.nps);
+}
+
+// init
+preventFocusScroll(); ensureCanvasSize(); refresh(false);
+
+// Refresh with test data
+refresh(false, TEST_DATA);
+
+// expose for debug
+window._nps_refresh = refresh;
+</script>
+</body>
+</html>

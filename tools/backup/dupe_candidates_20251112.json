@@ -1,0 +1,1093 @@
+{
+  "date": "2025-10-29",
+  "staff": "LimJunho",
+  "createdAt": "2025-11-12T06:55:56.179Z",
+  "groups": [
+    {
+      "ids": [
+        "4TB0I63Afn9s2gbVCDzr",
+        "l2X9cbMFjEB1xDJT19ks"
+      ],
+      "docs": [
+        {
+          "id": "4TB0I63Afn9s2gbVCDzr",
+          "data": {
+            "school": "구리여자중학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "기타",
+            "teacher": "사서- 하정연",
+            "contact": "",
+            "meetings": [
+              "단행본안내"
+            ],
+            "conversation": "학업설계 안내 및 구매검토 요청",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "4TB0I63Afn9s2gbVCDzr",
+            "visitDate": "2025-10-29"
+          }
+        },
+        {
+          "id": "l2X9cbMFjEB1xDJT19ks",
+          "data": {
+            "school": "구리여자중학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "기타",
+            "teacher": "사서- 하정연",
+            "contact": "",
+            "meetings": [
+              "단행본안내"
+            ],
+            "conversation": "학업설계 안내 및 구매검토 요청",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "l2X9cbMFjEB1xDJT19ks",
+            "visitDate": "2025-10-29"
+          }
+        }
+      ]
+    },
+    {
+      "ids": [
+        "7kPx8OtqGus0yxxqyJ57",
+        "uVpmdszJyM96EtNZqojl"
+      ],
+      "docs": [
+        {
+          "id": "7kPx8OtqGus0yxxqyJ57",
+          "data": {
+            "school": "구리여자중학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "정보",
+            "teacher": "신다솜",
+            "contact": "010-9277-2265",
+            "meetings": [
+              "티칭샘소개",
+              "채팅방소개",
+              "교구재안내",
+              "하이러닝 사용"
+            ],
+            "conversation": "연락처 확보하여 단톡방 및 연수 안내, AIDT 미사용, 학자시 해당사항 없음, 교구는 예산이 없어서 구매 못함, 내년에 마이크로비트 관련 구매시 연락주겠다고 함, 임용 2년차",
+            "followUp": "재방문 예정",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "7kPx8OtqGus0yxxqyJ57",
+            "visitDate": "2025-10-29"
+          }
+        },
+        {
+          "id": "uVpmdszJyM96EtNZqojl",
+          "data": {
+            "school": "구리여자중학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "정보",
+            "teacher": "신다솜",
+            "contact": "010-9277-2265",
+            "meetings": [
+              "티칭샘소개",
+              "채팅방소개",
+              "교구재안내",
+              "하이러닝 사용"
+            ],
+            "conversation": "연락처 확보하여 단톡방 및 연수 안내, AIDT 미사용, 학자시 해당사항 없음, 교구는 예산이 없어서 구매 못함, 내년에 마이크로비트 관련 구매시 연락주겠다고 함, 임용 2년차",
+            "followUp": "재방문 예정",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "uVpmdszJyM96EtNZqojl",
+            "visitDate": "2025-10-29"
+          }
+        }
+      ]
+    },
+    {
+      "ids": [
+        "89wYfpXurAH2JUKPN2tZ",
+        "dBRKJKytILFSLzu6MXIU"
+      ],
+      "docs": [
+        {
+          "id": "89wYfpXurAH2JUKPN2tZ",
+          "data": {
+            "school": "구리여자고등학교",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "기타",
+            "teacher": "백송주",
+            "contact": "",
+            "meetings": [
+              "단행본안내"
+            ],
+            "conversation": "학업설계 안내 및 추천도서 선정시 참고해 주시길 부탁",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "region": "??????",
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "89wYfpXurAH2JUKPN2tZ",
+            "visitDate": "2025-10-29"
+          }
+        },
+        {
+          "id": "dBRKJKytILFSLzu6MXIU",
+          "data": {
+            "school": "구리여자고등학교",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "기타",
+            "teacher": "백송주",
+            "contact": "",
+            "meetings": [
+              "단행본안내"
+            ],
+            "conversation": "학업설계 안내 및 추천도서 선정시 참고해 주시길 부탁",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "region": "??????",
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "dBRKJKytILFSLzu6MXIU",
+            "visitDate": "2025-10-29"
+          }
+        }
+      ]
+    },
+    {
+      "ids": [
+        "8Tep0bHjsAWwsCJDuOlp",
+        "NjVAwDBVsZyOOvsnbHCt"
+      ],
+      "docs": [
+        {
+          "id": "8Tep0bHjsAWwsCJDuOlp",
+          "data": {
+            "school": "도농고등학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "진로",
+            "teacher": "한은경",
+            "contact": "",
+            "meetings": [
+              "명함인사",
+              "티칭샘소개",
+              "채팅방소개",
+              "단행본안내",
+              "워크북안내"
+            ],
+            "conversation": "단톡방은 예전에 문미경선생님 강의 후 그때 인연으로 가입하여 안내 잘 받고 있음, 포스터제공, 학업설계 설명 및 추천도서 지정 요청함, 내용은 괜찮아 보인다고 하심",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "8Tep0bHjsAWwsCJDuOlp",
+            "visitDate": "2025-10-29"
+          }
+        },
+        {
+          "id": "NjVAwDBVsZyOOvsnbHCt",
+          "data": {
+            "school": "도농고등학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "진로",
+            "teacher": "한은경",
+            "contact": "",
+            "meetings": [
+              "명함인사",
+              "티칭샘소개",
+              "채팅방소개",
+              "단행본안내",
+              "워크북안내"
+            ],
+            "conversation": "단톡방은 예전에 문미경선생님 강의 후 그때 인연으로 가입하여 안내 잘 받고 있음, 포스터제공, 학업설계 설명 및 추천도서 지정 요청함, 내용은 괜찮아 보인다고 하심",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "NjVAwDBVsZyOOvsnbHCt",
+            "visitDate": "2025-10-29"
+          }
+        }
+      ]
+    },
+    {
+      "ids": [
+        "8zeMAWmVrdBLBmTigiVK",
+        "hnzEAFsPwv7QhTmoZ7CN"
+      ],
+      "docs": [
+        {
+          "id": "8zeMAWmVrdBLBmTigiVK",
+          "data": {
+            "school": "구리여자고등학교",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "정보",
+            "teacher": "양수경",
+            "contact": "",
+            "meetings": [
+              "명함인사",
+              "티칭샘소개",
+              "채팅방소개",
+              "연수안내",
+              "브로슈어"
+            ],
+            "conversation": "자사교과서 사용중 불편함 없음, 교과서 관련 지료는 안받으심, AIDT자료만 안내했고 현재 사용하지 않음, 단톡방은 이미 가입되어 있고, 연수안내도 잘 받고있음, 연락처 공유는 안하심",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "region": "??????",
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "8zeMAWmVrdBLBmTigiVK",
+            "visitDate": "2025-10-29"
+          }
+        },
+        {
+          "id": "hnzEAFsPwv7QhTmoZ7CN",
+          "data": {
+            "school": "구리여자고등학교",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "정보",
+            "teacher": "양수경",
+            "contact": "",
+            "meetings": [
+              "명함인사",
+              "티칭샘소개",
+              "채팅방소개",
+              "연수안내",
+              "브로슈어"
+            ],
+            "conversation": "자사교과서 사용중 불편함 없음, 교과서 관련 지료는 안받으심, AIDT자료만 안내했고 현재 사용하지 않음, 단톡방은 이미 가입되어 있고, 연수안내도 잘 받고있음, 연락처 공유는 안하심",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "region": "??????",
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "hnzEAFsPwv7QhTmoZ7CN",
+            "visitDate": "2025-10-29"
+          }
+        }
+      ]
+    },
+    {
+      "ids": [
+        "Ij12cmwDmQSxn8wtorrs",
+        "g6cB5WBofLZTL1DHx6Ac"
+      ],
+      "docs": [
+        {
+          "id": "Ij12cmwDmQSxn8wtorrs",
+          "data": {
+            "school": "구리여자고등학교",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "진로",
+            "teacher": "김지혜",
+            "contact": "",
+            "meetings": [
+              "티칭샘소개",
+              "채팅방소개",
+              "단행본안내",
+              "워크북안내"
+            ],
+            "conversation": "단톡방은 거절하심, 포스터와 도서안내 브로셔 전달, 학업설계관련 설명 드렸고 구입처를 문의하셔서 큐알코드 안내함, 내용에대한 언급은 없었음",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "region": "??????",
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "Ij12cmwDmQSxn8wtorrs",
+            "visitDate": "2025-10-29"
+          }
+        },
+        {
+          "id": "g6cB5WBofLZTL1DHx6Ac",
+          "data": {
+            "school": "구리여자고등학교",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "진로",
+            "teacher": "김지혜",
+            "contact": "",
+            "meetings": [
+              "티칭샘소개",
+              "채팅방소개",
+              "단행본안내",
+              "워크북안내"
+            ],
+            "conversation": "단톡방은 거절하심, 포스터와 도서안내 브로셔 전달, 학업설계관련 설명 드렸고 구입처를 문의하셔서 큐알코드 안내함, 내용에대한 언급은 없었음",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "region": "??????",
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "g6cB5WBofLZTL1DHx6Ac",
+            "visitDate": "2025-10-29"
+          }
+        }
+      ]
+    },
+    {
+      "ids": [
+        "KsETIA1FotfEsL0SK98z",
+        "lZ7D2tk6a4eqi2lM6e6B"
+      ],
+      "docs": [
+        {
+          "id": "KsETIA1FotfEsL0SK98z",
+          "data": {
+            "school": "남양주다산중학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "정보",
+            "teacher": "곽미진",
+            "contact": "010-5522-3356",
+            "meetings": [
+              "교구재안내",
+              "하이러닝 사용"
+            ],
+            "conversation": "정보 교과서 채택현황 문의 했으나 노코멘트, 단톡방 통해서 연수 안내는 잘 받고있음",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "KsETIA1FotfEsL0SK98z",
+            "visitDate": "2025-10-29"
+          }
+        },
+        {
+          "id": "lZ7D2tk6a4eqi2lM6e6B",
+          "data": {
+            "school": "남양주다산중학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "정보",
+            "teacher": "곽미진",
+            "contact": "010-5522-3356",
+            "meetings": [
+              "교구재안내",
+              "하이러닝 사용"
+            ],
+            "conversation": "정보 교과서 채택현황 문의 했으나 노코멘트, 단톡방 통해서 연수 안내는 잘 받고있음",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "lZ7D2tk6a4eqi2lM6e6B",
+            "visitDate": "2025-10-29"
+          }
+        }
+      ]
+    },
+    {
+      "ids": [
+        "LeeoZi1fuvIPlzIR5Z1w",
+        "liyiwmVfVDM2uLR9uvHK"
+      ],
+      "docs": [
+        {
+          "id": "LeeoZi1fuvIPlzIR5Z1w",
+          "data": {
+            "school": "구리여자고등학교",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "정보",
+            "teacher": "양수경",
+            "contact": "",
+            "meetings": [
+              "티칭샘소개",
+              "채팅방소개",
+              "연수안내",
+              "하이러닝 사용"
+            ],
+            "conversation": "단톡방은 이미 가입되어 있음, 지속되는 연수안내, 교과서관련 자료는 거부, AIDT자료는 받았고 사용은 안함, 교과서사용에 불편함은 없음",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "region": "??????",
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "LeeoZi1fuvIPlzIR5Z1w",
+            "visitDate": "2025-10-29"
+          }
+        },
+        {
+          "id": "liyiwmVfVDM2uLR9uvHK",
+          "data": {
+            "school": "구리여자고등학교",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "정보",
+            "teacher": "양수경",
+            "contact": "",
+            "meetings": [
+              "티칭샘소개",
+              "채팅방소개",
+              "연수안내",
+              "하이러닝 사용"
+            ],
+            "conversation": "단톡방은 이미 가입되어 있음, 지속되는 연수안내, 교과서관련 자료는 거부, AIDT자료는 받았고 사용은 안함, 교과서사용에 불편함은 없음",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "region": "??????",
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "liyiwmVfVDM2uLR9uvHK",
+            "visitDate": "2025-10-29"
+          }
+        }
+      ]
+    },
+    {
+      "ids": [
+        "MzByzIVzEm3EEQIVzF28",
+        "jTHkJNv3K4mJNG0uHDrz"
+      ],
+      "docs": [
+        {
+          "id": "MzByzIVzEm3EEQIVzF28",
+          "data": {
+            "school": "남양주다산중학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "기타",
+            "teacher": "사서",
+            "contact": "",
+            "meetings": [
+              "단행본안내"
+            ],
+            "conversation": "학업설계 안내함",
+            "followUp": "",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "MzByzIVzEm3EEQIVzF28",
+            "visitDate": "2025-10-29"
+          }
+        },
+        {
+          "id": "jTHkJNv3K4mJNG0uHDrz",
+          "data": {
+            "school": "남양주다산중학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "기타",
+            "teacher": "사서",
+            "contact": "",
+            "meetings": [
+              "단행본안내"
+            ],
+            "conversation": "학업설계 안내함",
+            "followUp": "",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "jTHkJNv3K4mJNG0uHDrz",
+            "visitDate": "2025-10-29"
+          }
+        }
+      ]
+    },
+    {
+      "ids": [
+        "PALaesl8nz6cFhDJUrK5",
+        "cgDO0rWAOgtOWrHTsKVx"
+      ],
+      "docs": [
+        {
+          "id": "PALaesl8nz6cFhDJUrK5",
+          "data": {
+            "school": "남양주다산중학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "진로",
+            "teacher": "유미상",
+            "contact": "",
+            "meetings": [
+              "명함인사",
+              "티칭샘소개",
+              "채팅방소개",
+              "단행본안내",
+              "워크북안내"
+            ],
+            "conversation": "학업설계 안내, 기존에 비슷한 책이 많이 있다고 하심, 다른점 설명드렸고 고교학점제에 대처하는데 학생들에게 실질적 도움이 되는 부분 설명드림, 도서구입시 검토해 보겠다 하심",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "PALaesl8nz6cFhDJUrK5",
+            "visitDate": "2025-10-29"
+          }
+        },
+        {
+          "id": "cgDO0rWAOgtOWrHTsKVx",
+          "data": {
+            "school": "남양주다산중학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "진로",
+            "teacher": "유미상",
+            "contact": "",
+            "meetings": [
+              "명함인사",
+              "티칭샘소개",
+              "채팅방소개",
+              "단행본안내",
+              "워크북안내"
+            ],
+            "conversation": "학업설계 안내, 기존에 비슷한 책이 많이 있다고 하심, 다른점 설명드렸고 고교학점제에 대처하는데 학생들에게 실질적 도움이 되는 부분 설명드림, 도서구입시 검토해 보겠다 하심",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "cgDO0rWAOgtOWrHTsKVx",
+            "visitDate": "2025-10-29"
+          }
+        }
+      ]
+    },
+    {
+      "ids": [
+        "WiLquhNoFYGZm4Im0MRy",
+        "cRsqUFOeOadV36bOSqLb"
+      ],
+      "docs": [
+        {
+          "id": "WiLquhNoFYGZm4Im0MRy",
+          "data": {
+            "school": "금곡중학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "기타",
+            "teacher": "사서-진선미",
+            "contact": "",
+            "meetings": [
+              "단행본안내"
+            ],
+            "conversation": "진로선생님 통해서 먼저 설명드린 점 안내했고 학업설계가 중3학생에게 필요한 점 어필함, 보통 선생님이 요청하면 구매한다고 하심",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "WiLquhNoFYGZm4Im0MRy",
+            "visitDate": "2025-10-29"
+          }
+        },
+        {
+          "id": "cRsqUFOeOadV36bOSqLb",
+          "data": {
+            "school": "금곡중학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "기타",
+            "teacher": "사서-진선미",
+            "contact": "",
+            "meetings": [
+              "단행본안내"
+            ],
+            "conversation": "진로선생님 통해서 먼저 설명드린 점 안내했고 학업설계가 중3학생에게 필요한 점 어필함, 보통 선생님이 요청하면 구매한다고 하심",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "cRsqUFOeOadV36bOSqLb",
+            "visitDate": "2025-10-29"
+          }
+        }
+      ]
+    },
+    {
+      "ids": [
+        "X2cFUdelczblz2MYmZbZ",
+        "yt3GKJfUXEIrmHM3PpCd"
+      ],
+      "docs": [
+        {
+          "id": "X2cFUdelczblz2MYmZbZ",
+          "data": {
+            "school": "금곡중학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "정보",
+            "teacher": "이세나",
+            "contact": "010-7112-4044",
+            "meetings": [
+              "교구재안내",
+              "하이러닝 사용"
+            ],
+            "conversation": "현재 금곡중학교 씨마스교과서 수업중이며 미금중 순회 나가심, 이번 정보교과 채택현황 파악, 미금중 정보 씨마스로 채택하심, 씨마스가 익숙하기도 하고 그동안 수업하면서 만드누자료나 활동을 그데로 활용이 가능하고 책 자체도 괜찮아서 채택하게 되었다고 하김, 감사인사 드림, AIDT는 전에 말씀하신데로 활용 못함",
+            "followUp": "워크북 무상지원 제안",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "X2cFUdelczblz2MYmZbZ",
+            "visitDate": "2025-10-29"
+          }
+        },
+        {
+          "id": "yt3GKJfUXEIrmHM3PpCd",
+          "data": {
+            "school": "금곡중학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "정보",
+            "teacher": "이세나",
+            "contact": "010-7112-4044",
+            "meetings": [
+              "교구재안내",
+              "하이러닝 사용"
+            ],
+            "conversation": "현재 금곡중학교 씨마스교과서 수업중이며 미금중 순회 나가심, 이번 정보교과 채택현황 파악, 미금중 정보 씨마스로 채택하심, 씨마스가 익숙하기도 하고 그동안 수업하면서 만드누자료나 활동을 그데로 활용이 가능하고 책 자체도 괜찮아서 채택하게 되었다고 하김, 감사인사 드림, AIDT는 전에 말씀하신데로 활용 못함",
+            "followUp": "워크북 무상지원 제안",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "yt3GKJfUXEIrmHM3PpCd",
+            "visitDate": "2025-10-29"
+          }
+        }
+      ]
+    },
+    {
+      "ids": [
+        "XfZfxYzIfy8NVeN3ecA7",
+        "s3CAoigQG6gfIkEkOFEn"
+      ],
+      "docs": [
+        {
+          "id": "XfZfxYzIfy8NVeN3ecA7",
+          "data": {
+            "school": "구리여자고등학교",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "기타",
+            "teacher": "백송주",
+            "contact": "",
+            "meetings": [
+              "단행본안내"
+            ],
+            "conversation": "학업설계 안내 및 추천도서 지정 요청",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "region": "??????",
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "XfZfxYzIfy8NVeN3ecA7",
+            "visitDate": "2025-10-29"
+          }
+        },
+        {
+          "id": "s3CAoigQG6gfIkEkOFEn",
+          "data": {
+            "school": "구리여자고등학교",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "기타",
+            "teacher": "백송주",
+            "contact": "",
+            "meetings": [
+              "단행본안내"
+            ],
+            "conversation": "학업설계 안내 및 추천도서 지정 요청",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "region": "??????",
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "s3CAoigQG6gfIkEkOFEn",
+            "visitDate": "2025-10-29"
+          }
+        }
+      ]
+    },
+    {
+      "ids": [
+        "cAgpwghQkdw378wNXY0P",
+        "rVDbY9pM5Q183nTtevg8"
+      ],
+      "docs": [
+        {
+          "id": "cAgpwghQkdw378wNXY0P",
+          "data": {
+            "school": "도농고등학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "정보",
+            "teacher": "김태희",
+            "contact": "010-8584-2293",
+            "meetings": [
+              "명함인사",
+              "티칭샘소개",
+              "채팅방소개",
+              "하이러닝 사용"
+            ],
+            "conversation": "씨마스교과서 사용중, 3층근무,성남에서 근무하시다 올해 해당학교 부임, 교과서 만족하고 단톡방은 가입되어 있었음, 연락처 확보완료, AIDT안내 했으나 활용안하고 예정도 없음, 고등 정보관련 교구 예산 있을때 구매 검토 요청",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "cAgpwghQkdw378wNXY0P",
+            "visitDate": "2025-10-29"
+          }
+        },
+        {
+          "id": "rVDbY9pM5Q183nTtevg8",
+          "data": {
+            "school": "도농고등학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "정보",
+            "teacher": "김태희",
+            "contact": "010-8584-2293",
+            "meetings": [
+              "명함인사",
+              "티칭샘소개",
+              "채팅방소개",
+              "하이러닝 사용"
+            ],
+            "conversation": "씨마스교과서 사용중, 3층근무,성남에서 근무하시다 올해 해당학교 부임, 교과서 만족하고 단톡방은 가입되어 있었음, 연락처 확보완료, AIDT안내 했으나 활용안하고 예정도 없음, 고등 정보관련 교구 예산 있을때 구매 검토 요청",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "rVDbY9pM5Q183nTtevg8",
+            "visitDate": "2025-10-29"
+          }
+        }
+      ]
+    },
+    {
+      "ids": [
+        "dcHUCMcqwkOJbhDkx4NX",
+        "g7Rmy4p2TaqFfylxmBUn"
+      ],
+      "docs": [
+        {
+          "id": "dcHUCMcqwkOJbhDkx4NX",
+          "data": {
+            "school": "금곡중학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "진로",
+            "teacher": "정인영",
+            "contact": "010-2563-2180",
+            "meetings": [
+              "단행본안내",
+              "워크북안내"
+            ],
+            "conversation": "캠퍼스멘토는 학과중심 설명으로 끝나지만 씨마스 학업설계는 고등학교에 가서 실질적인 학습목표가 제시되어 좋고 구성도 깔끔한게 좋아보임, 우선 자체예산으로 1권 구입하고 나중에 도서구매시 요청하겠다고 하심, 연수는 이미 신청했음",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "dcHUCMcqwkOJbhDkx4NX",
+            "visitDate": "2025-10-29"
+          }
+        },
+        {
+          "id": "g7Rmy4p2TaqFfylxmBUn",
+          "data": {
+            "school": "금곡중학교",
+            "region": "",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "진로",
+            "teacher": "정인영",
+            "contact": "010-2563-2180",
+            "meetings": [
+              "단행본안내",
+              "워크북안내"
+            ],
+            "conversation": "캠퍼스멘토는 학과중심 설명으로 끝나지만 씨마스 학업설계는 고등학교에 가서 실질적인 학습목표가 제시되어 좋고 구성도 깔끔한게 좋아보임, 우선 자체예산으로 1권 구입하고 나중에 도서구매시 요청하겠다고 하심, 연수는 이미 신청했음",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "g7Rmy4p2TaqFfylxmBUn",
+            "visitDate": "2025-10-29"
+          }
+        }
+      ]
+    },
+    {
+      "ids": [
+        "r4z1Go6mAYGAnF5FlGqP",
+        "wEGiNVsdmYKxhxPqdKyw"
+      ],
+      "docs": [
+        {
+          "id": "r4z1Go6mAYGAnF5FlGqP",
+          "data": {
+            "school": "구리여자고등학교",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "진로",
+            "teacher": "김지혜",
+            "contact": "",
+            "meetings": [
+              "명함인사",
+              "티칭샘소개",
+              "채팅방소개",
+              "단행본안내",
+              "워크북안내"
+            ],
+            "conversation": "단톡방은 거부하셨고 학업설계 설명드림, 구매처를 물어보셔서 큐알코드로 진입하시면 되는점 안내, 내용에 대한 언급은 없었음",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "region": "??????",
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "r4z1Go6mAYGAnF5FlGqP",
+            "visitDate": "2025-10-29"
+          }
+        },
+        {
+          "id": "wEGiNVsdmYKxhxPqdKyw",
+          "data": {
+            "school": "구리여자고등학교",
+            "visitDate_ts": {
+              "_seconds": 1761696000,
+              "_nanoseconds": 0
+            },
+            "source_doc": "WFlLXbyTQSG8KxC4wYz6",
+            "subject": "진로",
+            "teacher": "김지혜",
+            "contact": "",
+            "meetings": [
+              "명함인사",
+              "티칭샘소개",
+              "채팅방소개",
+              "단행본안내",
+              "워크북안내"
+            ],
+            "conversation": "단톡방은 거부하셨고 학업설계 설명드림, 구매처를 물어보셔서 큐알코드로 진입하시면 되는점 안내, 내용에 대한 언급은 없었음",
+            "followUp": "완료 (추가 조치 없음)",
+            "createdAt": {
+              "_seconds": 1761739786,
+              "_nanoseconds": 979000000
+            },
+            "region": "??????",
+            "staff": "LimJunho",
+            "staffLabel": "임준호 차장",
+            "server_id": "wEGiNVsdmYKxhxPqdKyw",
+            "visitDate": "2025-10-29"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+name: Deploy and Probe (manual)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-and-probe:
+    runs-on: windows-latest
+    env:
+      FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          if (Test-Path package.json) { npm ci } else { Write-Host 'No package.json, skipping npm install' }
+        shell: pwsh
+
+      - name: Install Playwright browsers (if applicable)
+        run: |
+          if (Test-Path node_modules\playwright) { npx playwright install --with-deps } else { Write-Host 'Playwright not present or not required' }
+        shell: pwsh
+
+      - name: Run deploy+probe script
+        run: .\tools\deploy_and_probe.ps1 -Project 'cmass-sales' -DeployUrl 'https://cmass-sales.web.app/meeting.html' -MaxIterations 3
+        shell: pwsh
+
+      - name: Upload probe artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: probe-artifacts
+          path: tools/remote_probe_*.png,tools/remote_probe_result_*.json

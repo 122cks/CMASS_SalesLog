@@ -1,0 +1,21 @@
+{
+  "url": "https://cmass-sales.web.app/front?staff=SongHoonjae&debug=1",
+  "steps": [
+    "launch",
+    "goto https://cmass-sales.web.app/front?staff=SongHoonjae&debug=1",
+    "response status: 200",
+    "#dashboardArea not visible (timeout)",
+    "no visible data indicators within timeout",
+    "click #goInput",
+    "[console] document click: goInput",
+    "[console] front_goInput called",
+    "[console] front_goInput -> navigating to https://cmass-sales.web.app/input?staff=SongHoonjae&debug=1&sw_cleared=1",
+    "[console] document click: __goInputAnchor",
+    "navigation after click (waitForNavigation resolved)",
+    "finalUrl: https://cmass-sales.web.app/input?staff=Songhoonjae&debug=1&sw_cleared=1",
+    "title: 영업일지 입력",
+    "bodyHasInputText: true"
+  ],
+  "ok": true,
+  "message": "Navigation to /input verified."
+}

@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Redirecting??/title>
+<script>
+  // Guarded redirect: only perform once per session to avoid loops
+  try{
+    const qs = window.location.search || '';
+    const h = window.location.hash || '';
+    const target = '/order.html' + qs + h;
+    // if we've already attempted a redirect this session, show a link instead of redirecting again
+    if(!sessionStorage.getItem('order_redirected')){
+      sessionStorage.setItem('order_redirected','1');
+      // only redirect if not already on the target
+      if(location.pathname !== '/order.html'){
+        location.replace(target);
+      }
+    } else {
+      // render a small message with a manual link so user can proceed without a loop
+      document.write('<div style="font-family:Segoe UI,Arial,sans-serif;padding:18px;color:#111;background:#f4f8fb;">');
+      document.write('<p>?먮룞 由щ떎?대젆?멸? ?대? ?쒕룄?섏뿀?듬땲?? ?꾨옒 留곹겕瑜??대┃???섎룞?쇰줈 ?대룞?섏꽭??</p>');
+      document.write('<p><a href="'+target+'">order.html濡??대룞?섍린</a></p>');
+      document.write('</div>');
+    }
+  }catch(e){
+    // fallback: simple location replace
+    try{ location.replace('/order.html' + (window.location.search||'') + (window.location.hash||'')); }catch(_){/*ignore*/}
+  }
+</script>
+<noscript>
+  <meta http-equiv="refresh" content="0; url=/order.html">
+  Redirecting to /order.html
+</noscript>

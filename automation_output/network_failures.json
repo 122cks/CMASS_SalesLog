@@ -1,0 +1,11 @@
+[
+  {
+    "type": "response_error",
+    "url": "https://cmass-sales.web.app/get-draft?staff=%EC%86%A1%ED%9B%88%EC%9E%AC+%EB%B6%80%EC%9E%A5&date=2025-11-05&region=%EC%9D%B8%EC%B2%9C%EA%B4%91%EC%97%AD%EC%8B%9C%EC%84%9C%EA%B5%AC&school=%EB%AC%B8%EA%B3%A1%EA%B3%A0%EB%93%B1%ED%95%99%EA%B5%90",
+    "status": 404,
+    "method": "GET",
+    "resourceType": "fetch",
+    "textSnippet": "\n<!doctype html>\n<html>\n  <head>\n    <title>Page Not Found</title>\n    <link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <style>\n\n      body {\n        margin: 0 auto;\n        margin-top: 48px;\n        max-width: 616px;\n        padding: 0 16px;\n        font-family: 'Roboto', 'Helvetica Neue', sans-serif;\n        font-size: 16px;\n        line-height: 24px;\n        color: rgba(0,0,0,0.87);\n      }\n      h1, h2, h3 {\n        font-family: 'Roboto', 'Helvetica Neue', sans-serif;\n        font-weight: 300;\n      }\n      h1 {\n        margin: 24px 0 16px 0;\n        padding: 0 0 16px 0;\n        border-bottom: 1px solid rgba(0,0,0,0.1);\n        font-size: 32px;\n        line-height: ",
+    "timestamp": 1762324057982
+  }
+]

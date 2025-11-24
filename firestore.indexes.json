@@ -1,0 +1,35 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "visit_entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+  { "fieldPath": "staff", "order": "ASCENDING" },
+  { "fieldPath": "visitDate_ts", "order": "DESCENDING" },
+  { "fieldPath": "__name__", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "visit_entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "school", "order": "ASCENDING" },
+        { "fieldPath": "staff", "order": "ASCENDING" },
+        { "fieldPath": "teacher", "order": "ASCENDING" },
+        { "fieldPath": "visitDate_ts", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "visit_entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+  { "fieldPath": "staff", "order": "ASCENDING" },
+  { "fieldPath": "subject", "order": "ASCENDING" },
+  { "fieldPath": "visitDate_ts", "order": "DESCENDING" },
+  { "fieldPath": "__name__", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

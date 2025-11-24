@@ -1,0 +1,3238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1e3c72">
+  <title>영업일지 입력</title>
+  <script src="collectFormData.js"></script>
+  <script src="js/draft_restore.js" defer></script>
+  <script>
+    // Hard guard: prevent external scripts from wiping core CMASS nodes or replacing the body entirely.
+    (function(){
+      const LOG_PREFIX = '[cmass hard-guard]';
+      const PROTECTED_ATTR = 'data-cmass-protect';
+      const PROTECTED_IDS = new Set(['step1','step2','salesForm','cmass-debug-banner','cmass-debug-overlay-top','cmass-body-inspector','cmass-error-overlay','cmass-landscape-overlay']);
+
+      function isProtectedTarget(node){
+        try{
+          if (!node) return false;
+          if (node === document.body || node === document.documentElement) return true;
+          if (node.nodeType !== Node.ELEMENT_NODE) return false;
+          if (PROTECTED_IDS.has(node.id)) return true;
+          if (node.hasAttribute && node.hasAttribute(PROTECTED_ATTR)) return true;
+        }catch(e){}
+        return false;
+      }
+
+      try {
+        const originalRemoveChild = Node.prototype.removeChild;
+        Node.prototype.removeChild = function(child){
+          if (child === document.body || isProtectedTarget(child)) {
+            console.warn(LOG_PREFIX, 'blocked removeChild', child && child.id ? ('#'+child.id) : child);
+            return child;
+          }
+          return originalRemoveChild.call(this, child);
+        };
+
+        const originalReplaceChild = Node.prototype.replaceChild;
+        Node.prototype.replaceChild = function(newChild, oldChild){
+          if (oldChild === document.body || isProtectedTarget(oldChild)) {
+            console.warn(LOG_PREFIX, 'blocked replaceChild', oldChild && oldChild.id ? ('#'+oldChild.id) : oldChild);
+            return oldChild;
+          }
+          return originalReplaceChild.call(this, newChild, oldChild);
+        };
+
+        const originalRemove = Element.prototype.remove;
+        Element.prototype.remove = function(){
+          if (this === document.body || isProtectedTarget(this)) {
+            console.warn(LOG_PREFIX, 'blocked remove()', this && this.id ? ('#'+this.id) : this);
+            return this;
+          }
+          return originalRemove.call(this);
+        };
+
+        const originalReplaceChildren = Element.prototype.replaceChildren;
+        if (typeof originalReplaceChildren === 'function') {
+          Element.prototype.replaceChildren = function(...nodes){
+            if (this === document.body || isProtectedTarget(this)) {
+              console.warn(LOG_PREFIX, 'blocked replaceChildren on', this && this.id ? ('#'+this.id) : this);
+              return this;
+            }
+            return originalReplaceChildren.apply(this, nodes);
+          };
+        }
+
+        const originalReplaceWith = Element.prototype.replaceWith;
+        if (typeof originalReplaceWith === 'function') {
+          Element.prototype.replaceWith = function(...nodes){
+            if (this === document.body || isProtectedTarget(this)) {
+              console.warn(LOG_PREFIX, 'blocked replaceWith on', this && this.id ? ('#'+this.id) : this);
+              return this;
+            }
+            return originalReplaceWith.apply(this, nodes);
+          };
+        }
+
+        const innerDesc = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+        if (innerDesc && innerDesc.configurable) {
+          Object.defineProperty(Element.prototype, 'innerHTML', {
+            configurable: true,
+            enumerable: innerDesc.enumerable,
+            get: innerDesc.get,
+            set: function(value){
+              if (this === document.body || isProtectedTarget(this)) {
+                console.warn(LOG_PREFIX, 'blocked innerHTML overwrite on', this && this.id ? ('#'+this.id) : this);
+                return;
+              }
+              return innerDesc.set.call(this, value);
+            }
+          });
+        }
+
+        const textDesc = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent');
+        if (textDesc && textDesc.configurable) {
+          Object.defineProperty(Node.prototype, 'textContent', {
+            configurable: true,
+            enumerable: textDesc.enumerable,
+            get: textDesc.get,
+            set: function(value){
+              if (this === document.body || (this.nodeType === Node.ELEMENT_NODE && isProtectedTarget(this))) {
+                console.warn(LOG_PREFIX, 'blocked textContent overwrite on', this && this.id ? ('#'+this.id) : this);
+                return;
+              }
+              return textDesc.set.call(this, value);
+            }
+          });
+        }
+      } catch (err) {
+        console.warn(LOG_PREFIX, 'failed to install hard guard', err);
+      }
+    })();
+  </script>
+  <!-- cmass-deploy-marker: 2025-11-02T00:00:00Z -->
+  <!-- Load external deps. PapaParse removed in favor of a small in-file toCSV helper. -->
+  <script src="/neis_grid.js" defer></script>
+  <script src="/csv-helpers.js" defer></script>
+  <script>
+    // Lock shared CSV helpers to prevent accidental re-definition by later inline scripts.
+    (function(){
+      try{
+        if (typeof window.parseCsv === 'function') Object.defineProperty(window, 'parseCsv', { configurable: false, writable: false });
+        if (typeof window.fetchCsvRows === 'function') Object.defineProperty(window, 'fetchCsvRows', { configurable: false, writable: false });
+        if (typeof window.parseSchoolMetaCsv === 'function') Object.defineProperty(window, 'parseSchoolMetaCsv', { configurable: false, writable: false });
+      }catch(e){ /* ignore */ }
+    })();
+  </script>
+  <!-- Early removal of any legacy redirect banners or links to the input page.
+    This runs immediately in the head and observes DOM mutations to remove
+    any nodes (or anchors) that mention deprecated URLs so users don't see
+    stray "Redirecting to input(.html)" messages even briefly. -->
+  <script>
+    // Lightweight, robust debug + meta helper (rewritten to avoid syntax issues).
+    (function(){
+      function updateDebugOverlay(){
+        try{
+          const ov = document.getElementById('cmass-debug-overlay');
+          if (!ov) return;
+          const s = document.getElementById('dbgStaff'); if (s) s.textContent = (window._cmass_staffParam || (typeof getStaffFromQuery === 'function' ? getStaffFromQuery() : '')) || '-';
+          const r = document.getElementById('dbgRegion'); if (r) r.textContent = (window.selectedRegion || window.selectedRegion || '-') ;
+          const sc = document.getElementById('dbgSchool'); if (sc) sc.textContent = (window.selectedSchool || (document.getElementById('selectedSchoolInput')||{}).value || '-') ;
+          const pm = document.getElementById('dbgMeta');
+          const meta = window._cmass_lastFoundMeta || null;
+          if (pm) pm.textContent = meta ? JSON.stringify(meta, null, 2) : '(없음)';
+          // Do NOT auto-show the debug overlay. Keep it hidden unless explicitly requested.
+          // ov.style.display = 'block';
+        }catch(e){ console.warn('updateDebugOverlay failed', e); }
+      }
+
+      document.addEventListener('click', function(ev){ if (ev.target && ev.target.id === 'dbgHide'){ const el = document.getElementById('cmass-debug-overlay'); if(el) el.style.display='none'; } });
+      window.updateDebugOverlay = updateDebugOverlay;
+    })();
+  </script>
+
+  <script>
+    // Draft save / load keyed by 방문일|담당자|지역|학교
+    (function(){
+      // Remove common legacy redirects if present
+      function removeLegacyRedirects(){
+        try{
+          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+          const toRemove = [];
+          while(walker.nextNode()){
+            const t = walker.currentNode;
+            if(/Redirecting to\s*input(\.html)?/i.test(t.nodeValue || '')) toRemove.push(t);
+          }
+          toRemove.forEach(n => n.parentNode && n.parentNode.removeChild(n));
+          const anchors = Array.from(document.querySelectorAll('a[href*="/input"]'));
+          anchors.forEach(a => a.remove());
+        }catch(e){ /* tolerate */ }
+      }
+
+      // Apply meta when available: normalize keys and write to small span ids.
+      function applyMeta(meta){
+        try{
+          console.log('[applyMeta] 호출됨, 메타:', meta);
+          if(!meta) { console.warn('[applyMeta] 메타 데이터가 없음'); return; }
+          window._cmass_lastFoundMeta = meta;
+          // Ensure inline/detailed meta panels are visible when we have meta
+          try{
+            const inline = document.getElementById('schoolMetaInline');
+            const full = document.getElementById('schoolMeta');
+            console.log('[applyMeta] DOM 요소:', { inline: !!inline, full: !!full });
+            // Remove any explicit 'hidden' utility class (which uses !important) so
+            // inline styles can show the panel. Setting style.display alone doesn't
+            // override .hidden { display:none !important }.
+            if(inline){ 
+              console.log('[applyMeta] inline 표시 전 classList:', inline.classList.toString());
+              inline.classList.remove('hidden'); 
+              inline.style.display = 'block'; 
+              console.log('[applyMeta] inline 표시 후 classList:', inline.classList.toString(), 'display:', inline.style.display);
+            }
+            if(full){ full.classList.remove('hidden'); full.style.display = 'block'; }
+          }catch(e){ console.warn('applyMeta show panels failed', e); }
+
+          // helper to resolve multiple possible key names for a value
+          function pickMeta(obj, candidates){
+            if(!obj) return null;
+            for(const k of candidates){ if(typeof obj[k] !== 'undefined' && obj[k] !== null && String(obj[k]).trim() !== '') return obj[k]; }
+            return null;
+          }
+
+          // populate summary pills (establish / level / students / feature)
+          try{
+            // broaden candidate keys to match headers present in sales_staff.csv and other sources
+            const est = pickMeta(meta, ['설립','설립구분','establish','established','establishment','설립형태']);
+            const lvl = pickMeta(meta, ['급','학교급','학교급코드','level','schoolLevel','급별']);
+            const tot = pickMeta(meta, ['총학생수','학생수계','studentsTotal','totalStudents','총학생','학생수']);
+            const feat = pickMeta(meta, ['특성','학교특성','특성화','특성화고 구분','특성화고','feature','special']);
+            console.log('[applyMeta] 추출된 값:', { est, lvl, tot, feat });
+            const inlineEst = document.getElementById('inlinePillEstablish'); if(inlineEst) inlineEst.textContent = est ? ('설립: ' + String(est)) : '설립: -';
+            const inlineLvl = document.getElementById('inlinePillLevel'); if(inlineLvl) inlineLvl.textContent = lvl ? ('급: ' + String(lvl)) : '급: -';
+            const inlineTot = document.getElementById('inlinePillStudents'); if(inlineTot) inlineTot.textContent = tot ? ('총학생수: ' + String(tot)) : '총학생수: -';
+            const inlineFeat = document.getElementById('inlinePillFeature'); if(inlineFeat) { inlineFeat.style.display = feat ? '' : 'none'; if(feat) inlineFeat.textContent = '특성: ' + String(feat); }
+            console.log('[applyMeta] DOM 업데이트 완료:', { 
+              inlineEst: inlineEst?.textContent, 
+              inlineLvl: inlineLvl?.textContent, 
+              inlineTot: inlineTot?.textContent 
+            });
+
+            const midEst = document.getElementById('metaPillEstablish'); if(midEst) midEst.textContent = est ? ('설립: ' + String(est)) : '설립: -';
+            const midLvl = document.getElementById('metaPillLevel'); if(midLvl) midLvl.textContent = lvl ? ('급: ' + String(lvl)) : '급: -';
+            const midTot = document.getElementById('metaPillStudents'); if(midTot) midTot.textContent = tot ? ('총학생수: ' + String(tot)) : '총학생수: -';
+            const midFeat = document.getElementById('metaPillFeature'); if(midFeat) { midFeat.style.display = feat ? '' : 'none'; if(feat) midFeat.textContent = '특성: ' + String(feat); }
+          }catch(e){ console.error('[applyMeta] 필드 업데이트 실패:', e); }
+          const grades = [1,2,3];
+          grades.forEach(g => {
+            // Prefer canonical keys created by parseSchoolMetaCsv (g1c, g1s, g1avg)
+            const canonicalClassKey = `g${g}c`;
+            const canonicalStudentKey = `g${g}s`;
+            const canonicalAvgKey = `g${g}avg`;
+
+            let c = null, s = null, avg = null;
+            if (meta && typeof meta[canonicalClassKey] !== 'undefined') c = Number(meta[canonicalClassKey]) || c;
+            if (meta && typeof meta[canonicalStudentKey] !== 'undefined') s = Number(meta[canonicalStudentKey]) || s;
+            if (meta && typeof meta[canonicalAvgKey] !== 'undefined') avg = Number(meta[canonicalAvgKey]) || avg;
+
+            // Fallback to older header name heuristics only if canonical missing
+            if ((c === null || Number.isNaN(c)) || (s === null || Number.isNaN(s))) {
+              const classKeys = [ `${g}학년학급수`, `${g}학년_학급수`, `${g}학급수`, `${g}학급`, `${g}GradeClassCount` ];
+              const studentKeys = [ `${g}학년학생수`, `${g}학년_학생수`, `${g}학생수`, `${g}학생`, `${g}GradeStudentCount` ];
+              const avgKeys = [ `${g}학년학급당학생수`, `${g}학급당학생수`, `${g}학급당`, `${g}AvgStudentsPerClass` ];
+
+              for(const k of classKeys) if(meta[k] !== undefined && (c === null || Number.isNaN(c))){ c = Number(meta[k]) || c; }
+              for(const k of studentKeys) if(meta[k] !== undefined && (s === null || Number.isNaN(s))){ s = Number(meta[k]) || s; }
+              for(const k of avgKeys) if(meta[k] !== undefined && (avg === null || Number.isNaN(avg))){ avg = Number(meta[k]) || avg; }
+            }
+
+            // If class count missing but students+avg present, estimate (avoid double counting by only estimating when missing)
+            if((c === null || Number.isNaN(c)) && (s !== null && !Number.isNaN(s) && avg !== null && !Number.isNaN(avg) && avg > 0)){
+              c = Math.max(1, Math.round(s / avg));
+            }
+
+            const idClass = 'inlineG' + g + 'c';
+            const idStudent = 'inlineG' + g + 's';
+            const elc = document.getElementById(idClass);
+            const els = document.getElementById(idStudent);
+            if(elc) elc.textContent = (c === null || Number.isNaN(c)) ? '-' : String(c);
+            if(els) els.textContent = (s === null || Number.isNaN(s)) ? '-' : String(s);
+            // also populate metaG* ids for the detailed panel if present
+            const midc = document.getElementById('metaG' + g + 'c');
+            const mids = document.getElementById('metaG' + g + 's');
+            if(midc) midc.textContent = (c === null || Number.isNaN(c)) ? '-' : String(c);
+            if(mids) mids.textContent = (s === null || Number.isNaN(s)) ? '-' : String(s);
+          });
+          // ensure debug overlay also updates visibility
+          if (typeof window.updateDebugOverlay === 'function') window.updateDebugOverlay();
+        }catch(e){ console.warn('applyMeta error', e); }
+      }
+
+      // Watch for dbgMeta content changes (some code writes JSON there)
+      function watchDbgMeta(){
+        try{
+          const dbg = document.getElementById('dbgMeta');
+          if(!dbg) return;
+          const mo = new MutationObserver(()=>{
+            try{
+              const txt = (dbg.textContent || '').trim();
+              if(txt && txt !== '(없음)'){
+                try{ const parsed = JSON.parse(txt); if(parsed) applyMeta(parsed); }catch(e){}
+              }
+            }catch(e){}
+          });
+          mo.observe(dbg, { childList: true, characterData: true, subtree: true });
+        }catch(e){}
+      }
+
+      // initialize when DOM ready
+      document.addEventListener('DOMContentLoaded', function(){ removeLegacyRedirects(); watchDbgMeta(); if(window._cmass_lastFoundMeta) applyMeta(window._cmass_lastFoundMeta); });
+
+  // expose for tests / external code
+  window.applyMeta = applyMeta;
+    })();
+  </script>
+
+  <style>
+    /* moved inline CSS into a style block to avoid parser errors */
+    /* default to visible in CSS and control visibility via the .hidden class
+       This avoids JS needing to manipulate inline styles and reduces specificity bugs */
+    #schoolMetaInline, #schoolMeta {
+      display:block;
+      padding:20px 18px;
+      border-radius:14px;
+      background:linear-gradient(180deg,#ffffff 0%, #f7f8ff 100%);
+      border:1px solid #e2e8ff;
+      box-shadow:0 18px 48px rgba(10,28,64,0.12);
+      color:#071a2e;
+      font-size:16.5px;
+      line-height:1.6;
+      margin-top:1rem;
+      position:relative;
+      overflow:visible;
+    }
+    /* utility class to hide elements regardless of other stylesheet rules */
+    .hidden { display:none !important; }
+    /* accent stripe on the left (wider for better affordance) */
+    #schoolMetaInline::before, #schoolMeta::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 8px;
+      bottom: 8px;
+      width: 10px;
+      border-radius: 8px;
+      background: linear-gradient(180deg,#556ee8,#6b4bb0);
+      box-shadow: 0 4px 14px rgba(80,90,160,0.08);
+    }
+    #schoolMetaInline h4, #schoolMeta h4 { margin:0 0 .6rem 18px; font-size:19px; color:#06203f; font-weight:900 }
+    .grade-rows { display:block; margin-top:12px; }
+    .grade-row { display:grid; grid-template-columns:120px 1fr; gap:12px; align-items:center; margin:8px 0; }
+    .grade-row .grade-label { font-weight:900; color:#0d304f; font-size:15px }
+    .grade-row .grade-value { color:#072042; font-size:15px; display:flex; gap:8px; align-items:baseline }
+    .grade-row .grade-value span { font-weight:900; color:#0b2b5a; font-size:17px }
+    .meta-key { font-weight:900; font-size:15px; color:#092b4a; }
+    .grade-row .small-note { color:#4e5b73; font-size:13px; margin-left:6px }
+    .meta-summary { display:flex; gap:14px; margin:8px 12px 6px 12px; }
+    .meta-summary .meta-pill { background:#f3f6ff; padding:.45rem .7rem; border-radius:10px; border:1px solid #e0e8ff; color:#082044; font-weight:800; font-size:14px }
+  </style>
+  <style>
+  table.timetable { border-collapse:collapse; width:100%; font-size:11px; line-height:1.12; }
+  /* compact cells to reduce wrapping in timetable; use !important to override inline JS styles */
+  .timetable-wrapper table.timetable th,
+  .timetable-wrapper table.timetable td { border:1px solid #e6eefc; padding:4px 6px !important; font-size:11px !important; vertical-align:top; }
+  /* Force single-line cells: prevent wrapping, show ellipsis when truncated, allow horizontal scroll */
+  .timetable-wrapper table.timetable th,
+  .timetable-wrapper table.timetable td {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 260px; /* reasonable cap to help ellipsis; adjust as needed */
+  }
+  /* For narrow mobile screens, cap width tighter */
+  @media (max-width:600px) {
+    .timetable-wrapper table.timetable th,
+    .timetable-wrapper table.timetable td { max-width: 140px; }
+  }
+  /* sticky header row and sticky first column (반/학급 or 교시) within the scroll wrapper */
+  .timetable-wrapper table.timetable thead th { position:sticky; top:0; background:#f7fbff; z-index:3; }
+  .timetable-wrapper table.timetable th:first-child,
+  .timetable-wrapper table.timetable td:first-child { position:sticky; left:0; background:#f7fbff; z-index:2; }
+  /* ensure the top-left corner cell stays above both header and first column */
+  .timetable-wrapper table.timetable thead th:first-child { z-index:4; }
+  /* Mobile tweaks: slightly smaller font and tighter padding for narrow screens */
+  @media (max-width:600px) {
+    .timetable-wrapper table.timetable { font-size:10px; }
+    .timetable-wrapper table.timetable th,
+    .timetable-wrapper table.timetable td { padding:3px 5px !important; font-size:10px !important; }
+    .timetable-wrapper { max-height:60vh; }
+  }
+  .current-period { background:#ffeaa7 !important; border:1px solid #f1c40f !important; }
+  </style>
+  <style>
+  /* Remove all step-related styles */
+  .btn-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:.5rem; margin-bottom:.7rem; }
+    .selector-btn { position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:.8rem 1rem; border-radius:.8rem; border:1px solid #d6dbe8; background:#fff; color:#12325a; font-weight:700; text-align:center; cursor:pointer; transition:background .2s ease, border-color .2s ease, box-shadow .2s ease; min-height:70px; min-width:0; }
+  .selector-btn .selector-label { display:block; font-weight:800; font-size:1.2rem; line-height:1.18; white-space:nowrap; width:100%; text-align:center; overflow:hidden; }
+    .selector-btn:hover { border-color:#92ace0; box-shadow:0 6px 18px rgba(30,60,114,0.18); }
+    .selector-btn.is-active { border-color:#1e3c72; background:linear-gradient(135deg,#1e3c72,#274b9f); color:#fff; box-shadow:0 12px 28px rgba(30,60,114,0.32); }
+    .empty-message { padding:.85rem; border-radius:.75rem; border:1px dashed #d6dbe8; background:#f7f9ff; color:#324156; font-size:.9rem; }
+    @media (max-width:520px) {
+      /* On narrow screens prefer a 3-column compact grid so regions/schools show three across.
+         Use smaller min widths so three items can fit on typical mobile widths while keeping
+         touch targets usable. */
+      .btn-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap:8px; }
+      .selector-btn { min-height:48px; padding:.45rem .6rem; font-size:13px; }
+    }
+    @media (min-width:720px) {
+      /* Larger viewports can safely scale button typography a bit more */
+      .selector-btn .selector-label { font-size:1.3rem; }
+    }
+  /* Controls layout for visit start selects and friendliness buttons */
+  .visit-start-row { display:flex; gap:0.6rem; align-items:center; }
+  /* Use grid for friend buttons so we can force 3-up at our breakpoint like subjects */
+  .friend-btn-row { display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:12px; align-items:center; }
+  .friend-btn-row .friend-btn { width:100%; box-sizing:border-box; justify-self:stretch; }
+
+  /* Make the start hour/minute selects and friendliness buttons align to a 530px width when space allows */
+  @media (min-width:530px) {
+      /* constrain parent width and let controls share the space */
+      #visitTimeSection > div > .visit-start-row, #visitTimeSection .visit-start-row { max-width:530px; width:100%; }
+      #visitTimeSection select#visitStartHour,
+      #visitTimeSection select#visitStartMinute {
+        box-sizing: border-box;
+        width: calc(50% - 6px);
+        min-width: 0;
+      }
+
+      .friend-btn-row { max-width:530px; width:100%; }
+      .friend-btn-row .friend-btn {
+        box-sizing: border-box;
+        flex: 1 1 0;
+        min-width: 0;
+        padding:.7rem 1rem;
+        font-weight:800;
+        width: calc((530px - 24px) / 3);
+      }
+    }
+
+    /* At ~530px ensure selector grids (regions/schools) show 3 items per row and use larger buttons */
+    @media (min-width:530px) {
+      /* Force a stable 3-column layout at the 530px breakpoint.
+         Use minmax(0, 1fr) so long words or internal min-widths don't prevent
+         the grid from creating 3 tracks. Make it !important to beat any
+         inline or earlier rules that may interfere. */
+      .btn-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap:12px; }
+      .btn-grid .selector-btn { min-height:72px; padding:.9rem 1rem; min-width:0; }
+      .btn-grid .selector-label { font-size:1.12rem; font-weight:800; }
+    }
+
+    /* On small screens make friend buttons wrap and still be large touch targets */
+    @media (max-width:539px) {
+      .friend-btn-row { display:flex; gap:0.6rem; flex-wrap:wrap; }
+      .friend-btn-row .friend-btn { flex:1 1 calc(50% - 0.6rem); }
+      #visitTimeSection select#visitStartHour, #visitTimeSection select#visitStartMinute { min-width:110px; width:48%; }
+    }
+   /* Meeting buttons: 3 items per row on all screens */
+   .meeting-buttons.selector-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; align-items:center; max-width:530px; width:100%; margin:0 auto; }
+   .meeting-buttons.selector-grid .selector-btn { box-sizing:border-box; width:100%; min-width:0; padding:0.85rem 1rem; min-height:72px; justify-self:stretch; }
+    .meeting-buttons.selector-grid .selector-label { font-size:1.05rem; font-weight:900; }
+    @media (max-width:420px) {
+      .meeting-buttons.selector-grid .selector-label { font-size:0.98rem; }
+    }
+    /* Subject choice and friend buttons: 3 items per row */
+    .subject-choice-group { display:grid; grid-template-columns: repeat(3, 1fr); gap:0.6rem; }
+    .subject-choice-group .subject-choice-btn {
+      padding: 0.85rem 1rem !important;
+      font-size: 1.05rem !important;
+      min-height: 60px;
+    }
+    .friend-btn-row { display:grid; grid-template-columns: repeat(3, 1fr); gap:0.6rem; }
+    .friend-btn-row .friend-btn {
+      padding: 0.85rem 1rem !important;
+      font-size: 1.05rem !important;
+      min-height: 60px;
+    }
+    /* Visit duration buttons keep flex layout */
+    #visitDurationButtons { display:flex; flex-wrap:wrap; gap:0.6rem; }
+    #visitDurationButtons .duration-btn {
+      flex: 1 1 calc(50% - 0.6rem);
+      min-width: 140px;
+      padding: 0.85rem 1rem !important;
+      font-size: 1.05rem !important;
+    }
+    @media (max-width:420px) {
+      .subject-choice-group .subject-choice-btn,
+      .friend-btn-row .friend-btn,
+      #visitDurationButtons .duration-btn { font-size:0.98rem !important; }
+    }
+  </style>
+  <style id="pinProceed-style">#pinProceed{margin-top:12px;padding:.7rem 1rem;border-radius:.8rem;border:none;background:#1e3c72;color:#fff;font-weight:800;cursor:pointer}</style>
+  <script>
+    // Lightweight modal confirm and toast helpers to replace native confirm/alert
+    (function(){
+      function ensureModal() {
+        if (document.getElementById('cmass-confirm-modal')) return;
+        const tpl = document.createElement('div');
+        tpl.id = 'cmass-confirm-modal';
+        tpl.style.display = 'none';
+        tpl.innerHTML = '\n          <div class="cmass-modal-backdrop" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);z-index:99999">\n            <div class="cmass-modal-card" style="background:#fff;color:#072042;padding:18px;border-radius:10px;max-width:420px;width:92%;box-shadow:0 12px 30px rgba(2,6,23,0.35);text-align:center">\n              <div id="cmass-modal-msg" style="margin-bottom:14px;white-space:pre-wrap;text-align:left"></div>\n              <div style="text-align:right">\n                <button id="cmass-modal-no" class="alt-btn" style="margin-right:8px;padding:8px 12px;border-radius:8px">취소</button>\n                <button id="cmass-modal-yes" style="padding:8px 12px;border-radius:8px;background:#1e88e5;color:#fff;border:none">확인</button>\n              </div>\n            </div>\n          </div>';
+        document.body.appendChild(tpl);
+      }
+      window.showConfirmModal = function(message){
+        ensureModal();
+        const root = document.getElementById('cmass-confirm-modal');
+        const msg = root.querySelector('#cmass-modal-msg');
+        const yes = root.querySelector('#cmass-modal-yes');
+        const no = root.querySelector('#cmass-modal-no');
+        msg.textContent = message || '';
+        root.style.display = '';
+        return new Promise((resolve)=>{
+          function cleanup(val){ root.style.display = 'none'; yes.removeEventListener('click', onYes); no.removeEventListener('click', onNo); resolve(val); }
+          function onYes(){ cleanup(true); }
+          function onNo(){ cleanup(false); }
+          yes.addEventListener('click', onYes);
+          no.addEventListener('click', onNo);
+        });
+      };
+    })();
+  </script>
+  
+  <!-- Firebase SDK (CDN 방식) - using compat UMD builds so `window.firebase` is available -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyARdXNfFCUShNeFXV8cTDzFbKa4GId5EvU",
+      authDomain: "cmass-sales.firebaseapp.com",
+      projectId: "cmass-sales",
+      storageBucket: "cmass-sales.firebasestorage.app",
+      messagingSenderId: "918981476485",
+      appId: "1:918981476485:web:7939150e23500e2703a9ec",
+      measurementId: "G-9188JJXRWX"
+    };
+
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Export to global scope for use in other scripts
+    window.firebaseDb = db;
+    window.firestoreCollection = (ref) => db.collection(ref);
+    window.firestoreAddDoc = (ref, data) => db.collection(ref).add(data);
+    window.firestoreServerTimestamp = firebase.firestore.FieldValue.serverTimestamp;
+    window.firestoreQuery = (ref, ...args) => db.collection(ref).where(...args);
+    window.firestoreWhere = (ref, ...args) => db.collection(ref).where(...args);
+    window.firestoreGetDocs = (ref) => db.collection(ref).get();
+    window.firestoreUpdateDoc = (ref, id, data) => db.collection(ref).doc(id).update(data);
+    window.firestoreDoc = (ref, id) => db.collection(ref).doc(id);
+
+    console.log('[Firebase] Initialized successfully');
+  </script>
+</head>
+<body>
+  <!-- Temporary: attempt to unregister any existing service-workers on first load to avoid serving stale cached HTML/assets -->
+  <script>
+    (function(){
+      try{
+        // Only unregister service workers when explicitly requested via query param
+        // Example: /input.html?unregister_sw=1
+        const params = new URLSearchParams(window.location.search || '');
+        if (!params.get('unregister_sw')) return; // no-op by default
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(regs){ regs.forEach(r=>{ try{ r.unregister(); }catch(e){} }); }).catch(()=>{});
+        }
+      }catch(e){}
+    })();
+  </script>
+  <!-- CSV helpers are centralized in /csv-helpers.js. Removed inline fallback to avoid duplicates. -->
+
+  <!-- Top back button -->
+  <!-- top back button removed -->
+  <!-- Guard against external extensions wiping the body: watch for removals and restore tracked nodes -->
+  <script data-cmass-role="body-guard">
+    (function(){
+      const LOG_PREFIX = '[cmass body-guard]';
+      const guardScript = document.currentScript;
+
+      function installBodyGuard(){
+        try{
+          const body = document.body;
+          if (!body) return;
+
+          const trackedList = [];
+          const trackedSet = new Set();
+
+          function shouldTrack(node){
+            if (!node) return false;
+            const nodeType = node.nodeType;
+            if (node === guardScript) return false;
+            if (nodeType === Node.ELEMENT_NODE) {
+              const el = node;
+              if (el.hasAttribute && el.hasAttribute('data-cmass-role') && el.getAttribute('data-cmass-role') === 'body-guard') return false;
+              if (el.id && el.id.toLowerCase().includes('glasp')) return false;
+              if (el.classList) {
+                for (let i = 0; i < el.classList.length; i++){
+                  if (el.classList[i].toLowerCase().includes('glasp')) return false;
+                }
+              }
+              return true;
+            }
+            if (nodeType === Node.TEXT_NODE) {
+              return !!(node.nodeValue && node.nodeValue.trim());
+            }
+            return false;
+          }
+
+          function trackNodes(nodes){
+            if (!nodes || !nodes.length) return;
+            nodes.forEach(node => {
+              if (!shouldTrack(node)) return;
+              if (!trackedSet.has(node)){
+                trackedSet.add(node);
+                trackedList.push(node);
+              }
+            });
+          }
+
+          trackNodes(Array.from(body.childNodes));
+
+          let restoring = false;
+          const observer = new MutationObserver(mutations => {
+            if (restoring) return;
+            let shouldRestore = false;
+
+            for (const mutation of mutations) {
+              if (mutation.type !== 'childList') continue;
+              trackNodes(Array.from(mutation.addedNodes || []));
+
+              const removed = mutation.removedNodes || [];
+              for (let i = 0; i < removed.length; i++){
+                const node = removed[i];
+                if (trackedSet.has(node)){
+                  shouldRestore = true;
+                  break;
+                }
+              }
+              if (shouldRestore) break;
+            }
+
+            if (!shouldRestore) {
+              if (!body.firstChild) shouldRestore = true;
+            }
+
+            if (!shouldRestore) return;
+
+            restoring = true;
+            requestAnimationFrame(() => {
+              try{
+                trackedList.forEach(node => {
+                  if (!node || node === guardScript) return;
+                  if (!node.isConnected) {
+                    body.appendChild(node);
+                  }
+                });
+                console.warn(LOG_PREFIX, 'Restored missing body content');
+              }catch(err){
+                console.warn(LOG_PREFIX, 'restore failed', err);
+              }finally{
+                restoring = false;
+              }
+            });
+          });
+
+          observer.observe(body, { childList: true });
+          window._cmassBodyGuard = { observer, tracked: trackedList };
+        }catch(err){
+          console.warn(LOG_PREFIX, 'failed to install', err);
+        }
+      }
+
+      installBodyGuard();
+    })();
+  </script>
+  <!-- Diagnostic overlay removed -->
+  <script>
+    // Mapping merge mode helpers: persist choice in localStorage and expose toggle UI
+    (function(){
+      function getMappingOverrides(){
+        try{
+          const stored = localStorage.getItem('cmass_mappingOverridesCsv');
+          if (stored !== null) return (stored === '1' || stored === 'true');
+        }catch(e){}
+        if (window.CMASS_OPTIONS && typeof window.CMASS_OPTIONS.mappingOverridesCsv !== 'undefined') return !!window.CMASS_OPTIONS.mappingOverridesCsv;
+        // Default: mapping 우선 (요청에 따라 기본을 매핑 우선으로 변경)
+        return true;
+      }
+      function setMappingOverrides(v){ try{ localStorage.setItem('cmass_mappingOverridesCsv', v ? '1':'0'); }catch(e){} }
+      function updateMergeToggleUI(){ const btn = document.getElementById('cmass-merge-toggle'); if(!btn) return; const val = getMappingOverrides(); btn.textContent = val ? '매핑 우선' : 'CSV 우선'; btn.setAttribute('aria-pressed', val ? 'true' : 'false'); }
+      document.addEventListener('DOMContentLoaded', function(){ try{ updateMergeToggleUI(); const btn = document.getElementById('cmass-merge-toggle'); if(btn){ btn.addEventListener('click', function(){ try{ const cur = getMappingOverrides(); setMappingOverrides(!cur); updateMergeToggleUI(); try{ if (typeof showToast === 'function') showToast('병합 모드가 변경되었습니다. 페이지를 새로고침합니다.', 1400); }catch(e){} setTimeout(()=>location.reload(), 600); }catch(e){ console.warn('merge toggle failed', e); } }); } }catch(e){} });
+      // expose getter for other scripts
+      try{ window.getCMASSMappingOverrides = getMappingOverrides; }catch(e){}
+    })();
+  </script>
+  <!-- Global diagnostic handlers removed to avoid automatic error-overlay activation -->
+  <script>
+  // Canonicalize legacy lowercase staff tokens to canonical tokens so address bar shows consistent URLs.
+    (function canonStaffParam(){
+      try {
+        const params = new URLSearchParams(window.location.search);
+    // Accept legacy ?staff= but canonicalize to canonical casing
+  // Prefer canonical 'staff' query parameter only
+  const staff = params.get('staff');
+        if (!staff) return;
+
+        const canonMap = {
+          'songhunje': 'Songhoonjae',
+          'songhoonjae': 'Songhoonjae',
+          'limjunho': 'LimJunho',
+          'imjunho': 'LimJunHo',
+          'joyounghwan': 'ChoYounghwan',
+          'choyounghwan': 'ChoYounghwan'
+        };
+
+        const lower = String(staff).trim().toLowerCase();
+        const mapped = canonMap[lower];
+        if (mapped && mapped !== staff) {
+          // set the new 'staff' param and remove legacy 'user' to avoid duplicates
+          params.set('staff', mapped);
+          params.delete('user');
+          const newUrl = window.location.pathname + '?' + params.toString();
+          history.replaceState(null, '', newUrl);
+        }
+      } catch (e) {
+        console.warn('canonUserParam error', e);
+      }
+    })();
+  </script>
+  <script>
+  // Derive and display staff label based on the ?staff= query parameter.
+    (function initStaffLabel(){
+      const legacyToCanonical = {
+        'songhunje': 'Songhoonjae',
+        'songhoonjae': 'Songhoonjae',
+        'limjunho': 'LimJunho',
+        'imjunho': 'LimJunho',
+        'joyounghwan': 'ChoYounghwan',
+        'choyounghwan': 'ChoYounghwan'
+      };
+      const labelMap = {
+        'Songhoonjae': { label: '송훈재 부장', base: '송훈재' },
+        'LimJunho': { label: '임준호 차장', base: '임준호' },
+        'ChoYounghwan': { label: '조영환 부장', base: '조영환' }
+      };
+
+      function normalizeToken(token){
+        if (!token) return '';
+        const trimmed = token.trim();
+        if (!trimmed) return '';
+        const lower = trimmed.toLowerCase();
+        return legacyToCanonical[lower] || trimmed;
+      }
+
+      function resolveLabel(token){
+        if (!token) return '';
+        const canonical = normalizeToken(token);
+        const mapped = labelMap[canonical];
+        if (mapped && mapped.label) return mapped.label;
+        // fallback: if canonical already looks like Korean name, use as-is
+        if (/^[가-힣\s]+$/.test(canonical)) return canonical;
+        return canonical;
+      }
+
+      function stripTitle(label){
+        if (!label) return '';
+        return label.replace(/\s*(부장|차장|과장|대리|팀장|선생님|선생)$/g, '').trim();
+      }
+
+      function applyStaff(label){
+        try{
+          const infoEl = document.getElementById('staffInfo');
+          if (infoEl) infoEl.textContent = '담당자: ' + (label || '-');
+          const dbg = document.getElementById('dbgStaff');
+          if (dbg) dbg.textContent = label || '-';
+        }catch(err){ console.warn('applyStaff failed', err); }
+      }
+
+      document.addEventListener('DOMContentLoaded', function(){
+        try{
+          const params = new URLSearchParams(window.location.search);
+          const userParam = params.get('staff') || '';
+          const canonicalToken = normalizeToken(userParam);
+          const label = resolveLabel(canonicalToken);
+          window._cmass_staffToken = canonicalToken || '';
+          window._cmass_staffParam = label || '';
+          window._cmass_staffBase = stripTitle(label) || '';
+          try{ localStorage.setItem('cmass:staff', window._cmass_staffParam || ''); localStorage.setItem('cmass:staffToken', window._cmass_staffToken || ''); }catch(e){}
+          applyStaff(label);
+          if (typeof updateTopline === 'function') updateTopline();
+          if (typeof window.updateDebugOverlay === 'function') window.updateDebugOverlay();
+        }catch(err){ console.warn('initStaffLabel failed', err); }
+      });
+    })();
+  </script>
+
+  <script>
+    // Update topline display: "담당자 - 방문일 - 지역 - 학교"
+    (function(){
+      window.updateTopline = function(){
+        try{
+          const staff = window._cmass_staffParam || '-';
+          const visitDate = (document.getElementById('visitDate')?.value || '').trim();
+          const region = window.selectedRegion || '-';
+          const school = window.selectedSchool || '-';
+          
+          const text = `${staff} - ${visitDate || '-'} - ${region} - ${school}`;
+          
+          // Update both Step1 and Step2 toplines
+          const topline = document.getElementById('cmass-topline');
+          if (topline) topline.textContent = text;
+          
+          const toplineCopies = document.querySelectorAll('.cmass-topline-copy');
+          toplineCopies.forEach(el => {
+            if (el) el.textContent = text;
+          });
+        }catch(e){
+          console.warn('updateTopline failed', e);
+        }
+      };
+
+      // Update on visitDate change
+      document.addEventListener('DOMContentLoaded', function(){
+        const visitDateInput = document.getElementById('visitDate');
+        if (visitDateInput) {
+          visitDateInput.addEventListener('change', function(){
+            if (typeof updateTopline === 'function') updateTopline();
+          });
+        }
+      });
+    })();
+  </script>
+  <div style="width:95vw;max-width:640px;margin:0 auto 8px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+  <h2 style="margin:0;flex:0 0 auto">영업일지 입력</h2>
+  <button id="goFrontBtn" type="button" style="background:#1e3c72;color:#fff;border:none;padding:.6rem .9rem;border-radius:.8rem;font-weight:800;cursor:pointer;box-shadow:0 8px 22px rgba(18,50,90,0.12);white-space:nowrap;">뒤로 가기</button>
+  </div>
+  <script>
+    (function(){
+      // Remove any leftover redirect banner or links that mention the old .html legacy URL
+      function removeLegacyRedirectBanner(){
+        try{
+          const walkers = Array.from(document.querySelectorAll('a, p, div, span'));
+          walkers.forEach(el => {
+            try{
+              const txt = (el.textContent || '').toString();
+              if (/redirecting to/i.test(txt) && /input(\.html)?/i.test(txt)) {
+                el.remove();
+                return;
+              }
+              if (el.tagName.toLowerCase() === 'a' && el.getAttribute('href') && /input(\.html)?/i.test(el.getAttribute('href'))) {
+                el.remove();
+                return;
+
+              }
+            }catch(e){}
+          });
+          Array.from(document.body.childNodes).forEach(n => {
+            try{
+              if (n.nodeType === Node.TEXT_NODE && /Redirecting to\s+input(\.html)?/i.test(n.textContent||'')) {
+                if (n.parentNode) n.parentNode.removeChild(n);
+              }
+            }catch(e){}
+          });
+        }catch(e){/* ignore */}
+      }
+
+      function navigateBackToFront(){
+        // Always navigate explicitly to front.html (preserve querystring)
+        const query = window.location.search || '';
+        const target = '/front.html' + query;
+        try{ window.location.assign(target); }catch(e){ window.location.href = target; }
+      }
+
+      document.addEventListener('DOMContentLoaded', function(){
+        removeLegacyRedirectBanner();
+        const btn = document.getElementById('goFrontBtn');
+
+        if (btn) {
+          btn.addEventListener('click', function(ev){
+            ev.preventDefault();
+            navigateBackToFront();
+          });
+        }
+      });
+    })();
+  </script>
+
+
+  <div id="mainContent" style="display:block;" data-cmass-protect="1">
+    <form>
+  <!-- single-line topline moved here so it sits between '뒤로 가기' and the 방문일 selector -->
+  <div id="cmass-topline" style="margin:0 0 8px 0;color:#12325a;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">&nbsp;</div>
+  
+  <!-- Visit accumulation status -->
+  <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.8rem;">
+    <div id="visitAccumStatus" style="flex:1;padding:0.5rem;background:#f0f7ff;border-radius:0.6rem;font-size:0.9rem;color:#1e3c72;">누적: 0개 학교</div>
+  </div>
+  
+  <label for="visitDate">방문일</label>
+  <input type="date" id="visitDate" name="visitDate" required style="padding:.7rem;border-radius:.8rem;border:1px solid #d6dbe8;margin-bottom:.6rem;" />
+  <div id="staffInfo" style="font-size:1.2rem;font-weight:bold;margin-bottom:1rem;">담당자: -</div>
+  <label>지역</label>
+  <div style="display:flex;gap:.5rem;margin-bottom:.6rem;align-items:center;">
+    <input id="searchInput" type="search" placeholder="지역 또는 학교 검색" style="flex:1;padding:.7rem;border-radius:.8rem;border:1px solid #d6dbe8;" aria-label="지역 또는 학교 검색" />
+    <button type="button" id="searchClear" style="padding:.6rem .8rem;border-radius:.8rem;border:1px solid #d6dbe8;background:#fff;">지우기</button>
+  </div>
+  <div id="regionButtons" class="btn-grid" role="listbox" aria-label="지역 선택"></div>
+    <label>학교명</label>
+    <div id="schoolButtons" class="btn-grid" role="listbox" aria-label="학교명 선택"></div>
+
+    <!-- inline school metadata shown immediately after selecting a school -->
+  <div id="schoolMetaInline" class="meta-card hidden">
+      <h4>학교 정보</h4>
+      <div class="meta-summary">
+        <div class="meta-pill" id="inlinePillEstablish">설립: -</div>
+
+        <div class="meta-pill" id="inlinePillLevel">급: -</div>
+        <div class="meta-pill" id="inlinePillStudents">총학생수: -</div>
+        <div class="meta-pill" id="inlinePillFeature" style="display:none;">특성: -</div>
+      </div>
+      <div class="grade-rows">
+        <div class="grade-row"><div class="grade-label">1학년:</div><div class="grade-value"><span id="inlineG1c"></span> 학급 / <span id="inlineG1s"></span> 학생</div></div>
+        <div class="grade-row"><div class="grade-label">2학년:</div><div class="grade-value"><span id="inlineG2c"></span> 학급 / <span id="inlineG2s"></span> 학생</div></div>
+        <div class="grade-row"><div class="grade-label">3학년:</div><div class="grade-value"><span id="inlineG3c"></span> 학급 / <span id="inlineG3s"></span> 학생</div></div>
+      </div>
+
+      <!-- Inline NEIS timetable controls for quick lookup when selecting from the list -->
+      <div style="margin-top:12px;padding-top:8px;border-top:1px dashed #e6eefc;">
+        <label style="font-weight:900;display:block;margin-bottom:6px;">시간표 가져오기 (NEIS)</label>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+          <select id="inlineNeisYear" style="padding:.45rem;border-radius:.5rem;border:1px solid #d6dbe8;"> 
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+          </select>
+          <select id="inlineNeisSemester" style="padding:.45rem;border-radius:.5rem;border:1px solid #d6dbe8;">
+            <option value="1">1학기</option>
+            <option value="2" selected>2학기</option>
+          </select>
+
+          <button type="button" id="btnFetchSelectedTimetableInline" class="meeting-btn" style="margin-left:6px;">선택 학교 시간표 보기</button>
+          <button type="button" id="btnCloseTimetableInline" class="meeting-btn" style="margin-left:6px;background:#fff;color:#12325a;border:1px solid #d6dbe8;display:none;">시간표 닫기</button>
+        </div>
+        <div id="timetableProgressInline" style="margin-top:8px;color:#175;display:none;font-size:13px;"></div>
+        <div id="timetableContainerInline" style="margin-top:10px;"></div>
+      </div>
+      </div>
+    <!-- Action buttons: Next (navigate to meeting.html with params) -->
+    <div style="margin-top:1rem;">
+      <button type="button" id="nextStepBtn" style="width:100%;margin:1rem 0 0 0;padding:1rem;font-size:1.1rem;border-radius:1rem;background:#1e3c72;color:#fff;font-weight:bold;border:none;cursor:pointer;">다음</button>
+    </div>
+
+  <script>
+    // Step navigation: Next button (Step1 -> Step2)
+    (function(){
+      document.addEventListener('DOMContentLoaded', function(){
+        const nextBtn = document.getElementById('nextStepBtn');
+        const backBtn = document.getElementById('backBtn');
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+
+        if (nextBtn) {
+          nextBtn.addEventListener('click', function(){
+            // Validate Step1 inputs
+            const visitDate = document.getElementById('visitDate')?.value;
+            const region = window.selectedRegion || '';
+            const school = window.selectedSchool || '';
+            // legacy 'user' removed - prefer 'staff'
+            const userParam = '';
+
+            if (!visitDate) {
+              alert('방문일을 선택해주세요.');
+              return;
+            }
+            if (!region) {
+              alert('지역을 선택해주세요.');
+              return;
+            }
+            if (!school) {
+              alert('학교를 선택해주세요.');
+              return;
+            }
+
+            // Navigate to meeting.html with parameters (staff, date, region, school)
+            const staffParam = window._cmass_staffParam || new URLSearchParams(window.location.search).get('staff') || '';
+            const params = new URLSearchParams({
+              staff: staffParam,
+              school: school,
+              region: region,
+              date: visitDate
+            });
+            // Navigate to the explicit HTML file to avoid relying on hosting rewrites
+            window.location.href = '/meeting.html?' + params.toString();
+          });
+        }
+
+        if (backBtn) {
+          backBtn.addEventListener('click', function(){
+            console.log('[BACK] 뒤로 돌아가기 클릭 — 네비게이트 /front');
+
+            // Preserve staff query param when navigating back to /front
+            // Preserve staff query param when navigating back to /front (only 'staff' supported)
+            const staffParam = window._cmass_staffParam || new URLSearchParams(window.location.search).get('staff') || '';
+            const tgtParams = new URLSearchParams(); if (staffParam) tgtParams.set('staff', staffParam);
+            const target = '/front' + (tgtParams.toString() ? ('?' + tgtParams.toString()) : '');
+
+            // Navigate to front (explicit HTML path)
+            window.location.href = target;
+          });
+        }
+      });
+    })();
+  </script>
+  
+
+  <script>
+    (function(){
+      'use strict';
+      let regionContainer;
+      let schoolContainer;
+      let searchInput;
+      let searchClearBtn;
+      let hiddenRegionInput;
+      let hiddenSchoolInput;
+
+      let allRegions = [];
+      let staffScopedRegions = [];
+      let visibleRegions = [];
+  let staffToken = '';
+  let resizeFitTimer = null;
+
+      function fitSelectorLabels(){
+        requestAnimationFrame(() => {
+          const labels = document.querySelectorAll('.selector-btn .selector-label');
+          labels.forEach((label) => {
+            try {
+              label.style.fontSize = '';
+              const btn = label.closest('.selector-btn');
+              if (!btn) return;
+              const btnStyles = window.getComputedStyle(btn);
+              const available = btn.clientWidth - ((parseFloat(btnStyles.paddingLeft) || 0) + (parseFloat(btnStyles.paddingRight) || 0));
+              if (available <= 0) return;
+              const computed = window.getComputedStyle(label);
+              let size = parseFloat(computed.fontSize) || 15;
+              const minSize = 10;
+              label.style.fontSize = size + 'px';
+              while (label.scrollWidth > available && size > minSize){
+                size -= 0.5;
+                label.style.fontSize = size + 'px';
+              }
+              if (label.scrollWidth > available) label.style.fontSize = minSize + 'px';
+            } catch (err) {
+              /* ignore measurement errors */
+            }
+          });
+        });
+      }
+
+      const normalizeStaff = (name) => (name || '').replace(/\s+/g, '').toLowerCase();
+
+      const cloneRegion = (region, overrideSchools) => {
+        const sourceSchools = overrideSchools || region.schools || [];
+        const schools = sourceSchools.map((s) => ({ name: s.name, staff: (s.staff || []).slice() }));
+        const staff = dedupeStaff(schools.flatMap((s) => s.staff || []));
+        return { name: region.name, schools, staff };
+      };
+
+      document.addEventListener('DOMContentLoaded', init);
+      // When the user navigates via back/forward (popstate) or the page is restored from bfcache (pageshow.persisted),
+      // re-apply region/school selections from the URL or session/local storage and re-render the state.
+      try{
+        window.addEventListener('popstate', function(){
+          try{
+            const params = new URLSearchParams(window.location.search || '');
+            const pRegion = params.get('region') || (sessionStorage.getItem && sessionStorage.getItem('cmass:last_region')) || (localStorage.getItem && localStorage.getItem('cmass:last_region')) || '';
+            const pSchool = params.get('school') || (sessionStorage.getItem && sessionStorage.getItem('cmass:last_school')) || (localStorage.getItem && localStorage.getItem('cmass:last_school')) || '';
+            if (pRegion) { window.selectedRegion = pRegion; if (hiddenRegionInput) hiddenRegionInput.value = pRegion; }
+            if (pSchool) { window.selectedSchool = pSchool; if (hiddenSchoolInput) hiddenSchoolInput.value = pSchool; }
+            try{ renderState(); }catch(e){}
+          }catch(e){ }
+        }, false);
+
+        window.addEventListener('pageshow', function(ev){
+          try{
+            if (ev && ev.persisted) {
+              const params = new URLSearchParams(window.location.search || '');
+              const pRegion = params.get('region') || (sessionStorage.getItem && sessionStorage.getItem('cmass:last_region')) || (localStorage.getItem && localStorage.getItem('cmass:last_region')) || '';
+              const pSchool = params.get('school') || (sessionStorage.getItem && sessionStorage.getItem('cmass:last_school')) || (localStorage.getItem && localStorage.getItem('cmass:last_school')) || '';
+              if (pRegion) { window.selectedRegion = pRegion; if (hiddenRegionInput) hiddenRegionInput.value = pRegion; }
+              if (pSchool) { window.selectedSchool = pSchool; if (hiddenSchoolInput) hiddenSchoolInput.value = pSchool; }
+              try{ renderState(); }catch(e){}
+            }
+          }catch(e){}
+        }, false);
+      }catch(e){}
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeFitTimer);
+        resizeFitTimer = setTimeout(fitSelectorLabels, 80);
+      });
+
+      async function init(){
+        regionContainer = document.getElementById('regionButtons');
+        schoolContainer = document.getElementById('schoolButtons');
+        if (!regionContainer || !schoolContainer) return;
+
+        searchInput = document.getElementById('searchInput');
+        searchClearBtn = document.getElementById('searchClear');
+        hiddenRegionInput = document.getElementById('selectedRegionInput');
+        hiddenSchoolInput = document.getElementById('selectedSchoolInput');
+        // Apply URL / session fallbacks for region and school so Back navigation preserves selections
+        try {
+          const params = new URLSearchParams(window.location.search || '');
+          const pRegion = params.get('region') || (sessionStorage.getItem && sessionStorage.getItem('cmass:last_region')) || (localStorage.getItem && localStorage.getItem('cmass:last_region')) || '';
+          const pSchool = params.get('school') || (sessionStorage.getItem && sessionStorage.getItem('cmass:last_school')) || (localStorage.getItem && localStorage.getItem('cmass:last_school')) || '';
+          if (pRegion) { window.selectedRegion = pRegion; if (hiddenRegionInput) hiddenRegionInput.value = pRegion; }
+          if (pSchool) { window.selectedSchool = pSchool; if (hiddenSchoolInput) hiddenSchoolInput.value = pSchool; }
+        } catch (e) { /* ignore */ }
+
+        staffToken = determineStaffToken();
+        allRegions = await loadRegionData();
+        if (!allRegions.length){
+          regionContainer.innerHTML = '<div class="empty-message">담당자 CSV를 불러오지 못했습니다.</div>';
+          schoolContainer.innerHTML = '';
+          return;
+        }
+
+        staffScopedRegions = filterRegionsByStaff(allRegions, staffToken);
+        visibleRegions = staffScopedRegions.slice();
+        renderState();
+        attachSearchHandlers();
+      }
+
+      async function loadRegionData(){
+        const regions = await fetchCsvRegions().catch(() => []);
+        return Array.isArray(regions) ? regions : [];
+      }
+
+
+      function dedupeStaff(list){
+        const seen = new Set();
+        const out = [];
+        (list || []).forEach((name) => {
+          const trimmed = (name || '').trim();
+          const key = normalizeStaff(trimmed);
+          if (!trimmed || seen.has(key)) return;
+          seen.add(key);
+          out.push(trimmed);
+        });
+        return out;
+      }
+
+      function findHeaderIndex(header, candidates){
+        if (!Array.isArray(header)) return -1;
+        for (let i = 0; i < header.length; i += 1){
+          const cell = (header[i] || '').trim();
+          if (!cell) continue;
+          if (candidates.some((name) => (name || '').trim() === cell)) return i;
+        }
+        return -1;
+      }
+
+      async function fetchCsvRegions(){
+        const rows = await fetchCsvRows().catch(() => []);
+        if (!rows || !rows.length) return [];
+        const header = rows[0];
+        const idxRegion = findHeaderIndex(header, ['region','지역']);
+        const idxSchool = findHeaderIndex(header, ['school','학교','학교명']);
+        let idxStaff = findHeaderIndex(header, ['staff','담당자']);
+        if (idxStaff === -1) idxStaff = header.findIndex((h) => /staff/i.test((h || '').trim()));
+        if (idxRegion === -1 || idxSchool === -1){
+          console.warn('CSV header missing required columns', header);
+          return [];
+        }
+
+        const regionMap = new Map();
+        for (let i = 1; i < rows.length; i += 1){
+          const row = rows[i];
+          if (!row) continue;
+          const regionName = (row[idxRegion] || '').trim();
+          const schoolName = (row[idxSchool] || '').trim();
+          if (!regionName || !schoolName) continue;
+          const staffName = idxStaff >= 0 ? (row[idxStaff] || '').trim() : '';
+          if (!regionMap.has(regionName)) regionMap.set(regionName, { name: regionName, schools: [], staffSet: new Set() });
+          const region = regionMap.get(regionName);
+          const staffList = staffName ? [staffName] : [];
+          region.schools.push({ name: schoolName, staff: staffList });
+          staffList.forEach((s) => region.staffSet.add(s));
+        }
+
+        const regions = Array.from(regionMap.values()).map((region) => {
+          region.schools.sort((a, b) => a.name.localeCompare(b.name, 'ko', { sensitivity: 'base' }));
+          return {
+            name: region.name,
+            schools: region.schools.map((s) => ({ name: s.name, staff: dedupeStaff(s.staff) })),
+            staff: dedupeStaff(Array.from(region.staffSet))
+          };
+        });
+
+        regions.sort((a, b) => a.name.localeCompare(b.name, 'ko', { sensitivity: 'base' }));
+        return regions;
+      }
+
+  // CSV helper implementations are centralized in /csv-helpers.js. Removed inline
+  // fallback implementations (fetchCsvRows) to avoid duplication. The canonical
+  // functions are exposed as window.fetchCsvRows / window.parseCsv / window.parseSchoolMetaCsv.
+
+  // parseCsv is provided by /csv-helpers.js. Inline fallback removed to prevent
+  // duplicate implementations and inconsistent behavior across pages.
+
+      function determineStaffToken(){
+        const base = (window._cmass_staffBase || '').trim();
+        if (base) return base;
+        const raw = (window._cmass_staffParam || '').replace(/\s*(부장|차장|과장|대리|팀장|선생님|선생)$/g, '').trim();
+        return raw || '';
+      }
+
+      function filterRegionsByStaff(regions, staffName){
+        if (!staffName) return regions.map((r) => cloneRegion(r));
+        const norm = normalizeStaff(staffName);
+        const filtered = [];
+        regions.forEach((region) => {
+          const matches = (region.schools || []).filter((school) =>
+            (school.staff || []).some((s) => normalizeStaff(s) === norm)
+          );
+          if (matches.length) filtered.push(cloneRegion(region, matches));
+        });
+        return filtered;
+      }
+
+      function attachSearchHandlers(){
+        if (!searchInput) return;
+        let timer = null;
+        searchInput.addEventListener('input', () => {
+          clearTimeout(timer);
+          timer = setTimeout(() => applySearch(searchInput.value || ''), 140);
+        });
+        if (searchClearBtn){
+          searchClearBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            applySearch('');
+            searchInput.focus();
+          });
+        }
+      }
+
+      function applySearch(keyword){
+        const trimmed = (keyword || '').trim().toLowerCase();
+        const baseList = staffScopedRegions.map((r) => cloneRegion(r));
+        if (!trimmed){
+          visibleRegions = baseList;
+        } else {
+          const filtered = [];
+          baseList.forEach((region) => {
+            const regionMatch = region.name.toLowerCase().includes(trimmed);
+            const matchedSchools = region.schools.filter((school) => {
+              if (school.name && school.name.toLowerCase().includes(trimmed)) return true;
+              return (school.staff || []).some((s) => (s || '').toLowerCase().includes(trimmed));
+          });
+          if (regionMatch) filtered.push(cloneRegion(region));
+          else if (matchedSchools.length) filtered.push(cloneRegion(region, matchedSchools));
+        });
+        visibleRegions = filtered;
+      }
+
+      if (!visibleRegions.some((r) => r.name === window.selectedRegion)){
+        window.selectedRegion = '';
+        if (hiddenRegionInput) hiddenRegionInput.value = '';
+        window.selectedSchool = '';
+        if (hiddenSchoolInput) hiddenSchoolInput.value = '';
+      }
+      renderState();
+    }      function renderState(){
+        let activeRegion = findRegion(window.selectedRegion, visibleRegions);
+        if (!activeRegion && visibleRegions.length){
+          activeRegion = visibleRegions[0];
+          window.selectedRegion = activeRegion.name;
+          if (hiddenRegionInput) hiddenRegionInput.value = activeRegion.name;
+        }
+        if (activeRegion){
+          const hasSchool = activeRegion.schools.some((s) => s.name === window.selectedSchool);
+          if (!hasSchool){
+            window.selectedSchool = '';
+            if (hiddenSchoolInput) hiddenSchoolInput.value = '';
+          }
+        } else {
+          window.selectedSchool = '';
+          if (hiddenSchoolInput) hiddenSchoolInput.value = '';
+        }
+        renderRegions();
+        renderSchools(activeRegion);
+        toggleInlineMeta(!!window.selectedSchool);
+  try{ if (typeof updateTopline === 'function') updateTopline(); }catch(e){ /* ignore */ }
+  try{ if (typeof window.updateDebugOverlay === 'function') window.updateDebugOverlay(); }catch(e){ /* ignore */ }
+        fitSelectorLabels();
+      }
+
+      function toggleInlineMeta(show){
+        const inline = document.getElementById('schoolMetaInline');
+        if (!inline) return;
+          // Toggle visibility by adding/removing the .hidden class instead
+          // of manipulating inline styles. This keeps CSS and JS responsibilities
+          // clearer and avoids specificity issues.
+          try{ inline.classList.toggle('hidden', !show); }catch(e){}
+      }
+
+      function renderRegions(){
+        regionContainer.innerHTML = '';
+        if (!visibleRegions.length){
+          regionContainer.innerHTML = '<div class="empty-message">담당으로 등록된 지역이 없습니다. 매핑 정보를 확인해주세요.</div>';
+          return;
+        }
+        const frag = document.createDocumentFragment();
+        visibleRegions.forEach((region) => {
+          const btn = buildSelectorButton(region.name, region.staff);
+          btn.dataset.region = region.name;
+          if (window.selectedRegion === region.name) {
+            btn.classList.add('is-active');
+            btn.setAttribute('aria-pressed', 'true');
+          } else {
+            btn.setAttribute('aria-pressed', 'false');
+          }
+          if (staffToken && region.staff.some((s) => normalizeStaff(s) === normalizeStaff(staffToken))) btn.classList.add('assigned');
+          btn.addEventListener('click', () => selectRegion(region.name));
+          frag.appendChild(btn);
+        });
+        regionContainer.appendChild(frag);
+      }
+
+      function renderSchools(region){
+        schoolContainer.innerHTML = '';
+        if (!region){
+          schoolContainer.innerHTML = visibleRegions.length ? '<div class="empty-message">지역을 먼저 선택하세요.</div>' : '<div class="empty-message">담당으로 등록된 학교가 없습니다.</div>';
+          return;
+        }
+        if (!region.schools.length){
+          schoolContainer.innerHTML = '<div class="empty-message">등록된 학교가 없습니다.</div>';
+          return;
+        }
+        const frag = document.createDocumentFragment();
+        region.schools.forEach((school) => {
+          const btn = buildSelectorButton(school.name, school.staff);
+          btn.dataset.school = school.name;
+          if (window.selectedSchool === school.name){
+            btn.classList.add('is-active');
+            btn.setAttribute('aria-pressed', 'true');
+          } else {
+            btn.setAttribute('aria-pressed', 'false');
+          }
+          if (staffToken && (school.staff || []).some((s) => normalizeStaff(s) === normalizeStaff(staffToken))) btn.classList.add('assigned');
+          btn.addEventListener('click', () => selectSchool(region.name, school.name));
+          frag.appendChild(btn);
+        });
+        schoolContainer.appendChild(frag);
+      }
+
+      function buildSelectorButton(label, staffList){
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'selector-btn';
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'selector-label';
+        labelSpan.textContent = label;
+        btn.appendChild(labelSpan);
+        return btn;
+      }
+
+      function selectRegion(name){
+        window.selectedRegion = name;
+        if (hiddenRegionInput) hiddenRegionInput.value = name;
+        window.selectedSchool = '';
+        if (hiddenSchoolInput) hiddenSchoolInput.value = '';
+        renderState();
+      }
+
+      function selectSchool(regionName, schoolName){
+        console.log('[SELECT] ===== 학교 선택됨 =====');
+        console.log('[SELECT] 지역:', regionName, '학교:', schoolName);
+        console.log('[SELECT] applyMappingIfPresent 존재?', typeof window.applyMappingIfPresent);
+        
+        // Cancel any previous school selection timer
+        if(window._schoolSelectionTimer) {
+          clearTimeout(window._schoolSelectionTimer);
+          console.log('[SELECT] Cancelled previous selection timer');
+        }
+        
+        // Clear any pending auto-save timers
+        if(window.draftTimer) {
+          clearTimeout(window.draftTimer);
+          console.log('[SELECT] Cleared pending auto-save timer');
+        }
+        
+        // Set flag to prevent auto-save during school selection
+        if(typeof window._isSelectingSchool !== 'undefined') window._isSelectingSchool = true;
+        
+  window.selectedRegion = regionName;
+  if (hiddenRegionInput) hiddenRegionInput.value = regionName;
+  window.selectedSchool = schoolName;
+  if (hiddenSchoolInput) hiddenSchoolInput.value = schoolName;
+  // Persist selection so other pages can recover if query params are lost
+  try { sessionStorage.setItem('cmass:last_region', regionName); sessionStorage.setItem('cmass:last_school', schoolName); } catch(e) { /* ignore storage errors */ }
+        renderState();
+        
+        console.log('[SELECT] applyMappingIfPresent 호출 직전...');
+        try{
+          if (typeof window.applyMappingIfPresent === 'function') {
+            console.log('[SELECT] applyMappingIfPresent 호출 시작');
+            window.applyMappingIfPresent(regionName, schoolName).catch((err) => {
+              console.error('[SELECT] applyMappingIfPresent Promise rejected:', err);
+            });
+          } else {
+            console.error('[SELECT] ❌ window.applyMappingIfPresent가 함수가 아님!', typeof window.applyMappingIfPresent);
+          }
+        }catch(err){ console.error('[SELECT] ❌ applyMappingIfPresent invocation failed', err); }
+        
+        // Note: Draft loading is now ONLY done when clicking "Next" button
+        // Keep auto-save blocked while in Step1
+        if(!window._isStep2Active) {
+          console.log('[SELECT] Keeping auto-save blocked (Step1)');
+        } else {
+          // Re-enable auto-save if we're in Step2 (changing school while in Step2)
+          window._schoolSelectionTimer = setTimeout(() => {
+            if(window._isStep2Active && typeof window._isSelectingSchool !== 'undefined') {
+              window._isSelectingSchool = false; 
+              console.log('[SELECT] Auto-save re-enabled (Step2)');
+            }
+          }, 500);
+        }
+      }
+
+      function findRegion(name, collection){
+        if (!name) return null;
+        const list = collection || [];
+        for (let i = 0; i < list.length; i += 1){
+          if (list[i].name === name) return list[i];
+        }
+        return null;
+      }
+    })();
+  </script>
+
+  <script>
+    // Apply school metadata from CSV mapping files
+    (function(){
+      window.applyMappingIfPresent = async function(region, school){
+        // Normalize and guard against empty or whitespace-only inputs
+        try { region = (region || '').toString().trim(); } catch(e) { region = ''; }
+        try { school = (school || '').toString().trim(); } catch(e) { school = ''; }
+        if (!region || !school) {
+          console.log('[Mapping] empty region or school - skipping applyMappingIfPresent', { region, school });
+          return;
+        }
+
+        // Prevent duplicate application for the same region+school.
+        // This avoids double-fetching/applying CSV metadata when the
+        // selection handler is invoked multiple times in quick succession.
+        try {
+          const mapKey = `${region}::${school}`;
+          // If a mapping fetch for this key is already in progress, skip.
+          if (window._cmass_mappingInProgress === mapKey) {
+            console.log('[Mapping] mapping already in progress for', mapKey, ' — skipping duplicate call');
+            return;
+          }
+          // If we've already applied metadata for this exact key, skip re-applying.
+          if (window._cmass_lastAppliedMappingKey === mapKey) {
+            console.log('[Mapping] mapping already applied for', mapKey, ' — skipping');
+            return;
+          }
+          // Mark as in-progress
+          window._cmass_mappingInProgress = mapKey;
+        } catch (guardErr) {
+          // non-fatal
+        }
+
+        try {
+          // Try to fetch per-school metadata CSVs first
+          const schoolKey = (school || '').replace(/\s+/g, '_');
+          const candidates = schoolKey ? [
+            `/school_meta/${schoolKey}.csv`,
+            `/school_mappings/${schoolKey}.csv`,
+            `/mappings/${schoolKey}.csv`
+          ] : [];
+
+          let metaData = null;
+          for (const path of candidates){
+            try{
+              const res = await fetch(path, { cache: 'no-store' }).catch(() => null);
+              if (!res || !res.ok){ lastError = res ? res.status : 'fetch-failed'; continue; }
+              const ct = (res.headers.get('content-type') || '').toLowerCase();
+              if (!(ct.includes('csv') || ct.includes('text/plain') || ct.includes('application/octet-stream'))){
+                lastError = `unexpected-content-type:${ct}`;
+                continue;
+              }
+              const text = await res.text();
+              if (!text || !text.trim()){ lastError = 'empty'; continue; }
+              // Prefer small per-school CSV parser to return canonical meta
+              const m = (typeof parseSchoolMetaCsv === 'function') ? parseSchoolMetaCsv(text) : null;
+              if (m) { metaData = m; console.log('[Mapping] Found metadata for', school, 'at', path); break; }
+            }catch(e){
+              console.warn('[Mapping] per-school fetch failed for', path, e);
+            }
+          }
+          // Fallback: if no per-school CSV, try the consolidated sales_staff.csv you provided
+
+          // Fallback: if no per-school CSV, try the consolidated sales_staff.csv you provided
+          if (!metaData) {
+            try {
+              console.log('[Mapping] attempting consolidated CSV search using fetchCsvRows()');
+              const rows = (typeof fetchCsvRows === 'function') ? await fetchCsvRows().catch(() => null) : null;
+              if (rows && rows.length >= 2){
+                const headers = (rows[0] || []).map(h => (h || '').trim());
+
+                // detect school column robustly
+                let schoolColIndex = -1;
+                schoolColIndex = headers.findIndex(h => /^school$/i.test(h) || /^학교$/i.test(h));
+                if (schoolColIndex < 0) schoolColIndex = headers.findIndex(h => /\bschool\b/i.test(h));
+                if (schoolColIndex < 0) schoolColIndex = headers.findIndex(h => /(^|\s|_)학교(\s|_|$)/i.test(h));
+                if (schoolColIndex < 0) schoolColIndex = headers.findIndex(h => /school|학교/i.test(h));
+
+                console.log('[Mapping] consolidated headers count', headers.length, 'sample', headers.slice(0,8));
+                console.log('[Mapping] detected schoolColIndex', schoolColIndex);
+
+                function normalizeForMatch(name){
+                  if (!name) return '';
+                  try{ name = String(name); }catch(e){ name = ''; }
+                  try{ if (name.normalize) name = name.normalize('NFKC'); }catch(e){}
+                  name = name.replace(/\(.+?\)/g, '');
+                  name = name.replace(/[\p{P}\p{S}\s]+/gu, '');
+                  name = name.replace(/(고등학교|중학교|초등학교|학교)$/,'');
+                  return name.toLowerCase();
+                }
+
+                const normTarget = normalizeForMatch(school || '');
+                console.log('[Mapping] normTarget for lookup:', normTarget);
+
+                if (schoolColIndex >= 0){
+                  let mismatchCount = 0;
+                  for (let i = 1; i < rows.length; i++){
+                    const row = rows[i] || [];
+                    if (!Array.isArray(row) || row.length === 0) continue;
+                    if (row.length !== headers.length) mismatchCount += 1;
+                    const name = (row[schoolColIndex] || '').trim();
+                    const normRow = normalizeForMatch(name);
+                    if (i < 6) console.log('[Mapping] sample row', i, 'name:', name, 'normRow:', normRow);
+                    if (!name) continue;
+                    // exact normalized match
+                    if (normRow === normTarget && normTarget){
+                      const parsed = {};
+                      headers.forEach((h, idx) => { if (typeof row[idx] !== 'undefined' && String(row[idx]).trim() !== '') parsed[h] = row[idx]; });
+                      metaData = parsed; console.log('[Mapping] Found metadata for', school, 'in consolidated CSV (row', i, ')'); break;
+                    }
+                    // substring / token heuristics
+                    if (normRow && normTarget){
+                      const shortLen = Math.min([...normRow].length, [...normTarget].length);
+                      const isSubstr = (normRow.includes(normTarget) || normTarget.includes(normRow));
+                      if (isSubstr && shortLen >= 2){ const parsed = {}; headers.forEach((h, idx) => { if (typeof row[idx] !== 'undefined' && String(row[idx]).trim() !== '') parsed[h] = row[idx]; }); metaData = parsed; console.log('[Mapping] Found metadata (partial match) for', school, 'in consolidated CSV (row', i, ')'); break; }
+                      try{ const tokensRow = (normRow || '').split(/[^\p{L}\p{N}]+/u).filter(Boolean); const tokensTarget = (normTarget || '').split(/[^\p{L}\p{N}]+/u).filter(Boolean); const shared = tokensRow.filter(t => tokensTarget.includes(t)); if (!metaData && shared.length && shared.some(t => [...t].length >= 2)){ const parsed = {}; headers.forEach((h, idx) => { if (typeof row[idx] !== 'undefined' && String(row[idx]).trim() !== '') parsed[h] = row[idx]; }); metaData = parsed; console.log('[Mapping] Found metadata (token match) for', school, 'in consolidated CSV (row', i, ')', 'shared:', shared); break; } }catch(e){}
+                    }
+                  }
+                  if (mismatchCount) console.log('[Mapping] total rows with length mismatch:', mismatchCount);
+                } else {
+                  console.warn('[Mapping] could not detect school column in consolidated CSV headers', headers);
+                }
+              } else {
+                console.log('[Mapping] consolidated CSV parsed but no rows found');
+              }
+            } catch (e) {
+              console.warn('[Mapping] consolidated CSV read failed', e);
+            }
+          }
+
+          if (metaData) {
+            // Store and apply the metadata
+            window._cmass_lastFoundMeta = metaData;
+            try{
+              if (typeof window.applyMeta === 'function') window.applyMeta(metaData);
+              // Mark this mapping as applied so subsequent identical calls will be no-ops
+              try{ window._cmass_lastAppliedMappingKey = `${region}::${school}`; }catch(e){}
+            }catch(e){ console.warn('[Mapping] applyMeta failed', e); }
+          } else {
+            console.log('[Mapping] No metadata found for', school);
+          }
+        } catch(err) {
+          console.warn('[Mapping] Error loading metadata:', err);
+        } finally {
+          // Clear in-progress flag for this mapping so future different selections can run.
+          try{
+            const mapKeyClear = `${region}::${school}`;
+            if (window._cmass_mappingInProgress === mapKeyClear) window._cmass_mappingInProgress = null;
+          }catch(e){}
+        }
+      };
+
+        // Use first visit for date and staff info
+        const firstVisit = visitList[0];
+        const staff = firstVisit.staff || '영업사원';
+        const visitDate = firstVisit.visitDate || '-';
+
+        // Calculate total stats across all visits
+        let totalMeetings = 0;
+        let totalContactCount = 0;
+        let earliestStartMinutes = Infinity;
+        let latestEndMinutes = 0;
+
+        visitList.forEach(visit => {
+          totalMeetings += visit.subjects.reduce((sum, subj) => sum + (subj.meetings?.length || 0), 0);
+          totalContactCount += visit.subjects.filter(subj => subj.contactFormatted || subj.contactSuffix).length;
+          
+          const startHour = parseInt(visit.visitStartHour) || 0;
+          const startMinute = parseInt(visit.visitStartMinute) || 0;
+          const startTotal = startHour * 60 + startMinute;
+          const durationMinutes = parseInt(visit.visitDuration) || 0;
+          const endTotal = startTotal + durationMinutes;
+          
+          if (startTotal < earliestStartMinutes) earliestStartMinutes = startTotal;
+          if (endTotal > latestEndMinutes) latestEndMinutes = endTotal;
+        });
+
+        const startHour = Math.floor(earliestStartMinutes / 60);
+        const startMinute = earliestStartMinutes % 60;
+        const endHour = Math.floor(latestEndMinutes / 60);
+        const endMinute = latestEndMinutes % 60;
+        const totalDurationMinutes = latestEndMinutes - earliestStartMinutes;
+        const durationHours = Math.floor(totalDurationMinutes / 60);
+        const remainMinutes = totalDurationMinutes % 60;
+
+        // Build header
+        let summary = `(${staff} 부장 퇴근보고)\n`;
+        summary += `방문일: ${visitDate}\n`;
+        summary += `총 방문 학교: ${visitList.length}개 · 총 미팅수: ${totalMeetings}건 · 연락처 확보: ${totalContactCount}건 · 추가선정 확인: 0건\n\n`;
+
+        // 1. Commute time
+        summary += `1. 출근: ${String(startHour).padStart(2,'0')}:${String(startMinute).padStart(2,'0')} · `;
+        summary += `퇴근: ${String(endHour).padStart(2,'0')}:${String(endMinute).padStart(2,'0')} `;
+        summary += `(${durationHours}시간 ${remainMinutes}분)\n\n`;
+
+        // 2. Detailed work
+        summary += `2. 세부업무\n\n`;
+
+        // Iterate through each school visit
+        const schoolLabels = ['가', '나', '다', '라', '마', '바', '사', '아', '자', '차'];
+        visitList.forEach((visit, schoolIdx) => {
+          const label = schoolLabels[schoolIdx] || String.fromCharCode(0xAC00 + schoolIdx);
+          
+          const visitStartHour = parseInt(visit.visitStartHour) || 0;
+          const visitStartMinute = parseInt(visit.visitStartMinute) || 0;
+          const visitDuration = parseInt(visit.visitDuration) || 0;
+          const visitEndHour = Math.floor((visitStartHour * 60 + visitStartMinute + visitDuration) / 60);
+          const visitEndMinute = (visitStartHour * 60 + visitStartMinute + visitDuration) % 60;
+
+          const schoolMeta = visit.schoolMeta || {};
+          const establishType = schoolMeta.설립구분 || '';
+          const studentCount = schoolMeta.학생수계 || '';
+          const schoolType = schoolMeta.학교급 || '';
+
+          summary += `${label}. ${visit.school || '-'} (${establishType}, ${studentCount}명, ${schoolType})\n`;
+          summary += ` ${String(visitStartHour).padStart(2,'0')}:${String(visitStartMinute).padStart(2,'0')}~${String(visitEndHour).padStart(2,'0')}:${String(visitEndMinute).padStart(2,'0')} (${visitDuration}분)\n\n`;
+        
+        const saveToServerBtn_step1 = document.getElementById('saveToServerBtn_step1');
+        if (saveToServerBtn_step1) {
+          saveToServerBtn_step1.addEventListener('click', function() {
+            alert('서버 저장 기능은 추후 구현 예정입니다.');
+          });
+        }
+        
+        
+        // Copy to KakaoTalk button (Step2)
+        const copyKakaoBtn = document.getElementById('copyKakaoBtn');
+        if (copyKakaoBtn) {
+          copyKakaoBtn.addEventListener('click', copyToKakao);
+          console.log('[Buttons] copyKakaoBtn handler attached');
+        }
+        
+        
+        // Form submit button
+        const salesForm = document.getElementById('salesForm');
+        if (salesForm) {
+          salesForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const data = collectFormData();
+            console.log('[Form Submit] Data:', data);
+            
+            // Initialize visit list if needed
+            if (!window._cmass_visitList) {
+              window._cmass_visitList = [];
+            }
+            
+            // Add current school metadata to the visit data
+            data.schoolMeta = window._cmass_lastFoundMeta || {};
+            
+            // Add to accumulated visits
+            window._cmass_visitList.push(data);
+            console.log('[Form Submit] Added to visit list. Total schools:', window._cmass_visitList.length);
+            
+            // Update accumulation status
+            if (typeof window.updateVisitAccumStatus === 'function') {
+              window.updateVisitAccumStatus();
+            }
+            
+            // Show confirmation
+            alert(`입력 완료! (${window._cmass_visitList.length}개 학교)`);
+            
+            // Return to Step1 for next school entry
+            const step1 = document.getElementById('step1');
+            const step2 = document.getElementById('step2');
+            if (step1) step1.style.display = 'block';
+            if (step2) step2.style.display = 'none';
+            document.body.classList.remove('cmass-step2');
+            window._isStep2Active = false;
+            
+            // Clear draft timer
+            if (window.draftTimer) {
+              clearTimeout(window.draftTimer);
+              window.draftTimer = null;
+            }
+            
+            // Reset form for next school
+            const subjectsBlock = document.getElementById('subjectsBlock');
+            if (subjectsBlock) subjectsBlock.innerHTML = '';
+            
+            // Reset selection state
+            window.selectedRegion = null;
+            window.selectedSchool = null;
+            window._cmass_lastFoundMeta = null;
+            
+            // Scroll to top
+            window.scrollTo(0, 0);
+          });
+          console.log('[Buttons] Form submit handler attached');
+        }
+      });
+
+      // Expose functions globally
+      window.collectFormData = collectFormData;
+      window.generateSummary = generateSummary;
+      window.copyToKakao = copyToKakao;
+      // Draft functionality: save/load per staff|date|region|school
+      // Key schema: cmass:draft:<staff>|<date>|<region>|<school>
+      function draftKeyFor(){
+        try{
+          // Be permissive: require staff + date, but allow region/school to be empty.
+          // This lets users save drafts even when they haven't selected school/region yet.
+          // report.html uses a stricter check before showing the restore modal.
+          const staffRaw = window._cmass_staffParam || document.getElementById('staff')?.value || '';
+          const staff = String(staffRaw).replace(/\s+/g,'');
+          const date = (document.getElementById('visitDate')?.value || '').trim();
+          if (!staff || !date) return null;
+          const region = window.selectedRegion || '';
+          const school = window.selectedSchool || '';
+          return `cmass:draft:${staff}|${date}|${region}|${school}`;
+        }catch(e){ return null; }
+      }
+
+      function updateDraftStatus(){
+        try{
+          const out = document.getElementById('savedDraft');
+          if (!out) return;
+          const key = draftKeyFor();
+          if (!key){ out.textContent = '(드래프트를 저장하려면 담당자/방문일/지역/학교를 선택하세요.)'; return; }
+          const raw = localStorage.getItem(key);
+          if (!raw){ out.textContent = '(저장된 드래프트 없음)'; return; }
+          try{
+            const parsed = JSON.parse(raw);
+            const t = parsed.ts ? new Date(parsed.ts).toLocaleString() : '(unknown)';
+            // show a short preview
+            const preview = JSON.stringify(parsed.data || {}, null, 2).slice(0, 150);
+            out.textContent = `저장: ${t}\n\n${preview}${preview.length >= 150 ? '...':''}`;
+          }catch(e){ out.textContent = '(드래프트 읽기 실패)'; }
+        }catch(e){}
+      }
+
+      function saveDraft(){
+        try{
+          const key = draftKeyFor();
+          if (!key) return false;
+          let data = null;
+          if (typeof collectFormData === 'function'){
+            try{ data = collectFormData(); }catch(e){ data = null; }
+          }
+          // fallback: capture a small set of fields if collectFormData not available
+          if (!data){
+            data = {
+              visitDate: document.getElementById('visitDate')?.value || '',
+              staff: window._cmass_staffParam || '',
+              region: window.selectedRegion || '',
+              school: window.selectedSchool || ''
+            };
+          }
+          const payload = { ts: Date.now(), data };
+          try{ localStorage.setItem(key, JSON.stringify(payload)); }catch(e){ return false; }
+          try{ updateDraftStatus(); }catch(e){}
+          return true;
+        }catch(e){ return false; }
+      }
+
+      function loadDraft(){
+        try{
+          const key = draftKeyFor();
+          if (!key) return null;
+          const raw = localStorage.getItem(key);
+          if (!raw) return null;
+          const parsed = JSON.parse(raw);
+          // If a populate function exists, prefer to use it
+          if (parsed && parsed.data){
+            if (typeof window.populateFormFromData === 'function'){
+              try{ window.populateFormFromData(parsed.data); }catch(e){}
+            } else {
+              // best-effort: set visitDate and staff/selection fields
+              try{ if (parsed.data.visitDate) document.getElementById('visitDate').value = parsed.data.visitDate; }catch(e){}
+              try{ if (parsed.data.region) { window.selectedRegion = parsed.data.region; if (document.getElementById('selectedRegionInput')) document.getElementById('selectedRegionInput').value = parsed.data.region; } }catch(e){}
+              try{ if (parsed.data.school) { window.selectedSchool = parsed.data.school; if (document.getElementById('selectedSchoolInput')) document.getElementById('selectedSchoolInput').value = parsed.data.school; } }catch(e){}
+            }
+          }
+          try{ updateDraftStatus(); }catch(e){}
+          return parsed && parsed.data ? parsed.data : null;
+        }catch(e){ return null; }
+      }
+
+      // Populate whole form from saved draft data (best-effort, tolerant)
+      window.populateFormFromData = function(data){
+        try{
+          if (!data || typeof data !== 'object') return;
+
+          // 1) Staff
+          if (data.staff) {
+            try{ window._cmass_staffParam = data.staff; window._cmass_staffBase = (data.staff||'').replace(/\s*(부장|차장|과장|대리|팀장|선생님|선생)$/g,'').trim(); localStorage.setItem('cmass:staff', window._cmass_staffParam || ''); }catch(e){}
+            try{ const sel = document.getElementById('staff'); if (sel) sel.value = data.staff; }catch(e){}
+          }
+
+          // 2) Visit date
+          if (data.visitDate) {
+            try{ const d = document.getElementById('visitDate'); if (d) { d.value = data.visitDate; d.dispatchEvent(new Event('change',{bubbles:true})); } }catch(e){}
+          }
+
+          // 3) Region / School
+          if (data.region) {
+            try{ window.selectedRegion = data.region; if (document.getElementById('selectedRegionInput')) document.getElementById('selectedRegionInput').value = data.region; }catch(e){}
+          }
+          if (data.school) {
+            try{ window.selectedSchool = data.school; if (document.getElementById('selectedSchoolInput')) document.getElementById('selectedSchoolInput').value = data.school; }catch(e){}
+          }
+          // attempt to re-render selectors if available
+          try{ if (typeof renderState === 'function') renderState(); }catch(e){}
+
+          // 4) Simple field mapping by id
+          const simpleIds = ['phone','email','requests','notes','deliveries','followUp','teacherName','publisher','visitDuration','workStart','workEnd','officeMinutes','prepMinutes'];
+          simpleIds.forEach(id => {
+            try{ if (data[id] !== undefined){ const el = document.getElementById(id); if (el) { el.value = data[id]; el.dispatchEvent(new Event('input',{bubbles:true})); } } }catch(e){}
+          });
+
+          // 5) Meeting-specific fields (startHour/startMinute/duration/endTime)
+          try{ if (data.visitStartHour && document.getElementById('startHour')) document.getElementById('startHour').value = data.visitStartHour; }catch(e){}
+          try{ if (data.visitStartMinute && document.getElementById('startMinute')) document.getElementById('startMinute').value = data.visitStartMinute; }catch(e){}
+          try{ if (data.visitDuration && document.getElementById('duration')) document.getElementById('duration').value = data.visitDuration; }catch(e){}
+          try{ if (data.visitEndTime && document.getElementById('endTime')) document.getElementById('endTime').value = data.visitEndTime; }catch(e){}
+
+          // 6) Sessions / subjects (best-effort): if meeting DOM present, populate session list
+          try{
+            const sessionContainer = document.getElementById('sessionContainer');
+            const tpl = document.getElementById('sessionTemplate');
+            const baseSubjects = document.getElementById('subjects');
+            const baseActivities = document.getElementById('activities');
+            if (sessionContainer && tpl && Array.isArray(data.subjects) && data.subjects.length){
+              sessionContainer.innerHTML = '';
+              data.subjects.forEach((s) => {
+                try{
+                  const node = tpl.content ? tpl.content.cloneNode(true) : tpl.cloneNode(true);
+                  const elSection = node.querySelector ? node.querySelector('.meeting-session') : null;
+                  if (!elSection){
+                    // append raw node
+                    sessionContainer.appendChild(node);
+                    return;
+                  }
+                  // populate teacher/publisher/contact/email/requests/notes/deliveries/followup
+                  try{ const t = elSection.querySelector('.session-teacher'); if (t && s.teacher) t.value = s.teacher; }catch(e){}
+                  try{ const p = elSection.querySelector('.session-publisher'); if (p && s.publisher) p.value = s.publisher; }catch(e){}
+                  try{ const ph = elSection.querySelector('.session-phone'); if (ph && (s.contact || s.phone)) ph.value = s.contact || s.phone; }catch(e){}
+                  try{ const em = elSection.querySelector('.session-email'); if (em && s.email) em.value = s.email; }catch(e){}
+                  try{ const req = elSection.querySelector('.session-requests'); if (req && s.customerRequest) req.value = s.customerRequest; }catch(e){}
+                  try{ const note = elSection.querySelector('.session-notes'); if (note && s.conversation) note.value = s.conversation; }catch(e){}
+                  try{ const del = elSection.querySelector('.session-deliveries'); if (del && s.delivery) del.value = s.delivery; }catch(e){}
+                  try{ const fu = elSection.querySelector('.session-followup'); if (fu && s.followUp) fu.value = s.followUp; }catch(e){}
+
+                  // clone available subject buttons into this session and mark matching ones active
+                  try{
+                    const targetSubjects = elSection.querySelector('.session-subjects');
+                    if (targetSubjects && baseSubjects){
+                      baseSubjects.querySelectorAll('button').forEach(b => {
+                        const nb = b.cloneNode(true);
+                        nb.addEventListener('click', function(){ nb.classList.toggle('active'); });
+                        if (s.subject && nb.textContent && nb.textContent.trim() === String(s.subject).trim()) nb.classList.add('active');
+                        targetSubjects.appendChild(nb);
+                      });
+                    }
+                  }catch(e){}
+
+                  // clone activities
+                  try{
+                    const targetActs = elSection.querySelector('.session-activities');
+                    if (targetActs && baseActivities){
+                      baseActivities.querySelectorAll('button').forEach(b => {
+                        const nb = b.cloneNode(true);
+                        nb.addEventListener('click', function(){ nb.classList.toggle('active'); });
+                        if (s.activities && Array.isArray(s.activities) && s.activities.indexOf(nb.textContent && nb.textContent.trim()) !== -1) nb.classList.add('active');
+                        targetActs.appendChild(nb);
+                      });
+                    }
+                  }catch(e){}
+
+                  sessionContainer.appendChild(node);
+                }catch(e){ console.warn('populate session failed', e); }
+              });
+            }
+          }catch(e){ /* tolerate */ }
+
+          // 7) If some fields couldn't be applied because DOM isn't present, stash for later
+          try{
+            if (!document.body.contains(document.getElementById('visitDate'))){
+              window._cmass_pendingDraftData = data;
+            }
+          }catch(e){}
+
+          // final housekeeping
+          try{ if (typeof updateTopline === 'function') updateTopline(); }catch(e){}
+          try{ if (typeof updateDraftStatus === 'function') updateDraftStatus(); }catch(e){}
+          try{ if (typeof window.updateDebugOverlay === 'function') window.updateDebugOverlay(); }catch(e){}
+        }catch(err){ console.warn('populateFormFromData failed', err); }
+      };
+
+      function clearLocalDraft(){
+        try{
+          const key = draftKeyFor();
+          if (!key) return false;
+          localStorage.removeItem(key);
+          try{ updateDraftStatus(); }catch(e){}
+          return true;
+        }catch(e){ return false; }
+      }
+
+      // Autosave: debounce changes on the form
+      (function installAutoSave(){
+        try{
+          let timer = null;
+          const delay = 800;
+          function schedule(){ clearTimeout(timer); timer = setTimeout(() => { try{ if (!window._isSelectingSchool) saveDraft(); }catch(e){} }, delay); }
+          document.addEventListener('input', schedule, true);
+          document.addEventListener('change', schedule, true);
+          // update status on load
+          document.addEventListener('DOMContentLoaded', function(){
+            try{
+              updateDraftStatus();
+              // Only attempt to auto-load a draft when a full draft key is available
+              // Some page initialization (selectors, staff/date, region/school) may happen after DOMContentLoaded.
+              // Poll briefly for up to 1s for draftKeyFor() to become available, then call loadDraft.
+              (function tryLoadUntil(deadline){
+                try{
+                  const key = draftKeyFor();
+                  if (key){ try{ loadDraft && loadDraft(); }catch(e){}; return; }
+                }catch(e){}
+                if (Date.now() < deadline) setTimeout(() => tryLoadUntil(deadline), 200);
+              })(Date.now() + 1000);
+            }catch(e){}
+          });
+        }catch(e){}
+      })();
+
+      // Draft functionality disabled for multi-school workflow
+      // (Auto-save removed to prevent confusion when entering multiple schools)
+    })();
+  </script>
+
+  <script>
+    (function(){
+      'use strict';
+      
+      // Wait for Firebase to be initialized
+      function waitForFirebase() {
+        return new Promise((resolve, reject) => {
+          if (window.firebaseDb) {
+            resolve();
+            return;
+          }
+          let attempts = 0;
+          const interval = setInterval(() => {
+            attempts++;
+            if (window.firebaseDb) {
+              clearInterval(interval);
+              resolve();
+            } else if (attempts > 50) {
+              clearInterval(interval);
+              reject(new Error('Firebase initialization timeout'));
+            }
+          }, 100);
+        });
+      }
+
+      // Convert form data to Firestore format (matching existing structure)
+      function convertToFirestoreFormat(formData) {
+        const visit = {
+          meta: {
+            visitDate: formData.visitDate || '',
+            visitStartTime: formData.visitStartHour && formData.visitStartMinute 
+              ? `${formData.visitStartHour}:${formData.visitStartMinute}` 
+              : '',
+            visitDuration: formData.visitDuration || '',
+            visitEndTime: formData.visitEndTime || '',
+            region: formData.region || '',
+            school: formData.school || '',
+            staff: formData.staff || ''
+          },
+          summary: formData.summary || '',
+          subjects: formData.subjects.map(subj => ({
+            subject: subj.subject || '',
+            teacher: subj.teacher || '',
+            publisher: subj.publisher || '',
+            contact: subj.contactFormatted || (subj.contactSuffix ? `010-${subj.contactSuffix}` : ''),
+            email: subj.contactEmail || '',
+            friendliness: subj.friendliness || '',
+            meetings: subj.meetings || [],
+            customerRequest: subj.customerRequest || '',
+            conversation: subj.conversation || '',
+            deliveryItems: subj.delivery || '',
+            followUp: subj.followUp || ''
+          }))
+        };
+
+        return {
+          createdAt: window.firestoreServerTimestamp(),
+          staff: formData.staff || '',
+          visits: [visit]
+        };
+      }
+
+      // Save to Firestore
+      async function saveToFirestore() {
+        try {
+          // Show loading state
+          const btn = document.getElementById('saveToServerBtn');
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = '저장 중...';
+          }
+
+          // Wait for Firebase
+          await waitForFirebase();
+
+          // Collect form data
+          const formData = typeof collectFormData === 'function' ? collectFormData() : null;
+          if (!formData) {
+            throw new Error('폼 데이터를 수집할 수 없습니다.');
+          }
+
+          // Validate required fields
+          if (!formData.visitDate) {
+            throw new Error('방문일을 입력해주세요.');
+          }
+          if (!formData.region || !formData.school) {
+            throw new Error('지역과 학교를 선택해주세요.');
+          }
+          if (!formData.subjects || formData.subjects.length === 0) {
+            throw new Error('최소 하나의 과목 정보를 입력해주세요.');
+          }
+
+          // Convert to Firestore format
+          const firestoreData = convertToFirestoreFormat(formData);
+
+          // Check if document with same staff-visitDate-region-school already exists
+          const visitsRef = window.firestoreCollection(window.firebaseDb, 'visits');
+          const q = window.firestoreQuery(
+            visitsRef,
+            window.firestoreWhere('staff', '==', formData.staff),
+            window.firestoreWhere('visits', 'array-contains', null) // will search manually
+          );
+
+          // Since Firestore doesn't support deep array queries easily, we fetch all matching staff docs
+          const querySnapshot = await window.firestoreGetDocs(
+            window.firestoreQuery(
+              visitsRef,
+              window.firestoreWhere('staff', '==', formData.staff)
+            )
+          );
+
+          let existingDocId = null;
+          querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data.visits && data.visits.length > 0) {
+              const visit = data.visits[0];
+              if (visit.meta &&
+                  visit.meta.visitDate === formData.visitDate &&
+                  visit.meta.region === formData.region &&
+                  visit.meta.school === formData.school) {
+                existingDocId = doc.id;
+              }
+            }
+          });
+
+          // Save to Firestore (update if exists, create if new)
+          if (existingDocId) {
+            await window.firestoreUpdateDoc(
+              window.firestoreDoc(window.firebaseDb, 'visits', existingDocId),
+              firestoreData
+            );
+            console.log('[Firestore] Document updated with ID:', existingDocId);
+          } else {
+            const docRef = await window.firestoreAddDoc(visitsRef, firestoreData);
+            console.log('[Firestore] Document created with ID:', docRef.id);
+          }
+
+          // Show success message
+          if (typeof showToast === 'function') {
+            showToast('✅ 서버에 저장되었습니다!', 2000);
+          } else {
+            alert('✅ 서버에 저장되었습니다!');
+          }
+
+          // Reset button
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = '서버에 저장';
+          }
+
+        } catch (error) {
+          console.error('[Firestore] Save error:', error);
+          
+          // Show error message
+          const errorMsg = error.message || '저장 중 오류가 발생했습니다.';
+          if (typeof showToast === 'function') {
+            showToast('❌ ' + errorMsg, 3000);
+          } else {
+            alert('❌ ' + errorMsg);
+          }
+
+          // Reset button
+          const btn = document.getElementById('saveToServerBtn');
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = '서버에 저장';
+          }
+        }
+      }
+
+      // Attach event listener when DOM is ready
+      document.addEventListener('DOMContentLoaded', function() {
+        const saveBtn = document.getElementById('saveToServerBtn');
+        if (saveBtn) {
+          // Idempotent binding: avoid attaching the handler multiple times
+          if (!saveBtn.dataset || saveBtn.dataset.cmassBound !== '1') {
+            saveBtn.addEventListener('click', saveToFirestore);
+            try { if (saveBtn.dataset) saveBtn.dataset.cmassBound = '1'; } catch(e){}
+            console.log('[Firestore] Save button handler attached');
+          } else {
+            console.log('[Firestore] Save button handler already attached (skipped)');
+          }
+        } else {
+          console.warn('[Firestore] Save button not found');
+        }
+      });
+
+    })();
+  </script>
+
+  <!-- Debug block removed -->
+<!-- Portrait-lock overlay styles and element (moved to body end to avoid parsing order issues) -->
+  <style id="cmass-landscape-style">
+    #cmass-landscape-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(8,12,30,0.92); color:#fff; z-index:99999; text-align:center; padding:2rem; -webkit-user-select:none; user-select:none; }
+    #cmass-landscape-overlay .card { max-width:420px; background:transparent; }
+    #cmass-landscape-overlay h3 { font-size:1.4rem; margin-bottom:0.6rem }
+    #cmass-landscape-overlay p { opacity:0.95; line-height:1.4 }
+  </style>
+  <div id="cmass-landscape-overlay" aria-hidden="true">
+    <div class="card">
+      <h3>세로 모드에서만 사용하세요</h3>
+      <p>기기를 세로로 돌려주세요. 화면을 가로로 돌리는 동안 입력이 사라지는 문제를 막기 위해 잠시 사용을 제한합니다.</p>
+      <div style="margin-top:12px;text-align:center">
+        <button id="cmass-overlay-lock-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px;margin-right:8px">세로로 전환</button>
+        <button id="cmass-overlay-retry-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px">다시 시도</button>
+        <div style="margin-top:8px;font-size:12px;opacity:0.95;color:#eef">(버튼을 누르면 가능하면 화면을 세로로 고정합니다)</div>
+        <div id="cmass-overlay-ios-help" style="margin-top:8px;font-size:13px;opacity:0.95;color:#eef;display:none">
+          iOS/Safari에서는 자동 고정이 지원되지 않을 수 있습니다. 기기를 직접 세로로 돌려주시거나, 아래 '다시 시도'를 눌러보세요.
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function(){
+      // Only show the portrait-lock overlay on mobile-like devices.
+      // Desktop users (large screens / non-mobile UA) should not see this overlay.
+      function isMobileDevice(){
+        try{
+          const ua = navigator.userAgent || '';
+          const mobileUA = /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i;
+          const hasTouch = (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || ('ontouchstart' in window);
+          const narrowScreen = (typeof screen !== 'undefined' && screen.width) ? screen.width <= 1024 : false;
+          return mobileUA.test(ua) || (hasTouch && narrowScreen);
+        }catch(e){ return false; }
+      }
+      function updatePortraitOverlay(){
+        try{
+          const overlay = document.getElementById('cmass-landscape-overlay');
+          try{ if (sessionStorage && sessionStorage.getItem && sessionStorage.getItem('cmass_overlay_dismissed')){ if (overlay) overlay.style.display = 'none'; return; } }catch(e){}
+          const mobile = isMobileDevice();
+          // Determine landscape using reliable sources (prefer matchMedia / screen.orientation)
+          let isLandscape = false;
+          try{
+            if (window.matchMedia && window.matchMedia('(orientation: landscape)').matches) isLandscape = true;
+            else if (screen && screen.orientation && typeof screen.orientation.type === 'string') isLandscape = screen.orientation.type.indexOf('landscape') === 0;
+            else if (typeof screen !== 'undefined' && screen.width && screen.height) isLandscape = screen.width > screen.height;
+          }catch(e){ /* fallback below */ }
+
+          if (mobile && isLandscape) {
+            if (overlay) overlay.style.display = 'flex';
+            try{ document.documentElement.style.overflow = 'hidden'; }catch(e){}
+            try{ if (screen.orientation && screen.orientation.lock) screen.orientation.lock('portrait').catch(()=>{}); }catch(e){}
+          } else {
+            if (overlay) overlay.style.display = 'none';
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+          }
+        }catch(e){/* ignore */}
+      }
+      window.addEventListener('resize', updatePortraitOverlay);
+      window.addEventListener('orientationchange', updatePortraitOverlay);
+      document.addEventListener('DOMContentLoaded', function(){
+          updatePortraitOverlay();
+          // show iOS help text when appropriate
+          try{
+            const isiOS = /iP(hone|od|ad)/i.test(navigator.userAgent || '');
+            const help = document.getElementById('cmass-overlay-ios-help');
+            if (isiOS && help) help.style.display = '';
+          }catch(e){}
+        // wire up the manual lock/dismiss button
+        try{
+          const btn = document.getElementById('cmass-overlay-lock-btn');
+          if (btn) btn.addEventListener('click', async function(){
+            const overlay = document.getElementById('cmass-landscape-overlay');
+            try{
+              if (screen && screen.orientation && typeof screen.orientation.lock === 'function'){
+                await screen.orientation.lock('portrait');
+              }
+            }catch(e){ /* locking may fail in some browsers, ignore */ }
+            try{ if (overlay) overlay.style.display = 'none'; }catch(e){}
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+            try{ sessionStorage.setItem('cmass_overlay_dismissed','1'); }catch(e){}
+          });
+          // retry button: useful for iOS/Safari where lock may fail; hide overlay and prompt user
+          const retryBtn = document.getElementById('cmass-overlay-retry-btn');
+          if (retryBtn) retryBtn.addEventListener('click', async function(){
+            const overlay = document.getElementById('cmass-landscape-overlay');
+            try{
+              if (screen && screen.orientation && typeof screen.orientation.lock === 'function'){
+                await screen.orientation.lock('portrait');
+              } else {
+                // show a brief guidance toast/alert for iOS users
+                try{ alert('이 브라우저에서는 자동 고정이 지원되지 않을 수 있습니다. 기기를 직접 세로로 돌려주세요.'); }catch(e){}
+              }
+            }catch(e){ try{ alert('세로 고정 시도에 실패했습니다. 기기를 직접 세로로 돌려주세요.'); }catch(er){} }
+            try{ if (overlay) overlay.style.display = 'none'; }catch(e){}
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+            try{ sessionStorage.setItem('cmass_overlay_dismissed','1'); }catch(e){}
+          });
+          // hide overlay automatically while typing: when any focusable text input is focused, hide overlay
+          document.addEventListener('focusin', function(ev){
+            try{
+              const t = ev.target;
+              if (!t) return;
+              const tag = (t.tagName || '').toLowerCase();
+              const type = (t.type || '').toLowerCase();
+              const isTextInput = tag === 'input' && (type === 'text' || type === 'search' || type === 'tel' || type === 'email' || type === 'number' || type === 'password') || tag === 'textarea' || (t.isContentEditable);
+              if (isTextInput){ const overlay = document.getElementById('cmass-landscape-overlay'); if (overlay) overlay.style.display = 'none'; }
+            }catch(e){}
+          });
+          // when input blur, re-evaluate overlay after short delay
+          document.addEventListener('focusout', function(){ setTimeout(updatePortraitOverlay, 300); });
+        }catch(e){}
+      });
+    })();
+  </script>
+
+  <!-- Firestore Save Functionality -->
+  <!-- Firestore Save Functionality -->
+  <script>
+    (function(){
+      'use strict';
+      
+      // Wait for Firebase to be initialized
+      function waitForFirebase() {
+        return new Promise((resolve, reject) => {
+          if (window.firebaseDb) {
+            resolve();
+            return;
+          }
+          let attempts = 0;
+          const interval = setInterval(() => {
+            attempts++;
+            if (window.firebaseDb) {
+              clearInterval(interval);
+              resolve();
+            } else if (attempts > 50) {
+              clearInterval(interval);
+              reject(new Error('Firebase initialization timeout'));
+            }
+          }, 100);
+        });
+      }
+
+      // Convert form data to Firestore format (matching existing structure)
+      function convertToFirestoreFormat(formData) {
+        const visit = {
+          meta: {
+            visitDate: formData.visitDate || '',
+            visitStartTime: formData.visitStartHour && formData.visitStartMinute 
+              ? `${formData.visitStartHour}:${formData.visitStartMinute}` 
+              : '',
+            visitDuration: formData.visitDuration || '',
+            visitEndTime: formData.visitEndTime || '',
+            region: formData.region || '',
+            school: formData.school || '',
+            staff: formData.staff || ''
+          },
+          summary: formData.summary || '',
+          subjects: formData.subjects.map(subj => ({
+            subject: subj.subject || '',
+            teacher: subj.teacher || '',
+            publisher: subj.publisher || '',
+            contact: subj.contactFormatted || (subj.contactSuffix ? `010-${subj.contactSuffix}` : ''),
+            email: subj.contactEmail || '',
+            friendliness: subj.friendliness || '',
+            meetings: subj.meetings || [],
+            customerRequest: subj.customerRequest || '',
+            conversation: subj.conversation || '',
+            deliveryItems: subj.delivery || '',
+            followUp: subj.followUp || ''
+          }))
+        };
+
+        return {
+          createdAt: window.firestoreServerTimestamp(),
+          staff: formData.staff || '',
+          visits: [visit]
+        };
+      }
+
+      // Save to Firestore
+      async function saveToFirestore() {
+        try {
+          // Show loading state
+          const btn = document.getElementById('saveToServerBtn');
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = '저장 중...';
+          }
+
+          // Wait for Firebase
+          await waitForFirebase();
+
+          // Collect form data
+          const formData = typeof collectFormData === 'function' ? collectFormData() : null;
+          if (!formData) {
+            throw new Error('폼 데이터를 수집할 수 없습니다.');
+          }
+
+          // Validate required fields
+          if (!formData.visitDate) {
+            throw new Error('방문일을 입력해주세요.');
+          }
+          if (!formData.region || !formData.school) {
+            throw new Error('지역과 학교를 선택해주세요.');
+          }
+          if (!formData.subjects || formData.subjects.length === 0) {
+            throw new Error('최소 하나의 과목 정보를 입력해주세요.');
+          }
+
+          // Convert to Firestore format
+          const firestoreData = convertToFirestoreFormat(formData);
+
+          // Check if document with same staff-visitDate-region-school already exists
+          const visitsRef = window.firestoreCollection(window.firebaseDb, 'visits');
+          const q = window.firestoreQuery(
+            visitsRef,
+            window.firestoreWhere('staff', '==', formData.staff),
+            window.firestoreWhere('visits', 'array-contains', null) // will search manually
+          );
+
+          // Since Firestore doesn't support deep array queries easily, we fetch all matching staff docs
+          const querySnapshot = await window.firestoreGetDocs(
+            window.firestoreQuery(
+              visitsRef,
+              window.firestoreWhere('staff', '==', formData.staff)
+            )
+          );
+
+          let existingDocId = null;
+          querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data.visits && data.visits.length > 0) {
+              const visit = data.visits[0];
+              if (visit.meta &&
+                  visit.meta.visitDate === formData.visitDate &&
+                  visit.meta.region === formData.region &&
+                  visit.meta.school === formData.school) {
+                existingDocId = doc.id;
+              }
+            }
+          });
+
+          // Save to Firestore (update if exists, create if new)
+          if (existingDocId) {
+            await window.firestoreUpdateDoc(
+              window.firestoreDoc(window.firebaseDb, 'visits', existingDocId),
+              firestoreData
+            );
+            console.log('[Firestore] Document updated with ID:', existingDocId);
+          } else {
+            const docRef = await window.firestoreAddDoc(visitsRef, firestoreData);
+            console.log('[Firestore] Document created with ID:', docRef.id);
+          }
+
+          // Show success message
+          if (typeof showToast === 'function') {
+            showToast('✅ 서버에 저장되었습니다!', 2000);
+          } else {
+            alert('✅ 서버에 저장되었습니다!');
+          }
+
+          // Reset button
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = '서버에 저장';
+          }
+
+        } catch (error) {
+          console.error('[Firestore] Save error:', error);
+          
+          // Show error message
+          const errorMsg = error.message || '저장 중 오류가 발생했습니다.';
+          if (typeof showToast === 'function') {
+            showToast('❌ ' + errorMsg, 3000);
+          } else {
+            alert('❌ ' + errorMsg);
+          }
+
+          // Reset button
+          const btn = document.getElementById('saveToServerBtn');
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = '서버에 저장';
+          }
+        }
+      }
+
+      // Attach event listener when DOM is ready (idempotent)
+      document.addEventListener('DOMContentLoaded', function() {
+        const saveBtn = document.getElementById('saveToServerBtn');
+        if (saveBtn) {
+          // Idempotent binding: avoid attaching the handler multiple times
+          if (!saveBtn.dataset || saveBtn.dataset.cmassBound !== '1') {
+            saveBtn.addEventListener('click', saveToFirestore);
+            try { if (saveBtn.dataset) saveBtn.dataset.cmassBound = '1'; } catch(e){}
+            console.log('[Firestore] Save button handler attached');
+          } else {
+            console.log('[Firestore] Save button handler already attached (skipped)');
+          }
+        } else {
+          console.warn('[Firestore] Save button not found');
+        }
+      });
+
+    })();
+  </script>
+
+  <!-- Debug block removed -->
+<!-- Portrait-lock overlay styles and element (moved to body end to avoid parsing order issues) -->
+  <style id="cmass-landscape-style">
+    #cmass-landscape-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(8,12,30,0.92); color:#fff; z-index:99999; text-align:center; padding:2rem; -webkit-user-select:none; user-select:none; }
+    #cmass-landscape-overlay .card { max-width:420px; background:transparent; }
+    #cmass-landscape-overlay h3 { font-size:1.4rem; margin-bottom:0.6rem }
+    #cmass-landscape-overlay p { opacity:0.95; line-height:1.4 }
+  </style>
+  <div id="cmass-landscape-overlay" aria-hidden="true">
+    <div class="card">
+      <h3>세로 모드에서만 사용하세요</h3>
+      <p>기기를 세로로 돌려주세요. 화면을 가로로 돌리는 동안 입력이 사라지는 문제를 막기 위해 잠시 사용을 제한합니다.</p>
+      <div style="margin-top:12px;text-align:center">
+        <button id="cmass-overlay-lock-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px;margin-right:8px">세로로 전환</button>
+        <button id="cmass-overlay-retry-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px">다시 시도</button>
+        <div style="margin-top:8px;font-size:12px;opacity:0.95;color:#eef">(버튼을 누르면 가능하면 화면을 세로로 고정합니다)</div>
+        <div id="cmass-overlay-ios-help" style="margin-top:8px;font-size:13px;opacity:0.95;color:#eef;display:none">
+          iOS/Safari에서는 자동 고정이 지원되지 않을 수 있습니다. 기기를 직접 세로로 돌려주시거나, 아래 '다시 시도'를 눌러보세요.
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function(){
+      // Only show the portrait-lock overlay on mobile-like devices.
+      // Desktop users (large screens / non-mobile UA) should not see this overlay.
+      function isMobileDevice(){
+        try{
+          const ua = navigator.userAgent || '';
+          const mobileUA = /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i;
+          const hasTouch = (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || ('ontouchstart' in window);
+          const narrowScreen = (typeof screen !== 'undefined' && screen.width) ? screen.width <= 1024 : false;
+          return mobileUA.test(ua) || (hasTouch && narrowScreen);
+        }catch(e){ return false; }
+      }
+      function updatePortraitOverlay(){
+        try{
+          const overlay = document.getElementById('cmass-landscape-overlay');
+          try{ if (sessionStorage && sessionStorage.getItem && sessionStorage.getItem('cmass_overlay_dismissed')){ if (overlay) overlay.style.display = 'none'; return; } }catch(e){}
+          const mobile = isMobileDevice();
+          // Determine landscape using reliable sources (prefer matchMedia / screen.orientation)
+          let isLandscape = false;
+          try{
+            if (window.matchMedia && window.matchMedia('(orientation: landscape)').matches) isLandscape = true;
+            else if (screen && screen.orientation && typeof screen.orientation.type === 'string') isLandscape = screen.orientation.type.indexOf('landscape') === 0;
+            else if (typeof screen !== 'undefined' && screen.width && screen.height) isLandscape = screen.width > screen.height;
+          }catch(e){ /* fallback below */ }
+
+          if (mobile && isLandscape) {
+            if (overlay) overlay.style.display = 'flex';
+            try{ document.documentElement.style.overflow = 'hidden'; }catch(e){}
+            try{ if (screen.orientation && screen.orientation.lock) screen.orientation.lock('portrait').catch(()=>{}); }catch(e){}
+          } else {
+            if (overlay) overlay.style.display = 'none';
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+          }
+        }catch(e){/* ignore */}
+      }
+      window.addEventListener('resize', updatePortraitOverlay);
+      window.addEventListener('orientationchange', updatePortraitOverlay);
+      document.addEventListener('DOMContentLoaded', function(){
+          updatePortraitOverlay();
+          // show iOS help text when appropriate
+          try{
+            const isiOS = /iP(hone|od|ad)/i.test(navigator.userAgent || '');
+            const help = document.getElementById('cmass-overlay-ios-help');
+            if (isiOS && help) help.style.display = '';
+          }catch(e){}
+        // wire up the manual lock/dismiss button
+        try{
+          const btn = document.getElementById('cmass-overlay-lock-btn');
+          if (btn) btn.addEventListener('click', async function(){
+            const overlay = document.getElementById('cmass-landscape-overlay');
+            try{
+              if (screen && screen.orientation && typeof screen.orientation.lock === 'function'){
+                await screen.orientation.lock('portrait');
+              }
+            }catch(e){ /* locking may fail in some browsers, ignore */ }
+            try{ if (overlay) overlay.style.display = 'none'; }catch(e){}
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+            try{ sessionStorage.setItem('cmass_overlay_dismissed','1'); }catch(e){}
+          });
+          // retry button: useful for iOS/Safari where lock may fail; hide overlay and prompt user
+          const retryBtn = document.getElementById('cmass-overlay-retry-btn');
+          if (retryBtn) retryBtn.addEventListener('click', async function(){
+            const overlay = document.getElementById('cmass-landscape-overlay');
+            try{
+              if (screen && screen.orientation && typeof screen.orientation.lock === 'function'){
+                await screen.orientation.lock('portrait');
+              } else {
+                // show a brief guidance toast/alert for iOS users
+                try{ alert('이 브라우저에서는 자동 고정이 지원되지 않을 수 있습니다. 기기를 직접 세로로 돌려주세요.'); }catch(e){}
+              }
+            }catch(e){ try{ alert('세로 고정 시도에 실패했습니다. 기기를 직접 세로로 돌려주세요.'); }catch(er){} }
+            try{ if (overlay) overlay.style.display = 'none'; }catch(e){}
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+            try{ sessionStorage.setItem('cmass_overlay_dismissed','1'); }catch(e){}
+          });
+          // hide overlay automatically while typing: when any focusable text input is focused, hide overlay
+          document.addEventListener('focusin', function(ev){
+            try{
+              const t = ev.target;
+              if (!t) return;
+              const tag = (t.tagName || '').toLowerCase();
+              const type = (t.type || '').toLowerCase();
+              const isTextInput = tag === 'input' && (type === 'text' || type === 'search' || type === 'tel' || type === 'email' || type === 'number' || type === 'password') || tag === 'textarea' || (t.isContentEditable);
+              if (isTextInput){ const overlay = document.getElementById('cmass-landscape-overlay'); if (overlay) overlay.style.display = 'none'; }
+            }catch(e){}
+          });
+          // when input blur, re-evaluate overlay after short delay
+          document.addEventListener('focusout', function(){ setTimeout(updatePortraitOverlay, 300); });
+        }catch(e){}
+      });
+    })();
+  </script>
+
+
+  <!-- Debug block removed -->
+<!-- Portrait-lock overlay styles and element (moved to body end to avoid parsing order issues) -->
+  <style id="cmass-landscape-style">
+    #cmass-landscape-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(8,12,30,0.92); color:#fff; z-index:99999; text-align:center; padding:2rem; -webkit-user-select:none; user-select:none; }
+    #cmass-landscape-overlay .card { max-width:420px; background:transparent; }
+    #cmass-landscape-overlay h3 { font-size:1.4rem; margin-bottom:0.6rem }
+    #cmass-landscape-overlay p { opacity:0.95; line-height:1.4 }
+  </style>
+  <div id="cmass-landscape-overlay" aria-hidden="true">
+    <div class="card">
+      <h3>세로 모드에서만 사용하세요</h3>
+      <p>기기를 세로로 돌려주세요. 화면을 가로로 돌리는 동안 입력이 사라지는 문제를 막기 위해 잠시 사용을 제한합니다.</p>
+      <div style="margin-top:12px;text-align:center">
+        <button id="cmass-overlay-lock-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px;margin-right:8px">세로로 전환</button>
+        <button id="cmass-overlay-retry-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px">다시 시도</button>
+        <div style="margin-top:8px;font-size:12px;opacity:0.95;color:#eef">(버튼을 누르면 가능하면 화면을 세로로 고정합니다)</div>
+        <div id="cmass-overlay-ios-help" style="margin-top:8px;font-size:13px;opacity:0.95;color:#eef;display:none">
+          iOS/Safari에서는 자동 고정이 지원되지 않을 수 있습니다. 기기를 직접 세로로 돌려주시거나, 아래 '다시 시도'를 눌러보세요.
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function(){
+      // Only show the portrait-lock overlay on mobile-like devices.
+      // Desktop users (large screens / non-mobile UA) should not see this overlay.
+      function isMobileDevice(){
+        try{
+          const ua = navigator.userAgent || '';
+          const mobileUA = /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i;
+          const hasTouch = (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || ('ontouchstart' in window);
+          const narrowScreen = (typeof screen !== 'undefined' && screen.width) ? screen.width <= 1024 : false;
+          return mobileUA.test(ua) || (hasTouch && narrowScreen);
+        }catch(e){ return false; }
+      }
+      function updatePortraitOverlay(){
+        try{
+          const overlay = document.getElementById('cmass-landscape-overlay');
+          try{ if (sessionStorage && sessionStorage.getItem && sessionStorage.getItem('cmass_overlay_dismissed')){ if (overlay) overlay.style.display = 'none'; return; } }catch(e){}
+          const mobile = isMobileDevice();
+          // Determine landscape using reliable sources (prefer matchMedia / screen.orientation)
+          let isLandscape = false;
+          try{
+            if (window.matchMedia && window.matchMedia('(orientation: landscape)').matches) isLandscape = true;
+            else if (screen && screen.orientation && typeof screen.orientation.type === 'string') isLandscape = screen.orientation.type.indexOf('landscape') === 0;
+            else if (typeof screen !== 'undefined' && screen.width && screen.height) isLandscape = screen.width > screen.height;
+          }catch(e){ /* fallback below */ }
+
+          if (mobile && isLandscape) {
+            if (overlay) overlay.style.display = 'flex';
+            try{ document.documentElement.style.overflow = 'hidden'; }catch(e){}
+            try{ if (screen.orientation && screen.orientation.lock) screen.orientation.lock('portrait').catch(()=>{}); }catch(e){}
+          } else {
+            if (overlay) overlay.style.display = 'none';
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+          }
+        }catch(e){/* ignore */}
+      }
+      window.addEventListener('resize', updatePortraitOverlay);
+      window.addEventListener('orientationchange', updatePortraitOverlay);
+      document.addEventListener('DOMContentLoaded', function(){
+          updatePortraitOverlay();
+          // show iOS help text when appropriate
+          try{
+            const isiOS = /iP(hone|od|ad)/i.test(navigator.userAgent || '');
+            const help = document.getElementById('cmass-overlay-ios-help');
+            if (isiOS && help) help.style.display = '';
+          }catch(e){}
+        // wire up the manual lock/dismiss button
+        try{
+          const btn = document.getElementById('cmass-overlay-lock-btn');
+          if (btn) btn.addEventListener('click', async function(){
+            const overlay = document.getElementById('cmass-landscape-overlay');
+            try{
+              if (screen && screen.orientation && typeof screen.orientation.lock === 'function'){
+                await screen.orientation.lock('portrait');
+              }
+            }catch(e){ /* locking may fail in some browsers, ignore */ }
+            try{ if (overlay) overlay.style.display = 'none'; }catch(e){}
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+            try{ sessionStorage.setItem('cmass_overlay_dismissed','1'); }catch(e){}
+          });
+          // retry button: useful for iOS/Safari where lock may fail; hide overlay and prompt user
+          const retryBtn = document.getElementById('cmass-overlay-retry-btn');
+          if (retryBtn) retryBtn.addEventListener('click', async function(){
+            const overlay = document.getElementById('cmass-landscape-overlay');
+            try{
+              if (screen && screen.orientation && typeof screen.orientation.lock === 'function'){
+                await screen.orientation.lock('portrait');
+              } else {
+                // show a brief guidance toast/alert for iOS users
+                try{ alert('이 브라우저에서는 자동 고정이 지원되지 않을 수 있습니다. 기기를 직접 세로로 돌려주세요.'); }catch(e){}
+              }
+            }catch(e){ try{ alert('세로 고정 시도에 실패했습니다. 기기를 직접 세로로 돌려주세요.'); }catch(er){} }
+            try{ if (overlay) overlay.style.display = 'none'; }catch(e){}
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+            try{ sessionStorage.setItem('cmass_overlay_dismissed','1'); }catch(e){}
+          });
+          // hide overlay automatically while typing: when any focusable text input is focused, hide overlay
+          document.addEventListener('focusin', function(ev){
+            try{
+              const t = ev.target;
+              if (!t) return;
+              const tag = (t.tagName || '').toLowerCase();
+              const type = (t.type || '').toLowerCase();
+              const isTextInput = tag === 'input' && (type === 'text' || type === 'search' || type === 'tel' || type === 'email' || type === 'number' || type === 'password') || tag === 'textarea' || (t.isContentEditable);
+              if (isTextInput){ const overlay = document.getElementById('cmass-landscape-overlay'); if (overlay) overlay.style.display = 'none'; }
+            }catch(e){}
+          });
+          // when input blur, re-evaluate overlay after short delay
+          document.addEventListener('focusout', function(){ setTimeout(updatePortraitOverlay, 300); });
+        }catch(e){}
+      });
+    })();
+  </script>
+
+
+  <!-- Debug block removed -->
+<!-- Portrait-lock overlay styles and element (moved to body end to avoid parsing order issues) -->
+  <style id="cmass-landscape-style">
+    #cmass-landscape-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(8,12,30,0.92); color:#fff; z-index:99999; text-align:center; padding:2rem; -webkit-user-select:none; user-select:none; }
+    #cmass-landscape-overlay .card { max-width:420px; background:transparent; }
+    #cmass-landscape-overlay h3 { font-size:1.4rem; margin-bottom:0.6rem }
+    #cmass-landscape-overlay p { opacity:0.95; line-height:1.4 }
+  </style>
+  <div id="cmass-landscape-overlay" aria-hidden="true">
+    <div class="card">
+      <h3>세로 모드에서만 사용하세요</h3>
+      <p>기기를 세로로 돌려주세요. 화면을 가로로 돌리는 동안 입력이 사라지는 문제를 막기 위해 잠시 사용을 제한합니다.</p>
+      <div style="margin-top:12px;text-align:center">
+        <button id="cmass-overlay-lock-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px;margin-right:8px">세로로 전환</button>
+        <button id="cmass-overlay-retry-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px">다시 시도</button>
+        <div style="margin-top:8px;font-size:12px;opacity:0.95;color:#eef">(버튼을 누르면 가능하면 화면을 세로로 고정합니다)</div>
+        <div id="cmass-overlay-ios-help" style="margin-top:8px;font-size:13px;opacity:0.95;color:#eef;display:none">
+          iOS/Safari에서는 자동 고정이 지원되지 않을 수 있습니다. 기기를 직접 세로로 돌려주시거나, 아래 '다시 시도'를 눌러보세요.
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function(){
+      // Only show the portrait-lock overlay on mobile-like devices.
+      // Desktop users (large screens / non-mobile UA) should not see this overlay.
+      function isMobileDevice(){
+        try{
+          const ua = navigator.userAgent || '';
+          const mobileUA = /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i;
+          const hasTouch = (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || ('ontouchstart' in window);
+          const narrowScreen = (typeof screen !== 'undefined' && screen.width) ? screen.width <= 1024 : false;
+          return mobileUA.test(ua) || (hasTouch && narrowScreen);
+        }catch(e){ return false; }
+      }
+      function updatePortraitOverlay(){
+        try{
+          const overlay = document.getElementById('cmass-landscape-overlay');
+          try{ if (sessionStorage && sessionStorage.getItem && sessionStorage.getItem('cmass_overlay_dismissed')){ if (overlay) overlay.style.display = 'none'; return; } }catch(e){}
+          const mobile = isMobileDevice();
+          // Determine landscape using reliable sources (prefer matchMedia / screen.orientation)
+          let isLandscape = false;
+          try{
+            if (window.matchMedia && window.matchMedia('(orientation: landscape)').matches) isLandscape = true;
+            else if (screen && screen.orientation && typeof screen.orientation.type === 'string') isLandscape = screen.orientation.type.indexOf('landscape') === 0;
+            else if (typeof screen !== 'undefined' && screen.width && screen.height) isLandscape = screen.width > screen.height;
+          }catch(e){ /* fallback below */ }
+
+          if (mobile && isLandscape) {
+            if (overlay) overlay.style.display = 'flex';
+            try{ document.documentElement.style.overflow = 'hidden'; }catch(e){}
+            try{ if (screen.orientation && screen.orientation.lock) screen.orientation.lock('portrait').catch(()=>{}); }catch(e){}
+          } else {
+            if (overlay) overlay.style.display = 'none';
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+          }
+        }catch(e){/* ignore */}
+      }
+      window.addEventListener('resize', updatePortraitOverlay);
+      window.addEventListener('orientationchange', updatePortraitOverlay);
+      document.addEventListener('DOMContentLoaded', function(){
+          updatePortraitOverlay();
+          // show iOS help text when appropriate
+          try{
+            const isiOS = /iP(hone|od|ad)/i.test(navigator.userAgent || '');
+            const help = document.getElementById('cmass-overlay-ios-help');
+            if (isiOS && help) help.style.display = '';
+          }catch(e){}
+        // wire up the manual lock/dismiss button
+        try{
+          const btn = document.getElementById('cmass-overlay-lock-btn');
+          if (btn) btn.addEventListener('click', async function(){
+            const overlay = document.getElementById('cmass-landscape-overlay');
+            try{
+              if (screen && screen.orientation && typeof screen.orientation.lock === 'function'){
+                await screen.orientation.lock('portrait');
+              }
+            }catch(e){ /* locking may fail in some browsers, ignore */ }
+            try{ if (overlay) overlay.style.display = 'none'; }catch(e){}
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+            try{ sessionStorage.setItem('cmass_overlay_dismissed','1'); }catch(e){}
+          });
+          // retry button: useful for iOS/Safari where lock may fail; hide overlay and prompt user
+          const retryBtn = document.getElementById('cmass-overlay-retry-btn');
+          if (retryBtn) retryBtn.addEventListener('click', async function(){
+            const overlay = document.getElementById('cmass-landscape-overlay');
+            try{
+              if (screen && screen.orientation && typeof screen.orientation.lock === 'function'){
+                await screen.orientation.lock('portrait');
+              } else {
+                // show a brief guidance toast/alert for iOS users
+                try{ alert('이 브라우저에서는 자동 고정이 지원되지 않을 수 있습니다. 기기를 직접 세로로 돌려주세요.'); }catch(e){}
+              }
+            }catch(e){ try{ alert('세로 고정 시도에 실패했습니다. 기기를 직접 세로로 돌려주세요.'); }catch(er){} }
+            try{ if (overlay) overlay.style.display = 'none'; }catch(e){}
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+            try{ sessionStorage.setItem('cmass_overlay_dismissed','1'); }catch(e){}
+          });
+          // hide overlay automatically while typing: when any focusable text input is focused, hide overlay
+          document.addEventListener('focusin', function(ev){
+            try{
+              const t = ev.target;
+              if (!t) return;
+              const tag = (t.tagName || '').toLowerCase();
+              const type = (t.type || '').toLowerCase();
+              const isTextInput = tag === 'input' && (type === 'text' || type === 'search' || type === 'tel' || type === 'email' || type === 'number' || type === 'password') || tag === 'textarea' || (t.isContentEditable);
+              if (isTextInput){ const overlay = document.getElementById('cmass-landscape-overlay'); if (overlay) overlay.style.display = 'none'; }
+            }catch(e){}
+          });
+          // when input blur, re-evaluate overlay after short delay
+          document.addEventListener('focusout', function(){ setTimeout(updatePortraitOverlay, 300); });
+        }catch(e){}
+      });
+    })();
+  </script>
+
+
+  <!-- Debug block removed -->
+<!-- Portrait-lock overlay styles and element (moved to body end to avoid parsing order issues) -->
+  <style id="cmass-landscape-style">
+    #cmass-landscape-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(8,12,30,0.92); color:#fff; z-index:99999; text-align:center; padding:2rem; -webkit-user-select:none; user-select:none; }
+    #cmass-landscape-overlay .card { max-width:420px; background:transparent; }
+    #cmass-landscape-overlay h3 { font-size:1.4rem; margin-bottom:0.6rem }
+    #cmass-landscape-overlay p { opacity:0.95; line-height:1.4 }
+  </style>
+  <div id="cmass-landscape-overlay" aria-hidden="true">
+    <div class="card">
+      <h3>세로 모드에서만 사용하세요</h3>
+      <p>기기를 세로로 돌려주세요. 화면을 가로로 돌리는 동안 입력이 사라지는 문제를 막기 위해 잠시 사용을 제한합니다.</p>
+      <div style="margin-top:12px;text-align:center">
+        <button id="cmass-overlay-lock-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px;margin-right:8px">세로로 전환</button>
+        <button id="cmass-overlay-retry-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px">다시 시도</button>
+        <div style="margin-top:8px;font-size:12px;opacity:0.95;color:#eef">(버튼을 누르면 가능하면 화면을 세로로 고정합니다)</div>
+        <div id="cmass-overlay-ios-help" style="margin-top:8px;font-size:13px;opacity:0.95;color:#eef;display:none">
+          iOS/Safari에서는 자동 고정이 지원되지 않을 수 있습니다. 기기를 직접 세로로 돌려주시거나, 아래 '다시 시도'를 눌러보세요.
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function(){
+      // Only show the portrait-lock overlay on mobile-like devices.
+      // Desktop users (large screens / non-mobile UA) should not see this overlay.
+      function isMobileDevice(){
+        try{
+          const ua = navigator.userAgent || '';
+          const mobileUA = /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i;
+          const hasTouch = (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || ('ontouchstart' in window);
+          const narrowScreen = (typeof screen !== 'undefined' && screen.width) ? screen.width <= 1024 : false;
+          return mobileUA.test(ua) || (hasTouch && narrowScreen);
+        }catch(e){ return false; }
+      }
+      function updatePortraitOverlay(){
+        try{
+          const overlay = document.getElementById('cmass-landscape-overlay');
+          try{ if (sessionStorage && sessionStorage.getItem && sessionStorage.getItem('cmass_overlay_dismissed')){ if (overlay) overlay.style.display = 'none'; return; } }catch(e){}
+          const mobile = isMobileDevice();
+          // Determine landscape using reliable sources (prefer matchMedia / screen.orientation)
+          let isLandscape = false;
+          try{
+            if (window.matchMedia && window.matchMedia('(orientation: landscape)').matches) isLandscape = true;
+            else if (screen && screen.orientation && typeof screen.orientation.type === 'string') isLandscape = screen.orientation.type.indexOf('landscape') === 0;
+            else if (typeof screen !== 'undefined' && screen.width && screen.height) isLandscape = screen.width > screen.height;
+          }catch(e){ /* fallback below */ }
+
+          if (mobile && isLandscape) {
+            if (overlay) overlay.style.display = 'flex';
+            try{ document.documentElement.style.overflow = 'hidden'; }catch(e){}
+            try{ if (screen.orientation && screen.orientation.lock) screen.orientation.lock('portrait').catch(()=>{}); }catch(e){}
+          } else {
+            if (overlay) overlay.style.display = 'none';
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+          }
+        }catch(e){/* ignore */}
+      }
+      window.addEventListener('resize', updatePortraitOverlay);
+      window.addEventListener('orientationchange', updatePortraitOverlay);
+      document.addEventListener('DOMContentLoaded', function(){
+          updatePortraitOverlay();
+          // show iOS help text when appropriate
+          try{
+            const isiOS = /iP(hone|od|ad)/i.test(navigator.userAgent || '');
+            const help = document.getElementById('cmass-overlay-ios-help');
+            if (isiOS && help) help.style.display = '';
+          }catch(e){}
+        // wire up the manual lock/dismiss button
+        try{
+          const btn = document.getElementById('cmass-overlay-lock-btn');
+          if (btn) btn.addEventListener('click', async function(){
+            const overlay = document.getElementById('cmass-landscape-overlay');
+            try{
+              if (screen && screen.orientation && typeof screen.orientation.lock === 'function'){
+                await screen.orientation.lock('portrait');
+              }
+            }catch(e){ /* locking may fail in some browsers, ignore */ }
+            try{ if (overlay) overlay.style.display = 'none'; }catch(e){}
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+            try{ sessionStorage.setItem('cmass_overlay_dismissed','1'); }catch(e){}
+          });
+          // retry button: useful for iOS/Safari where lock may fail; hide overlay and prompt user
+          const retryBtn = document.getElementById('cmass-overlay-retry-btn');
+          if (retryBtn) retryBtn.addEventListener('click', async function(){
+            const overlay = document.getElementById('cmass-landscape-overlay');
+            try{
+              if (screen && screen.orientation && typeof screen.orientation.lock === 'function'){
+                await screen.orientation.lock('portrait');
+              } else {
+                // show a brief guidance toast/alert for iOS users
+                try{ alert('이 브라우저에서는 자동 고정이 지원되지 않을 수 있습니다. 기기를 직접 세로로 돌려주세요.'); }catch(e){}
+              }
+            }catch(e){ try{ alert('세로 고정 시도에 실패했습니다. 기기를 직접 세로로 돌려주세요.'); }catch(er){} }
+            try{ if (overlay) overlay.style.display = 'none'; }catch(e){}
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+            try{ sessionStorage.setItem('cmass_overlay_dismissed','1'); }catch(e){}
+          });
+          // hide overlay automatically while typing: when any focusable text input is focused, hide overlay
+          document.addEventListener('focusin', function(ev){
+            try{
+              const t = ev.target;
+              if (!t) return;
+              const tag = (t.tagName || '').toLowerCase();
+              const type = (t.type || '').toLowerCase();
+              const isTextInput = tag === 'input' && (type === 'text' || type === 'search' || type === 'tel' || type === 'email' || type === 'number' || type === 'password') || tag === 'textarea' || (t.isContentEditable);
+              if (isTextInput){ const overlay = document.getElementById('cmass-landscape-overlay'); if (overlay) overlay.style.display = 'none'; }
+            }catch(e){}
+          });
+          // when input blur, re-evaluate overlay after short delay
+          document.addEventListener('focusout', function(){ setTimeout(updatePortraitOverlay, 300); });
+        }catch(e){}
+      });
+    })();
+  </script>
+
+
+  <!-- Debug block removed -->
+<!-- Portrait-lock overlay styles and element (moved to body end to avoid parsing order issues) -->
+  <style id="cmass-landscape-style">
+    #cmass-landscape-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(8,12,30,0.92); color:#fff; z-index:99999; text-align:center; padding:2rem; -webkit-user-select:none; user-select:none; }
+    #cmass-landscape-overlay .card { max-width:420px; background:transparent; }
+    #cmass-landscape-overlay h3 { font-size:1.4rem; margin-bottom:0.6rem }
+    #cmass-landscape-overlay p { opacity:0.95; line-height:1.4 }
+  </style>
+  <div id="cmass-landscape-overlay" aria-hidden="true">
+    <div class="card">
+      <h3>세로 모드에서만 사용하세요</h3>
+      <p>기기를 세로로 돌려주세요. 화면을 가로로 돌리는 동안 입력이 사라지는 문제를 막기 위해 잠시 사용을 제한합니다.</p>
+      <div style="margin-top:12px;text-align:center">
+        <button id="cmass-overlay-lock-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px;margin-right:8px">세로로 전환</button>
+        <button id="cmass-overlay-retry-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px">다시 시도</button>
+        <div style="margin-top:8px;font-size:12px;opacity:0.95;color:#eef">(버튼을 누르면 가능하면 화면을 세로로 고정합니다)</div>
+        <div id="cmass-overlay-ios-help" style="margin-top:8px;font-size:13px;opacity:0.95;color:#eef;display:none">
+          iOS/Safari에서는 자동 고정이 지원되지 않을 수 있습니다. 기기를 직접 세로로 돌려주시거나, 아래 '다시 시도'를 눌러보세요.
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function(){
+      // Only show the portrait-lock overlay on mobile-like devices.
+      // Desktop users (large screens / non-mobile UA) should not see this overlay.
+      function isMobileDevice(){
+        try{
+          const ua = navigator.userAgent || '';
+          const mobileUA = /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i;
+          const hasTouch = (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || ('ontouchstart' in window);
+          const narrowScreen = (typeof screen !== 'undefined' && screen.width) ? screen.width <= 1024 : false;
+          return mobileUA.test(ua) || (hasTouch && narrowScreen);
+        }catch(e){ return false; }
+      }
+      function updatePortraitOverlay(){
+        try{
+          const overlay = document.getElementById('cmass-landscape-overlay');
+          try{ if (sessionStorage && sessionStorage.getItem && sessionStorage.getItem('cmass_overlay_dismissed')){ if (overlay) overlay.style.display = 'none'; return; } }catch(e){}
+          const mobile = isMobileDevice();
+          // Determine landscape using reliable sources (prefer matchMedia / screen.orientation)
+          let isLandscape = false;
+          try{
+            if (window.matchMedia && window.matchMedia('(orientation: landscape)').matches) isLandscape = true;
+            else if (screen && screen.orientation && typeof screen.orientation.type === 'string') isLandscape = screen.orientation.type.indexOf('landscape') === 0;
+            else if (typeof screen !== 'undefined' && screen.width && screen.height) isLandscape = screen.width > screen.height;
+          }catch(e){ /* fallback below */ }
+
+          if (mobile && isLandscape) {
+            if (overlay) overlay.style.display = 'flex';
+            try{ document.documentElement.style.overflow = 'hidden'; }catch(e){}
+            try{ if (screen.orientation && screen.orientation.lock) screen.orientation.lock('portrait').catch(()=>{}); }catch(e){}
+          } else {
+            if (overlay) overlay.style.display = 'none';
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+          }
+        }catch(e){/* ignore */}
+      }
+      window.addEventListener('resize', updatePortraitOverlay);
+      window.addEventListener('orientationchange', updatePortraitOverlay);
+      document.addEventListener('DOMContentLoaded', function(){
+          updatePortraitOverlay();
+          // show iOS help text when appropriate
+          try{
+            const isiOS = /iP(hone|od|ad)/i.test(navigator.userAgent || '');
+            const help = document.getElementById('cmass-overlay-ios-help');
+            if (isiOS && help) help.style.display = '';
+          }catch(e){}
+        // wire up the manual lock/dismiss button
+        try{
+          const btn = document.getElementById('cmass-overlay-lock-btn');
+          if (btn) btn.addEventListener('click', async function(){
+            const overlay = document.getElementById('cmass-landscape-overlay');
+            try{
+              if (screen && screen.orientation && typeof screen.orientation.lock === 'function'){
+                await screen.orientation.lock('portrait');
+              }
+            }catch(e){ /* locking may fail in some browsers, ignore */ }
+            try{ if (overlay) overlay.style.display = 'none'; }catch(e){}
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+            try{ sessionStorage.setItem('cmass_overlay_dismissed','1'); }catch(e){}
+          });
+          // retry button: useful for iOS/Safari where lock may fail; hide overlay and prompt user
+          const retryBtn = document.getElementById('cmass-overlay-retry-btn');
+          if (retryBtn) retryBtn.addEventListener('click', async function(){
+            const overlay = document.getElementById('cmass-landscape-overlay');
+            try{
+              if (screen && screen.orientation && typeof screen.orientation.lock === 'function'){
+                await screen.orientation.lock('portrait');
+              } else {
+                // show a brief guidance toast/alert for iOS users
+                try{ alert('이 브라우저에서는 자동 고정이 지원되지 않을 수 있습니다. 기기를 직접 세로로 돌려주세요.'); }catch(e){}
+              }
+            }catch(e){ try{ alert('세로 고정 시도에 실패했습니다. 기기를 직접 세로로 돌려주세요.'); }catch(er){} }
+            try{ if (overlay) overlay.style.display = 'none'; }catch(e){}
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+            try{ sessionStorage.setItem('cmass_overlay_dismissed','1'); }catch(e){}
+          });
+          // hide overlay automatically while typing: when any focusable text input is focused, hide overlay
+          document.addEventListener('focusin', function(ev){
+            try{
+              const t = ev.target;
+              if (!t) return;
+              const tag = (t.tagName || '').toLowerCase();
+              const type = (t.type || '').toLowerCase();
+              const isTextInput = tag === 'input' && (type === 'text' || type === 'search' || type === 'tel' || type === 'email' || type === 'number' || type === 'password') || tag === 'textarea' || (t.isContentEditable);
+              if (isTextInput){ const overlay = document.getElementById('cmass-landscape-overlay'); if (overlay) overlay.style.display = 'none'; }
+            }catch(e){}
+          });
+          // when input blur, re-evaluate overlay after short delay
+          document.addEventListener('focusout', function(){ setTimeout(updatePortraitOverlay, 300); });
+        }catch(e){}
+      });
+    })();
+  </script>
+
+
+  <!-- Debug block removed -->
+<!-- Portrait-lock overlay styles and element (moved to body end to avoid parsing order issues) -->
+  <style id="cmass-landscape-style">
+    #cmass-landscape-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(8,12,30,0.92); color:#fff; z-index:99999; text-align:center; padding:2rem; -webkit-user-select:none; user-select:none; }
+    #cmass-landscape-overlay .card { max-width:420px; background:transparent; }
+    #cmass-landscape-overlay h3 { font-size:1.4rem; margin-bottom:0.6rem }
+    #cmass-landscape-overlay p { opacity:0.95; line-height:1.4 }
+  </style>
+  <div id="cmass-landscape-overlay" aria-hidden="true">
+    <div class="card">
+      <h3>세로 모드에서만 사용하세요</h3>
+      <p>기기를 세로로 돌려주세요. 화면을 가로로 돌리는 동안 입력이 사라지는 문제를 막기 위해 잠시 사용을 제한합니다.</p>
+      <div style="margin-top:12px;text-align:center">
+        <button id="cmass-overlay-lock-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px;margin-right:8px">세로로 전환</button>
+        <button id="cmass-overlay-retry-btn" class="alt-btn" style="padding:10px 14px;border-radius:10px">다시 시도</button>
+        <div style="margin-top:8px;font-size:12px;opacity:0.95;color:#eef">(버튼을 누르면 가능하면 화면을 세로로 고정합니다)</div>
+        <div id="cmass-overlay-ios-help" style="margin-top:8px;font-size:13px;opacity:0.95;color:#eef;display:none">
+          iOS/Safari에서는 자동 고정이 지원되지 않을 수 있습니다. 기기를 직접 세로로 돌려주시거나, 아래 '다시 시도'를 눌러보세요.
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function(){
+      // Only show the portrait-lock overlay on mobile-like devices.
+      // Desktop users (large screens / non-mobile UA) should not see this overlay.
+      function isMobileDevice(){
+        try{
+          const ua = navigator.userAgent || '';
+          const mobileUA = /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i;
+          const hasTouch = (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || ('ontouchstart' in window);
+          const narrowScreen = (typeof screen !== 'undefined' && screen.width) ? screen.width <= 1024 : false;
+          return mobileUA.test(ua) || (hasTouch && narrowScreen);
+        }catch(e){ return false; }
+      }
+      function updatePortraitOverlay(){
+        try{
+          const overlay = document.getElementById('cmass-landscape-overlay');
+          try{ if (sessionStorage && sessionStorage.getItem && sessionStorage.getItem('cmass_overlay_dismissed')){ if (overlay) overlay.style.display = 'none'; return; } }catch(e){}
+          const mobile = isMobileDevice();
+          // Determine landscape using reliable sources (prefer matchMedia / screen.orientation)
+          let isLandscape = false;
+          try{
+            if (window.matchMedia && window.matchMedia('(orientation: landscape)').matches) isLandscape = true;
+            else if (screen && screen.orientation && typeof screen.orientation.type === 'string') isLandscape = screen.orientation.type.indexOf('landscape') === 0;
+            else if (typeof screen !== 'undefined' && screen.width && screen.height) isLandscape = screen.width > screen.height;
+          }catch(e){ /* fallback below */ }
+
+          if (mobile && isLandscape) {
+            if (overlay) overlay.style.display = 'flex';
+            try{ document.documentElement.style.overflow = 'hidden'; }catch(e){}
+            try{ if (screen.orientation && screen.orientation.lock) screen.orientation.lock('portrait').catch(()=>{}); }catch(e){}
+          } else {
+            if (overlay) overlay.style.display = 'none';
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+          }
+        }catch(e){/* ignore */}
+      }
+      window.addEventListener('resize', updatePortraitOverlay);
+      window.addEventListener('orientationchange', updatePortraitOverlay);
+      document.addEventListener('DOMContentLoaded', function(){
+          updatePortraitOverlay();
+          // show iOS help text when appropriate
+          try{
+            const isiOS = /iP(hone|od|ad)/i.test(navigator.userAgent || '');
+            const help = document.getElementById('cmass-overlay-ios-help');
+            if (isiOS && help) help.style.display = '';
+          }catch(e){}
+        // wire up the manual lock/dismiss button
+        try{
+          const btn = document.getElementById('cmass-overlay-lock-btn');
+          if (btn) btn.addEventListener('click', async function(){
+            const overlay = document.getElementById('cmass-landscape-overlay');
+            try{
+              if (screen && screen.orientation && typeof screen.orientation.lock === 'function'){
+                await screen.orientation.lock('portrait');
+              }
+            }catch(e){ /* locking may fail in some browsers, ignore */ }
+            try{ if (overlay) overlay.style.display = 'none'; }catch(e){}
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+            try{ sessionStorage.setItem('cmass_overlay_dismissed','1'); }catch(e){}
+          });
+          // retry button: useful for iOS/Safari where lock may fail; hide overlay and prompt user
+          const retryBtn = document.getElementById('cmass-overlay-retry-btn');
+          if (retryBtn) retryBtn.addEventListener('click', async function(){
+            const overlay = document.getElementById('cmass-landscape-overlay');
+            try{
+              if (screen && screen.orientation && typeof screen.orientation.lock === 'function'){
+                await screen.orientation.lock('portrait');
+              } else {
+                // show a brief guidance toast/alert for iOS users
+                try{ alert('이 브라우저에서는 자동 고정이 지원되지 않을 수 있습니다. 기기를 직접 세로로 돌려주세요.'); }catch(e){}
+              }
+            }catch(e){ try{ alert('세로 고정 시도에 실패했습니다. 기기를 직접 세로로 돌려주세요.'); }catch(er){} }
+            try{ if (overlay) overlay.style.display = 'none'; }catch(e){}
+            try{ document.documentElement.style.overflow = 'auto'; }catch(e){}
+            try{ sessionStorage.setItem('cmass_overlay_dismissed','1'); }catch(e){}
+          });
+          // hide overlay automatically while typing: when any focusable text input is focused, hide overlay
+          document.addEventListener('focusin', function(ev){
+            try{
+              const t = ev.target;
+              if (!t) return;
+              const tag = (t.tagName || '').toLowerCase();
+              const type = (t.type || '').toLowerCase();
+              const isTextInput = tag === 'input' && (type === 'text' || type === 'search' || type === 'tel' || type === 'email' || type === 'number' || type === 'password') || tag === 'textarea' || (t.isContentEditable);
+              if (isTextInput){ const overlay = document.getElementById('cmass-landscape-overlay'); if (overlay) overlay.style.display = 'none'; }
+            }catch(e){}
+          });
+          // when input blur, re-evaluate overlay after short delay
+          document.addEventListener('focusout', function(){ setTimeout(updatePortraitOverlay, 300); });
+        }catch(e){}
+      });
+    })();
+  </script>
+
+
+  <script>
+    // Ensure visitDate defaults to today (local timezone) when user opens the page
+    (function(){
+      try{
+        document.addEventListener('DOMContentLoaded', function(){
+          try{
+            const el = document.getElementById('visitDate');
+            if (!el) return;
+            // Only set default if empty
+            if (!el.value) {
+              const t = new Date();
+              const yyyy = t.getFullYear();
+              const mm = String(t.getMonth() + 1).padStart(2, '0');
+              const dd = String(t.getDate()).padStart(2, '0');
+              el.value = `${yyyy}-${mm}-${dd}`;
+              // trigger change handlers that may update topline / timetable
+              try{ el.dispatchEvent(new Event('change', { bubbles: true })); }catch(e){}
+              try{ if (typeof updateTopline === 'function') updateTopline(); }catch(e){}
+            }
+          }catch(e){}
+        });
+      }catch(e){}
+    })();
+  </script>
+
+  <script>
+    // Clear CMASS local drafts / caches on user request
+    (function(){
+      async function clearCmassLocalData(){
+        try{
+          const removed = [];
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i);
+            if (!k) continue;
+            if (k.indexOf('cmass_') === 0 || k.indexOf('cmass') === 0) {
+              try{ localStorage.removeItem(k); removed.push(k); }catch(e){}
+            }
+          }
+          // unregister service workers
+          if ('serviceWorker' in navigator) {
+            try{
+              const regs = await navigator.serviceWorker.getRegistrations().catch(()=>[]);
+              for (const r of (regs||[])) { try{ await r.unregister(); }catch(e){} }
+            }catch(e){}
+          }
+          // clear caches
+          if (window.caches && caches.keys) {
+            try{
+              const keys = await caches.keys().catch(()=>[]);
+              await Promise.all((keys||[]).map(k => caches.delete(k))).catch(()=>{});
+            }catch(e){}
+          }
+          try{ if (typeof showToast === 'function') showToast('로컬 임시본이 삭제되었습니다. 새로고침하세요.', 3000); else alert('로컬 임시본이 삭제되었습니다. 새로고침하세요.'); }catch(e){}
+          try{ if (typeof updateDraftStatus === 'function') updateDraftStatus(); }catch(e){}
+        }catch(err){ console.error('clearCmassLocalData failed', err); alert('임시본 삭제 중 오류가 발생했습니다. 콘솔을 확인하세요.'); }
+      }
+
+      document.addEventListener('DOMContentLoaded', function(){
+        const btn = document.getElementById('clearLocalDraftBtn');
+        if (!btn) return;
+        // Hide the destructive clear button by default. To enable, set
+        // window.__CMASS_ALLOW_CLEAR_LOCAL_DRAFT = true from the console.
+        try{ if (!window.__CMASS_ALLOW_CLEAR_LOCAL_DRAFT) btn.style.display = 'none'; }catch(e){}
+        if (!window.__CMASS_ALLOW_CLEAR_LOCAL_DRAFT) return;
+        btn.addEventListener('click', async function(){
+          try{
+            // Require token confirmation to avoid accidental wipes
+            const promptMessage = '로컬에 저장된 모든 CMASS 임시본을 삭제합니다. 계속하려면 대문자로 "DELETE CMASS" 를 입력하세요.';
+            let input = '';
+            if (typeof showConfirmModal === 'function'){
+              const ok = await showConfirmModal(promptMessage + '\n\n확인하려면 "DELETE CMASS" 를 입력하세요.');
+              if (!ok) return;
+              // fallback: still ask a prompt for exact token
+              input = window.prompt(promptMessage) || '';
+            } else {
+              input = window.prompt(promptMessage) || '';
+            }
+            if (String(input).trim() !== 'DELETE CMASS') { alert('삭제가 취소되었습니다. 정확한 토큰을 입력하세요.'); return; }
+            await clearCmassLocalData();
+          }catch(e){ console.error('clear button handler failed', e); }
+        });
+      });
+    })();
+  </script>
+
+
+
+
+</body>
+</html>

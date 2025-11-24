@@ -1,0 +1,17 @@
+HTTP/1.1 200 OK
+Connection: keep-alive
+Content-Length: 19614477
+Cache-Control: max-age=3600
+Content-Type: text/csv; charset=utf-8
+Etag: "485e46944f832fb2410305cf85295c6a12d9762828b804c0f94be4267819f4ff"
+Last-Modified: Mon, 17 Nov 2025 04:28:30 GMT
+Strict-Transport-Security: max-age=31556926; includeSubDomains; preload
+Accept-Ranges: bytes
+Date: Mon, 17 Nov 2025 04:30:55 GMT
+X-Served-By: cache-icn1450028-ICN
+X-Cache: MISS
+X-Cache-Hits: 0
+X-Timer: S1763353854.429970,VS0,VE625
+Vary: x-fh-requested-host, accept-encoding
+alt-svc: h3=":443";ma=86400,h3-29=":443";ma=86400,h3-27=":443";ma=86400
+

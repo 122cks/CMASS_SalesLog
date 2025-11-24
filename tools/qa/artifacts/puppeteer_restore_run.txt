@@ -1,0 +1,9 @@
+restored values: {
+  staff: '?≫썕??遺??,
+  date: '2025-09-29',
+  teacher: '?뚯뒪?몄꽑??,
+  phone: '010-1111-2222',
+  requests: '?붿껌?ы빆 ?뚯뒪??,
+  duration: '30'
+}
+PASS: draft restored and visible in form fields

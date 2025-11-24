@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Order 현황 (수정본)</title>
+  <style>body{font-family:Segoe UI, Arial, sans-serif;background:linear-gradient(180deg,#0b2540,#08243a);color:#eaf6ff;margin:0;padding:18px}h1{font-size:1.6rem;text-align:center;margin:8px 0 18px}.summary{max-width:1100px;margin:8px auto;color:#cfe7f6}.empty{color:#9fb1c0;text-align:center;padding:18px}table{width:100%;max-width:1100px;margin:12px auto;border-collapse:collapse;background:rgba(255,255,255,0.02);border-radius:8px;overflow:hidden}th,td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.04);text-align:left;font-size:0.95rem}thead th{background:linear-gradient(90deg,#063248,#0b4a6a);color:#dff6ff}</style>
+</head>
+<body>
+  <h1>Order 현황 (수정본)</h1>
+  <div style="max-width:1100px;margin:0 auto 12px;text-align:center"><strong>교지명에 '교과서'가 포함된 항목만 표시합니다</strong></div>
+  <div class="summary"><span id="totalCount">로딩 중...</span></div>
+  <table id="orderTable">
+    <thead>
+      <tr><th>학교급</th><th>교과군</th><th>과목명</th><th>정가</th><th>부수</th><th>금액</th><th>내용</th></tr>
+    </thead>
+    <tbody id="orderBody"><tr><td colspan="7" class="empty">데이터를 불러오는 중입니다...</td></tr></tbody>
+  </table>
+  <a class="back" href="/dashboard.html">← 대시보드로 돌아가기</a>
+
+<script>
+// Copy of the cleaned script (fetch /orderv2.csv and proper school handling)
+async function fetchCsv(url){
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('fetch failed');
+  const buf = await res.arrayBuffer();
+  const tryDecode = enc => { try{ return new TextDecoder(enc).decode(buf); } catch(e){ return null; } };
+  let txt = tryDecode('utf-8');
+  if(!txt || txt.indexOf(',')===-1){ txt = tryDecode('euc-kr') || tryDecode('windows-949') || tryDecode('shift_jis') || tryDecode('utf-8'); }
+  if(!txt) txt = new TextDecoder().decode(buf);
+  const lines = String(txt).split(/\r?\n/).filter(Boolean);
+  if(!lines.length) return { header: [], rows: [] };
+  function parseLine(line){ const out=[]; let cur=''; let inQ=false; for(let i=0;i<line.length;i++){ const ch=line[i]; if(ch==='"'){ inQ=!inQ; continue; } if(ch===',' && !inQ){ out.push(cur); cur=''; continue; } cur+=ch; } out.push(cur); return out.map(s=>s.trim()); }
+  const headerArr = parseLine(lines[0]).map(h=>h.replace(/"/g,'').trim());
+  const rowsObj = [];
+  for(let i=1;i<lines.length;i++){ try{ const cols = parseLine(lines[i]); if(cols.length===0) continue; const obj={}; for(let j=0;j<headerArr.length;j++){ obj[headerArr[j] || ('c'+j)] = cols[j] || ''; } rowsObj.push(obj); } catch(e){ continue; } }
+  const looksLikeHeader = headerArr.some(h=> /교재명|교지명|도서명|학교|school|정가|금액|교과군|과목명|정보공시학교코드/i.test(h));
+  if(!looksLikeHeader){ const all = [headerArr].concat(rowsObj.map(r=> Object.values(r))); const hdr = headerArr.map((_,i)=> 'c'+i); const resultRows = all.map(cols=>{ const o={}; for(let j=0;j<hdr.length;j++) o[hdr[j]] = cols[j]||''; return o; }); return { header: hdr, rows: resultRows }; }
+  return { header: headerArr, rows: rowsObj };
+}
+function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function normalizeSchool(s){ if(!s) return '__unknown__'; s=String(s).trim().toLowerCase(); s=s.replace(/\s+/g,''); s=s.replace(/["'`\.,\-\/\\()\[\]]+/g,''); s=s.replace(/(초등학교|초등|중학교|중등학교|중등|고등학교|고등|학교|학교명)$/g,''); return s||'__unknown__'; }
+function renderTable(filteredRows){ const body = document.getElementById('orderBody'); if(!filteredRows || filteredRows.length===0){ body.innerHTML = '<tr><td colspan="7" class="empty">표시할 항목이 없습니다</td></tr>'; return; } filteredRows.sort((a,b)=>{ const ag=String(a.subjectGroup||a['교과군']||a.subjectName||'').localeCompare(String(b.subjectGroup||b['교과군']||b.subjectName||'')); if(ag!==0) return ag; return String(a.subjectName||a['과목명']||'').localeCompare(String(b.subjectName||b['과목명']||'')); }); body.innerHTML = filteredRows.map(r=>{ const schoolLevel = escapeHtml(r.schoolLevel || r['학교급'] || r.school || ''); const subjectGroup = escapeHtml(r.subjectGroup || r['교과군'] || r.subjectName || ''); const subjectName = escapeHtml(r.subjectName || r['과목명'] || ''); const price = (r.priceNum!=null)? Number(r.priceNum).toLocaleString() : escapeHtml(r.price || ''); const copies = (r.copiesNum!=null)? String(r.copiesNum) : escapeHtml(r.copies || r.qty || ''); const amount = (r.amountNum!=null)? Number(r.amountNum).toLocaleString() : escapeHtml(r.amount || ''); const note = escapeHtml(r.note || r.Note || r['비고'] || r['remark'] || ''); return `<tr><td>${schoolLevel}</td><td>${subjectGroup}</td><td>${subjectName}</td><td style="text-align:right">${price}</td><td style="text-align:right">${copies}</td><td style="text-align:right">${amount}</td><td>${note}</td></tr>`; }).join(''); }
+(async function init(){ try{ const data = await fetchCsv('/orderv2.csv'); const rows = data.rows || []; const header = data.header || []; const schoolCandidates = header.filter(h=> /학교|school|schoolname|학교명/i.test(h)); const itemCandidates = header.filter(h=> /품목|상품|item|product/i.test(h)); const qtyCandidates = header.filter(h=> /수량|qty|quantity|부수/i.test(h)); const statusCandidates = header.filter(h=> /상태|status|진행/i.test(h)); const noteCandidates = header.filter(h=> /비고|note|remark/i.test(h)); const curriculumCandidates = header.filter(h=> /교육과정|curriculum|과정/i.test(h)); const bookNameCandidates = header.filter(h=> /교재명|교지명|도서명|bookname|title/i.test(h)); const bookCodeCandidates = header.filter(h=> /도서코드|bookcode|code|ISBN/i.test(h)); const schoolCodeCandidates = header.filter(h=> /정보공시학교코드|학교코드|school[_ ]?code|schoolid|school_id|code/i.test(h)); const subjectGroupCandidates = header.filter(h=> /교과군|계열|과목군|subject ?group/i.test(h)); const subjectNameCandidates = header.filter(h=> /과목명|subject|과목/i.test(h)); const priceCandidates = header.filter(h=> /정가|가격|price|단가/i.test(h)); const copiesCandidates = header.filter(h=> /부수|수량|qty|quantity/i.test(h)); const amountCandidates = header.filter(h=> /금액|amount|total/i.test(h)); const levelCandidates = header.filter(h=> /학교급|급|school ?level|level|학급/i.test(h)); const norm = rows.map(r=>{ const o = {}; for(const k of schoolCandidates){ if(r[k]){ o.school = r[k]; break; } } for(const k of itemCandidates){ if(r[k]){ o.item = r[k]; break; } } for(const k of qtyCandidates){ if(r[k]){ o.qty = r[k]; break; } } for(const k of statusCandidates){ if(r[k]){ o.status = r[k]; break; } } for(const k of noteCandidates){ if(r[k]){ o.note = r[k]; break; } } for(const k of curriculumCandidates){ if(r[k]){ o.curriculum = r[k]; break; } } for(const k of bookNameCandidates){ if(r[k]){ o.bookName = r[k]; break; } } for(const k of bookCodeCandidates){ if(r[k]){ o.bookCode = r[k]; break; } } for(const k of subjectGroupCandidates){ if(r[k]){ o.subjectGroup = r[k]; break; } } for(const k of subjectNameCandidates){ if(r[k]){ o.subjectName = r[k]; break; } } for(const k of levelCandidates){ if(r[k]){ o.schoolLevel = r[k]; break; } } for(const k of priceCandidates){ if(r[k]){ o.price = r[k]; break; } } for(const k of copiesCandidates){ if(r[k]){ o.copies = r[k]; break; } } for(const k of amountCandidates){ if(r[k]){ o.amount = r[k]; break; } } for(const k of schoolCodeCandidates){ if(r[k]){ o.schoolCode = String(r[k]).trim(); break; } } if(!o.school) o.school = rows.length && (r[header[0]] || ''); if(!o.item) o.item = r[header[1]] || ''; o.schoolNorm = normalizeSchool(o.school); function toNum(v){ if(v==null || v==='') return 0; const n = Number(String(v).replace(/[^0-9.-]+/g,'')); return isNaN(n)?0:n; } o.priceNum = toNum(o.price || r['정가'] || r['price']); o.copiesNum = toNum(o.copies || o.qty || r['부수'] || r['수량']); o.amountNum = toNum(o.amount || r['금액'] || r['amount']); return o; }); const urlParams = new URLSearchParams(location.search); const schoolParam = (urlParams.get('school') || urlParams.get('code') || '').trim(); let passIdx = []; if(schoolParam){ for(let i=0;i<norm.length;i++) passIdx.push(i); } else { for(let i=0;i<norm.length;i++){ const orig = rows[i] || {}; const joined = Object.values(orig).join(' ').toLowerCase(); if(joined.includes('교과서')) passIdx.push(i); } } console.log('ORDER_DEBUG after_book_filter_count', passIdx.length); let finalIdx = passIdx.slice(); if(schoolParam){ const param = String(schoolParam).trim(); const paramNorm = normalizeSchool(param); const before = finalIdx.length; finalIdx = finalIdx.filter(i=>{ const r = norm[i]; const orig = rows[i] || {}; if(r && r.schoolCode && String(r.schoolCode).toLowerCase() === param.toLowerCase()) return true; if(r && r.schoolNorm && r.schoolNorm === paramNorm) return true; const any = Object.values(orig).join(' ').toLowerCase(); if(any.includes(param.toLowerCase())) return true; return false; }); console.log('ORDER_DEBUG after_school_filter', before, '->', finalIdx.length); } const filtered = finalIdx.map(i=> norm[i]); const totalCount = document.getElementById('totalCount'); console.log('ORDER_DEBUG filtered_length', filtered.length, filtered.slice(0,3).map((r,i)=>({ idx: finalIdx[i], schoolCode: r.schoolCode, schoolNorm: r.schoolNorm, school: r.school }))); totalCount.textContent = `총 항목(교과서): ${filtered.length}`; renderTable(filtered); }catch(e){ console.error(e); document.getElementById('orderBody').innerHTML = '<tr><td colspan="7" class="empty">데이터를 불러오지 못했습니다.</td></tr>'; document.getElementById('totalCount').textContent = '에러'; } })();
+</script>
+</body>
+</html>

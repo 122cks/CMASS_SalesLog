@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>관리자 대시보드</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@1.2.0/dist/chartjs-chart-matrix.min.js"></script>
+  <!-- Firebase client (compat) for dashboard data reads -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script>
+    // Initialize Firebase (same config as front page)
+    try{
+      const firebaseConfig = {
+        apiKey: "AIzaSyARdXNfFCUShNeFXV8cTDzFbKa4GId5EvU",
+        authDomain: "cmass-sales.firebaseapp.com",
+        projectId: "cmass-sales",
+        storageBucket: "cmass-sales.firebasestorage.app",
+        messagingSenderId: "918981476485",
+        appId: "1:918981476485:web:7939150e23500e2703a9ec",
+        measurementId: "G-9188JJXRWX"
+      };
+      try{ firebase.initializeApp(firebaseConfig); window.__db = firebase.firestore(); }catch(e){}
+      window.waitForFirebase = function(){ return new Promise((resolve,reject)=>{ if(window.__db) return resolve(); let attempts=0; const t=setInterval(()=>{ attempts++; if(window.__db){ clearInterval(t); resolve(); } if(attempts>50){ clearInterval(t); reject(new Error('firebase init timeout')); } },100); }); };
+    }catch(e){}
+  </script>
+  <style>
+    body {
+      background: linear-gradient(180deg,#0b2540 0%, #08243a 60%);
+      color: #fff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    h2 {
+      text-align: center;
+      font-size: 2.2rem;
+      margin: 2rem 0 1rem 0;
+      font-weight: bold;
+    }
+    /* Title parts so we can control stacking on very small screens */
+    .title-line1, .title-line2 { display:inline-block; white-space:nowrap; }
+    .metrics {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .metric-card {
+      background: linear-gradient(180deg,#143b5a,#0f3a5a);
+      border-radius: 12px;
+      padding: 18px 20px;
+      min-width: 180px;
+      text-align: left;
+      font-size: 0.95rem;
+      box-shadow: 0 8px 24px rgba(2,12,27,0.45);
+      flex: 1 1 220px;
+      display:flex;flex-direction:column;justify-content:center;gap:6px;color:#e6f6ff
+    }
+    .kpi-title{ font-size:13px;color:#cfe7f6;margin-bottom:0 }
+    .kpi-number{ font-size:26px;font-weight:800;color:#fff }
+    .kpi-delta{ font-size:12px;color:#9fd3c7;margin-top:6px }
+    .charts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      justify-content: center;
+      margin-bottom: 2rem;
+    }
+    .chart-container {
+      background: linear-gradient(180deg,#0f3046,#10384d);
+      border-radius: 12px;
+      padding: 12px 14px 18px 14px;
+      margin-bottom: 1rem;
+      width: 420px;
+      min-width: 280px;
+      color:#e8f6ff;
+    }
+    .chart-title{ font-weight:700;color:#d8eefc;font-size:14px;margin:6px 8px }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+      margin-bottom: 2rem;
+    }
+    .filters select, .filters input {
+      font-size: 0.95rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      border: none;
+      margin-right: 0.5rem;
+      background: linear-gradient(180deg,#153347,#0f2f3f);
+      color:#fff
+    }
+    /* make selects show a dropdown caret and higher contrast */
+    .filters select{ background:linear-gradient(180deg,#2b2b2b,#252525); color:#fff; padding-right:28px }
+    .filters select::-ms-expand{ display:none }
+    .filter-chip{ display:inline-flex; align-items:center; gap:8px; background:#1e2830; color:#fff; padding:6px 8px; border-radius:16px; margin:4px; font-size:13px }
+    .filter-chip button{ background:transparent;border:none;color:#fff;margin-left:6px;cursor:pointer }
+    .export-btn {
+      background: linear-gradient(90deg,#1f78d1,#0f64b3);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 0.98rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: 1rem;
+      box-shadow: 0 6px 18px rgba(6,35,66,0.45);
+    }
+    .staff-btn {
+      display:inline-block;
+      background: #1e73d1;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 8px;
+      text-decoration:none;
+      font-weight:700;
+      font-size:14px;
+      text-align:center;
+      box-shadow:0 6px 18px rgba(0,0,0,0.25);
+    }
+    table {
+      width: 95vw;
+      max-width: 1200px;
+      margin: 2rem auto;
+      background: transparent;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 0.78rem;
+      border-collapse: collapse;
+      overflow-x: auto;
+    }
+    th, td {
+      padding: 0.65rem 0.6rem;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      text-align: left;
+    }
+    th {
+      background: #444;
+      font-weight: bold;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    @media (max-width: 800px) {
+      .charts { flex-direction: column; align-items: center; }
+      .chart-container { width: 95vw; min-width: 200px; }
+      table { font-size: 0.9rem; }
+    }
+    /* table header / body refinements for better contrast, sticky header and hover */
+    table { border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(4,24,44,0.6); }
+    thead { background: linear-gradient(90deg,#063248,#0b4a6a); }
+    thead th { color: #dff6ff; padding: 0.6rem 0.6rem; border-bottom: 1px solid rgba(255,255,255,0.04); position: sticky; top: 0; z-index: 2; }
+    tbody td { background: linear-gradient(180deg,#071e2b,#0b2a36); color: #fff; padding: 0.28rem 0.5rem; vertical-align: middle; }
+    tbody tr:hover td { background: linear-gradient(180deg,#0b2531,#0e2f3b); }
+    .detail-btn{ background:#1e73d1;border:none;color:#fff;padding:3px 6px;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.8rem }
+    /* compact detail column - reduce horizontal padding and button size */
+    table tbody td:last-child{ padding:0.08rem 0.12rem; text-align:center; width:1%; white-space:nowrap }
+    table tbody td:last-child .detail-btn{ padding:2px 4px; font-size:0.78rem; min-width:36px }
+    /* modal for detail view */
+    .modal { position:fixed; left:0; top:0; right:0; bottom:0; display:none; align-items:center; justify-content:center; background:rgba(2,12,27,0.6); z-index:9999 }
+    .modal-content { background: linear-gradient(180deg,#071e2b,#072432); color:#fff; border-radius:10px; width:90%; max-width:820px; padding:18px; box-shadow:0 12px 40px rgba(2,12,27,0.7); }
+    .modal-header{ display:flex; justify-content:space-between; align-items:center; gap:12px }
+    .modal-close{ background:transparent;border:0;color:#cfeefc;font-size:22px;cursor:pointer }
+    .modal-body{ margin-top:12px; font-size:14px; color:#eaf6ff }
+    .modal-row{ display:flex; gap:12px; margin-bottom:8px }
+    .modal-row .label{ min-width:110px; color:#8fcbe9 }
+    .chart-legend{ margin-top:8px; display:flex; flex-wrap:wrap; gap:8px; align-items:center }
+    .legend-item{ display:flex; align-items:center; gap:8px; padding:6px 8px; background:rgba(255,255,255,0.03); border-radius:8px }
+    .legend-swatch{ width:12px; height:12px; border-radius:3px; display:inline-block }
+    .legend-label{ font-size:13px; color:#e6f6ff }
+    .legend-count{ font-size:12px; color:#cfe7f6; margin-left:6px }
+    /* clamp table cell content to max 2 lines to avoid very tall rows */
+    .td-clamp{ display:-webkit-box; line-clamp:2; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis; white-space:normal; line-height:0.98rem; max-height:1.98rem }
+    /* horizontal single-line clamp for short columns */
+    .td-inline{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:0.72rem }
+    @media (max-width:520px) {
+      /* Compact table for small screens: fit all columns within viewport */
+      /* avoid 100vw (includes scrollbar) which can create horizontal scroll — use fixed width per request */
+      body { overflow-x: hidden; }
+      /* Force table total width to 430px on small screens as requested */
+      table { width: 430px !important; max-width: 430px !important; margin: 8px auto; font-size:0.62rem; box-sizing: border-box; }
+      thead th, tbody td { padding: 0.18rem 0.18rem; }
+      /* tighter per-column widths to avoid horizontal scrolling */
+      /* Safer candidate widths to ensure all columns fit in ~520px viewport */
+      /* Adjusted mobile column widths to fit 430px total (60+78+110+70+62+50 = 430) */
+      table thead th:nth-child(1), table tbody td:nth-child(1) { width: 60px; }
+      table thead th:nth-child(2), table tbody td:nth-child(2) { width: 78px; }
+      table thead th:nth-child(3), table tbody td:nth-child(3) { width: 110px; }
+      table thead th:nth-child(4), table tbody td:nth-child(4) { width: 70px; }
+      table thead th:nth-child(5), table tbody td:nth-child(5) { width: 62px; }
+      table thead th:nth-child(6), table tbody td:nth-child(6) { width: 50px; min-width:50px; max-width:50px; padding:0.02rem 0.06rem; }
+      /* make detail button smaller */
+      table tbody td:last-child .detail-btn{ padding:1px 6px; font-size:0.66rem; min-width:36px }
+      /* reduce inline text font slightly */
+      .td-inline{ font-size:0.62rem }
+      /* allow long school names to truncate nicely (no wrap) */
+      table tbody td:nth-child(3) .td-inline{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+    }
+  /* tighten column widths to reduce horizontal gaps (date, staff, school, subject, teacher, detail) */
+  table { table-layout: fixed; }
+  table thead th:nth-child(1), table tbody td:nth-child(1) { width: 90px; max-width:100px; }
+  table thead th:nth-child(2), table tbody td:nth-child(2) { width: 110px; max-width:140px; }
+  table thead th:nth-child(3), table tbody td:nth-child(3) { width: 260px; min-width:140px; }
+  table thead th:nth-child(4), table tbody td:nth-child(4) { width: 140px; max-width:180px; }
+  table thead th:nth-child(5), table tbody td:nth-child(5) { width: 120px; max-width:160px; overflow:hidden; }
+  table thead th:nth-child(6), table tbody td:nth-child(6) { width: 66px; min-width:56px; max-width:80px; padding:0.04rem 0.06rem; }
+  /* reduce padding for middle columns to bring teacher and detail closer */
+  table tbody td:nth-child(3), table tbody td:nth-child(4), table tbody td:nth-child(5) { padding-left:0.22rem; padding-right:0.22rem; }
+  /* Ensure mobile overrides win: redefine compact widths after the general block */
+  @media (max-width:520px) {
+    /* mobile overrides (important) matching 430px total */
+    table thead th:nth-child(1), table tbody td:nth-child(1) { width: 60px !important; }
+    table thead th:nth-child(2), table tbody td:nth-child(2) { width: 78px !important; }
+    table thead th:nth-child(3), table tbody td:nth-child(3) { width: 110px !important; }
+    table thead th:nth-child(4), table tbody td:nth-child(4) { width: 70px !important; }
+    table thead th:nth-child(5), table tbody td:nth-child(5) { width: 62px !important; }
+    table thead th:nth-child(6), table tbody td:nth-child(6) { width: 50px !important; min-width:50px; max-width:50px !important; }
+    thead th, tbody td { box-sizing: border-box; }
+  }
+  /* At very small widths show metric cards two-per-row (target: 435px) */
+  @media (max-width:435px) {
+    .metrics { gap: 0.6rem; padding: 0 6px; justify-content:space-between; align-items:stretch; }
+    /* Force two-up grid: override earlier min-width/flex rules so cards appear 2-per-row */
+    .metric-card { flex: 0 0 50% !important; max-width: calc(50% - 0.6rem) !important; min-width: 0 !important; box-sizing:border-box; padding:10px 12px; }
+    .metric-card .kpi-number{ font-size:20px }
+    .metric-card .kpi-title{ font-size:12px }
+    /* Stack the dashboard title into two explicit lines at this width */
+    .title-line1, .title-line2 { display:block; width:100%; text-align:center; white-space:nowrap; }
+    h2 { font-size:1.6rem; line-height:1.05; margin-top:1.2rem; }
+  }
+  /* PIN overlay */
+  .pin-overlay{ position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(2,12,27,0.95); display:flex; align-items:center; justify-content:center; z-index:10000; }
+  .pin-box{ background:linear-gradient(180deg,#072432,#041827); padding:24px;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.6); color:#eaf6ff; width:320px; max-width:90%; text-align:center }
+  .pin-box h3{ margin:0 0 10px 0 }
+  .pin-input{ font-size:22px; padding:10px 12px; width:100%; text-align:center; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.02); color:#fff }
+  .pin-btn{ margin-top:12px; padding:10px 14px; border-radius:8px; border:none; background:#1e73d1; color:#fff; font-weight:700; cursor:pointer }
+  .pin-error{ color:#ff8b8b; margin-top:8px; font-size:13px }
+  </style>
+</head>
+<body>
+  <!-- PIN gate overlay: requires 4-digit PIN to view dashboard -->
+  <div id="pinOverlay" class="pin-overlay" style="display:none">
+    <div class="pin-box">
+      <h3>관리자 PIN 입력</h3>
+      <div style="font-size:13px;color:#bfe8ff;margin-bottom:8px">4자리 PIN을 입력하세요</div>
+      <input id="pinInput" class="pin-input" type="password" inputmode="numeric" maxlength="4" placeholder="●●●●" />
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:10px"><button id="pinSubmit" class="pin-btn">입력</button><button id="pinClear" class="pin-btn" style="background:#666">지우기</button></div>
+      <div id="pinError" class="pin-error" style="display:none">PIN이 올바르지 않습니다</div>
+    </div>
+  </div>
+  <h2><span class="title-line1">CMASS-SALES</span> <span class="title-line2">관리자 대시보드</span></h2>
+  <div class="metrics">
+    <div class="metric-card"><div class="kpi-title">오늘 영업 기록</div><div class="kpi-number" id="metric1">0</div><div class="kpi-delta" id="delta1">+0%</div></div>
+    <div class="metric-card"><div class="kpi-title">방문 학교</div><div class="kpi-number" id="metric2">0</div><div class="kpi-delta" id="delta2">—</div></div>
+    <div class="metric-card"><div class="kpi-title">연락처 확보 교사</div><div class="kpi-number" id="metric3">0</div><div class="kpi-delta" id="delta3">—</div></div>
+    <div class="metric-card"><div class="kpi-title">출입불가 학교(평균)</div><div class="kpi-number" id="metric4">0</div><div class="kpi-delta" id="delta4">—</div></div>
+  </div>
+  <!-- 담당자 빠른 이동 버튼: 각 담당자의 front 페이지로 이동 -->
+  <div style="text-align:center;margin-bottom:18px">
+    <div style="display:inline-flex;gap:10px;flex-wrap:wrap;justify-content:center">
+  <a class="staff-btn" href="/front?staff=SongHoonjae" target="_blank" rel="noopener noreferrer" title="송훈재 담당자 페이지 열기">SongHoonjae<br><small style="font-size:11px;color:#ddd">(송훈재)</small></a>
+  <a class="staff-btn" href="/front?staff=LimJunho" target="_blank" rel="noopener noreferrer" title="임준호 담당자 페이지 열기">LimJunho<br><small style="font-size:11px;color:#ddd">(임준호)</small></a>
+  <a class="staff-btn" href="/front?staff=ChoYounghwan" target="_blank" rel="noopener noreferrer" title="조영환 담당자 페이지 열기">ChoYounghwan<br><small style="font-size:11px;color:#ddd">(조영환)</small></a>
+    </div>
+  </div>
+  <div class="filters">
+    <select id="filterUser">
+      <option value="">영업사원 전체</option>
+      <option>송훈재</option>
+      <option>임준호</option>
+      <option>조영환</option>
+    </select>
+  <input id="filterSubject" placeholder="과목 필터 (차트 클릭으로 설정됨)" style="padding:0.65rem;border-radius:0.7rem;border:none;min-width:160px" />
+    <select id="filterRegion">
+      <option value="">지역 전체</option>
+      <option>서울특별시</option><option>부산광역시</option><option>경기도</option>
+      <!-- ... 기타 지역 ... -->
+    </select>
+    <select id="filterEstablish">
+      <option value="">설립구분 전체</option>
+      <option>공립</option>
+      <option>사립</option>
+    </select>
+    <select id="filterSchoolLevel">
+      <option value="">학교급 전체</option>
+      <option>초등</option>
+      <option>중등</option>
+      <option>고등</option>
+    </select>
+    <input type="number" id="filterMinStudents" placeholder="최소 학생수" style="width:110px" />
+    <input type="number" id="filterMaxStudents" placeholder="최대 학생수" style="width:110px" />
+    <input type="text" id="filterSchool" placeholder="학교명 검색">
+    <input type="date" id="filterStart">
+    <input type="date" id="filterEnd">
+    <button class="export-btn" id="exportBtn">Excel 내보내기</button>
+    <button class="export-btn" id="toggleCsvCols" style="background:#2a5298;margin-left:6px">CSV 컬럼 선택</button>
+    <div id="csvColsPanel" style="display:none;position:absolute;background:#111;padding:10px;border-radius:8px;border:1px solid #333;color:#fff;margin-top:40px;z-index:999">
+      <div style="max-height:220px;overflow:auto;">
+        <label><input type="checkbox" name="csvcol" value="_date" checked> 방문일</label><br>
+        <label><input type="checkbox" name="csvcol" value="staff" checked> staff</label><br>
+        <label><input type="checkbox" name="csvcol" value="staffLabel" checked> staffLabel</label><br>
+        <label><input type="checkbox" name="csvcol" value="region" checked> region</label><br>
+        <label><input type="checkbox" name="csvcol" value="school" checked> school</label><br>
+        <label><input type="checkbox" name="csvcol" value="subjects" checked> subjects</label><br>
+        <label><input type="checkbox" name="csvcol" value="activities" checked> activities</label><br>
+        <label><input type="checkbox" name="csvcol" value="teacher" checked> teacher</label><br>
+        <label><input type="checkbox" name="csvcol" value="visitStart" checked> visitStart</label><br>
+        <label><input type="checkbox" name="csvcol" value="visitEnd" checked> visitEnd</label><br>
+        <label><input type="checkbox" name="csvcol" value="duration"> duration</label><br>
+  <label><input type="checkbox" name="csvcol" value="establishment"> 설립구분</label><br>
+  <label><input type="checkbox" name="csvcol" value="schoolLevel"> 학교급</label><br>
+  <label><input type="checkbox" name="csvcol" value="totalStudents"> 총학생수</label><br>
+  <label><input type="checkbox" name="csvcol" value="features"> 특성</label><br>
+  <label><input type="checkbox" name="csvcol" value="grade1"> 1학년</label><br>
+  <label><input type="checkbox" name="csvcol" value="grade2"> 2학년</label><br>
+  <label><input type="checkbox" name="csvcol" value="grade3"> 3학년</label><br>
+        <label><input type="checkbox" name="csvcol" value="phone"> phone</label><br>
+        <label><input type="checkbox" name="csvcol" value="email"> email</label><br>
+        <label><input type="checkbox" name="csvcol" value="conversation"> conversation</label><br>
+        <label><input type="checkbox" name="csvcol" value="followUp"> followUp</label><br>
+      </div>
+      <div style="text-align:right;margin-top:8px"><button id="csvColsApply" class="export-btn" style="background:#4e79a7;padding:6px 10px">적용</button> <button id="csvColsClose" class="export-btn" style="background:#666;padding:6px 10px">닫기</button></div>
+    </div>
+  </div>
+  <div class="charts">
+      <div class="chart-container">
+    <div class="chart-title">반응 NPS</div>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:nowrap">
+      <div style="flex:1 1 100%;display:flex;align-items:center;justify-content:center;padding:12px">
+        <canvas id="dashboardGauge" aria-label="반응 NPS 차트" style="width:100%;height:220px;max-width:100%"></canvas>
+      </div>
+      <div id="dashboardBreakdown" style="flex:0 0 220px;display:flex;flex-direction:column;gap:12px;padding:8px;box-sizing:border-box"></div>
+    </div>
+  </div>
+  <div class="chart-container"><div class="chart-title">영업일자 추이</div><canvas id="chart1"></canvas><div class="chart-legend" id="legend-chart1"></div></div>
+  <div class="chart-container"><div class="chart-title">지역별 방문(상위)</div><canvas id="chart3"></canvas><div class="chart-legend" id="legend-chart3"></div></div>
+  <div class="chart-container"><div class="chart-title">과목 분포</div><canvas id="chart4"></canvas><div class="chart-legend" id="legend-chart4"></div></div>
+  <div class="chart-container"><div class="chart-title">활동 유형(막대)</div><canvas id="chart2"></canvas><div class="chart-legend" id="legend-chart2"></div></div>
+  <div class="chart-container"><div class="chart-title">시간대별(시)</div><canvas id="chart5"></canvas><div class="chart-legend" id="legend-chart5"></div></div>
+  <div class="chart-container"><div class="chart-title">설립구분 분포</div><canvas id="chart6"></canvas><div class="chart-legend" id="legend-chart6"></div></div>
+  <div class="chart-container"><div class="chart-title">학생수 버킷 분포</div><canvas id="chart7"></canvas><div class="chart-legend" id="legend-chart7"></div></div>
+  <div class="chart-container"><div class="chart-title">학년별 학생수 합계</div><canvas id="chart8"></canvas><div class="chart-legend" id="legend-chart8"></div></div>
+  <div class="chart-container"><div class="chart-title">설립구분 × 학교급 교차분석</div><canvas id="chart9"></canvas><div class="chart-legend" id="legend-chart9"></div></div>
+  <div class="chart-container"><div class="chart-title">설립구분 × 학교급 Heatmap</div><canvas id="chart10"></canvas><div class="chart-legend" id="legend-chart10"></div></div>
+  </div>
+  <div style="text-align:center;margin:8px 0;color:#ddd;font-size:13px">
+    활성 필터: <span id="activeFilters">없음</span> <button id="clearFilters" style="margin-left:8px;padding:6px 10px;border-radius:8px;border:none;background:#555;color:#fff;cursor:pointer">필터 초기화</button>
+  </div>
+    <!-- 학교 정보 섹션 제거: 미팅 내용(최근 영업기록) 테이블을 기본으로 표시합니다 -->
+  <table>
+    <thead>
+      <tr>
+        <th>방문일</th>
+        <th>담당자</th>
+        <th>학교명</th>
+        <th>과목명</th>
+        <th>선생님명</th>
+        <th>상세</th>
+      </tr>
+    </thead>
+    <tbody id="salesTable">
+      <!-- 최근 영업기록 데이터 표시 -->
+    </tbody>
+  </table>
+  <script>
+    // Dashboard: read visit_entries from Firestore and render KPIs + charts + table
+    (function(){
+  // extended palette for many categories (keeps good contrast)
+  const palette = ['#1e3c72','#2a5298','#ff9800','#4e79a7','#f28e2b','#e15759','#76b7b2','#59a14f','#edc949','#af7aa1','#9c755f','#9b5de5','#00c2cb','#ff6f91','#845ec2','#2b2d42','#0081a7','#f08a5d','#b83b5e','#4cc9f0'];
+      let charts = {};
+      // sales staff CSV map (school name -> metadata)
+      let salesStaffMap = new Map();
+      let salesStaffLoaded = false;
+
+      // Load sales_staff.csv from public and build a lookup map by school name
+      async function loadSalesStaffCsv(){
+        try{
+          const res = await fetch('/sales_staff.csv');
+          if(!res.ok) return;
+          const txt = await res.text();
+          const lines = txt.split(/\r?\n/).filter(Boolean);
+          if(!lines.length) return;
+          const header = lines[0].split(',').map(h=>h.trim().replace(/^\"|\"$/g,''));
+          const idx = {};
+          header.forEach((h,i)=> idx[h]=i);
+          // store header/index for later lookups
+          window.__salesStaffHeader = header;
+          window.__salesStaffIdx = idx;
+          // helper to find header that contains given substring (case-sensitive for Korean)
+          function findHeaderContaining(sub){
+            for(let h of header){ if(!h) continue; if(String(h).indexOf(sub) !== -1) return h; }
+            return null;
+          }
+
+          for(let i=1;i<lines.length;i++){
+            const cols = lines[i].split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+            if(!cols.length) continue;
+            // find school name column (prefer 'school' or any header containing '학교' or 'school')
+            let schoolName = '';
+            if(idx['school'] !== undefined && cols[idx['school']]) schoolName = cols[idx['school']];
+            if(!schoolName){
+              const h = findHeaderContaining('학교');
+              if(h && idx[h] !== undefined) schoolName = cols[idx[h]];
+            }
+            if(!schoolName) continue;
+
+            // total students: prefer header '학생수계' or any header containing '학생수계' or '학생수'
+            let total = '';
+            const totalHeader = header.find(h=> h==='학생수계' || (h && h.indexOf('학생수계')!==-1) );
+            if(totalHeader && idx[totalHeader] !== undefined) total = cols[idx[totalHeader]];
+            if(!total){
+              const alt = header.find(h=> h && h.indexOf('학생수')!==-1 && !h.match(/^1학년|^2학년|^3학년/));
+              if(alt && idx[alt] !== undefined) total = cols[idx[alt]];
+            }
+
+            // establishment and level
+            let est = '';
+            const estHeader = header.find(h=> h && (h==='설립구분' || h.indexOf('설립')!==-1)); if(estHeader && idx[estHeader]!==undefined) est = cols[idx[estHeader]];
+            let lvl = '';
+            const lvlHeader = header.find(h=> h && (h==='학교급' || h.indexOf('학교급')!==-1 || h==='학교급코드')); if(lvlHeader && idx[lvlHeader]!==undefined) lvl = cols[idx[lvlHeader]];
+
+            // grade student counts: look for headers containing '1학년'+'학생수', etc.
+            function findColByHeaderMatch(regex){ for(const h of header){ if(!h) continue; if(regex.test(h)) return cols[idx[h]]; } return ''; }
+            const g1 = findColByHeaderMatch(/^1학년.*학생수|^1학년학생수|1학년학생수/);
+            const g2 = findColByHeaderMatch(/^2학년.*학생수|^2학년학생수|2학년학생수/);
+            const g3 = findColByHeaderMatch(/^3학년.*학생수|^3학년학생수|3학년학생수/);
+
+            // features: look for '학교특성' or '학교특성' like headers
+            const featuresHeader = header.find(h=> h && (h.indexOf('학교특성')!==-1 || h.indexOf('학교특성')!==-1 || h.indexOf('학교특성')!==-1 || h.indexOf('특성')!==-1));
+            let featuresVal = '';
+            if(featuresHeader && idx[featuresHeader] !== undefined) featuresVal = cols[idx[featuresHeader]];
+
+            salesStaffMap.set(schoolName.trim().toLowerCase(), { school: schoolName, totalStudents: total? Number(total)||0 : 0, establishment: est||'', schoolLevel: lvl||'', raw: cols, grade1: g1, grade2: g2, grade3: g3, features: featuresVal });
+          }
+        }catch(e){ console.warn('loadSalesStaffCsv failed', e); }
+        salesStaffLoaded = true;
+      }
+
+      // start loading CSV immediately
+      loadSalesStaffCsv();
+
+      function q(selector){ return document.querySelector(selector); }
+
+  async function fetchVisits({staff='', start='', end='', region='', subject='', establishment='', schoolLevel='', minStudents=0, maxStudents=0}={}){
+        try{ await window.waitForFirebase(); }catch(e){ console.warn('firebase not ready', e); }
+        if (!window.__db) return [];
+        let col = window.__db.collection('visit_entries');
+        let qref = col;
+        if (staff) qref = qref.where('staff','==', staff);
+        // limit to reasonable size
+        qref = qref.limit(5000);
+        try{
+          const snap = await qref.get();
+          let docs = (snap && snap.docs) ? snap.docs.map(d=>{ const data = d.data(); data.id = d.id; return data; }) : [];
+          // enrich docs with sales_staff.csv metadata when available
+          try{
+            // wait for CSV to load (but don't block long)
+            const start = Date.now();
+            while(!salesStaffLoaded && Date.now() - start < 800) await new Promise(r=>setTimeout(r,50));
+            if(salesStaffLoaded){
+              docs.forEach(d=>{
+                const name = (d.school||'').trim().toLowerCase();
+                if(!name) return;
+                const m = salesStaffMap.get(name);
+                if(m){
+                  if(!d.totalStudents || Number(d.totalStudents) === 0) d.totalStudents = m.totalStudents;
+                  if(!d.establishment) d.establishment = d.establishment || m.establishment;
+                  if(!d.schoolLevel) d.schoolLevel = d.schoolLevel || m.schoolLevel;
+                }
+              });
+            }
+          }catch(e){ console.warn('enrich from csv failed', e); }
+          // client-side filters: date range / region / subject
+          function normDate(d){ if(!d) return ''; if(typeof d==='string' && /^\d{4}-\d{2}-\d{2}/.test(d)) return d.substring(0,10); if(d._seconds) return (new Date(Number(d._seconds)*1000)).toISOString().substring(0,10); return (new Date(d)).toISOString().substring(0,10); }
+          docs = docs.map(r=>{ r._date = normDate(r.visitDate||r._savedAt||r.createdAt); return r; });
+          if (start) docs = docs.filter(d=> d._date && d._date >= start);
+          if (end) docs = docs.filter(d=> d._date && d._date <= end);
+          if (region) docs = docs.filter(d=> (d.region||'').toLowerCase().indexOf(region.toLowerCase())!==-1 );
+          if (establishment) docs = docs.filter(d=> { const e = String(d.establishment || d.establish || d['설립구분'] || d.설립 || d.schoolEstablish || '').toLowerCase(); return e.indexOf(establishment.toLowerCase()) !== -1; });
+          if (schoolLevel) docs = docs.filter(d=> { const l = String(d.schoolLevel || d.school_grade || d['학교급'] || d.학교급 || '').toLowerCase(); return l.indexOf(schoolLevel.toLowerCase()) !== -1; });
+          if (minStudents) docs = docs.filter(d=> { const s = Number(d.totalStudents || d.students || d['총학생수'] || d.studentCount || 0) || 0; return s >= Number(minStudents); });
+          if (maxStudents) docs = docs.filter(d=> { const s = Number(d.totalStudents || d.students || d['총학생수'] || d.studentCount || 0) || 0; return s <= Number(maxStudents); });
+          if (subject) docs = docs.filter(d=> { const subs = Array.isArray(d.subject)? d.subject : (Array.isArray(d.subjects)? d.subjects : (d.subject? [d.subject] : (d.subjects? [d.subjects] : []))); return subs.some(s=> String(s).toLowerCase().indexOf(subject.toLowerCase())!==-1); });
+          return docs.sort((a,b)=> (b._date||'').localeCompare(a._date||''));
+        }catch(e){ console.warn('fetchVisits failed', e); return []; }
+      }
+
+      // Try server-side aggregation via Cloud Function (returns aggregated buckets)
+      async function fetchServerAggregate({staff='', start='', end='', region='', subject=''}={}){
+        const params = new URLSearchParams(); if (staff) params.set('staff', staff); if (start) params.set('start', start); if (end) params.set('end', end);
+        const candidates = [
+          '/aggregateVisitEntries',
+          '/functions/aggregateVisitEntries',
+          `https://us-central1-cmass-sales.cloudfunctions.net/aggregateVisitEntries`
+        ];
+        for (const base of candidates){
+          try{
+            const url = base + (base.indexOf('?') === -1 ? '?' + params.toString() : '&' + params.toString());
+            const r = await fetch(url, { method:'GET' });
+            if (!r.ok) continue;
+            const j = await r.json().catch(()=>null);
+            if (!j || !j.ok) continue;
+            // normalize to agg shape used by renderCharts
+            const agg = { byDate: j.byDate||{}, subjects: [], activities: [], regions: [], hours: [], topTeachers: [] };
+            if (j.subjects) agg.subjects = Object.entries(j.subjects).map(e=> [e[0], e[1]]).sort((a,b)=> b[1]-a[1]);
+            if (j.activities) agg.activities = Object.entries(j.activities).map(e=> [e[0], e[1]]).sort((a,b)=> b[1]-a[1]);
+            if (j.regions) agg.regions = Object.entries(j.regions).map(e=> [e[0], e[1]]).sort((a,b)=> b[1]-a[1]);
+            if (j.hours) agg.hours = Object.entries(j.hours).map(e=> [e[0], e[1]]).sort((a,b)=> b[1]-a[1]);
+            return agg;
+          }catch(e){ continue; }
+        }
+        return null;
+      }
+
+      function safe(v){ return v===undefined || v===null ? '' : String(v); }
+
+      function renderKPIs(visits){
+        q('#metric1').textContent = visits.length;
+        const uniqSchools = Array.from(new Set(visits.map(v=> safe(v.school).trim()).filter(Boolean)));
+        q('#metric2').textContent = uniqSchools.length;
+        const contacts = visits.filter(v=> (v.phone||v.email||v.Phonenumber||'').toString().trim()).length;
+        q('#metric3').textContent = contacts;
+        const avg = visits.length ? Math.round((visits.reduce((s,v)=> s + (Number(v.duration)||0),0)/visits.length)) : 0;
+        q('#metric4').textContent = avg;
+      }
+
+  function aggregate(visits){
+        const byDate = {};
+        const subjects = new Map();
+        const activities = new Map();
+        const regions = new Map();
+        const hours = new Map();
+        const topTeachers = new Map();
+    // school metadata maps
+    const establishmentMap = new Map();
+    const schoolLevelMap = new Map();
+    const studentBuckets = new Map();
+    const featuresMap = new Map();
+    const gradesMap = new Map();
+    // cross matrix est -> level -> count
+    const crossMatrix = {};
+
+        visits.forEach(v=>{
+          const d = v._date || '';
+          byDate[d] = (byDate[d]||0) + 1;
+          const subs = Array.isArray(v.subject)? v.subject : (Array.isArray(v.subjects)? v.subjects : (v.subject? [v.subject] : (v.subjects? [v.subjects] : [])));
+          subs.forEach(s=>{ if(!s) return; const k=String(s).trim(); subjects.set(k, (subjects.get(k)||0)+1); });
+          const acts = Array.isArray(v.activities)? v.activities : (v.activities? v.activities : []);
+          acts.forEach(a=>{ if(!a) return; const k=String(a).trim(); activities.set(k, (activities.get(k)||0)+1); });
+          const r = String(v.region||'').trim(); if(r) regions.set(r, (regions.get(r)||0)+1);
+          const start = String(v.visitStart||''); if(start){ const h = start.split(':')[0]; hours.set(h, (hours.get(h)||0)+1); }
+          const teacher = String(v.teacher||'').trim(); if(teacher) topTeachers.set(teacher, (topTeachers.get(teacher)||0)+1);
+          // school metadata: establishment, schoolLevel, totalStudents, features, grade counts
+          const est = String(v.establishment || v.establish || v['설립구분'] || v.설립 || v.schoolEstablish || '').trim();
+          if(est) establishmentMap.set(est, (establishmentMap.get(est)||0)+1);
+          const lvl = String(v.schoolLevel || v.school_grade || v['학교급'] || v.학교급 || '').trim();
+          if(lvl) schoolLevelMap.set(lvl, (schoolLevelMap.get(lvl)||0)+1);
+          // cross matrix
+          if(est && lvl){ crossMatrix[est] = crossMatrix[est] || {}; crossMatrix[est][lvl] = (crossMatrix[est][lvl]||0) + 1; }
+          const totalStudents = Number(v.totalStudents || v.students || v['총학생수'] || v.studentCount || 0) || 0;
+          if(totalStudents){ const bucket = totalStudents < 100 ? '<100' : (totalStudents <=300 ? '100-300' : (totalStudents <=600 ? '301-600' : '>600')); studentBuckets.set(bucket, (studentBuckets.get(bucket)||0)+1); }
+          const features = String(v.features || v.feature || v['특성'] || '').trim(); if(features) featuresMap.set(features, (featuresMap.get(features)||0)+1);
+          // grade breakdown (defensive)
+          const g1 = v.grade1 || v['1_grade'] || (v.grades && v.grades['1'] && (v.grades['1'].students || v.grades['1'].count)) || v['1학년_students'] || 0;
+          const g2 = v.grade2 || v['2_grade'] || (v.grades && v.grades['2'] && (v.grades['2'].students || v.grades['2'].count)) || v['2학년_students'] || 0;
+          const g3 = v.grade3 || v['3_grade'] || (v.grades && v.grades['3'] && (v.grades['3'].students || v.grades['3'].count)) || v['3학년_students'] || 0;
+          if(g1) gradesMap.set('1학년', (gradesMap.get('1학년')||0) + Number(g1));
+          if(g2) gradesMap.set('2학년', (gradesMap.get('2학년')||0) + Number(g2));
+          if(g3) gradesMap.set('3학년', (gradesMap.get('3학년')||0) + Number(g3));
+        });
+
+        function mapToSortedArray(m){ return Array.from(m.entries()).sort((a,b)=> b[1]-a[1]); }
+        return { byDate, subjects: mapToSortedArray(subjects), activities: mapToSortedArray(activities), regions: mapToSortedArray(regions), hours: mapToSortedArray(hours), topTeachers: mapToSortedArray(topTeachers), establishments: mapToSortedArray(establishmentMap), schoolLevels: mapToSortedArray(schoolLevelMap), studentBuckets: mapToSortedArray(studentBuckets), features: mapToSortedArray(featuresMap), grades: mapToSortedArray(gradesMap), cross: crossMatrix };
+      }
+
+      // Group small categories into '기타' to keep charts readable
+      function groupSmall(entries, topN){
+        if (!Array.isArray(entries)) return { labels:[], data:[], entries:[] };
+        const total = entries.reduce((s,e)=> s + (e[1]||0), 0) || 0;
+        if (entries.length <= topN) return { labels: entries.map(e=>e[0]), data: entries.map(e=>e[1]), entries };
+        const top = entries.slice(0, topN);
+        const rest = entries.slice(topN);
+        const otherCount = rest.reduce((s,e)=> s + (e[1]||0), 0);
+        const resEntries = top.concat(otherCount? [['기타', otherCount]] : []);
+        return { labels: resEntries.map(e=>e[0]), data: resEntries.map(e=>e[1]), entries: resEntries };
+      }
+
+      function renderCharts(agg){
+        // visits over time line
+        const dates = Object.keys(agg.byDate).sort();
+        const dateCounts = dates.map(d=> agg.byDate[d]);
+        const ctx1 = document.getElementById('chart1').getContext('2d');
+        if (charts.line) { charts.line.data.labels = dates; charts.line.data.datasets[0].data = dateCounts; charts.line.update(); }
+  else { charts.line = new Chart(ctx1, { type:'line', data:{ labels: dates, datasets:[{ label:'일별 방문', data: dateCounts, borderColor: palette[2], backgroundColor: 'rgba(255,152,0,0.12)', fill:true }] }, options:{ responsive:true, plugins:{ tooltip:{ callbacks:{ label: ctx=> `${ctx.parsed.y||ctx.parsed}: 건` } }, legend:{ position:'bottom' } }, scales:{ x:{ title:{ display:true, text:'일자' } }, y:{ title:{ display:true, text:'건수' } } }, onClick: (evt, items) => {
+              // click on line point -> filter by date
+              if (!items || !items.length) return;
+              const idx = items[0].index; const label = charts.line.data.labels[idx];
+              // set start/end to the clicked date and refresh
+              document.getElementById('filterStart').value = label; document.getElementById('filterEnd').value = label; refresh();
+            } } }); }
+
+  // subjects doughnut (group small values)
+  const subjGrouped = groupSmall(agg.subjects, 8);
+  const sLabels = subjGrouped.labels; const sData = subjGrouped.data;
+        const ctx4 = document.getElementById('chart4').getContext('2d');
+        if (charts.subject) { charts.subject.data.labels = sLabels; charts.subject.data.datasets[0].data = sData; charts.subject.update(); }
+  else { charts.subject = new Chart(ctx4, { type:'doughnut', data:{ labels: sLabels, datasets:[{ data: sData, backgroundColor: palette }] }, options:{ responsive:true, plugins:{ tooltip:{ callbacks:{ label: ctx=> `${ctx.label}: ${ctx.parsed}건` } }, legend:{ position:'bottom' } }, onClick: (evt)=>{
+              const points = charts.subject.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
+              if (!points.length) return;
+              const idx = points[0].index; const label = charts.subject.data.labels[idx];
+              // set subject filter (and display active filter)
+              document.getElementById('filterSubject').value = label === '기타' ? '' : label;
+              document.getElementById('activeFilters').textContent = `과목=${label}`;
+              refresh();
+            } } }); }
+
+  // activities bar (group small)
+  const actGrouped = groupSmall(agg.activities, 8);
+  const aLabels = actGrouped.labels; const aData = actGrouped.data;
+        const ctx2 = document.getElementById('chart2').getContext('2d');
+        if (charts.act) { charts.act.data.labels = aLabels; charts.act.data.datasets[0].data = aData; charts.act.update(); }
+  else { charts.act = new Chart(ctx2, { type:'bar', data:{ labels: aLabels, datasets:[{ label:'활동', data: aData, backgroundColor: palette }] }, options:{ responsive:true, plugins:{ tooltip:{ callbacks:{ label: ctx=> `${ctx.label}: ${ctx.parsed}건` } }, legend:{ position:'bottom' } }, scales:{ y:{ title:{ display:true, text:'건수' } } }, onClick: (evt)=>{
+              const pts = charts.act.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
+              if (!pts.length) return;
+              const idx = pts[0].index; const label = charts.act.data.labels[idx];
+              // Set active filter to activity
+              document.getElementById('activeFilters').textContent = `활동=${label}`;
+              // clear subject filter
+              document.getElementById('filterSubject').value = '';
+              refresh();
+            } } }); }
+
+  // regions bar (group small)
+  const regGrouped = groupSmall(agg.regions, 12);
+  const rLabels = regGrouped.labels; const rData = regGrouped.data;
+        const ctx3 = document.getElementById('chart3').getContext('2d');
+        if (charts.region) { charts.region.data.labels = rLabels; charts.region.data.datasets[0].data = rData; charts.region.update(); }
+  else { charts.region = new Chart(ctx3, { type:'bar', data:{ labels: rLabels, datasets:[{ label:'지역', data: rData, backgroundColor: palette }] }, options:{ responsive:true, plugins:{ tooltip:{ callbacks:{ label: ctx=> `${ctx.label}: ${ctx.parsed}건` } }, legend:{ position:'bottom' } }, scales:{ y:{ title:{ display:true, text:'건수' } } }, onClick: (evt)=>{
+              const pts = charts.region.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
+              if (!pts.length) return;
+              const idx = pts[0].index; const label = charts.region.data.labels[idx];
+              document.getElementById('filterRegion').value = label;
+              document.getElementById('activeFilters').textContent = `지역=${label}`;
+              refresh();
+            } } }); }
+
+        // render legends for charts (swatch + count + percent)
+        function renderLegend(containerSelector, labels, data, colors){
+          const container = q(containerSelector); if(!container) return;
+          const total = data.reduce((s,x)=> s + (Number(x)||0), 0) || 0;
+          container.innerHTML = labels.map((lab,i)=>{
+            const cnt = data[i]||0; const pct = total? Math.round((cnt/total)*100) : 0;
+            const color = colors[i % colors.length];
+            return `<div class="legend-item"><span class="legend-swatch" style="background:${color}"></span><span class="legend-label">${escapeHtml(lab)}</span><span class="legend-count">${cnt}건 (${pct}%)</span></div>`;
+          }).join('');
+        }
+
+  // attach legends for relevant charts (hour legend rendered after hLabels/hData are available)
+  renderLegend('#legend-chart4', sLabels, sData, palette);
+  renderLegend('#legend-chart2', aLabels, aData, palette);
+  renderLegend('#legend-chart3', rLabels, rData, palette);
+
+  // time of day (ctx5)
+  const hourGrouped = groupSmall(agg.hours, 24);
+  const hLabels = hourGrouped.labels; const hData = hourGrouped.data;
+        const ctx5 = document.getElementById('chart5').getContext('2d');
+        if (charts.hour) { charts.hour.data.labels = hLabels; charts.hour.data.datasets[0].data = hData; charts.hour.update(); }
+  else { charts.hour = new Chart(ctx5, { type:'bar', data:{ labels: hLabels, datasets:[{ label:'시간대', data: hData, backgroundColor: palette[3] }] }, options:{ responsive:true, plugins:{ tooltip:{ callbacks:{ label: ctx=> `${ctx.label}: ${ctx.parsed}건` } }, legend:{ position:'bottom' } }, scales:{ x:{ title:{ display:true, text:'시간(시)' } }, y:{ title:{ display:true, text:'건수' } } }, onClick: (evt)=>{
+              const pts = charts.hour.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
+              if (!pts.length) return;
+              const idx = pts[0].index; const label = charts.hour.data.labels[idx];
+              document.getElementById('activeFilters').textContent = `시간=${label}시대`;
+              refresh();
+            } } }); }
+
+        // now that hLabels/hData exist, render the legend for the hour chart
+        renderLegend('#legend-chart5', hLabels, hData, palette);
+
+        // establishments chart (chart6)
+  const estGrouped = groupSmall(agg.establishments, 8);
+  const eLabels = estGrouped.labels; const eData = estGrouped.data;
+  const ctx6 = document.getElementById('chart6').getContext('2d');
+  if (charts.est) { charts.est.data.labels = eLabels; charts.est.data.datasets[0].data = eData; charts.est.update(); }
+  else { charts.est = new Chart(ctx6, { type:'doughnut', data:{ labels: eLabels, datasets:[{ data: eData, backgroundColor: palette }] }, options:{ responsive:true, plugins:{ tooltip:{ callbacks:{ label: ctx=> `${ctx.label}: ${ctx.parsed}건` } }, legend:{ position:'bottom' } }, onClick: (evt)=>{ const points = charts.est.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false); if (!points.length) return; const idx = points[0].index; const label = charts.est.data.labels[idx]; document.getElementById('filterEstablish').value = label === '기타' ? '' : label; document.getElementById('activeFilters').textContent = `설립구분=${label}`; refresh(); } } }); }
+  renderLegend('#legend-chart6', eLabels, eData, palette);
+
+        // student buckets chart (chart7)
+        const sbGrouped = groupSmall(agg.studentBuckets, 6);
+        const sbLabels = sbGrouped.labels; const sbData = sbGrouped.data;
+        const ctx7 = document.getElementById('chart7').getContext('2d');
+        if (charts.sb) { charts.sb.data.labels = sbLabels; charts.sb.data.datasets[0].data = sbData; charts.sb.update(); }
+  else { charts.sb = new Chart(ctx7, { type:'bar', data:{ labels: sbLabels, datasets:[{ label:'학교 수(학생수 버킷)', data: sbData, backgroundColor: palette }] }, options:{ responsive:true, plugins:{ tooltip:{ callbacks:{ label: ctx=> `${ctx.label}: ${ctx.parsed}건` } }, legend:{ position:'bottom' } }, scales:{ y:{ title:{ display:true, text:'학교 수' } } } } }); }
+        renderLegend('#legend-chart7', sbLabels, sbData, palette);
+
+        // grades totals (chart8)
+        const gEntries = agg.grades || [];
+        const gLabels = gEntries.map(e=> e[0]); const gData = gEntries.map(e=> e[1]);
+        const ctx8 = document.getElementById('chart8').getContext('2d');
+        if (charts.grades) { charts.grades.data.labels = gLabels; charts.grades.data.datasets[0].data = gData; charts.grades.update(); }
+  else { charts.grades = new Chart(ctx8, { type:'bar', data:{ labels: gLabels, datasets:[{ label:'학년별 학생수 합계', data: gData, backgroundColor: palette }] }, options:{ responsive:true, plugins:{ tooltip:{ callbacks:{ label: ctx=> `${ctx.label}: ${ctx.parsed}명` } }, legend:{ position:'bottom' } }, scales:{ y:{ title:{ display:true, text:'학생수' } } } } }); }
+        renderLegend('#legend-chart8', gLabels, gData, palette);
+
+        // cross analysis: establishment x schoolLevel (stacked bar) - chart9
+        const cross = agg.cross || {};
+        const estKeys = Object.keys(cross);
+        // collect all levels
+        const levelSet = new Set(); estKeys.forEach(e=> { const obj = cross[e]||{}; Object.keys(obj).forEach(l=> levelSet.add(l)); });
+        const levels = Array.from(levelSet);
+        // datasets per level
+        const crossDatasets = levels.map((lvl, idx)=>{
+          return {
+            label: lvl,
+            data: estKeys.map(e=> (cross[e] && cross[e][lvl])? cross[e][lvl] : 0),
+            backgroundColor: palette[idx % palette.length]
+          };
+        });
+        const ctx9 = document.getElementById('chart9').getContext('2d');
+        if (charts.cross) { charts.cross.data.labels = estKeys; charts.cross.data.datasets = crossDatasets; charts.cross.update(); }
+  else { charts.cross = new Chart(ctx9, { type:'bar', data:{ labels: estKeys, datasets: crossDatasets }, options:{ responsive:true, plugins:{ tooltip:{ mode:'index', intersect:false }, legend:{ position:'bottom' } }, scales:{ x:{ stacked:true, title:{ display:true, text:'설립구분' } }, y:{ stacked:true, title:{ display:true, text:'학교 수' } } } } }); }
+  const estCounts = estKeys.map(e => { const obj = cross[e]||{}; return Object.keys(obj).reduce((s,k)=> s + (obj[k]||0), 0); });
+  renderLegend('#legend-chart9', estKeys, estCounts, palette);
+
+        // heatmap (chart10) using chartjs-chart-matrix
+        try{
+          const crossObj = agg.cross || {};
+          const estLabels = Object.keys(crossObj || {});
+          const levelSet = new Set(); estLabels.forEach(e=> { const obj = crossObj[e]||{}; Object.keys(obj).forEach(l=> levelSet.add(l)); });
+          const levelLabels = Array.from(levelSet);
+          const matrixData = [];
+          let maxV = 0;
+          estLabels.forEach((est, yi)=>{
+            levelLabels.forEach((lvl, xi)=>{
+              const v = (crossObj[est] && crossObj[est][lvl])? crossObj[est][lvl] : 0;
+              matrixData.push({ x: xi, y: yi, v });
+              if (v > maxV) maxV = v;
+            });
+          });
+          // color interpolation helper
+          function lerp(a,b,t){ return Math.round(a + (b-a)*t); }
+          function colorForValue(v){ if(maxV<=0) return '#ffffff'; const t = Math.sqrt(v/maxV); const r=lerp(230,0,t); const g=lerp(242,63,t); const b=lerp(255,125,t); return `rgb(${r},${g},${b})`; }
+          const ctx10 = document.getElementById('chart10').getContext('2d');
+          const dataset = [{
+            label: 'heat',
+            data: matrixData,
+            backgroundColor: function(ctx){ const v = ctx.dataset.data[ctx.dataIndex].v; return colorForValue(v); },
+            width: ({chart}) => (chart.chartArea && chart.chartArea.width) ? (chart.chartArea.width / Math.max(1, levelLabels.length) - 2) : 10,
+            height: ({chart}) => (chart.chartArea && chart.chartArea.height) ? (chart.chartArea.height / Math.max(1, estLabels.length) - 2) : 10
+          }];
+          if (charts.heat) {
+            charts.heat.data.datasets = dataset;
+            if (charts.heat.options && charts.heat.options.scales) {
+              charts.heat.options.scales.x.labels = levelLabels;
+              charts.heat.options.scales.y.labels = estLabels;
+            }
+            charts.heat.update();
+          } else {
+            charts.heat = new Chart(ctx10, {
+              type: 'matrix',
+              data: {
+                datasets: dataset
+              },
+              options: {
+                responsive: true,
+                plugins: {
+                  tooltip: {
+                    callbacks: {
+                      title: function() { return ''; },
+                      label: function(ctx) {
+                        const d = ctx.dataset.data[ctx.dataIndex];
+                        const lvl = levelLabels[d.x] || d.x;
+                        const est = estLabels[d.y] || d.y;
+                        return est + ' / ' + lvl + ': ' + d.v + '건';
+                      }
+                    }
+                  },
+                  legend: { display: false }
+                },
+                scales: {
+                  x: { type: 'category', labels: levelLabels, title: { display: true, text: '학교급' } },
+                  y: { type: 'category', labels: estLabels, title: { display: true, text: '설립구분' }, reverse: true }
+                }
+              }
+            });
+          }
+        }catch(e){ console.warn('heatmap render failed', e); }
+
+        // render top teachers list into table head (we'll show top 10 below table)
+        const top = agg.topTeachers.slice(0,8);
+        const tbody = q('#school-table-body'); if (tbody){ tbody.innerHTML = top.map(t=> `<tr><td colspan="7" style="text-align:left;padding:.6rem;background:#172a34">${escapeHtml(t[0])} — ${t[1]}건</td></tr>`).join(''); }
+      }
+
+      function formatDuration(v){
+        if (v.duration) return String(v.duration);
+        if (v.visitStart && v.visitEnd){
+          try{
+            const s = v.visitStart.split(':'); const e = v.visitEnd.split(':');
+            const sd = new Date(); sd.setHours(Number(s[0]||0), Number(s[1]||0),0,0);
+            const ed = new Date(); ed.setHours(Number(e[0]||0), Number(e[1]||0),0,0);
+            let mins = Math.round((ed - sd)/60000);
+            if (isNaN(mins) || mins < 0) return '';
+            const hr = Math.floor(mins/60); const mm = mins % 60; return hr? `${hr}h ${mm}m` : `${mm}m`;
+          }catch(e){ return ''; }
+        }
+        return '';
+      }
+
+      function renderRecentTable(visits){
+        const tb = q('#salesTable'); if(!tb) return;
+        tb.innerHTML = visits.slice(0,200).map(v=>{
+          // prepare fields (defensive names)
+          const noteVal = v.conversation || v.note || v.notes || '';
+          const staffVal = v.staffLabel || v.staff || '';
+          const schoolVal = v.school || '';
+          const regionVal = v.region || '';
+          const subjArr = Array.isArray(v.subject)? v.subject : (Array.isArray(v.subjects)? v.subjects : (v.subject? [v.subject] : (v.subjects? [v.subjects] : [])));
+          const subjVal = subjArr.join(', ');
+          const activitiesVal = Array.isArray(v.activities)? v.activities.join(', ') : (v.activities || '');
+          const teacherVal = v.teacher || v.teacherName || v.staffTeacher || '';
+          const estVal = v.establishment || v.establish || v['설립구분'] || v.설립 || v.schoolEstablish || '';
+          const lvlVal = v.schoolLevel || v.school_grade || v['학교급'] || v.학교급 || '';
+          const totalStudentsVal = Number(v.totalStudents || v.students || v['총학생수'] || v.studentCount || 0) || '';
+          const featuresVal = v.features || v.feature || v['특성'] || '';
+          const grade1Val = v.grade1 || (v.grades && (v.grades['1'] && (v.grades['1'].students || v.grades['1'].count))) || v['1학년_students'] || '';
+          const grade2Val = v.grade2 || (v.grades && (v.grades['2'] && (v.grades['2'].students || v.grades['2'].count))) || v['2학년_students'] || '';
+          const grade3Val = v.grade3 || (v.grades && (v.grades['3'] && (v.grades['3'].students || v.grades['3'].count))) || v['3학년_students'] || '';
+          const durationVal = formatDuration(v) || (v.duration ? String(v.duration) : '');
+          // detail fields (may be named many ways in DB) - check common variants
+          const followUpVal = v.followUp || v.follow_up || v.followup || v.follow || v.followUpAction || v.followupAction || '';
+          const deliveryVal = v.delivery || v.deliver || v.delivered || v.납품 || '';
+          const requestsVal = v.customerRequests || v.customerRequest || v.requests || v.request || '';
+          const specialVal = v.special || v.특이사항 || v.remark || v.remarks || '';
+
+          // encode for dataset attributes
+          const note = encodeURIComponent(noteVal);
+          const staff = encodeURIComponent(staffVal);
+          const school = encodeURIComponent(schoolVal);
+          const region = encodeURIComponent(regionVal);
+          const subjects = encodeURIComponent(subjVal);
+          const activities = encodeURIComponent(activitiesVal);
+          const phone = encodeURIComponent(v.phone||v.Phonenumber||'');
+          const email = encodeURIComponent(v.email||'');
+          const visitStart = encodeURIComponent(v.visitStart||'');
+          const visitEnd = encodeURIComponent(v.visitEnd||'');
+          const followUp = encodeURIComponent(followUpVal);
+          const delivery = encodeURIComponent(deliveryVal);
+          const requests = encodeURIComponent(requestsVal);
+          const special = encodeURIComponent(specialVal);
+          const establishment = encodeURIComponent(estVal);
+          const schoolLevel = encodeURIComponent(lvlVal);
+          const totalStudents = encodeURIComponent(totalStudentsVal);
+          const features = encodeURIComponent(featuresVal);
+          const grade1 = encodeURIComponent(grade1Val);
+          const grade2 = encodeURIComponent(grade2Val);
+          const grade3 = encodeURIComponent(grade3Val);
+
+          // build the row using compact columns requested by user
+          return `<tr style="background:transparent">
+                    <td><div class="td-inline">${v._date||''}</div></td>
+                    <td><div class="td-inline">${escapeHtml(staffVal)}</div></td>
+                    <td><div class="td-inline">${escapeHtml(schoolVal)}</div></td>
+                    <td><div class="td-inline">${escapeHtml(subjVal)}</div></td>
+                    <td><div class="td-inline">${escapeHtml(teacherVal)}</div></td>
+                    <td style="min-width:56px;max-width:72px"><div style="margin-top:0;display:flex;align-items:center;justify-content:center;gap:0"><button class="detail-btn" style="padding:2px 4px;min-width:36px;margin:0" data-id="${v.id||''}" data-date="${v._date||''}" data-duration="${encodeURIComponent(durationVal)}" data-visitstart="${visitStart}" data-visitend="${visitEnd}" data-staff="${staff}" data-school="${school}" data-region="${region}" data-subjects="${subjects}" data-activities="${activities}" data-phone="${phone}" data-email="${email}" data-note="${note}" data-followup="${followUp}" data-delivery="${delivery}" data-requests="${requests}" data-special="${special}" data-teacher="${encodeURIComponent(teacherVal)}" data-establishment="${establishment}" data-schoollevel="${schoolLevel}" data-totalstudents="${totalStudents}" data-features="${features}" data-grade1="${grade1}" data-grade2="${grade2}" data-grade3="${grade3}">보기</button></div></td>
+                  </tr>`;
+        }).join('');
+      }
+
+      function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+      async function refresh(){
+  const staff = q('#filterUser') && q('#filterUser').value || '';
+  const region = q('#filterRegion') && q('#filterRegion').value || '';
+  const school = q('#filterSchool') && q('#filterSchool').value || '';
+  const subject = q('#filterSubject') && q('#filterSubject').value || '';
+  const start = q('#filterStart') && q('#filterStart').value || '';
+  const end = q('#filterEnd') && q('#filterEnd').value || '';
+  const establishment = q('#filterEstablish') && q('#filterEstablish').value || '';
+  const schoolLevel = q('#filterSchoolLevel') && q('#filterSchoolLevel').value || '';
+  const minStudents = q('#filterMinStudents') && q('#filterMinStudents').value || 0;
+  const maxStudents = q('#filterMaxStudents') && q('#filterMaxStudents').value || 0;
+        
+        q('#metric1').textContent = '-'; q('#metric2').textContent='-'; q('#metric3').textContent='-'; q('#metric4').textContent='-';
+  const visits = await fetchVisits({staff:start? staff : staff, start, end, region, subject, establishment, schoolLevel, minStudents, maxStudents});
+        renderKPIs(visits);
+        // Prefer server-side aggregates when available
+        let serverAgg = await fetchServerAggregate({staff, start, end, region, subject}).catch(()=>null);
+        if (serverAgg){ renderCharts(serverAgg); }
+        else { const agg = aggregate(visits); renderCharts(agg); }
+        renderRecentTable(visits);
+        try{ if (typeof renderNpsDashboard === 'function') renderNpsDashboard(visits); }catch(e){ console.warn('renderNpsDashboard failed', e); }
+      }
+
+      // wire filters
+      document.getElementById('exportBtn').addEventListener('click', function(){ exportCsv(); });
+  ['filterUser','filterRegion','filterSchool','filterStart','filterEnd','filterSubject','filterEstablish','filterSchoolLevel','filterMinStudents','filterMaxStudents'].forEach(id=>{ const el=document.getElementById(id); if(el) el.addEventListener('change', refresh); });
+      document.getElementById('clearFilters').addEventListener('click', function(){ ['filterUser','filterRegion','filterSchool','filterStart','filterEnd','filterSubject'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; }); document.getElementById('activeFilters').textContent = '없음'; refresh(); });
+
+  // CSV columns panel wiring
+  const toggle = document.getElementById('toggleCsvCols');
+  const panel = document.getElementById('csvColsPanel');
+  const applyBtn = document.getElementById('csvColsApply');
+  const closeBtn = document.getElementById('csvColsClose');
+  toggle.addEventListener('click', function(e){ e.preventDefault(); panel.style.display = panel.style.display === 'none' ? 'block' : 'none'; const rect = toggle.getBoundingClientRect(); panel.style.left = (rect.left) + 'px'; panel.style.top = (rect.bottom + 6) + 'px'; });
+  closeBtn.addEventListener('click', function(e){ e.preventDefault(); panel.style.display='none'; });
+  applyBtn.addEventListener('click', function(e){ e.preventDefault(); panel.style.display='none'; refresh(); });
+
+  // delegated click handler for detail buttons in the recent table -> open in-page modal
+  (function(){
+    const salesTableEl = document.getElementById('salesTable');
+    function showModal(obj){
+      const m = document.getElementById('detailModal'); if(!m) return;
+      m.style.display = 'flex';
+      // map numeric/short school level codes to readable labels
+      let displayLevel = obj.schoolLevel || '';
+      try{
+        const s = String(displayLevel||'').trim();
+        if(/^[0-9]+$/.test(s)){
+          if(s === '4') displayLevel = '고등';
+          else if(s === '3') displayLevel = '중등';
+          else if(s === '1') displayLevel = '초등';
+        } else if(s.indexOf('고') !== -1 || s.indexOf('중') !== -1 || s.indexOf('초') !== -1) {
+          displayLevel = s;
+        }
+      }catch(e){ }
+
+      q('#modalTitle').textContent = obj.school || obj.staff || '상세 정보';
+      q('#modalBody').innerHTML = `
+        <div class="modal-row"><div class="label">일시</div><div>${escapeHtml(obj.date||'')}</div></div>
+        <div class="modal-row"><div class="label">담당자</div><div>${escapeHtml(obj.staff||'')}</div></div>
+        <div class="modal-row"><div class="label">지역</div><div>${escapeHtml(obj.region||'')}</div></div>
+  <div class="modal-row"><div class="label">학교</div><div>${escapeHtml(obj.school||'')}</div></div>
+  <div class="modal-row"><div class="label">설립</div><div>${escapeHtml(obj.establishment||'')}</div></div>
+  <div class="modal-row"><div class="label">급</div><div>${escapeHtml(displayLevel||'')}</div></div>
+  <div class="modal-row"><div class="label">총학생수</div><div>${escapeHtml(obj.totalStudents||'')}</div></div>
+  <div class="modal-row"><div class="label">특성</div><div>${escapeHtml(obj.features||'')}</div></div>
+  <div class="modal-row"><div class="label">방문 시작</div><div>${escapeHtml(obj.visitStart||'')}</div></div>
+  <div class="modal-row"><div class="label">시간 소요</div><div>${escapeHtml(obj.duration||'')}</div></div>
+  <div class="modal-row"><div class="label">방문 종료</div><div>${escapeHtml(obj.visitEnd||'')}</div></div>
+  <div class="modal-row"><div class="label">과목</div><div>${escapeHtml(obj.subjects||'')}</div></div>
+  <div class="modal-row"><div class="label">선생님</div><div>${escapeHtml(obj.teacher||'')}</div></div>
+  <div class="modal-row"><div class="label">1학년</div><div>${escapeHtml(obj.grade1||'')}</div></div>
+  <div class="modal-row"><div class="label">2학년</div><div>${escapeHtml(obj.grade2||'')}</div></div>
+  <div class="modal-row"><div class="label">3학년</div><div>${escapeHtml(obj.grade3||'')}</div></div>
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.06);margin:8px 0">
+        <div class="modal-row"><div class="label">영업활동</div><div style="white-space:pre-wrap">${escapeHtml(obj.activities||'')}</div></div>
+        <div class="modal-row"><div class="label">고객요청사항</div><div style="white-space:pre-wrap">${escapeHtml(obj.requests||'')}</div></div>
+        <div class="modal-row"><div class="label">특이사항</div><div style="white-space:pre-wrap">${escapeHtml(obj.special||obj.note||'')}</div></div>
+        <div class="modal-row"><div class="label">납품사항</div><div style="white-space:pre-wrap">${escapeHtml(obj.delivery||'')}</div></div>
+        <div class="modal-row"><div class="label">후속 조치</div><div style="white-space:pre-wrap">${escapeHtml(obj.followUp||'')}</div></div>
+        <div class="modal-row"><div class="label">연락처</div><div>${escapeHtml(obj.phone||'')} ${escapeHtml(obj.email||'')}</div></div>
+      `;
+    }
+    function hideModal(){ const m=document.getElementById('detailModal'); if(m) m.style.display='none'; }
+
+    document.addEventListener('click', function(e){
+      const btn = e.target && (e.target.matches && e.target.matches('.detail-btn') ? e.target : (e.target.closest && e.target.closest('.detail-btn')));
+      if (btn && btn.dataset){
+        const obj = {
+          id: btn.dataset.id,
+          staff: decodeURIComponent(btn.dataset.staff||''),
+          school: decodeURIComponent(btn.dataset.school||''),
+          region: decodeURIComponent(btn.dataset.region||''),
+          subjects: decodeURIComponent(btn.dataset.subjects||''),
+          activities: decodeURIComponent(btn.dataset.activities||''),
+          phone: decodeURIComponent(btn.dataset.phone||''),
+          email: decodeURIComponent(btn.dataset.email||''),
+          visitStart: decodeURIComponent(btn.dataset.visitstart||''),
+          visitEnd: decodeURIComponent(btn.dataset.visitend||''),
+          note: decodeURIComponent(btn.dataset.note||''),
+          followUp: decodeURIComponent(btn.dataset.followup||''),
+          delivery: decodeURIComponent(btn.dataset.delivery||''),
+          requests: decodeURIComponent(btn.dataset.requests||''),
+          special: decodeURIComponent(btn.dataset.special||''),
+          teacher: decodeURIComponent(btn.dataset.teacher||''),
+          establishment: decodeURIComponent(btn.dataset.establishment||''),
+          schoolLevel: decodeURIComponent(btn.dataset.schoollevel||''),
+          totalStudents: decodeURIComponent(btn.dataset.totalstudents||''),
+          features: decodeURIComponent(btn.dataset.features||''),
+          grade1: decodeURIComponent(btn.dataset.grade1||''),
+          grade2: decodeURIComponent(btn.dataset.grade2||''),
+          grade3: decodeURIComponent(btn.dataset.grade3||''),
+          duration: decodeURIComponent(btn.dataset.duration||''),
+          date: decodeURIComponent(btn.dataset.date||'')
+        };
+
+        // If CSV metadata exists for this school, use it to fill any missing fields
+        try{
+          const schoolKey = (obj.school||'').trim().toLowerCase();
+          if(schoolKey && salesStaffMap && salesStaffMap.has(schoolKey)){
+            const meta = salesStaffMap.get(schoolKey) || {};
+            if((!obj.totalStudents || obj.totalStudents === '') && meta.totalStudents !== undefined) obj.totalStudents = String(meta.totalStudents || '');
+            if((!obj.features || obj.features === '') && meta.features) obj.features = meta.features;
+            if((!obj.grade1 || obj.grade1 === '') && meta.grade1) obj.grade1 = meta.grade1;
+            if((!obj.grade2 || obj.grade2 === '') && meta.grade2) obj.grade2 = meta.grade2;
+            if((!obj.grade3 || obj.grade3 === '') && meta.grade3) obj.grade3 = meta.grade3;
+            if((!obj.establishment || obj.establishment==='') && meta.establishment) obj.establishment = meta.establishment;
+            if((!obj.schoolLevel || obj.schoolLevel==='') && meta.schoolLevel) obj.schoolLevel = meta.schoolLevel;
+          }
+        }catch(e){ console.warn('detail modal csv enrichment failed', e); }
+
+        showModal(obj);
+      }
+    });
+
+    // modal close wiring
+    document.addEventListener('click', function(e){ if(e.target && e.target.matches && e.target.matches('.modal-close')){ hideModal(); } });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ hideModal(); } });
+    // click outside modal content closes
+    document.addEventListener('click', function(e){ const m = document.getElementById('detailModal'); if(!m) return; if(e.target===m) hideModal(); });
+  })();
+
+  // --- NPS gauge for dashboard ---
+  function computeNpsFromVisits(visits){
+    let promoters=0, passives=0, detractors=0;
+    (visits||[]).forEach(v=>{
+      const raw = String(v.favor || v.favorValue || v.favor_raw || v.reaction || v.반응 || v['반응'] || '').trim();
+      if(!raw) return;
+      if(raw === '반응좋음' || raw.toLowerCase().indexOf('좋')!==-1) promoters++;
+      else if(raw === '반응보통' || raw.toLowerCase().indexOf('보통')!==-1) passives++;
+      else if(raw === '반응나쁨' || raw.toLowerCase().indexOf('나쁨')!==-1 || raw.toLowerCase().indexOf('나쁨')!==-1) detractors++;
+    });
+    const total = promoters + passives + detractors;
+    const pPct = total? Math.round(promoters/total*100):0;
+    const paPct = total? Math.round(passives/total*100):0;
+    const dPct = total? Math.round(detractors/total*100):0;
+    const nps = Math.round(pPct - dPct);
+    return { promoters, passives, detractors, total, pPct, paPct, dPct, nps };
+  }
+
+  function ensureDashboardGaugeSize(){
+    const cnv = document.getElementById('dashboardGauge'); if(!cnv) return;
+    // prefer filling the available horizontal space so the semi-donut is wider
+    const parentW = (cnv.parentElement||document.body).clientWidth || document.body.clientWidth;
+    const w = Math.min(900, Math.round(parentW * 0.98));
+    // keep height proportional but not so small that the arc is clipped
+    const h = Math.max(140, Math.round(w * 0.36));
+    const dpr = window.devicePixelRatio || 1;
+    cnv.style.width = w + 'px'; cnv.style.height = h + 'px'; cnv.width = Math.round(w * dpr); cnv.height = Math.round(h * dpr);
+    // reduce top spacing and center horizontally
+    cnv.style.marginTop = '6px';
+    cnv.style.marginBottom = '0px';
+    cnv.style.display = 'block';
+    cnv.style.marginLeft = 'auto';
+    cnv.style.marginRight = 'auto';
+  }
+
+  function drawDashboardGauge(b){
+    ensureDashboardGaugeSize();
+    const cnv = document.getElementById('dashboardGauge'); if(!cnv) return;
+    const ctx = cnv.getContext('2d'); const dpr = window.devicePixelRatio || 1;
+    ctx.clearRect(0,0,cnv.width,cnv.height);
+    const cssW = parseInt(getComputedStyle(cnv).width,10) || cnv.width/dpr;
+    const cssH = parseInt(getComputedStyle(cnv).height,10) || cnv.height/dpr;
+    const centerX = cssW/2;
+    // place the center slightly above the bottom so the arc reaches upward
+    const centerY = cssH - Math.max(10, Math.round(cssH * 0.05));
+    // choose a radius that fills available height but prefers horizontal span
+    let radius = Math.min(Math.round(cssW * 0.46), Math.round(cssH * 0.9));
+    // ensure radius does not cause the arc to extend above the canvas (add extra padding)
+    const maxRadius = Math.max(22, centerY - 16);
+    if(radius > maxRadius) radius = maxRadius;
+    const cols = ['#2ecc71','#f1c40f','#e74c3c'];
+    const angles = [ { start: Math.PI, end: Math.PI + Math.PI/3 }, { start: Math.PI + Math.PI/3, end: Math.PI + 2*Math.PI/3 }, { start: Math.PI + 2*Math.PI/3, end: Math.PI*2 } ];
+    for(let i=0;i<3;i++){
+      ctx.beginPath(); ctx.arc(centerX*dpr, centerY*dpr, radius*dpr, angles[i].start, angles[i].end);
+      ctx.lineWidth = Math.round(radius*0.18*dpr);
+      ctx.strokeStyle = cols[i]; ctx.stroke();
+    }
+    const v = Math.max(-100, Math.min(100, Number(b.nps)||0));
+    const angle = (v/100)*Math.PI/2 + Math.PI;
+    const needleLen = radius*0.85*dpr;
+    const tipX = centerX*dpr + Math.cos(angle)*needleLen;
+    const tipY = centerY*dpr + Math.sin(angle)*needleLen;
+    ctx.beginPath(); ctx.moveTo(centerX*dpr, centerY*dpr); ctx.lineTo(tipX, tipY); ctx.lineWidth = Math.round(radius*0.05*dpr); ctx.strokeStyle = '#07243a'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(centerX*dpr, centerY*dpr, Math.round(radius*0.08*dpr),0,Math.PI*2); ctx.fillStyle='#07243a'; ctx.fill();
+  }
+
+  function renderNpsBreakdownDashboard(b){
+    const bd = document.getElementById('dashboardBreakdown'); if(!bd) return;
+    const rows = [];
+    rows.push(`<div class="list-item" style="padding:10px;border-radius:10px;background:#fff;border:1px solid rgba(10,60,100,0.06)"><div style="display:flex;align-items:center;gap:12px"><div class="swatch" style="width:56px;height:56px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;background:#2ecc71"><div style="font-weight:800">${b.pPct}%</div><div style="font-weight:700;font-size:12px;margin-top:4px">${b.promoters}건</div></div><div style="flex:1"><div style="font-weight:800;color:#12325a">Promoters</div><div style="color:#607489">반응좋음</div></div></div></div>`);
+    rows.push(`<div class="list-item" style="padding:10px;border-radius:10px;background:#fff;border:1px solid rgba(10,60,100,0.06)"><div style="display:flex;align-items:center;gap:12px"><div class="swatch" style="width:56px;height:56px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;background:#f1c40f"><div style="font-weight:800">${b.paPct}%</div><div style="font-weight:700;font-size:12px;margin-top:4px">${b.passives}건</div></div><div style="flex:1"><div style="font-weight:800;color:#12325a">Passives</div><div style="color:#607489">반응보통</div></div></div></div>`);
+    rows.push(`<div class="list-item" style="padding:10px;border-radius:10px;background:#fff;border:1px solid rgba(10,60,100,0.06)"><div style="display:flex;align-items:center;gap:12px"><div class="swatch" style="width:56px;height:56px;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;background:#e74c3c"><div style="font-weight:800">${b.dPct}%</div><div style="font-weight:700;font-size:12px;margin-top:4px">${b.detractors}건</div></div><div style="flex:1"><div style="font-weight:800;color:#12325a">Detractors</div><div style="color:#607489">반응나쁨</div></div></div></div>`);
+    bd.innerHTML = rows.join('');
+  }
+
+  function renderNpsDashboard(visits){
+    try{
+      const b = computeNpsFromVisits(visits || []);
+      drawDashboardGauge(b);
+      renderNpsBreakdownDashboard(b);
+    }catch(e){ console.warn('renderNpsDashboard inner failed', e); }
+  }
+
+      // CSV export implementation
+      function exportCsv(){
+        (async function(){
+          const staff = q('#filterUser') && q('#filterUser').value || '';
+          const region = q('#filterRegion') && q('#filterRegion').value || '';
+          const school = q('#filterSchool') && q('#filterSchool').value || '';
+          const subject = q('#filterSubject') && q('#filterSubject').value || '';
+          const start = q('#filterStart') && q('#filterStart').value || '';
+          const end = q('#filterEnd') && q('#filterEnd').value || '';
+          const rows = await fetchVisits({staff, start, end, region, subject});
+          if (!rows || !rows.length){ alert('내보낼 데이터가 없습니다'); return; }
+          // determine selected fields from CSV columns panel
+          const checked = Array.from(document.querySelectorAll('input[name="csvcol"]:checked')).map(i=> i.value);
+          const fields = checked.length ? checked : ['_date','staff','staffLabel','region','school','subjects','activities','teacher','visitStart','visitEnd','duration','establishment','schoolLevel','totalStudents','features','grade1','grade2','grade3','phone','email','conversation','followUp'];
+          const csv = [fields.join(',')].concat(rows.map(r=> fields.map(f=> '"' + (escapeCsvField(r[f])||'') + '"').join(',')).join('\n'));
+          const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = url; a.download = `visit_entries_export_${(new Date()).toISOString().substring(0,10)}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+        })();
+      }
+      function escapeCsvField(v){ if (v===undefined || v===null) return ''; return String(v).replace(/"/g,'""'); }
+
+      // PIN gate: only run refresh if unlocked; otherwise show PIN overlay
+      (function(){
+        const PIN = '2274';
+        const overlay = document.getElementById('pinOverlay');
+        const input = document.getElementById('pinInput');
+        const submit = document.getElementById('pinSubmit');
+        const clear = document.getElementById('pinClear');
+        const err = document.getElementById('pinError');
+
+        function showPin(){ if(overlay) overlay.style.display = 'flex'; if(input) input.focus(); }
+        function hidePin(){ if(overlay) overlay.style.display = 'none'; if(err) err.style.display='none'; }
+        function unlocked(){ return sessionStorage.getItem('dashboard:unlocked') === '1'; }
+        function setUnlocked(){ sessionStorage.setItem('dashboard:unlocked','1'); }
+
+        function checkAndUnlock(){ const val = input && input.value ? input.value.trim() : ''; if(val === PIN){ setUnlocked(); hidePin(); try{ refresh(); }catch(e){ console.warn(e); } } else { if(err) err.style.display='block'; if(input){ input.value=''; input.focus(); } } }
+
+        if (submit) submit.addEventListener('click', function(e){ e.preventDefault(); checkAndUnlock(); });
+        if (clear) clear.addEventListener('click', function(e){ e.preventDefault(); if(input) input.value=''; if(err) err.style.display='none'; input && input.focus(); });
+        if (input) input.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); checkAndUnlock(); } });
+
+        window.addEventListener('DOMContentLoaded', function(){ try{ if(unlocked()){ hidePin(); refresh(); } else { showPin(); } }catch(e){ console.warn(e); } });
+      })();
+
+    })();
+    // End dashboard I/O
+    
+        <!-- detail modal (in-page) -->
+        (function(){
+          const modalHtml = `
+            <div id="detailModal" class="modal" style="display:none">
+              <div class="modal-content">
+                <div class="modal-header"><h3 id="modalTitle">상세정보</h3><button class="modal-close" title="닫기">✕</button></div>
+                <div class="modal-body" id="modalBody">Loading...</div>
+              </div>
+            </div>
+          `;
+          try{ document.body.insertAdjacentHTML('beforeend', modalHtml); }catch(e){ /* ignore */ }
+        })();
+  </script>
+</body>
+</html>

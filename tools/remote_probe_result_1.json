@@ -1,0 +1,219 @@
+{
+  "events": [
+    {
+      "type": "console",
+      "text": "[CMASS_DEBUG] selector counts [{\"sel\":\".entry-favor-btn\",\"count\":3},{\"sel\":\".friend-btn\",\"count\":0},{\"sel\":\"#addSubjectBtn\",\"count\":0},{\"sel\":\"#addEntryBtn\",\"count\":1},{\"sel\":\"#duration\",\"count\":1},{\"sel\":\".entry-subject-btn\",\"count\":8},{\"sel\":\".entry-activity-btn\",\"count\":13}]"
+    },
+    {
+      "type": "console",
+      "text": "[CMASS_DEBUG] disabled overlays []"
+    },
+    {
+      "type": "console",
+      "text": "[CMASS_DEBUG] selector counts [{\"sel\":\".entry-favor-btn\",\"count\":3},{\"sel\":\".friend-btn\",\"count\":0},{\"sel\":\"#addSubjectBtn\",\"count\":0},{\"sel\":\"#addEntryBtn\",\"count\":1},{\"sel\":\"#duration\",\"count\":1},{\"sel\":\".entry-subject-btn\",\"count\":8},{\"sel\":\".entry-activity-btn\",\"count\":13}]"
+    },
+    {
+      "type": "console",
+      "text": "[CMASS_DEBUG] disabled overlays []"
+    },
+    {
+      "type": "console",
+      "text": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "type": "navigated",
+      "url": "https://cmass-sales.web.app/meeting"
+    },
+    {
+      "type": "filled",
+      "selector": "#staff",
+      "value": "Auto Staff"
+    },
+    {
+      "type": "filled",
+      "selector": "#visitDate",
+      "value": "2025-11-04"
+    },
+    {
+      "type": "selected",
+      "selector": "#regionSelect"
+    },
+    {
+      "type": "selected",
+      "selector": "#startHour",
+      "value": "08"
+    },
+    {
+      "type": "selected",
+      "selector": "#startMinute",
+      "value": "00"
+    },
+    {
+      "type": "filled",
+      "selector": "#duration",
+      "value": "30"
+    },
+    {
+      "type": "filled",
+      "selector": "#teacherName",
+      "value": "Top Teacher"
+    },
+    {
+      "type": "filled",
+      "selector": "#publisher",
+      "value": "Top Publisher"
+    },
+    {
+      "type": "filled",
+      "selector": "#phone",
+      "value": "010-0000-0000"
+    },
+    {
+      "type": "filled",
+      "selector": "#email",
+      "value": "test@example.com"
+    },
+    {
+      "type": "filled",
+      "selector": "#requests",
+      "value": "Auto request"
+    },
+    {
+      "type": "filled",
+      "selector": "#notes",
+      "value": "Auto note"
+    },
+    {
+      "type": "filled",
+      "selector": "#deliveries",
+      "value": "Auto delivery"
+    },
+    {
+      "type": "filled",
+      "selector": "#followUp",
+      "value": "Auto followup"
+    },
+    {
+      "type": "found",
+      "selector": "#addEntryBtn or .add-entry-btn",
+      "found": true
+    },
+    {
+      "type": "console",
+      "text": "[CMASS_REPAIR] clicked #addEntryBtn addEntryBtn"
+    },
+    {
+      "type": "click",
+      "selector": "#addEntryBtn",
+      "result": "clicked"
+    },
+    {
+      "type": "found",
+      "selector": "#visitDurationButtons .duration-btn",
+      "count": 0
+    },
+    {
+      "type": "found",
+      "selector": ".subject-choice-group .subject-choice-btn OR .subject-btn",
+      "count": 48
+    },
+    {
+      "type": "subject-top-click",
+      "clickedIndex": 0,
+      "activeIndexes": [
+        0
+      ]
+    },
+    {
+      "type": "subject-top-click",
+      "clickedIndex": 1,
+      "activeIndexes": [
+        1
+      ]
+    },
+    {
+      "type": "subject-top-click",
+      "clickedIndex": 2,
+      "activeIndexes": [
+        2
+      ]
+    },
+    {
+      "type": "subject-top-click",
+      "clickedIndex": 3,
+      "activeIndexes": [
+        3
+      ]
+    },
+    {
+      "type": "subject-top-click",
+      "clickedIndex": 4,
+      "activeIndexes": [
+        4
+      ]
+    },
+    {
+      "type": "subject-top-click",
+      "clickedIndex": 5,
+      "activeIndexes": [
+        5
+      ]
+    },
+    {
+      "type": "found",
+      "selector": "#addSubjectBtn",
+      "found": false
+    },
+    {
+      "type": "found",
+      "selector": ".entry .entry-favor-btn",
+      "count": 3
+    },
+    {
+      "type": "console",
+      "text": "[CMASS_REPAIR] clicked .entry-favor-btn subject-btn entry-favor-btn active"
+    },
+    {
+      "type": "entry-favor-click",
+      "group": "entry-0",
+      "clicked": 0,
+      "active": [
+        0
+      ]
+    },
+    {
+      "type": "console",
+      "text": "[CMASS_REPAIR] clicked .entry-favor-btn subject-btn entry-favor-btn active"
+    },
+    {
+      "type": "entry-favor-click",
+      "group": "entry-1",
+      "clicked": 1,
+      "active": [
+        1
+      ]
+    },
+    {
+      "type": "console",
+      "text": "[CMASS_REPAIR] clicked .entry-favor-btn subject-btn entry-favor-btn active"
+    },
+    {
+      "type": "entry-favor-click",
+      "group": "entry-2",
+      "clicked": 2,
+      "active": [
+        2
+      ]
+    },
+    {
+      "type": "filled",
+      "selector": ".entry-notes",
+      "value": "Smoke test note"
+    },
+    {
+      "type": "screenshot",
+      "path": "C:\\Users\\PC\\OneDrive\\cmass-sales-system\\CMASS_SalesLog\\tools\\target_probe_screenshot.png"
+    }
+  ],
+  "errors": []
+}
