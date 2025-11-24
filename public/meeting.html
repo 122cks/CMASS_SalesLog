@@ -505,7 +505,22 @@
         }
 
         init();
-      });
+
+      // === [전역 window에 함수/변수 할당] ===
+      try {
+        window.gatherForm = gatherForm;
+        window.saveReport = saveReport;
+        window.computeEndTime = (typeof computeEndTime === 'function') ? computeEndTime : undefined;
+        // entries, saveDraft, subjectBtns, durationInput 등은 선언된 경우만 할당
+        if (typeof entries !== 'undefined') window.entries = entries;
+        if (typeof saveDraft !== 'undefined') window.saveDraft = saveDraft;
+        window.subjectBtns = document.querySelectorAll('#subjects .subject-btn');
+        window.favorBtns = document.querySelectorAll('#favorBtns .favor-btn');
+        window.durationBtns = document.getElementById('durationBtns');
+        window.durationInput = document.getElementById('duration');
+      } catch(e) { console.warn('window 전역 할당 오류', e); }
+      // === [전역 window에 함수/변수 할당 끝] ===
+    });
       </script>
   <header>
     <div id="schoolDisplay" style="margin-left:12px;font-weight:900;color:#042046;">
@@ -692,6 +707,11 @@
         <label style="margin-top:8px">대화내용</label>
         <div class="row">
           <input id="notes" type="text" placeholder="대화내용 입력" style="width:100%">
+        </div>
+
+        <label style="margin-top:8px">특이사항</label>
+        <div class="row">
+          <input id="notes" type="text" placeholder="특이사항 입력" style="width:100%">
         </div>
 
         <label style="margin-top:8px">납품사항</label>
