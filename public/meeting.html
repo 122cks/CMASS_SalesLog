@@ -689,9 +689,9 @@
           <input id="requests" type="text" placeholder="고객요청사항 입력" style="width:100%">
         </div>
 
-        <label style="margin-top:8px">특이사항</label>
+        <label style="margin-top:8px">대화내용</label>
         <div class="row">
-          <input id="notes" type="text" placeholder="특이사항 입력" style="width:100%">
+          <input id="notes" type="text" placeholder="대화내용 입력" style="width:100%">
         </div>
 
         <label style="margin-top:8px">납품사항</label>
@@ -1034,69 +1034,41 @@
     })();
   </script>
   <script>
-    // Robust per-button pointer handler to ensure buttons respond even if overlays
-    // or other handlers intercept click events. This attaches a capture-phase
-    // pointerdown listener to each relevant button and enforces expected behavior.
+    // Per-button pointer handler — now limited to duration buttons only.
+    // Subject/activity/materials/favor toggles are handled via delegated
+    // click handlers elsewhere; restricting to duration buttons avoids
+    // interfering with those delegated handlers while preserving fast
+    // response for duration selection.
     (function(){
       function safeAdd(fn){ try{ fn(); }catch(e){ console.warn('button-fallback error', e); } }
       document.addEventListener('DOMContentLoaded', function(){
         safeAdd(function(){
-          const selector = 'button.subject-btn, button.favor-btn, button.dur-btn';
+          const selector = 'button.dur-btn';
           const buttons = Array.from(document.querySelectorAll(selector));
           buttons.forEach(btn => {
-            // ensure pointer events enabled
             btn.style.pointerEvents = btn.style.pointerEvents || 'auto';
-            // avoid duplicate installation
             if (btn.__cmass_ptr_installed) return; btn.__cmass_ptr_installed = true;
 
-            // pointer handler: primary button only
+            // pointer handler: handle duration buttons to update hidden input
             btn.addEventListener('pointerdown', function(ev){
               try{
                 if (ev.button !== 0) return;
-
-                // If this button belongs to activities, materials, or is a favor
-                // button, skip per-button pointer handling so the delegated
-                // click handlers can manage toggles. Doing this check before
-                // calling preventDefault prevents blocking the subsequent
-                // click event that those handlers rely on.
-                const act = btn.closest && btn.closest('#activities');
-                const mat = btn.closest && btn.closest('#materials');
-                const isFavor = btn.classList && btn.classList.contains('favor-btn');
-                if (act || mat || isFavor){ return; }
-
-                // prevent default only for buttons we intend to handle here
-                ev.preventDefault(); ev.stopPropagation();
-
-                // subjects: toggle multi-select (allow selecting multiple subjects)
-                const subj = btn.closest && btn.closest('#subjects');
-                if (subj){
-                  const now = btn.classList.toggle('active');
-                  btn.setAttribute('aria-pressed', String(!!now));
-                  try{ btn.__cmass_ptr_handled = true; }catch(e){}
-                  return;
-                }
-
-                // duration buttons: single-select in durationBtns
                 const durParent = btn.closest && btn.closest('#durationBtns');
-                if (durParent){
-                  Array.from(durParent.querySelectorAll('.dur-btn')).forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
-                  btn.classList.add('active'); btn.setAttribute('aria-pressed','true');
-                  const hidden = document.getElementById('duration'); if (hidden) { hidden.value = btn.getAttribute('data-min') || ''; hidden.dispatchEvent(new Event('change',{bubbles:true})); }
-                  try{ if (typeof window._cmass_computeEndTime === 'function') window._cmass_computeEndTime(); }catch(e){}
-                  try{ btn.__cmass_ptr_handled = true; }catch(e){}
-                  return;
-                }
-
-                // fallback for any other subject-like buttons
-                if (btn.classList.contains('subject-btn')){ const now = btn.classList.toggle('active'); btn.setAttribute('aria-pressed', String(!!now)); try{ btn.__cmass_ptr_handled = true; }catch(e){} }
+                if (!durParent) return;
+                ev.preventDefault(); ev.stopPropagation();
+                Array.from(durParent.querySelectorAll('.dur-btn')).forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
+                btn.classList.add('active'); btn.setAttribute('aria-pressed','true');
+                const hidden = document.getElementById('duration'); if (hidden) { hidden.value = btn.getAttribute('data-min') || ''; hidden.dispatchEvent(new Event('change',{bubbles:true})); }
+                try{ if (typeof window._cmass_computeEndTime === 'function') window._cmass_computeEndTime(); }catch(e){}
+                try{ btn.__cmass_ptr_handled = true; }catch(e){}
               }catch(e){ /* tolerate */ }
             }, true);
 
-            // keyboard activation for accessibility (Space / Enter)
+            // keyboard activation for duration buttons — trigger click (native)
             btn.addEventListener('keydown', function(ev){
               try{
                 if (ev.key === ' ' || ev.key === 'Enter'){
-                  ev.preventDefault(); btn.dispatchEvent(new PointerEvent('pointerdown', { bubbles:true, cancelable:true }));
+                  ev.preventDefault(); btn.click();
                 }
               }catch(e){}
             }, true);
@@ -2395,8 +2367,26 @@
               }catch(e){}
             }, true);
           }
-
+          // Add pointerdown handlers for activities/materials so touch/pointer
+          // interactions work even when other handlers may suppress click events.
+          // We set __cmass_ptr_handled so the delegated click handlers skip double-handling.
           const activities = qs('activities');
+          if (activities){
+            activities.addEventListener('pointerdown', function(ev){
+              try{
+                if (ev.button !== undefined && ev.button !== 0) return;
+                const btn = ev.target && ev.target.closest ? ev.target.closest('button.subject-btn') : null;
+                if (!btn) return;
+                // Do not call preventDefault/stopPropagation here — keep event flow
+                // intact so other handlers relying on click can run. We mark the
+                // button as handled so delegated click handlers can skip double-handling.
+                const active = btn.classList.toggle('active');
+                btn.setAttribute('aria-pressed', String(!!active));
+                try{ btn.__cmass_ptr_handled = true; }catch(e){}
+              }catch(e){}
+            }, true);
+          }
+
           if (activities){
             activities.addEventListener('click', function(ev){
               try{
@@ -2404,6 +2394,20 @@
                 if (!btn) return;
                 ev.preventDefault(); ev.stopPropagation();
                 toggleActivity(btn);
+              }catch(e){}
+            }, true);
+          }
+          // Mirror pointerdown handling for materials (non-blocking toggle)
+          const materials = qs('materials');
+          if (materials){
+            materials.addEventListener('pointerdown', function(ev){
+              try{
+                if (ev.button !== undefined && ev.button !== 0) return;
+                const btn = ev.target && ev.target.closest ? ev.target.closest('button.subject-btn') : null;
+                if (!btn) return;
+                const active = btn.classList.toggle('active');
+                btn.setAttribute('aria-pressed', String(!!active));
+                try{ btn.__cmass_ptr_handled = true; }catch(e){}
               }catch(e){}
             }, true);
           }
