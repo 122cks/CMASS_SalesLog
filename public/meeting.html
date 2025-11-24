@@ -1441,7 +1441,10 @@
       }
 
       // delegate at document level so dynamically injected session templates work too
-      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ document.addEventListener('click', onClick, true); }); else document.addEventListener('click', onClick, true);
+      // NOTE: use bubble-phase delegation (false) so container-level capture handlers
+      // can run first and stop propagation if needed. This avoids double-toggle when
+      // both per-container and document-level handlers are present.
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ document.addEventListener('click', onClick, false); }); else document.addEventListener('click', onClick, false);
     })();
   </script>
 
