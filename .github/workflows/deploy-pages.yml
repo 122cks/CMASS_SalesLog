@@ -1,0 +1,26 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - master
+      - pr/draft-restore-clean
+
+jobs:
+  upload-artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Upload Pages artifact (public folder)
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: public
+
+  deploy:
+    needs: upload-artifact
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v1
