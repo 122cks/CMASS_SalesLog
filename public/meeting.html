@@ -204,7 +204,7 @@
             // Also store canonical single-key 'subject' (array-normalized) for unified schema
             try{ obj.subject = Array.isArray(obj.subjects) ? obj.subjects.slice() : (obj.subjects ? [obj.subjects] : []); }catch(e){ obj.subject = (obj.subjects || []); }
             obj.activities = collectActiveText('#activities','subject-btn');
-            obj.materials = collectActiveText('#materials','subject-btn');
+            obj.material = collectActiveText('#materials','subject-btn');
             obj.favor = getSingleActive('#favorBtns','favor-btn');
             obj.teacherName = (qs('teacherName') && qs('teacherName').value) || '';
             obj.publisher = (qs('publisher') && qs('publisher').value) || '';
@@ -213,7 +213,7 @@
             try{ obj.meta = (window.schoolMetaMap && window.schoolMetaMap[obj.school]) ? window.schoolMetaMap[obj.school] : ''; }catch(e){ obj.meta = ''; }
             obj.requests = (qs('requests') && qs('requests').value) || '';
             obj.conversation = (qs('conversation') && qs('conversation').value) || '';
-            obj.issues = (qs('issues') && qs('issues').value) || '';
+            obj.issue = (qs('issue') && qs('issue').value) || '';
             obj.deliveries = (qs('deliveries') && qs('deliveries').value) || '';
             obj.followUp = (qs('followUp') && qs('followUp').value) || '';
             return obj;
@@ -389,7 +389,7 @@
             });
 
             // clear simple inputs related to meeting content
-            ['teacherName','publisher','phone','email','requests','conversation','issues','deliveries','followUp'].forEach(id=>{
+            ['teacherName','publisher','phone','email','requests','conversation','issue','deliveries','followUp'].forEach(id=>{
               try{ const el = document.getElementById(id); if (el) el.value = ''; }catch(e){}
             });
 
@@ -708,7 +708,7 @@
 
         <label style="margin-top:8px">특이사항</label>
         <div class="row">
-          <input id="issues" type="text" placeholder="특이사항 입력" style="width:100%">
+          <input id="issue" type="text" placeholder="특이사항 입력" style="width:100%">
         </div>
 
         <label style="margin-top:8px">납품사항</label>
@@ -1181,8 +1181,8 @@
           email: entry.email || '',
           ask: entry.requests || '',
           conversation: entry.conversation || '',
-          issues: entry.issues || '',
-          materials: Array.isArray(entry.materials) ? entry.materials : (entry.materials ? [entry.materials] : []),
+          issue: entry.issue || '',
+          material: Array.isArray(entry.material) ? entry.material : (entry.material ? [entry.material] : []),
           delivery: entry.deliveries || '',
           followUp: entry.followUp || '',
           _savedAt: entry._savedAt || (new Date()).toISOString()
@@ -1737,6 +1737,7 @@
             // subjects (single) and activities (multi)
             try{ activateButtons('#subjects','subject-btn', (Array.isArray(entry.subject) ? entry.subject : (Array.isArray(entry.subjects) ? entry.subjects : (entry.subject ? [entry.subject] : []))), true); }catch(e){}
             try{ activateButtons('#activities','subject-btn', entry.activities || [], false); }catch(e){}
+            try{ activateButtons('#materials','subject-btn', entry.material || [], false); }catch(e){}
             // favor
             try{ if (entry.favor){ activateButtons('#favorBtns','favor-btn', [entry.favor], true); } }catch(e){}
 
@@ -1747,7 +1748,7 @@
             try{ if (entry.email) qs('email').value = entry.email; }catch(e){}
             try{ if (entry.requests) qs('requests').value = entry.requests; }catch(e){}
             try{ if (entry.conversation) qs('conversation').value = entry.conversation; }catch(e){}
-            try{ if (entry.issues) qs('issues').value = entry.issues; }catch(e){}
+            try{ if (entry.issue) qs('issue').value = entry.issue; }catch(e){}
             try{ if (entry.deliveries) qs('deliveries').value = entry.deliveries; }catch(e){}
             try{ if (entry.followUp) qs('followUp').value = entry.followUp; }catch(e){}
 
