@@ -374,7 +374,10 @@
               const workedM = (checkoutTotal !== null && checkinTotal !== null) ? (checkoutTotal - checkinTotal) : (internalM + externalM);
               lines.push(`1. 출근: ${fmtHM(checkinTotal)} · 퇴근: ${fmtHM(checkoutTotal)} (근무시간 ${Math.floor(workedM/60)}H ${workedM%60}M)`);
               // Show office internal time only when office internal values were saved
-              const hasOfficeInternal = ((office.internalHours !== undefined && office.internalHours !== null && office.internalHours !== '') || (office.internalMinutes !== undefined && office.internalMinutes !== null && office.internalMinutes !== ''));
+              // Show office internal time only when a positive value was provided
+              const internalHoursNum = Number(office.internalHours || 0);
+              const internalMinutesNum = Number(office.internalMinutes || 0);
+              const hasOfficeInternal = (internalHoursNum > 0 || internalMinutesNum > 0);
               if (hasOfficeInternal) lines.push(`   사무실 내근 (${Math.floor(internalM/60)}H ${internalM%60}M)`);
               lines.push('');
               lines.push('2. 세부업무');
@@ -417,13 +420,22 @@
                   const favor = it.favor || '';
                   // Ensure textual fields appear per-meeting with clear labels
                   // Pull raw backend fields: ask / conversation / delivery — show only their contents (use '-' if empty)
-                  const req = (it.requests && String(it.requests).trim()) ? String(it.requests).trim() : '-';
-                  const note = (it.notes && String(it.notes).trim()) ? String(it.notes).trim() : '-';
-                  const del = (it.deliveries && String(it.deliveries).trim()) ? String(it.deliveries).trim() : '-';
-                  const activitiesText = Array.isArray(it.activities) ? (it.activities.length ? it.activities.join(', ') : '-') : (it.activities ? String(it.activities).trim() : '-');
-                  const favorText = it.favor && String(it.favor).trim() ? String(it.favor).trim() : '-';
-                  const extra = [activitiesText, favorText, req, note, del].join('  ');
-                  lines.push(`-  ${schoolLabel}${j+1}. ${subj} (${teacher}${pub?'-'+pub:''}) : ${extra}`);
+                  // For Kakao copy: omit empty fields entirely (do not print '-')
+                  const req = (it.requests && String(it.requests).trim()) ? String(it.requests).trim() : '';
+                  const note = (it.notes && String(it.notes).trim()) ? String(it.notes).trim() : '';
+                  const del = (it.deliveries && String(it.deliveries).trim()) ? String(it.deliveries).trim() : '';
+                  const activitiesText = Array.isArray(it.activities) ? (it.activities.length ? it.activities.join(', ') : '') : (it.activities ? String(it.activities).trim() : '');
+                  const favorText = it.favor && String(it.favor).trim() ? String(it.favor).trim() : '';
+                  const extraParts = [];
+                  if (activitiesText) extraParts.push(activitiesText);
+                  if (favorText) extraParts.push(favorText);
+                  if (req) extraParts.push(req);
+                  if (note) extraParts.push(note);
+                  if (del) extraParts.push(del);
+                  const extra = extraParts.join('  ');
+                  let line = `-  ${schoolLabel}${j+1}. ${subj} (${teacher}${pub?'-'+pub:''})`;
+                  if (extra) line += ` : ${extra}`;
+                  lines.push(line);
                 });
                 lines.push('');
               }
@@ -938,24 +950,30 @@
           meta.style.display = 'none';
           div.appendChild(title); div.appendChild(meta);
 
-          // Compact summary visible when collapsed: show school, subject, teacher, phone
+          // Compact summary visible when collapsed: show subject with (teacher-publisher-favor):
           const summaryDiv = document.createElement('div'); summaryDiv.className = 'report-entry-summary';
           const left = document.createElement('div'); left.className = 'meta-left';
           const subjectsText = Array.isArray(e.subject) ? (e.subject.join(', ')) : (e.subject || '');
-          const parts = [];
-          if (e.school) parts.push(e.school);
-          if (subjectsText) parts.push(subjectsText);
-          if (e.teacherName) parts.push(e.teacherName);
-          // show '우호도' (favor) in the compact collapsed summary instead of 연락처
-          if (e.favor) parts.push(e.favor);
-          left.textContent = parts.join(' · ');
+          // format: <subject> (teacher-publisher-favor):  — omit missing parts
+          let leftText = '';
+          if (subjectsText){
+            const parenParts = [];
+            if (e.teacherName) parenParts.push(e.teacherName);
+            if (e.publisher) parenParts.push(e.publisher);
+            if (e.favor) parenParts.push(e.favor);
+            const paren = parenParts.length ? (' (' + parenParts.join('-') + ')') : '';
+            leftText = subjectsText + paren + ':';
+          } else {
+            leftText = e.school ? e.school : '';
+          }
+          left.textContent = leftText;
           const right = document.createElement('div');
           const toggleBtn = document.createElement('button'); toggleBtn.textContent = '펼치기';
           toggleBtn.style.minWidth = '72px';
           right.appendChild(toggleBtn);
           summaryDiv.appendChild(left); summaryDiv.appendChild(right);
           div.appendChild(summaryDiv);
-          // Human-friendly Korean labels for fields
+          // Human-friendly Korean labels for fields (include aliases)
           const FIELD_LABELS = {
             server_id: '서버 ID',
             staff: '직원',
@@ -964,21 +982,18 @@
             school: '학교',
             visitDate: '방문일',
             visitStart: '방문시작',
-            startHour: '방문시작시간',
-            startMinute: '방문시작분',
             duration: '총 방문시간',
             visitEnd: '방문종료',
-            endTime: '방문종료시간',
             subject: '과목',
-            activities: '영업활동',
-            favor: '우호도',
             teacherName: '선생님 이름',
             publisher: '출판사',
-            phone: '연락처',
-            email: '이메일',
+            activities: '영업활동',
+            materials: '전달자료',
             requests: '고객요청사항',
-            notes: '특이사항',
+            conversation: '대화내용',
+            issue: '특이사항',
             deliveries: '납품사항',
+            gifts: '증정사항',
             followUp: '후속조치',
             _savedAt: '저장시기'
           };
@@ -987,49 +1002,57 @@
           const fields = [
             'server_id','staff','staffLabel','region','school','visitDate',
             'visitStart','duration','visitEnd',
-            'subject','teacherName','activities','favor','publisher','phone',
-            'requests','notes','deliveries','followUp','_savedAt'
+            'subject','teacherName','publisher','favor','activities','materials',
+            'requests','conversation','issue','deliveries','gifts','followUp','_savedAt'
           ];
 
           // Details container (hidden by default)
           const details = document.createElement('div'); details.className = 'report-entry-details'; details.style.display = 'none';
 
-          fields.forEach(f=>{
-            const v = e[f];
-            const p = document.createElement('div'); p.style.marginTop='6px';
+          // helper to fetch a value from entry with aliases and formatting
+          function resolveFieldValue(entry, key){
+            if (!entry) return '';
+            // aliases map: key -> possible fields in entry
+            const aliases = {
+              server_id: ['server_id','_id','id'],
+              visitStart: ['visitStart','visitstart','start','startTime','start_time'],
+              visitEnd: ['visitEnd','visitend','endTime','end_time'],
+              materials: ['materials','material','deliveryMaterials','deliveredMaterials'],
+              conversation: ['conversation','notes','convo','memo'],
+              issue: ['issue','issues','specialNotes','note','remarks'],
+              gifts: ['gifts','증정','present','gift']
+            };
+            const keys = aliases[key] || [key];
+            for (const k of keys){
+              if (entry[k] !== undefined && entry[k] !== null && entry[k] !== '') return entry[k];
+            }
+            return '';
+          }
 
-            // combine startHour and startMinute into a single readable time when available
-            if (f === 'startHour'){
-              const hr = e.startHour || '';
-              const min = e.startMinute || '';
-              const time = hr ? (hr + (min ? (':' + String(min).padStart(2,'0')) : '')) : '';
-              if (!time) return; // nothing to show
-              p.innerHTML = `<strong>${FIELD_LABELS[f]}:</strong> ${time}`;
-              details.appendChild(p);
-              return;
+          // simple HTML escape for inserted text
+          function escapeHtml(s){
+            try{ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }catch(e){ return ''+s; }
+          }
+
+          fields.forEach(f=>{
+            const raw = resolveFieldValue(e, f);
+            // combine visitStart from startHour/startMinute if direct visitStart is missing
+            let value = raw;
+            if (!value && f === 'visitStart'){
+              const hr = e.startHour || e.start_hour || '';
+              const min = e.startMinute || e.start_minute || '';
+              if (hr) value = hr + (min ? (':' + String(min).padStart(2,'0')) : '');
+              else if (e.visitStart) value = e.visitStart;
             }
 
-            // don't repeat startMinute separately if we've already shown it
-            if (f === 'startMinute') return;
-
+            const p = document.createElement('div'); p.style.marginTop='6px';
             const label = FIELD_LABELS[f] || f;
 
-            // For these three textual fields, always render the label and show '-' when empty
-            const alwaysShowKeys = ['requests','notes','deliveries'];
-            if (alwaysShowKeys.indexOf(f) !== -1){
-              const raw = Array.isArray(v) ? (v.length ? v.join(', ') : '') : (v || '');
-              const display = (raw === '' || raw === undefined || raw === null) ? '-' : raw;
-              p.innerHTML = `<strong>${label}:</strong> ${display}`;
-              details.appendChild(p);
-              return;
-            }
-
-            // skip undefined/empty (allow 0 value) for other fields
-            if ((v === undefined || v === null || v === '') && v !== 0) return;
-
-            const display = Array.isArray(v) ? (v.length ? v.join(', ') : '') : v;
-            if ((display === '' || display === undefined || display === null) && display !== 0) return;
-            p.innerHTML = `<strong>${label}:</strong> ${display}`;
+            // skip empty/undefined (do not show '-' — simply omit)
+            if (value === undefined || value === null || value === '') return;
+            const display = Array.isArray(value) ? (value.length ? value.join(', ') : '') : String(value);
+            if (display === '') return;
+            p.innerHTML = `<strong>${label}:</strong> ${escapeHtml(display)}`;
             details.appendChild(p);
           });
 
