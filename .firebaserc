@@ -1,5 +1,10 @@
 {
   "projects": {
+    "default": "YOUR_FIREBASE_PROJECT_ID"
+  }
+}
+{
+  "projects": {
     "default": "cmass-sales"
   }
 }
