@@ -399,19 +399,21 @@
                 lines.push(`${schoolLabel}. ${sch}: ${schStart}${schStart && schEnd ? ('~'+schEnd) : ''} (${maxDur}분)${metaText}`);
                 // append school metadata (설립, 총학생수, 특성) when available
                 try{
-                  const norm = (String(sch||'').toLowerCase().replace(/\s+/g,' ').trim());
-                  const smap = window._cmass_staffMapReport || (window.loadStaffMapReport ? (window.loadStaffMapReport().catch(()=>{}), null) : null);
-                  const meta = smap ? (smap.byName && smap.byName[sch] ? smap.byName[sch] : (smap.byNorm && smap.byNorm[norm] ? smap.byNorm[norm] : null)) : null;
-                  if (meta){
-                    const est = meta.establish || '-';
-                    const stu = meta.students || '-';
-                    const feat = meta.feature || '-';
-                    lines.push(`   설립: ${est} · 총학생수: ${stu} · 특성: ${feat}`);
-                    lines.push('');
-                  } else {
-                    lines.push('');
-                  }
-                }catch(e){ lines.push(''); }
+                    const norm = (String(sch||'').toLowerCase().replace(/\s+/g,' ').trim());
+                    const smap = window._cmass_staffMapReport || (window.loadStaffMapReport ? (window.loadStaffMapReport().catch(()=>{}), null) : null);
+                    const meta = smap ? (smap.byName && smap.byName[sch] ? smap.byName[sch] : (smap.byNorm && smap.byNorm[norm] ? smap.byNorm[norm] : null)) : null;
+                    if (meta){
+                      const metaParts = [];
+                      if (meta.establish) metaParts.push('설립: ' + String(meta.establish));
+                      if (meta.students) metaParts.push('총학생수: ' + String(meta.students));
+                      if (meta.feature) metaParts.push('특성: ' + String(meta.feature));
+                      if (metaParts.length) lines.push('   ' + metaParts.join(' · '));
+                      else lines.push('');
+                      lines.push('');
+                    } else {
+                      lines.push('');
+                    }
+                  }catch(e){ lines.push(''); }
                 // per meeting bullets
                 list.forEach((it,j)=>{
                   const subj = (Array.isArray(it.subject) ? it.subject.join(', ') : (it.subject||''));
@@ -630,16 +632,22 @@
               const startRaw = (it.visitStart && String(it.visitStart).trim()) ? String(it.visitStart).trim() : ((it.startHour !== undefined && it.startHour !== '') ? fmtHM(Number(it.startHour||0)*60 + Number(it.startMinute||0)) : '');
               const endRaw = (it.visitEnd && String(it.visitEnd).trim()) ? String(it.visitEnd).trim() : (it.endTime || '');
               const timeRange = startRaw ? (startRaw + (endRaw ? ('~' + endRaw) : '')) : (endRaw ? ('~' + endRaw) : '');
-              // per-meeting textual fields — always include with labels for Kakao copy
-              // Pull raw backend fields: ask / conversation / delivery — show only their contents (use '-' if empty)
-              const req = (it.requests && String(it.requests).trim()) ? String(it.requests).trim() : '-';
-              const note = (it.notes && String(it.notes).trim()) ? String(it.notes).trim() : '-';
-              const del = (it.deliveries && String(it.deliveries).trim()) ? String(it.deliveries).trim() : '-';
-              const activitiesText = Array.isArray(it.activities) ? (it.activities.length ? it.activities.join(', ') : '-') : (it.activities ? String(it.activities).trim() : '-');
-              const favorText = it.favor && String(it.favor).trim() ? String(it.favor).trim() : '-';
-              const extra = [activitiesText, favorText, req, note, del].join('  ');
-              // use 학교 label + index for bullet (가1., 가2.); remove per-meeting time (school header shows time once)
-              lines.push(`-  ${korNums[idxSchool-1]}${j+1}.${subjText} (${teacher}${pub?'-'+pub:''}) : ${extra}`);
+              // For Kakao copy: omit empty fields entirely (do not print '-')
+              const req = (it.requests && String(it.requests).trim()) ? String(it.requests).trim() : '';
+              const note = (it.notes && String(it.notes).trim()) ? String(it.notes).trim() : '';
+              const del = (it.deliveries && String(it.deliveries).trim()) ? String(it.deliveries).trim() : '';
+              const activitiesText = Array.isArray(it.activities) ? (it.activities.length ? it.activities.join(', ') : '') : (it.activities ? String(it.activities).trim() : '');
+              const favorText = it.favor && String(it.favor).trim() ? String(it.favor).trim() : '';
+              const extraParts = [];
+              if (activitiesText) extraParts.push(activitiesText);
+              if (favorText) extraParts.push(favorText);
+              if (req) extraParts.push(req);
+              if (note) extraParts.push(note);
+              if (del) extraParts.push(del);
+              const extra = extraParts.join('  ');
+              let meetingLine = `-  ${korNums[idxSchool-1]}${j+1}.${subjText} (${teacher}${pub?'-'+pub:''})`;
+              if (extra) meetingLine += ` : ${extra}`;
+              lines.push(meetingLine);
             });
             lines.push('');
           }
@@ -945,28 +953,34 @@
           }catch(err){ /* tolerate */ }
           const title = document.createElement('div'); title.className='school-title'; title.textContent = (e.school||'(학교 미정)') + ' · ' + (e.visitDate||'');
           const meta = document.createElement('div'); meta.className='muted'; meta.textContent = (e.staffLabel || e.staff || '') + ' · ' + (e.region||'');
-          // We'll show a compact summary by default; full title/meta live in the details when expanded
+          // Start collapsed: hide title and meta by default (details hidden)
           title.style.display = 'none';
           meta.style.display = 'none';
           div.appendChild(title); div.appendChild(meta);
+          try{
+            const meta2 = document.createElement('div'); meta2.className = 'muted';
+            // school · 특성(학교 메타) · 담당자(표시명)
+            const schoolPart = e.school || '';
+            const featurePart = (e.meta && e.meta.trim()) ? e.meta.trim() : '';
+            const staffPart = (e.staffLabel || e.staff || '').toString();
+            const parts = [schoolPart];
+            if (featurePart) parts.push(featurePart);
+            if (staffPart) parts.push(staffPart);
+            meta2.textContent = parts.filter(Boolean).join(' · ');
+            meta2.style.display = 'none';
+            div.appendChild(meta2);
+          }catch(_){ /* tolerate */ }
 
-          // Compact summary visible when collapsed: show subject with (teacher-publisher-favor):
+          // Compact summary visible when collapsed: show 학교 · 과목 · 선생님 이름 · 우호도
           const summaryDiv = document.createElement('div'); summaryDiv.className = 'report-entry-summary';
           const left = document.createElement('div'); left.className = 'meta-left';
           const subjectsText = Array.isArray(e.subject) ? (e.subject.join(', ')) : (e.subject || '');
-          // format: <subject> (teacher-publisher-favor):  — omit missing parts
-          let leftText = '';
-          if (subjectsText){
-            const parenParts = [];
-            if (e.teacherName) parenParts.push(e.teacherName);
-            if (e.publisher) parenParts.push(e.publisher);
-            if (e.favor) parenParts.push(e.favor);
-            const paren = parenParts.length ? (' (' + parenParts.join('-') + ')') : '';
-            leftText = subjectsText + paren + ':';
-          } else {
-            leftText = e.school ? e.school : '';
-          }
-          left.textContent = leftText;
+          const parts = [];
+          if (e.school) parts.push(e.school);
+          if (subjectsText) parts.push(subjectsText);
+          if (e.teacherName) parts.push(e.teacherName);
+          if (e.favor) parts.push(e.favor);
+          left.textContent = parts.join(' · ');
           const right = document.createElement('div');
           const toggleBtn = document.createElement('button'); toggleBtn.textContent = '펼치기';
           toggleBtn.style.minWidth = '72px';
@@ -998,15 +1012,10 @@
             _savedAt: '저장시기'
           };
 
-          // Preferred order for display (match requested output order)
-          const fields = [
-            'server_id','staff','staffLabel','region','school','visitDate',
-            'visitStart','duration','visitEnd',
-            'subject','teacherName','publisher','favor','activities','materials',
-            'requests','conversation','issue','deliveries','gifts','followUp','_savedAt'
-          ];
+          // Preferred order for display (exact as requested)
+          const fields = ['server_id','staff','staffLabel','region','school','visitDate','visitStart','duration','visitEnd','subject','teacherName','publisher','activities','materials','requests','conversation','issue','deliveries','gifts','followUp','_savedAt'];
 
-          // Details container (hidden by default)
+          // Details container (hidden by default — start collapsed)
           const details = document.createElement('div'); details.className = 'report-entry-details'; details.style.display = 'none';
 
           // helper to fetch a value from entry with aliases and formatting
@@ -1035,24 +1044,18 @@
           }
 
           fields.forEach(f=>{
-            const raw = resolveFieldValue(e, f);
-            // combine visitStart from startHour/startMinute if direct visitStart is missing
-            let value = raw;
-            if (!value && f === 'visitStart'){
-              const hr = e.startHour || e.start_hour || '';
-              const min = e.startMinute || e.start_minute || '';
-              if (hr) value = hr + (min ? (':' + String(min).padStart(2,'0')) : '');
-              else if (e.visitStart) value = e.visitStart;
-            }
-
-            const p = document.createElement('div'); p.style.marginTop='6px';
+            // Always render the label. If value exists, show it; otherwise leave blank (no '-')
             const label = FIELD_LABELS[f] || f;
+            let raw = '';
+            if (f === 'visitStart') raw = e.visitStart || (e.startHour ? (String(e.startHour).padStart(2,'0') + ':' + (e.startMinute ? String(e.startMinute).padStart(2,'0') : '00')) : '');
+            else if (f === 'subject') raw = Array.isArray(e.subject) ? e.subject.join(', ') : (e.subject || '');
+            else if (f === 'activities') raw = Array.isArray(e.activities) ? e.activities.join(', ') : (e.activities || '');
+            else if (f === 'materials') raw = Array.isArray(e.materials) ? e.materials.join(', ') : (e.materials || e.material || '');
+            else raw = (e[f] !== undefined && e[f] !== null) ? e[f] : '';
 
-            // skip empty/undefined (do not show '-' — simply omit)
-            if (value === undefined || value === null || value === '') return;
-            const display = Array.isArray(value) ? (value.length ? value.join(', ') : '') : String(value);
-            if (display === '') return;
-            p.innerHTML = `<strong>${label}:</strong> ${escapeHtml(display)}`;
+            const display = Array.isArray(raw) ? (raw.length ? raw.join(', ') : '') : String(raw || '');
+            const p = document.createElement('div'); p.style.marginTop='6px';
+            p.innerHTML = `<strong>${label}:</strong> ${display ? escapeHtml(display) : ''}`;
             details.appendChild(p);
           });
 
