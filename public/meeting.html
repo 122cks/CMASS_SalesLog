@@ -212,7 +212,8 @@
             obj.email = (qs('email') && qs('email').value) || '';
             try{ obj.meta = (window.schoolMetaMap && window.schoolMetaMap[obj.school]) ? window.schoolMetaMap[obj.school] : ''; }catch(e){ obj.meta = ''; }
             obj.requests = (qs('requests') && qs('requests').value) || '';
-            obj.notes = (qs('notes') && qs('notes').value) || '';
+            obj.conversation = (qs('conversation') && qs('conversation').value) || '';
+            obj.issues = (qs('issues') && qs('issues').value) || '';
             obj.deliveries = (qs('deliveries') && qs('deliveries').value) || '';
             obj.followUp = (qs('followUp') && qs('followUp').value) || '';
             return obj;
@@ -360,7 +361,7 @@
                       // 입력완료 후 방문일 기준 리스트 갱신
                       renderHistoryList();
             const contactsSecured = filtered.reduce((s,it)=> s + ((it.phone && String(it.phone).trim()) || (it.email && String(it.email).trim()) ? 1:0), 0);
-            const additionalSelections = filtered.reduce((s,it)=>{ const text = ((it.followUp||'') + ' ' + (it.requests||'') + ' ' + (it.notes||'')).toString(); return s + ((text.indexOf('선정') !== -1) ? 1 : 0); },0);
+            const additionalSelections = filtered.reduce((s,it)=>{ const text = ((it.followUp||'') + ' ' + (it.requests||'') + ' ' + (it.conversation||'')).toString(); return s + ((text.indexOf('선정') !== -1) ? 1 : 0); },0);
             const metrics = { visitDate: String(visitDate), totalSchools: totalSchools, totalMeetings: totalMeetings, contactsSecured: contactsSecured, additionalSelections: additionalSelections };
             try{ if (window.sessionStorage) sessionStorage.setItem('cmass:report_metrics', JSON.stringify(metrics)); }catch(e){}
       // 방문일 변경 시에도 리스트 갱신
@@ -388,7 +389,7 @@
             });
 
             // clear simple inputs related to meeting content
-            ['teacherName','publisher','phone','email','requests','notes','deliveries','followUp'].forEach(id=>{
+            ['teacherName','publisher','phone','email','requests','conversation','issues','deliveries','followUp'].forEach(id=>{
               try{ const el = document.getElementById(id); if (el) el.value = ''; }catch(e){}
             });
 
@@ -659,12 +660,7 @@
           <button type="button" class="subject-btn">달력증정</button>  
           <button type="button" class="subject-btn">티칭샘소개</button>
           <button type="button" class="subject-btn">카톡방소개</button>
-          <button type="button" class="subject-btn">포스터전달</button>
-          <button type="button" class="subject-btn">브로슈어</button>
-          <button type="button" class="subject-btn">가이드북</button>
-          <button type="button" class="subject-btn">단행본안내</button>  
           <button type="button" class="subject-btn">단행본증정</button>
-          <button type="button" class="subject-btn">워크북안내</button>
           <button type="button" class="subject-btn">워크북증정</button>
           <button type="button" class="subject-btn">교구재안내</button>
           <button type="button" class="subject-btn">연수안내</button>
@@ -679,15 +675,16 @@
 
         <label style="margin-top:8px">전달자료 (버튼형)</label>
         <div id="materials" class="btn-row">
-          <button type="button" class="subject-btn">구글시트브로셔</button>
+          <button type="button" class="subject-btn">구글스프레드시트</button>
+          <button type="button" class="subject-btn">고1학업설계</button>
           <button type="button" class="subject-btn">정보단행본브로셔</button>
-          <button type="button" class="subject-btn">진로브로셔</button>
+          <button type="button" class="subject-btn">진로도서안내브로셔</button>
           <button type="button" class="subject-btn">교과서샘플활동북</button>
           <button type="button" class="subject-btn">교과서샘플워크북</button>
           <button type="button" class="subject-btn">연수안내브로셔</button>
           <button type="button" class="subject-btn">AIDT브로셔</button>
           <button type="button" class="subject-btn">AIDT활용가이드북</button>
-          <button type="button" class="subject-btn">포스터</button>
+          <button type="button" class="subject-btn">포스터전달</button>
           <button type="button" class="subject-btn">평가문제집</button>
           <button type="button" class="subject-btn">수업자료프린트물</button>
         </div>
@@ -706,12 +703,12 @@
 
         <label style="margin-top:8px">대화내용</label>
         <div class="row">
-          <input id="notes" type="text" placeholder="대화내용 입력" style="width:100%">
+          <input id="conversation" type="text" placeholder="대화내용 입력" style="width:100%">
         </div>
 
         <label style="margin-top:8px">특이사항</label>
         <div class="row">
-          <input id="notes" type="text" placeholder="특이사항 입력" style="width:100%">
+          <input id="issues" type="text" placeholder="특이사항 입력" style="width:100%">
         </div>
 
         <label style="margin-top:8px">납품사항</label>
@@ -760,7 +757,7 @@
             <input type="email" class="session-email" placeholder="이메일" style="flex:1">
           </div>
           <input type="text" class="session-requests" placeholder="요청사항" style="width:100%;margin-top:8px">
-          <input type="text" class="session-notes" placeholder="특이사항" style="width:100%;margin-top:8px">
+          <input type="text" class="session-conversation" placeholder="특이사항" style="width:100%;margin-top:8px">
           <input type="text" class="session-deliveries" placeholder="납품사항" style="width:100%;margin-top:8px">
           <input type="text" class="session-followup" list="followupList" placeholder="후속조치" style="width:100%;margin-top:8px">
         </section>
@@ -785,7 +782,6 @@
 
       <div class="actions">
         <!-- 서버에 자동저장 체크박스 제거됨 -->
-        </label>
         <button id="btnSubmit" type="button">입력완료</button>
       <button id="btnDailyReport" type="button">방문일 보고서</button>
         <button id="btnCopy" type="button" style="display:none"></button>
@@ -1080,7 +1076,7 @@
                 btn.classList.add('active'); btn.setAttribute('aria-pressed','true');
                 const hidden = document.getElementById('duration'); if (hidden) { hidden.value = btn.getAttribute('data-min') || ''; hidden.dispatchEvent(new Event('change',{bubbles:true})); }
                 try{ if (typeof window._cmass_computeEndTime === 'function') window._cmass_computeEndTime(); }catch(e){}
-                try{ btn.__cmass_ptr_handled = true; }catch(e){}
+                try{ btn.__cmass_ptr_handled = true; btn.__cmass_ptr_time = Date.now(); }catch(e){}
               }catch(e){ /* tolerate */ }
             }, true);
 
@@ -1184,7 +1180,9 @@
           Phonenumber: entry.phone || '',
           email: entry.email || '',
           ask: entry.requests || '',
-          conversation: entry.notes || '',
+          conversation: entry.conversation || '',
+          issues: entry.issues || '',
+          materials: Array.isArray(entry.materials) ? entry.materials : (entry.materials ? [entry.materials] : []),
           delivery: entry.deliveries || '',
           followUp: entry.followUp || '',
           _savedAt: entry._savedAt || (new Date()).toISOString()
@@ -1439,8 +1437,11 @@
         try{
           const btn = closestButton(ev.target);
           // If a capture-phase pointer handler already processed this button interaction,
-          // ignore the delegated click to avoid double-toggle behaviour.
-          if (btn && btn.__cmass_ptr_handled){ try{ btn.__cmass_ptr_handled = false; }catch(e){} return; }
+          // or a pointerdown occurred very recently, ignore the delegated click to avoid double-toggle.
+          if (btn && (btn.__cmass_ptr_handled || (btn.__cmass_ptr_time && (Date.now() - btn.__cmass_ptr_time < 700)))){
+            try{ btn.__cmass_ptr_handled = false; btn.__cmass_ptr_time = 0; }catch(e){}
+            return;
+          }
           if (!btn) return;
           if (isSubject(btn)){
             ev.preventDefault();
@@ -1745,7 +1746,8 @@
             try{ if (entry.phone) qs('phone').value = entry.phone; }catch(e){}
             try{ if (entry.email) qs('email').value = entry.email; }catch(e){}
             try{ if (entry.requests) qs('requests').value = entry.requests; }catch(e){}
-            try{ if (entry.notes) qs('notes').value = entry.notes; }catch(e){}
+            try{ if (entry.conversation) qs('conversation').value = entry.conversation; }catch(e){}
+            try{ if (entry.issues) qs('issues').value = entry.issues; }catch(e){}
             try{ if (entry.deliveries) qs('deliveries').value = entry.deliveries; }catch(e){}
             try{ if (entry.followUp) qs('followUp').value = entry.followUp; }catch(e){}
 
@@ -1844,9 +1846,9 @@
                 attempts++;
                 // verify that at least one key text field was populated
                 const teacherOk = (document.getElementById('teacherName') && document.getElementById('teacherName').value && String(document.getElementById('teacherName').value).trim() !== '');
-                const notesOk = (document.getElementById('notes') && document.getElementById('notes').value && String(document.getElementById('notes').value).trim() !== '');
+                const conversationOk = (document.getElementById('conversation') && document.getElementById('conversation').value && String(document.getElementById('conversation').value).trim() !== '');
                 const phoneOk = (document.getElementById('phone') && document.getElementById('phone').value && String(document.getElementById('phone').value).trim() !== '');
-                if (teacherOk || notesOk || phoneOk || attempts >= maxAttempts){ clearInterval(iv); }
+                if (teacherOk || conversationOk || phoneOk || attempts >= maxAttempts){ clearInterval(iv); }
               }catch(e){ clearInterval(iv); }
             }, 150);
 
@@ -2405,7 +2407,7 @@
                 // button as handled so delegated click handlers can skip double-handling.
                 const active = btn.classList.toggle('active');
                 btn.setAttribute('aria-pressed', String(!!active));
-                try{ btn.__cmass_ptr_handled = true; }catch(e){}
+                try{ btn.__cmass_ptr_handled = true; btn.__cmass_ptr_time = Date.now(); }catch(e){}
               }catch(e){}
             }, true);
           }
@@ -2432,7 +2434,7 @@
                 if (!btn) return;
                 const active = btn.classList.toggle('active');
                 btn.setAttribute('aria-pressed', String(!!active));
-                try{ btn.__cmass_ptr_handled = true; }catch(e){}
+                try{ btn.__cmass_ptr_handled = true; btn.__cmass_ptr_time = Date.now(); }catch(e){}
               }catch(e){}
             }, true);
           }
@@ -2458,6 +2460,20 @@
           }catch(e){}
         }catch(e){}
       }, { once:true });
+    })();
+  </script>
+  <script>
+    // Ensure computeEndTime is available as window.computeEndTime for external callers.
+    // Some internal code exposes it as window._cmass_computeEndTime; normalize here.
+    (function(){
+      try{
+        if (typeof window.computeEndTime !== 'function'){
+          if (typeof window._cmass_computeEndTime === 'function'){ window.computeEndTime = window._cmass_computeEndTime; }
+          else if (typeof computeEndTime === 'function'){ window.computeEndTime = computeEndTime; }
+        }
+        // Defensive: if gatherForm/saveReport were attached earlier they should already exist, but log status for diagnostics
+        try{ console.debug('[meeting] global-expose', { computeEndTime: typeof window.computeEndTime, gatherForm: typeof window.gatherForm, saveReport: typeof window.saveReport }); }catch(e){}
+      }catch(e){ try{ console.warn('[meeting] global-expose error', e); }catch(_){} }
     })();
   </script>
 </body>
