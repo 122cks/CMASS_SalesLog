@@ -204,7 +204,7 @@
             // Also store canonical single-key 'subject' (array-normalized) for unified schema
             try{ obj.subject = Array.isArray(obj.subjects) ? obj.subjects.slice() : (obj.subjects ? [obj.subjects] : []); }catch(e){ obj.subject = (obj.subjects || []); }
             obj.activities = collectActiveText('#activities','subject-btn');
-            obj.material = collectActiveText('#materials','subject-btn');
+            obj.materials = collectActiveText('#materials','subject-btn');
             obj.favor = getSingleActive('#favorBtns','favor-btn');
             obj.teacherName = (qs('teacherName') && qs('teacherName').value) || '';
             obj.publisher = (qs('publisher') && qs('publisher').value) || '';
@@ -1182,7 +1182,7 @@
           ask: entry.requests || '',
           conversation: entry.conversation || '',
           issue: entry.issue || '',
-          material: Array.isArray(entry.material) ? entry.material : (entry.material ? [entry.material] : []),
+          materials: Array.isArray(entry.materials) ? entry.materials : (entry.materials ? [entry.materials] : []),
           delivery: entry.deliveries || '',
           followUp: entry.followUp || '',
           _savedAt: entry._savedAt || (new Date()).toISOString()
@@ -1737,7 +1737,7 @@
             // subjects (single) and activities (multi)
             try{ activateButtons('#subjects','subject-btn', (Array.isArray(entry.subject) ? entry.subject : (Array.isArray(entry.subjects) ? entry.subjects : (entry.subject ? [entry.subject] : []))), true); }catch(e){}
             try{ activateButtons('#activities','subject-btn', entry.activities || [], false); }catch(e){}
-            try{ activateButtons('#materials','subject-btn', entry.material || [], false); }catch(e){}
+            try{ activateButtons('#materials','subject-btn', entry.materials || [], false); }catch(e){}
             // favor
             try{ if (entry.favor){ activateButtons('#favorBtns','favor-btn', [entry.favor], true); } }catch(e){}
 
