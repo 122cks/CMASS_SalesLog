@@ -952,24 +952,28 @@
             }
           }catch(err){ /* tolerate */ }
           const title = document.createElement('div'); title.className='school-title'; title.textContent = (e.school||'(학교 미정)') + ' · ' + (e.visitDate||'');
-          const meta = document.createElement('div'); meta.className='muted'; meta.textContent = (e.staffLabel || e.staff || '') + ' · ' + (e.region||'');
+          // Combine meta into a single line to avoid duplicate school lines
+          const meta = document.createElement('div'); meta.className='muted';
+          // Preferred compact meta: 학교 · 과목 · 선생님 이름 · 우호도 (fall back to staff/region if missing)
+          try{
+            const subjectsText = Array.isArray(e.subject) ? (e.subject.join(', ')) : (e.subject || '');
+            const partsMeta = [];
+            if (e.school) partsMeta.push(e.school);
+            if (subjectsText) partsMeta.push(subjectsText);
+            if (e.teacherName) partsMeta.push(e.teacherName);
+            if (e.favor) partsMeta.push(e.favor);
+            // fallback: include staffLabel and region when compact parts are empty
+            if (partsMeta.length === 0){
+              const staffPart = (e.staffLabel || e.staff || '').toString();
+              if (staffPart) partsMeta.push(staffPart);
+              if (e.region) partsMeta.push(e.region);
+            }
+            meta.textContent = partsMeta.filter(Boolean).join(' · ');
+          }catch(err){ meta.textContent = (e.staffLabel || e.staff || '') + ' · ' + (e.region||''); }
           // Start collapsed: hide title and meta by default (details hidden)
           title.style.display = 'none';
           meta.style.display = 'none';
           div.appendChild(title); div.appendChild(meta);
-          try{
-            const meta2 = document.createElement('div'); meta2.className = 'muted';
-            // school · 특성(학교 메타) · 담당자(표시명)
-            const schoolPart = e.school || '';
-            const featurePart = (e.meta && e.meta.trim()) ? e.meta.trim() : '';
-            const staffPart = (e.staffLabel || e.staff || '').toString();
-            const parts = [schoolPart];
-            if (featurePart) parts.push(featurePart);
-            if (staffPart) parts.push(staffPart);
-            meta2.textContent = parts.filter(Boolean).join(' · ');
-            meta2.style.display = 'none';
-            div.appendChild(meta2);
-          }catch(_){ /* tolerate */ }
 
           // Compact summary visible when collapsed: show 학교 · 과목 · 선생님 이름 · 우호도
           const summaryDiv = document.createElement('div'); summaryDiv.className = 'report-entry-summary';

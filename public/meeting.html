@@ -568,11 +568,15 @@
         <h3 class="section-title">- 방문기록 -</h3>
         <label style="margin-top:0">방문 시작시간</label>
         <div class="row" style="align-items:center;gap:8px">
-          <div class="start-time-group">
-            <select id="startHour"></select>
-            <span style="font-weight:700">시</span>
-            <select id="startMinute"></select>
-            <span style="font-weight:700">분</span>
+          <div class="start-time-grid" style="display:flex;gap:12px;align-items:center;">
+            <div class="start-col" style="display:flex;align-items:center;gap:6px">
+              <select id="startHour"></select>
+              <span style="font-weight:700">시</span>
+            </div>
+            <div class="start-col" style="display:flex;align-items:center;gap:6px">
+              <select id="startMinute"></select>
+              <span style="font-weight:700">분</span>
+            </div>
           </div>
         </div>
         <div class="row" style="margin-top:8px;align-items:center">
