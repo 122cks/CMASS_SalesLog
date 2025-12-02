@@ -1,0 +1,43 @@
+# Ignore common editor, OS and large asset directories that shouldn't be deployed
+.git/
+.git/**
+.vs/
+.idea/
+node_modules/
+**/node_modules/
+vendor/
+Thumbs.db
+desktop.ini
+*.lnk
+*.psd
+*.ai
+*.sketch
+*.db
+*.sql
+*.sqlite
+__pycache__/
+*.pyc
+*.pyo
+*.log
+*.tmp
+*.bak
+~$*
+# OneDrive/temp artifacts
+**/OneDrive*/
+**/OneDrive*/**
+# VS Code workspace settings
+.vscode/
+# macOS
+.DS_Store
+# exclude any large media or archive files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+# exclude source control and workspace caches
+.hg/
+.svn/
+# firebase config itself is safe to keep but ignore other firebase.json copies
+firebase.json
+*.map

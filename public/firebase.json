@@ -1,0 +1,27 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "cleanUrls": true,
+    "rewrites": [
+      { "source": "/schoolreport", "destination": "/schoolreport.html" },
+      { "source": "/schoolreport/", "destination": "/schoolreport.html" },
+      { "source": "/meeting", "destination": "/meeting.html" },
+      { "source": "/meeting/", "destination": "/meeting.html" },
+      { "source": "/input", "destination": "/input.html" },
+      { "source": "/input/", "destination": "/input.html" },
+      { "source": "/front", "destination": "/front.html" },
+      { "source": "/front/", "destination": "/front.html" },
+      { "source": "/report", "destination": "/report.html" },
+      { "source": "/report/", "destination": "/report.html" },
+      { "source": "/dashboard", "destination": "/dashboard.html" },
+      { "source": "/dashboard/", "destination": "/dashboard.html" },
+      { "source": "/", "destination": "/index.html" },
+      { "source": "**", "destination": "/index.html" }
+    ]
+  }
+}

@@ -47,6 +47,10 @@
     .subject-btn.subject-other{ background: linear-gradient(180deg,#f6f5ff,#efeaff); border-color:#ddd5ff; color:#2e1a66 }
     .subject-btn.subject-other:hover{ background: linear-gradient(180deg,#efeaff,#e6e0ff); }
     .subject-btn.subject-other.active{ background: linear-gradient(135deg,#a88cff,#7a59ff); color:#fff; border-color:#6940e6 }
+    /* Purple variant for 자료전달 activity button */
+    .subject-btn.subject-purple{ background: linear-gradient(180deg,#f6efff,#efe6ff); border-color:#d6c0ff; color:#3a1a66 }
+    .subject-btn.subject-purple:hover{ background: linear-gradient(180deg,#eadcff,#dfc9ff); }
+    .subject-btn.subject-purple.active{ background: linear-gradient(135deg,#8e5cff,#5b2eff); color:#fff; border-color:#3f1f9a }
    /* Ensure button grids and time selectors sit above transient overlays and accept pointer events.
      Bump z-index and explicitly enable pointer-events for duration buttons and selects so they
      remain interactive even if a transient element overlays the page. If another element still
@@ -127,6 +131,13 @@
       .actions button{ width:100%; display:block; margin-top:8px; padding:10px; border-radius:8px }
     }
   </style>
+  <style>
+    /* s-code mapping status badge */
+    .scode-badge { display:inline-block; margin-left:8px; padding:4px 8px; border-radius:999px; font-weight:800; font-size:12px; vertical-align:middle }
+    .scode-success { background:#e6fff3; color:#006644; border:1px solid #a6e6c9 }
+    .scode-ambiguous { background:#fff7e6; color:#7a5200; border:1px solid #f0d7a8 }
+    .scode-unmatched { background:#fff0f0; color:#8a1f1f; border:1px solid #f1c6c6 }
+  </style>
   <script>
     // Fixed-color classes are applied via CSS above for specific buttons.
     // The previous dynamic random-color JS has been removed to provide
@@ -156,6 +167,20 @@
         if (school) {
           filtered = filtered.filter(it => String(it.school || '') === String(school));
         }
+        // update scode badge (in-scope so it can reference scodeEl)
+        function updateScodeBadge(){
+          try{
+            const b = document.getElementById('scodeBadge');
+            if (!b) return;
+            const scode = (window._cmass_currentScode || (window.sessionStorage && sessionStorage.getItem('cmass:next_scode')) || '');
+            const ambiguous = !!(window._cmass_lastMappingCandidates && Array.isArray(window._cmass_lastMappingCandidates) && window._cmass_lastMappingCandidates.length > 1) || !!window._cmass_lastMappingAmbiguous;
+            b.classList.remove('scode-success','scode-ambiguous','scode-unmatched');
+            if (scode){
+              if (ambiguous){ b.classList.add('scode-ambiguous'); b.textContent = '모호'; b.title = '여러 후보가 있어 모호합니다'; }
+              else { b.classList.add('scode-success'); b.textContent = '성공'; b.title = 's-code 매핑 성공'; }
+            } else { b.classList.add('scode-unmatched'); b.textContent = '미일치'; b.title = 's-code를 찾지 못했습니다'; }
+          }catch(e){ /* ignore */ }
+        }
         const container = document.getElementById('historyList');
         if (!container) return;
         container.innerHTML = '';
@@ -167,14 +192,48 @@
           const subjects = Array.isArray(entry.subject) ? entry.subject.join(', ') : (Array.isArray(entry.subjects) ? entry.subjects.join(', ') : (entry.subject || entry.subjects || ''));
           const teacher = entry.teacherName || '';
           const favor = entry.favor || '';
-          const line = `${subjects} - ${teacher} - ${favor}`;
-          const div = document.createElement('div');
-          div.textContent = line;
-          div.style.padding = '6px 10px';
-          div.style.background = '#f7f8ff';
-          div.style.borderRadius = '6px';
-          div.style.fontSize = '14px';
-          container.appendChild(div);
+
+          // 방문시간 표시: 가능한 정보(startHour/startMinute, endTime, duration)를 조합해서 표시
+          try{
+            const pad = v => (String(v||'').length === 1 ? ('0' + String(v||'')) : String(v||''));
+            const sh = entry.startHour || '';
+            const sm = entry.startMinute || '';
+            const end = entry.endTime || '';
+            const dur = entry.duration || '';
+            let timeStr = '';
+            if (sh || sm){
+              const s = (sh || sm) ? (pad(sh) + ':' + pad(sm)) : '';
+              if (end){ timeStr = s + ' - ' + String(end); }
+              else if (dur){ timeStr = s + ' · ' + String(dur) + '분'; }
+              else { timeStr = s; }
+            } else if (dur){
+              timeStr = String(dur) + '분';
+            } else if (end){
+              timeStr = String(end);
+            }
+
+            const lineParts = [subjects, teacher, favor].filter(Boolean);
+            if (timeStr) lineParts.push('방문시간: ' + timeStr);
+            const line = lineParts.join(' - ');
+
+            const div = document.createElement('div');
+            div.textContent = line;
+            div.style.padding = '6px 10px';
+            div.style.background = '#f7f8ff';
+            div.style.borderRadius = '6px';
+            div.style.fontSize = '14px';
+            container.appendChild(div);
+          }catch(e){
+            // fallback to previous simple line if any error
+            const line = `${subjects} - ${teacher} - ${favor}`;
+            const div = document.createElement('div');
+            div.textContent = line;
+            div.style.padding = '6px 10px';
+            div.style.background = '#f7f8ff';
+            div.style.borderRadius = '6px';
+            div.style.fontSize = '14px';
+            container.appendChild(div);
+          }
         });
       } catch(e) { /* tolerate */ }
     }
@@ -211,11 +270,32 @@
             obj.phone = (qs('phone') && qs('phone').value) || '';
             obj.email = (qs('email') && qs('email').value) || '';
             try{ obj.meta = (window.schoolMetaMap && window.schoolMetaMap[obj.school]) ? window.schoolMetaMap[obj.school] : ''; }catch(e){ obj.meta = ''; }
-            obj.requests = (qs('requests') && qs('requests').value) || '';
+            // Attach resolved s-code sourced from sessionStorage or previous mapping
+            try{ obj.scode = (sessionStorage && sessionStorage.getItem('cmass:next_scode')) || window._cmass_currentScode || ''; }catch(e){ obj.scode = window._cmass_currentScode || ''; }
+            // Unified field names: request, conversation, issue, delivery, gift, followup
+            // Legacy fields (requests/deliveries/gifts/followUp) are consolidated into 'issue'
+            obj.request = (qs('requests') && qs('requests').value) || '';
+            obj.delivery = (qs('deliveries') && qs('deliveries').value) || '';
+            obj.gift = (qs('gifts') && qs('gifts').value) || '';
+            obj.followup = (qs('followUp') && qs('followUp').value) || '';
             obj.conversation = (qs('conversation') && qs('conversation').value) || '';
             obj.issue = (qs('issue') && qs('issue').value) || '';
-            obj.deliveries = (qs('deliveries') && qs('deliveries').value) || '';
-            obj.followUp = (qs('followUp') && qs('followUp').value) || '';
+
+            try{
+              const parts = [];
+              if (obj.request) parts.push('요청사항: ' + obj.request);
+              if (obj.delivery) parts.push('납품사항: ' + obj.delivery);
+              if (obj.gift) parts.push('증정사항: ' + obj.gift);
+              if (obj.followup) parts.push('후속조치: ' + obj.followup);
+              if (parts.length){
+                obj.issue = (obj.issue ? (String(obj.issue).trim() + ' | ') : '') + parts.join(' | ');
+              }
+              // clear legacy keys so backend receives consolidated data primarily via 'issue'
+              obj.request = '';
+              obj.delivery = '';
+              obj.gift = '';
+              obj.followup = '';
+            }catch(e){}
             return obj;
           }catch(e){ return null; }
         }
@@ -361,7 +441,7 @@
                       // 입력완료 후 방문일 기준 리스트 갱신
                       renderHistoryList();
             const contactsSecured = filtered.reduce((s,it)=> s + ((it.phone && String(it.phone).trim()) || (it.email && String(it.email).trim()) ? 1:0), 0);
-            const additionalSelections = filtered.reduce((s,it)=>{ const text = ((it.followUp||'') + ' ' + (it.requests||'') + ' ' + (it.conversation||'')).toString(); return s + ((text.indexOf('선정') !== -1) ? 1 : 0); },0);
+            const additionalSelections = filtered.reduce((s,it)=>{ const text = ((it.followup||'') + ' ' + (it.request||it.requests||'') + ' ' + (it.conversation||'')).toString(); return s + ((text.indexOf('선정') !== -1) ? 1 : 0); },0);
             const metrics = { visitDate: String(visitDate), totalSchools: totalSchools, totalMeetings: totalMeetings, contactsSecured: contactsSecured, additionalSelections: additionalSelections };
             try{ if (window.sessionStorage) sessionStorage.setItem('cmass:report_metrics', JSON.stringify(metrics)); }catch(e){}
       // 방문일 변경 시에도 리스트 갱신
@@ -389,7 +469,7 @@
             });
 
             // clear simple inputs related to meeting content
-            ['teacherName','publisher','phone','email','requests','conversation','issue','deliveries','followUp'].forEach(id=>{
+            ['teacherName','publisher','phone','email','requests','conversation','issue','deliveries','gifts','followUp'].forEach(id=>{
               try{ const el = document.getElementById(id); if (el) el.value = ''; }catch(e){}
             });
 
@@ -522,8 +602,78 @@
       } catch(e) { console.warn('window 전역 할당 오류', e); }
       // === [전역 window에 함수/변수 할당 끝] ===
     });
+      // 전달자료 표시 조건: 특정 과목에서만 보이도록 제어
+      (function(){
+        try{
+          function updateMaterialsVisibilityBySubjects(){
+            try{
+              // collectActiveText is defined in the outer scope above
+              const active = (typeof collectActiveText === 'function') ? collectActiveText('#subjects','subject-btn') : (Array.from(document.querySelectorAll('#subjects .subject-btn.active')).map(b=>b.textContent.trim()));
+              const mats = Array.from(document.querySelectorAll('#materials .subject-btn'));
+              mats.forEach(btn=>{
+                try{
+                  const rule = btn.getAttribute('data-visible-for');
+                  if (!rule) return; // no rule -> leave as-is
+                  const allowed = rule.split('|').map(s=>s.trim()).filter(Boolean);
+                  const show = allowed.some(a => active.indexOf(a) !== -1);
+                  btn.style.display = show ? '' : 'none';
+                }catch(e){}
+              });
+            }catch(e){}
+          }
+
+          document.addEventListener('DOMContentLoaded', function(){
+            try{
+              // Update when subjects are clicked (delegated)
+              const subjects = document.getElementById('subjects');
+              if (subjects) subjects.addEventListener('click', function(){ setTimeout(updateMaterialsVisibilityBySubjects, 0); }, true);
+              // Call once to set initial visibility
+              setTimeout(updateMaterialsVisibilityBySubjects, 0);
+            }catch(e){}
+          }, { once:true });
+        }catch(e){}
+      })();
       </script>
   <header>
+          function getScodeFromMetaOrSession(meta){
+            try{
+              // prefer meta keys including hyphenated 's-code'
+              const candidates = ['s-code','scode','학교코드','정보공시학교코드','schoolCode','school_code','s_code','sCode'];
+              for (const k of candidates){ if (meta && meta[k] && String(meta[k]).trim()) return String(meta[k]).trim(); }
+              // fallback to sessionStorage value set on input page
+              try{
+                const s = (sessionStorage && sessionStorage.getItem) ? sessionStorage.getItem('cmass:next_scode') : '';
+                if (s && String(s).trim()) return String(s).trim();
+              }catch(e){}
+              // fallback to any window-scoped value
+              try{ if (window._cmass_currentScode && String(window._cmass_currentScode).trim()) return String(window._cmass_currentScode).trim(); }catch(e){}
+              try{ if (window._cmass_lastScode && String(window._cmass_lastScode).trim()) return String(window._cmass_lastScode).trim(); }catch(e){}
+            }catch(e){}
+            return '';
+          }
+
+          function updateScodeDisplay(){
+            try{
+              const el = document.getElementById('scodeDisplay');
+              if (!el) return;
+              // try to read from last meta first
+              const meta = (window._cmass_lastFoundMeta || {});
+              const scode = getScodeFromMetaOrSession(meta);
+              if (scode) {
+                el.textContent = '학교코드: ' + scode;
+                try{ window._cmass_currentScode = scode; }catch(e){}
+              } else {
+                // preserve existing text if we don't have a code
+                try{ if (!el.textContent || !/학교코드\s*:/ .test(el.textContent)) el.textContent = '학교코드: -'; }catch(e){}
+              }
+              // update badge if available
+              try{ if (typeof updateScodeBadge === 'function') updateScodeBadge(); }catch(e){}
+            }catch(e){}
+          }
+
+          // call on DOM ready and when selection changes (input page typically sets session key)
+          document.addEventListener('DOMContentLoaded', updateScodeDisplay);
+          try{ window.updateScodeDisplay = updateScodeDisplay; }catch(e){}
     <div id="schoolDisplay" style="margin-left:12px;font-weight:900;color:#042046;">
       <!-- school name will be shown here -->
     </div>
@@ -560,6 +710,10 @@
             <select id="schoolSelect" style="width:80%"><option value="">학교 선택...</option></select>
           </div>
           <!-- 학교 메타는 CSV에서 자동으로 채워집니다; 수동 입력란 제거 -->
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin:4px 0 0 2px;">
+          <div id="scodeDisplay" style="font-weight:800;color:#1e3c72">학교코드: -</div>
+          <div id="scodeBadge" class="scode-badge scode-unmatched" title="s-code 매핑 상태">미일치</div>
         </div>
       </section>
 
@@ -625,32 +779,12 @@
           <button type="button" class="subject-btn subject-other">기타</button>
         </div>
 
-        <!-- 선생님/출판사, 연락처 영역을 과목 선택과 영업활동 사이로 이동 -->
+        <!-- 선생님 입력 (출판사 입력 제거됨) -->
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
           <input id="teacherName" type="text" placeholder="선생님 이름" style="flex:1">
-          <input id="publisher" type="text" list="publishersList" placeholder="출판사" style="flex:0 0 140px">
         </div>
 
-        <datalist id="publishersList">
-          <option value="씨마스"></option>
-          <option value="천재"></option>
-          <option value="비상"></option>
-          <option value="미래엔"></option>
-          <option value="동아"></option>
-          <option value="지학사"></option>
-          <option value="금성"></option>
-          <option value="창비"></option>
-          <option value="해냄"></option>
-          <option value="능률"></option>
-          <option value="삼양"></option>
-          <option value="이오북스"></option>
-          <option value="YBM"></option>
-          <option value="길벗"></option>
-          <option value="미진사"></option>
-          <option value="다락원"></option>
-          <option value="타임"></option>
-          <option value="채움"></option>
-        </datalist>
+        <!-- 출판사 datalist 제거됨 (UI에서 출판사 입력 제거) -->
 
         <label style="margin-top:8px">연락처</label>
         <div class="row">
@@ -661,34 +795,28 @@
         <label style="margin-top:8px">영업활동 (버튼형)</label>
         <div id="activities" class="btn-row">
           <button type="button" class="subject-btn">명함인사</button>
-          <button type="button" class="subject-btn">달력증정</button>  
-          <button type="button" class="subject-btn">티칭샘소개</button>
-          <button type="button" class="subject-btn">카톡방소개</button>
-          <button type="button" class="subject-btn">단행본증정</button>
-          <button type="button" class="subject-btn">워크북증정</button>
-          <button type="button" class="subject-btn">교구재안내</button>
-          <button type="button" class="subject-btn">연수안내</button>
-          <button type="button" class="subject-btn subject-sky">AIDT사용경험有</button>  
-          <button type="button" class="subject-btn subject-sky">AIDT체험신청</button>
-          <button type="button" class="subject-btn subject-sky">구글클래스룸</button>
-          <button type="button" class="subject-btn subject-sky">하이러닝</button>
-          <button type="button" class="subject-btn subject-danger">부재중</button>
-          <button type="button" class="subject-btn subject-danger">미팅불가</button>
-          <button type="button" class="subject-btn subject-danger">자료거부</button>
+          <button type="button" class="subject-btn">홍보물증정</button>  
+          <button type="button" class="subject-btn">채널/연수소개</button>
+          <button type="button" class="subject-btn">도서증정</button>
+          <button type="button" class="subject-btn">도서/교구재안내</button>
+          <button type="button" class="subject-btn subject-purple">자료전달</button>
+          <button type="button" class="subject-btn subject-sky">AIDT관련안내</button>  
+          <button type="button" class="subject-btn subject-danger">부재중/출입불가/자료거부</button>
         </div>
 
         <label style="margin-top:8px">전달자료 (버튼형)</label>
         <div id="materials" class="btn-row">
           <button type="button" class="subject-btn">구글스프레드시트</button>
-          <button type="button" class="subject-btn">고1학업설계</button>
-          <button type="button" class="subject-btn">정보단행본브로셔</button>
-          <button type="button" class="subject-btn">진로도서안내브로셔</button>
-          <button type="button" class="subject-btn">교과서샘플활동북</button>
-          <button type="button" class="subject-btn">교과서샘플워크북</button>
+          <button type="button" class="subject-btn" data-visible-for="진로|학년부장|도서관사서">고1학업설계</button>
+          <button type="button" class="subject-btn" data-visible-for="진로|학년부장|도서관사서">AI시대직업세계</button>
+          <button type="button" class="subject-btn" data-visible-for="진로|학년부장|도서관사서">챗GPT시대의AI교육</button>
+          <button type="button" class="subject-btn" data-info-only="true">엔트리/마이크로비트/파이썬</button>
+          <button type="button" class="subject-btn" data-info-only="true">오렌지/코답</button>
+          <button type="button" class="subject-btn" data-visible-for="진로|학년부장|도서관사서">진로교과워크북</button>
+          <button type="button" class="subject-btn">교과서샘플도서</button>
           <button type="button" class="subject-btn">연수안내브로셔</button>
-          <button type="button" class="subject-btn">AIDT브로셔</button>
-          <button type="button" class="subject-btn">AIDT활용가이드북</button>
-          <button type="button" class="subject-btn">포스터전달</button>
+          <button type="button" class="subject-btn" data-info-only="true">AIDT브로셔/가이드북</button>
+          <button type="button" class="subject-btn">교과포스터</button>
           <button type="button" class="subject-btn">평가문제집</button>
           <button type="button" class="subject-btn">수업자료프린트물</button>
         </div>
@@ -700,42 +828,14 @@
           <button type="button" class="favor-btn">반응나쁨</button>
         </div>
 
-        <label style="margin-top:8px">고객요청사항</label>
-        <div class="row">
-          <input id="requests" type="text" placeholder="고객요청사항 입력" style="width:100%">
-        </div>
-
         <label style="margin-top:8px">대화내용</label>
         <div class="row">
           <input id="conversation" type="text" placeholder="대화내용 입력" style="width:100%">
         </div>
 
-        <label style="margin-top:8px">특이사항</label>
+        <label style="margin-top:8px">특이사항(고객요청/납품/증정/후속조치 등)</label>
         <div class="row">
-          <input id="issue" type="text" placeholder="특이사항 입력" style="width:100%">
-        </div>
-
-        <label style="margin-top:8px">납품사항</label>
-        <div class="row">
-          <input id="deliveries" type="text" placeholder="납품사항 입력" style="width:100%">
-        </div>
-
-        <label style="margin-top:8px">증정사항</label>
-        <div class="row">
-          <input id="gifts" type="text" placeholder="증정사항 입력" style="width:100%">
-        </div>
-
-        <label style="margin-top:8px">후속조치</label>
-        <div style="margin-top:6px;margin-bottom:6px">
-          <input id="followUp" type="text" list="followupList" placeholder="후속조치 선택 또는 입력" style="width:100%">
-          <datalist id="followupList">
-            <option value="완료(추가조치 없음)"></option>
-            <option value="고객요청사항 해소예정"></option>
-            <option value="재방문예정(중요고객)"></option>
-            <option value="AIDT교육자료 체험계정 지급"></option>
-            <option value="워크북 무상지원 제안"></option>
-            <option value="선정시기 연락 대기"></option>
-          </datalist>
+          <input id="issue" type="text" placeholder="특이사항 입력 (고객요청/납품/증정/후속조치 등)" style="width:100%">
         </div>
       </section>
 
@@ -927,6 +1027,7 @@
         const staffEl = document.getElementById('staff');
         const regionEl = document.getElementById('regionSelect');
         const schoolEl = document.getElementById('schoolSelect');
+        const scodeEl = document.getElementById('scodeDisplay');
         if (!staffEl || !regionEl || !schoolEl) return;
 
         // Rebuild staff <select> from CSV-derived map (option.value = staffKey, option.text = label)
@@ -1047,7 +1148,36 @@
           const r = regionEl.value || '';
           const set = (staffEntry && staffEntry.schoolsByRegion && staffEntry.schoolsByRegion[r]) ? staffEntry.schoolsByRegion[r] : new Set();
           populateSchools(schoolEl, set);
+          // clear scode when region changes until a school is selected again
+          try{ if (scodeEl) scodeEl.textContent = '학교코드: -'; window._cmass_currentScode=''; }catch(e){}
         }, true);
+
+        // When school changes, attempt to resolve and display scode. Prefer sessionStorage, then metadata lookup.
+        function updateScodeDisplay(){
+          try{
+            const schoolName = schoolEl.value || '';
+            let scode = '';
+            // Use existing session value first
+            try{ scode = (sessionStorage && sessionStorage.getItem('cmass:next_scode')) || ''; }catch(e){ scode=''; }
+            // If not stored, attempt CSV meta lookup via findSalesStaffMeta if available
+            if (!scode && typeof findSalesStaffMeta === 'function' && schoolName){
+              try{ const meta = findSalesStaffMeta(schoolName); if (meta && meta.scode) scode = meta.scode; }catch(e){}
+            }
+            if (scode){
+              try{ if (sessionStorage) sessionStorage.setItem('cmass:next_scode', scode); }catch(e){}
+              window._cmass_currentScode = scode;
+              if (scodeEl) scodeEl.textContent = '학교코드: ' + scode;
+            } else {
+              window._cmass_currentScode = '';
+              if (scodeEl) scodeEl.textContent = '학교코드: -';
+            }
+            try{ if (typeof updateScodeBadge === 'function') updateScodeBadge(); }catch(e){}
+          }catch(e){ /* tolerate */ }
+        }
+        schoolEl.addEventListener('change', updateScodeDisplay, true);
+        schoolEl.addEventListener('input', updateScodeDisplay, true);
+        // Initial display after restoration
+        setTimeout(updateScodeDisplay, 10);
       }
 
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire, { once:true }); else wire();
@@ -1163,6 +1293,15 @@
     // Map local entry -> server fields requested by the user
     function mapEntryToServer(entry){
       try{
+        // attempt to attach scode (정보공시학교코드) by consulting CSV metadata if available
+        let __mapped_scode = '';
+        try{
+          if (entry && entry.school){
+            try{ const m = (typeof findSalesStaffMeta === 'function') ? findSalesStaffMeta(entry.school) : null; if(m && m.scode) __mapped_scode = m.scode; }catch(_e){}
+          }
+          if(!__mapped_scode && entry && entry.scode) __mapped_scode = entry.scode || '';
+        }catch(_e){}
+
         return {
           // canonical staff key (prefer explicit entry.staff which the UI stores as staff_key)
           staff: entry.staff || '',
@@ -1183,13 +1322,29 @@
           publisher: entry.publisher || '',
           Phonenumber: entry.phone || '',
           email: entry.email || '',
-          ask: entry.requests || '',
+          // Consolidate legacy fields into issue for backend compatibility
           conversation: entry.conversation || '',
-          issue: entry.issue || '',
+          issue: (function(){
+            try{
+              const base = entry.issue ? String(entry.issue).trim() : '';
+              const parts = [];
+              if (entry.request) parts.push('요청사항: ' + entry.request);
+              if (entry.delivery) parts.push('납품사항: ' + entry.delivery);
+              if (entry.gift) parts.push('증정사항: ' + entry.gift);
+              if (entry.followup) parts.push('후속조치: ' + entry.followup);
+              if (parts.length){
+                return base ? (base + ' | ' + parts.join(' | ')) : parts.join(' | ');
+              }
+              return base;
+            }catch(e){ return entry.issue || ''; }
+          })(),
           materials: Array.isArray(entry.materials) ? entry.materials : (entry.materials ? [entry.materials] : []),
-          delivery: entry.deliveries || '',
-          followUp: entry.followUp || '',
-          _savedAt: entry._savedAt || (new Date()).toISOString()
+          // Do not send legacy separate delivery/gift/followup fields; backend should use `issue`.
+          delivery: '',
+          gift: '',
+          followup: '',
+          _savedAt: entry._savedAt || (new Date()).toISOString(),
+          's-code': __mapped_scode || ''
         };
       }catch(e){ return {}; }
     }
@@ -1206,14 +1361,16 @@
           }
         }catch(e){ console.warn('[meeting] 익명 로그인 시도 중 예외', e); }
         const data = mapEntryToServer(entry);
+        // sanitize to avoid overwriting existing server values with empty strings/arrays
+        function _sanitizeLocal(p){ try{ const out = {}; for (const k of Object.keys(p||{})){ const v = p[k]; if (v === null || v === undefined) continue; if (typeof v === 'string'){ if (String(v).trim() === '') continue; out[k] = v; continue; } if (Array.isArray(v)){ if (v.length === 0) continue; out[k] = v; continue; } out[k] = v; } return out; }catch(e){ return p || {}; } }
         // Prefer writing to `visit_entries` (console path) so front page can read it.
         // If entry has server_id, update that document in visit_entries; otherwise add.
         try{
           if (entry.server_id){
-            try{ await window.firestoreUpdateDoc('visit_entries', entry.server_id, data); }
+            try{ const safeData = _sanitizeLocal(data); await window.firestoreUpdateDoc('visit_entries', entry.server_id, safeData); }
             catch(e){ console.error('[meeting] visit_entries update 실패', e); }
             // also attempt to update legacy 'visits' doc with same id if it exists
-            try{ await window.firestoreUpdateDoc('visits', entry.server_id, data); }catch(e){ console.warn('[meeting] visits update (legacy) 실패', e); }
+            try{ const safeData2 = _sanitizeLocal(data); await window.firestoreUpdateDoc('visits', entry.server_id, safeData2); }catch(e){ console.warn('[meeting] visits update (legacy) 실패', e); }
             try{ console.info('[meeting] syncEntryToServer updated existing server_id', entry.server_id); }catch(e){}
             return entry.server_id;
           }
@@ -1221,7 +1378,8 @@
 
             // Add to visit_entries first (primary).
         try{
-          const docRef = await window.firestoreAddDoc('visit_entries', data);
+          const safeAdd = _sanitizeLocal(data);
+          const docRef = await window.firestoreAddDoc('visit_entries', safeAdd);
           if (docRef && docRef.id){
             // ensure the saved document includes its own id for easier queries
             try{ await window.firestoreUpdateDoc('visit_entries', docRef.id, { server_id: docRef.id }); }catch(e){ console.warn('[meeting] visit_entries set server_id 실패', e); }
@@ -1750,11 +1908,11 @@
             try{ if (entry.publisher) qs('publisher').value = entry.publisher; }catch(e){}
             try{ if (entry.phone) qs('phone').value = entry.phone; }catch(e){}
             try{ if (entry.email) qs('email').value = entry.email; }catch(e){}
-            try{ if (entry.requests) qs('requests').value = entry.requests; }catch(e){}
-            try{ if (entry.conversation) qs('conversation').value = entry.conversation; }catch(e){}
-            try{ if (entry.issue) qs('issue').value = entry.issue; }catch(e){}
-            try{ if (entry.deliveries) qs('deliveries').value = entry.deliveries; }catch(e){}
-            try{ if (entry.followUp) qs('followUp').value = entry.followUp; }catch(e){}
+            try{ const _req = (entry.requests || entry.request || ''); if (_req) qs('requests').value = _req; }catch(e){}
+            try{ const _conv = (entry.conversation || entry.convo || ''); if (_conv) qs('conversation').value = _conv; }catch(e){}
+            try{ const _issue = (entry.issue || entry.special || ''); if (_issue) qs('issue').value = _issue; }catch(e){}
+            try{ const _del = (entry.deliveries || entry.delivery || ''); if (_del) qs('deliveries').value = _del; }catch(e){}
+            try{ const _fu = (entry.followUp || entry.followup || ''); if (_fu) qs('followUp').value = _fu; }catch(e){}
 
             // endTime will be auto-calculated by existing computeEndTime listener
           }catch(e){}
@@ -2377,6 +2535,23 @@
           const others = Array.from(container.querySelectorAll('button.subject-btn'));
           others.forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
           btn.classList.add('active'); btn.setAttribute('aria-pressed','true');
+          try{ if (typeof updateMaterialsVisibility === 'function') updateMaterialsVisibility(); }catch(e){}
+        }catch(e){}
+      }
+      function updateMaterialsVisibility(){
+        try{
+          const materials = qs('materials'); if (!materials) return;
+          const subjects = qs('subjects');
+          const active = subjects ? subjects.querySelector('button.subject-btn.active') : null;
+          const activeText = active ? (active.textContent||'').toString().trim() : '';
+          const show = (activeText === '정보');
+          const infoOnly = Array.from(materials.querySelectorAll('button.subject-btn[data-info-only]'));
+          infoOnly.forEach(b=>{
+            try{
+              b.style.display = show ? '' : 'none';
+              if (!show){ b.classList.remove('active'); b.setAttribute('aria-pressed','false'); }
+            }catch(e){}
+          });
         }catch(e){}
       }
       function toggleActivity(btn){
@@ -2394,6 +2569,7 @@
                 // ensure default single-select behavior for main subject list
                 ev.preventDefault(); ev.stopPropagation();
                 activateSingleSubject(btn);
+                try{ updateMaterialsVisibility(); }catch(e){}
               }catch(e){}
             }, true);
           }
@@ -2442,6 +2618,8 @@
                 try{ btn.__cmass_ptr_handled = true; btn.__cmass_ptr_time = Date.now(); }catch(e){}
               }catch(e){}
             }, true);
+            // set initial visibility based on any pre-selected subject
+            try{ updateMaterialsVisibility(); }catch(e){}
           }
           // Dedicated handler for favor buttons (single-select within #favorBtns)
           try{

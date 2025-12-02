@@ -6,7 +6,8 @@
   "scripts": {
     "test:e2e": "npx playwright test",
     "test:populate": "node tests/run_populate_test.js",
-    "test:report-screenshot": "node tests/run_report_screenshot.js"
+    "test:report-screenshot": "node tests/run_report_screenshot.js",
+    "merge:scode": "node ./scripts/merge_json_to_firestore.js --project cmass-sales --collection visit_entries --idField server_id --in ./public/cmass-sales-dabccd916a67.json"
   },
   "dependencies": {
     "@google-cloud/firestore": "^8.0.0",

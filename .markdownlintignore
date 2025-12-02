@@ -1,0 +1,12 @@
+# Ignore generated vendor artifacts and large node_modules exports
+dev_artifacts/
+dev_artifacts/**
+public-js-node_modules-*/
+public-js-node_modules-*/**
+node_modules/
+node_modules/**
+public/**/node_modules/**
+
+# Optional: ignore other large generated folders
+dist/
+build/

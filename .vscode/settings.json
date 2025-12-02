@@ -1,4 +1,19 @@
 {
+  // Exclude generated/vendor folders from markdownlint and the VS Code Problems view
+  "markdownlint.exclude": [
+    "**/dev_artifacts/**",
+    "**/public-js-node_modules-*/**",
+    "**/dev_artifacts/**",
+    "**/node_modules/**",
+    "**/public/**/node_modules/**"
+  ],
+  // Hide those folders from file explorer to reduce noise
+  "files.exclude": {
+    "**/dev_artifacts": true,
+    "**/public-js-node_modules-*/**": true
+  }
+}
+{
   "json.schemas": [
     {
       "fileMatch": ["package.json"],

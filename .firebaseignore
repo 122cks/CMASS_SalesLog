@@ -1,0 +1,39 @@
+# Ignore node_modules that may have been accidentally copied into public
+**/node_modules/**
+# Specifically ignore likely large artifacts under public
+public/**/node_modules/**
+public/js/node_modules/**
+
+# Local backup and archive folders created by maintenance scripts
+backups/
+dev_artifacts/
+
+# Common system/dev files
+*.log
+.DS_Store
+Thumbs.db
+
+# Firebase files (already configured in firebase.json) - keep them out of deploy
+firebase-debug.*
+# Ignore large/backups and dev files inside public
+public/**/*.bak
+public/**/*backup*
+public/**/*.csv
+public/**/order*.csv
+public/**/migration-*.txt
+public/**/server-ids-only.txt
+public/**/orderv2*.csv
+public/**/report_backup*.html
+
+# Source / dev scripts not needed for hosting
+public/**/*.py
+public/*.py
+public/**/*.ipynb
+
+# Node, git and editor meta
+node_modules/
+.git/
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

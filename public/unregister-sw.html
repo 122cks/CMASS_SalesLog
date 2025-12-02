@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Unregister Service Worker</title>
+  <style>body{font-family:Segoe UI,Arial,sans-serif;background:#f8fafc;color:#0b1220;display:flex;align-items:center;justify-content:center;height:100vh;margin:0} .card{background:#fff;padding:20px;border-radius:10px;box-shadow:0 10px 30px rgba(2,6,23,0.06);max-width:700px;text-align:center}</style>
+</head>
+<body>
+  <div class="card">
+    <h1 style="font-size:18px;margin-bottom:8px">서비스워커 해제 및 캐시 정리</h1>
+    <p style="color:#475569;margin-bottom:16px">이 페이지는 브라우저에 등록된 서비스워커를 제거하고 캐시를 비웁니다. 완료되면 자동으로 리포트 페이지로 이동합니다.</p>
+    <div id="status" style="font-size:13px;color:#2563eb;margin-bottom:12px">진행중...</div>
+    <a id="manual" href="/schoolreport.html" style="display:inline-block;margin-top:8px;padding:8px 12px;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none">수동으로 열기</a>
+  </div>
+
+  <script>
+    async function clearAll(){
+      const status = document.getElementById('status');
+      try{
+        status.textContent = '서비스워커 등록 해제 중...';
+        if('serviceWorker' in navigator){
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));
+        }
+        status.textContent = '캐시 삭제 중...';
+        if('caches' in window){
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k=>caches.delete(k)));
+        }
+        // give browser a moment to settle
+        status.textContent = '완료되었습니다. 리포트로 이동합니다...';
+        setTimeout(()=>{ window.location.replace('/schoolreport.html'); }, 900);
+      }catch(e){
+        status.textContent = '오류가 발생했습니다. 수동으로 리포트를 열어보세요.';
+        console.warn('unregister failed', e);
+      }
+    }
+    clearAll();
+  </script>
+</body>
+</html>

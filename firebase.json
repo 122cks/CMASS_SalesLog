@@ -1,40 +1,27 @@
 {
-  "functions": {
-    "source": "functions"
-  },
   "hosting": {
     "public": "public",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "cleanUrls": true,
-    "trailingSlash": false,
     "rewrites": [
-      { "source": "/api/**", "function": "api" },
-      { "source": "/input", "destination": "/input.html" },
+      { "source": "/schoolreport", "destination": "/schoolreport.html" },
+      { "source": "/schoolreport/", "destination": "/schoolreport.html" },
       { "source": "/meeting", "destination": "/meeting.html" },
-      { "source": "/report", "destination": "/report.html" },
+      { "source": "/meeting/", "destination": "/meeting.html" },
+      { "source": "/input", "destination": "/input.html" },
+      { "source": "/input/", "destination": "/input.html" },
       { "source": "/front", "destination": "/front.html" },
       { "source": "/front/", "destination": "/front.html" },
-      { "source": "/order", "destination": "/order.html" },
-      { "source": "/order.html", "destination": "/order.html" },
-      { "source": "**", "destination": "/front.html" }
-    ],
-    "headers": [
-      {
-        "source": "/input.html",
-        "headers": [ { "key": "Cache-Control", "value": "no-cache, no-store, max-age=0" } ]
-      },
-      {
-        "source": "/meeting.html",
-        "headers": [ { "key": "Cache-Control", "value": "no-cache, no-store, max-age=0" } ]
-      },
-      {
-        "source": "/front.html",
-        "headers": [ { "key": "Cache-Control", "value": "no-cache, no-store, max-age=0" } ]
-      },
-      {
-        "source": "/report.html",
-        "headers": [ { "key": "Cache-Control", "value": "no-cache, no-store, max-age=0" } ]
-      }
+      { "source": "/report", "destination": "/report.html" },
+      { "source": "/report/", "destination": "/report.html" },
+      { "source": "/dashboard", "destination": "/dashboard.html" },
+      { "source": "/dashboard/", "destination": "/dashboard.html" },
+      { "source": "/", "destination": "/index.html" },
+      { "source": "**", "destination": "/index.html" }
     ]
   }
 }

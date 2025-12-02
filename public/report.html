@@ -282,7 +282,7 @@
 
               // FIELD_LABELS (renderEntries와 동일한 한글 레이블 맵)
               const FIELD_LABELS = {
-                server_id: '서버 ID', staff: '직원', staffLabel: '직원(표시명)', region: '지역', school: '학교', visitDate: '방문일', startHour: '방문시작시간', startMinute: '방문시작분', duration: '총 방문시간', endTime: '방문종료시간', subject: '과목', activities: '영업활동', favor: '우호도', teacherName: '선생님 이름', publisher: '출판사', phone: '연락처', email: '이메일', requests: '고객 요청사항', notes: '특이사항', deliveries: '납품사항', followUp: '후속조치', _savedAt: '저장시기'
+                server_id: '서버 ID', staff: '직원', staffLabel: '직원(표시명)', region: '지역', school: '학교', visitDate: '방문일', startHour: '방문시작시간', startMinute: '방문시작분', duration: '총 방문시간', endTime: '방문종료시간', subject: '과목', activities: '영업활동', favor: '우호도', teacherName: '선생님 이름', publisher: '출판사', phone: '연락처', email: '이메일', conversation: '대화내용', issue: '특이사항', _savedAt: '저장시기'
               };
 
               function reverseLabelToKey(lbl){
@@ -344,7 +344,23 @@
               const earliestStart = startTimes.length ? startTimes[0] : null;
               const latestEnd = parsed.reduce((acc,it)=>{ try{ const st = (it.startHour !== undefined && it.startHour !== '') ? (Number(it.startHour||0)*60 + Number(it.startMinute||0)) : null; const dur = Number(it.duration||0); if (st!==null){ const end = st + dur; return Math.max(acc,end); } }catch(e){} return acc; }, 0);
               const cleanupM = Number(office.endMinutes || 0) || 30;
-              function fmtHM(totalMin){ const h = Math.floor(totalMin/60); const m = totalMin % 60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; }
+              // format minutes-as-clock (HH:MM). Handles null/invalid and wraps hours into 0-23
+              function fmtHM(totalMin){
+                if (totalMin === null || totalMin === undefined || String(totalMin).trim() === '') return '--:--';
+                let t = Number(totalMin);
+                if (!Number.isFinite(t) || t < 0) t = 0;
+                const h = Math.floor(t/60) % 24; // wrap to 0-23 to avoid 24:00
+                const m = t % 60;
+                return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+              }
+              // format duration minutes as 'XH YM' (e.g. 100 -> '1H 40M')
+              function fmtDurationM(totalMin){
+                let t = Number(totalMin) || 0;
+                if (!Number.isFinite(t) || t <= 0) return '0M';
+                const h = Math.floor(t/60);
+                const m = t % 60;
+                return (h > 0 ? (h + 'H') : '') + (h > 0 && m > 0 ? ' ' : '') + (m > 0 ? (m + 'M') : (h>0?'' : '0M'));
+              }
               // Determine check-in.
               // If there is no office internal time (internalM === 0) prefer the earliest visit start as check-in.
               let checkinTotal = null;
@@ -370,6 +386,8 @@
 
               // 1. 출근/퇴근
               const externalM = meetingTotalM + cleanupM;
+              // Show cleanup (자료정리) duration in human-friendly format (e.g. 100 -> '1H 40M')
+              lines.push(`퇴근보고(자료정리시간): ${fmtDurationM(cleanupM)}`);
               // 근무시간은 첫 방문 시작시간(checkinTotal)부터 퇴근자료정리 완료시간(checkoutTotal)까지로 계산
               const workedM = (checkoutTotal !== null && checkinTotal !== null) ? (checkoutTotal - checkinTotal) : (internalM + externalM);
               lines.push(`1. 출근: ${fmtHM(checkinTotal)} · 퇴근: ${fmtHM(checkoutTotal)} (근무시간 ${Math.floor(workedM/60)}H ${workedM%60}M)`);
@@ -414,26 +432,43 @@
                       lines.push('');
                     }
                   }catch(e){ lines.push(''); }
-                // per meeting bullets
-                list.forEach((it,j)=>{
+                // per meeting bullets - sort by preferred subject order then start time
+                const PREFERRED_SUBJECT_ORDER = ['정보','진로','보건','미술','체육','도서관사서','학년부장','특성화','기타'];
+                const listSorted = (list||[]).slice().sort((aa,bb)=>{
+                  const getPrimary = it => { try{ const arr = Array.isArray(it.subject) ? it.subject : (it.subject ? [it.subject] : []); return (arr[0]||'').toString().trim(); }catch(e){ return ''; } };
+                  const rank = s => { try{ if(!s) return 9999; const i = PREFERRED_SUBJECT_ORDER.findIndex(x => String(s||'').indexOf(x) !== -1); return i === -1 ? 9999 : i; }catch(e){ return 9999; } };
+                  const ra = rank(getPrimary(aa)); const rb = rank(getPrimary(bb)); if (ra !== rb) return ra - rb;
+                  const getStart = it => { try{ if (it.visitStart && String(it.visitStart).trim()){ const m = String(it.visitStart).trim().match(/(\d{1,2}):(\d{1,2})/); if (m) return Number(m[1])*60 + Number(m[2]); } if (it.startHour !== undefined && it.startHour !== '') return (Number(it.startHour||0)*60 + Number(it.startMinute||0)); }catch(e){} return 1e9; };
+                  return getStart(aa) - getStart(bb);
+                });
+                listSorted.forEach((it,j)=>{
                   const subj = (Array.isArray(it.subject) ? it.subject.join(', ') : (it.subject||''));
                   const teacher = it.teacherName || '';
                   const pub = it.publisher || '';
                   const favor = it.favor || '';
                   // Ensure textual fields appear per-meeting with clear labels
-                  // Pull raw backend fields: ask / conversation / delivery — show only their contents (use '-' if empty)
-                  // For Kakao copy: omit empty fields entirely (do not print '-')
-                  const req = (it.requests && String(it.requests).trim()) ? String(it.requests).trim() : '';
-                  const note = (it.notes && String(it.notes).trim()) ? String(it.notes).trim() : '';
-                  const del = (it.deliveries && String(it.deliveries).trim()) ? String(it.deliveries).trim() : '';
+                  // Pull raw backend fields: prefer canonical keys (request, conversation, delivery, gift, followup)
+                  // Keep backward compatibility by checking legacy names (requests, requestText, notes, deliveries, gifts, followUp)
+                  const req = (it.request && String(it.request).trim()) ? String(it.request).trim() : ((it.requests && String(it.requests).trim()) ? String(it.requests).trim() : '');
+                  const conv = (it.conversation && String(it.conversation).trim()) ? String(it.conversation).trim() : ((it.notes && String(it.notes).trim()) ? String(it.notes).trim() : '');
+                  const del = (it.delivery && String(it.delivery).trim()) ? String(it.delivery).trim() : ((it.deliveries && String(it.deliveries).trim()) ? String(it.deliveries).trim() : '');
+                  const gift = (it.gift && String(it.gift).trim()) ? String(it.gift).trim() : ((it.gifts && String(it.gifts).trim()) ? String(it.gifts).trim() : '');
+                  const follow = (it.followup && String(it.followup).trim()) ? String(it.followup).trim() : ((it.followUp && String(it.followUp).trim()) ? String(it.followUp).trim() : '');
+                  // materials (전달자료) — some entries store as 'materials' or singular 'material'
+                  const materials = (it.materials && String(it.materials).trim()) ? String(it.materials).trim() : ((it.material && String(it.material).trim()) ? String(it.material).trim() : '');
+                  // issue / special / remark (특이사항)
+                  const issue = (it.issue && String(it.issue).trim()) ? String(it.issue).trim() : ((it.special && String(it.special).trim()) ? String(it.special).trim() : ((it.remark && String(it.remark).trim()) ? String(it.remark).trim() : ''));
                   const activitiesText = Array.isArray(it.activities) ? (it.activities.length ? it.activities.join(', ') : '') : (it.activities ? String(it.activities).trim() : '');
-                  const favorText = it.favor && String(it.favor).trim() ? String(it.favor).trim() : '';
                   const extraParts = [];
+                  // Order: 영업활동, 전달자료, 고객요청사항, 대화내용, 특이사항, 납품사항, 증정사항, 후속조치
                   if (activitiesText) extraParts.push(activitiesText);
-                  if (favorText) extraParts.push(favorText);
+                  if (materials) extraParts.push(materials);
                   if (req) extraParts.push(req);
-                  if (note) extraParts.push(note);
+                  if (conv) extraParts.push(conv);
+                  if (issue) extraParts.push(issue);
                   if (del) extraParts.push(del);
+                  if (gift) extraParts.push(gift);
+                  if (follow) extraParts.push(follow);
                   const extra = extraParts.join('  ');
                   let line = `-  ${schoolLabel}${j+1}. ${subj} (${teacher}${pub?'-'+pub:''})`;
                   if (extra) line += ` : ${extra}`;
@@ -611,8 +646,15 @@
                 lines.push('');
               }
             }catch(e){ lines.push(''); }
-            // per-meeting bullets (sort meetings by start time within the school)
+            // per-meeting bullets: sort meetings by preferred subject order, then by start time
+            const PREFERRED_SUBJECT_ORDER = ['정보','진로','보건','미술','체육','도서관사서','학년부장','특성화','기타'];
             const listSorted = (list||[]).slice().sort((a,b)=>{
+              const getPrimary = it => {
+                try{ const arr = Array.isArray(it.subject) ? it.subject : (it.subject ? [it.subject] : []); return (arr[0] || '').toString().trim(); }catch(e){ return ''; }
+              };
+              const rank = s => { try{ if(!s) return 9999; const i = PREFERRED_SUBJECT_ORDER.findIndex(x => String(s||'').indexOf(x) !== -1); return i === -1 ? 9999 : i; }catch(e){ return 9999; } };
+              const ra = rank(getPrimary(a)); const rb = rank(getPrimary(b));
+              if (ra !== rb) return ra - rb;
               const getStart = it => {
                 try{
                   if (it.visitStart && String(it.visitStart).trim()){ const m = String(it.visitStart).trim().match(/(\d{1,2}):(\d{1,2})/); if (m) return Number(m[1])*60 + Number(m[2]); }
@@ -633,19 +675,29 @@
               const endRaw = (it.visitEnd && String(it.visitEnd).trim()) ? String(it.visitEnd).trim() : (it.endTime || '');
               const timeRange = startRaw ? (startRaw + (endRaw ? ('~' + endRaw) : '')) : (endRaw ? ('~' + endRaw) : '');
               // For Kakao copy: omit empty fields entirely (do not print '-')
-              const req = (it.requests && String(it.requests).trim()) ? String(it.requests).trim() : '';
-              const note = (it.notes && String(it.notes).trim()) ? String(it.notes).trim() : '';
-              const del = (it.deliveries && String(it.deliveries).trim()) ? String(it.deliveries).trim() : '';
+              const req = (it.request && String(it.request).trim()) ? String(it.request).trim() : ((it.requests && String(it.requests).trim()) ? String(it.requests).trim() : '');
+              const note = (it.conversation && String(it.conversation).trim()) ? String(it.conversation).trim() : ((it.notes && String(it.notes).trim()) ? String(it.notes).trim() : '');
+              const del = (it.delivery && String(it.delivery).trim()) ? String(it.delivery).trim() : ((it.deliveries && String(it.deliveries).trim()) ? String(it.deliveries).trim() : '');
+              const gift = (it.gift && String(it.gift).trim()) ? String(it.gift).trim() : ((it.gifts && String(it.gifts).trim()) ? String(it.gifts).trim() : '');
+              const follow = (it.followup && String(it.followup).trim()) ? String(it.followup).trim() : ((it.followUp && String(it.followUp).trim()) ? String(it.followUp).trim() : '');
+              // 전달자료 (materials) — accept either 'materials' or 'material'
+              const materials = (it.materials && String(it.materials).trim()) ? String(it.materials).trim() : ((it.material && String(it.material).trim()) ? String(it.material).trim() : '');
+              // 특이사항 (issue) — accept 'issue', 'special', or 'remark'
+              const issue = (it.issue && String(it.issue).trim()) ? String(it.issue).trim() : ((it.special && String(it.special).trim()) ? String(it.special).trim() : ((it.remark && String(it.remark).trim()) ? String(it.remark).trim() : ''));
               const activitiesText = Array.isArray(it.activities) ? (it.activities.length ? it.activities.join(', ') : '') : (it.activities ? String(it.activities).trim() : '');
               const favorText = it.favor && String(it.favor).trim() ? String(it.favor).trim() : '';
               const extraParts = [];
+              // Order: 영업활동, 전달자료, 고객요청사항, 대화내용, 특이사항, 납품사항, 증정사항, 후속조치
               if (activitiesText) extraParts.push(activitiesText);
-              if (favorText) extraParts.push(favorText);
+              if (materials) extraParts.push(materials);
               if (req) extraParts.push(req);
               if (note) extraParts.push(note);
+              if (issue) extraParts.push(issue);
               if (del) extraParts.push(del);
+              if (gift) extraParts.push(gift);
+              if (follow) extraParts.push(follow);
               const extra = extraParts.join('  ');
-              let meetingLine = `-  ${korNums[idxSchool-1]}${j+1}.${subjText} (${teacher}${pub?'-'+pub:''})`;
+              let meetingLine = `-  ${korNums[idxSchool-1]}${j+1}.${subjText} (${teacher}${pub?'-'+pub:''}${favorText?'-'+favorText:''})`;
               if (extra) meetingLine += ` : ${extra}`;
               lines.push(meetingLine);
             });
@@ -1004,20 +1056,15 @@
             visitEnd: '방문종료',
             subject: '과목',
             teacherName: '선생님 이름',
-            publisher: '출판사',
             activities: '영업활동',
             materials: '전달자료',
-            requests: '고객요청사항',
             conversation: '대화내용',
             issue: '특이사항',
-            deliveries: '납품사항',
-            gifts: '증정사항',
-            followUp: '후속조치',
             _savedAt: '저장시기'
           };
 
-          // Preferred order for display (exact as requested)
-          const fields = ['server_id','staff','staffLabel','region','school','visitDate','visitStart','duration','visitEnd','subject','teacherName','publisher','activities','materials','requests','conversation','issue','deliveries','gifts','followUp','_savedAt'];
+          // Preferred order for display (canonical keys)
+          const fields = ['server_id','staff','staffLabel','region','school','visitDate','visitStart','duration','visitEnd','subject','teacherName','publisher','activities','materials','request','conversation','issue','delivery','gift','followup','_savedAt'];
 
           // Details container (hidden by default — start collapsed)
           const details = document.createElement('div'); details.className = 'report-entry-details'; details.style.display = 'none';
@@ -1031,9 +1078,11 @@
               visitStart: ['visitStart','visitstart','start','startTime','start_time'],
               visitEnd: ['visitEnd','visitend','endTime','end_time'],
               materials: ['materials','material','deliveryMaterials','deliveredMaterials'],
-              conversation: ['conversation','notes','convo','memo'],
+              request: ['request','requestText','askText','requests','req','customerRequests','client_request','memo'],
+              conversation: ['conversation','conversationText','convo','notes','memo'],
               issue: ['issue','issues','specialNotes','note','remarks'],
-              gifts: ['gifts','증정','present','gift']
+              delivery: ['delivery','deliveries','delivery_note','deliveryNotes','delivered','delivery_info','deliv'],
+              gift: ['gift','gifts','증정','present']
             };
             const keys = aliases[key] || [key];
             for (const k of keys){
@@ -1244,15 +1293,19 @@
             endTime: endTime || '',
             subject: Array.isArray(doc.subject) ? doc.subject : (doc.subject ? [doc.subject] : []),
             activities: Array.isArray(doc.activities) ? doc.activities : (doc.activities ? [doc.activities] : []),
+            materials: Array.isArray(doc.materials) ? doc.materials : (doc.materials ? (Array.isArray(doc.materials) ? doc.materials : [doc.materials]) : (doc.material ? [doc.material] : [])),
             favor: doc.favor || '',
             teacherName: doc.teacher || doc.teacherName || doc.teacher_name || doc.instructor || doc.teacherFullName || doc.tchr || '',
             publisher: doc.publisher || '',
             phone: doc.Phonenumber || doc.phone || '',
             email: doc.email || '',
-            requests: doc.ask || doc.askText || doc.requests || doc.request || doc.requestText || doc.request_text || doc.customerRequests || doc.customer_request || doc.req || doc.client_request || doc.memo || '',
-            notes: doc.conversation || doc.conversationText || doc.convo || doc.notes || doc.remark || doc.remarks || doc.specialNotes || doc.note || doc.memo || doc.memoText || '',
-            deliveries: doc.delivery || doc.delivery_note || doc.deliveryNotes || doc.deliveries || doc.delivered || doc.delivery_info || doc.deliveries_info || doc.deliv || '',
-            followUp: doc.followUp || '' ,
+            request: doc.request || doc.requestText || doc.requests || doc.requestText || doc.request_text || doc.customerRequests || doc.customer_request || doc.req || doc.client_request || doc.memo || '',
+            conversation: doc.conversation || doc.conversationText || doc.convo || doc.notes || doc.remark || doc.remarks || doc.specialNotes || doc.note || doc.memo || doc.memoText || '',
+            delivery: doc.delivery || doc.delivery_note || doc.deliveryNotes || doc.deliveries || doc.delivered || doc.delivery_info || doc.deliveries_info || doc.deliv || '',
+            followup: doc.followUp || doc.followup || doc.follow_up || '' ,
+            gift: doc.gift || doc.gifts || doc.present || doc.증정 || '',
+            issue: doc.issue || doc.issues || doc.specialNotes || doc.note || '',
+            materials: Array.isArray(doc.materials) ? doc.materials : (doc.materials ? (Array.isArray(doc.materials) ? doc.materials : [doc.materials]) : (doc.material ? [doc.material] : [])),
             _savedAt: doc._savedAt || ''
           };
         }catch(e){ return {}; }
@@ -1261,6 +1314,13 @@
 
         // Map local entry shape back to server payload
         function mapEntryToServerPayload(e){
+          // attempt to attach scode (정보공시학교코드) by consulting CSV metadata if available
+          let __mapped_scode = '';
+          try{
+            if (e && e.school){ try{ const m = (typeof findSalesStaffMeta === 'function') ? findSalesStaffMeta(e.school) : null; if (m && m.scode) __mapped_scode = m.scode; }catch(_e){} }
+            if (!__mapped_scode && e && e.scode) __mapped_scode = e.scode || '';
+          }catch(_e){}
+
           return {
             staff: e.staff || '',
             staffLabel: e.staffLabel || '',
@@ -1278,13 +1338,58 @@
             Phonenumber: e.phone || e.Phonenumber || '',
             phone: e.phone || e.Phonenumber || '',
             email: e.email || '',
-            ask: e.requests || e.ask || '',
-            conversation: e.notes || '',
-            delivery: e.deliveries || e.delivery || '',
-            followUp: e.followUp || '',
-            _savedAt: e._savedAt || new Date().toISOString()
+            // Consolidate legacy fields into `issue` so server stores a single field
+            conversation: e.conversation || e.notes || '',
+            issue: (function(){
+              try{
+                const base = e.issue ? String(e.issue).trim() : '';
+                const parts = [];
+                const req = e.request || e.requests || '';
+                const del = e.delivery || e.deliveries || '';
+                const gf = e.gift || e.gifts || '';
+                const fu = e.followup || e.followUp || '';
+                if (req) parts.push('요청사항: ' + req);
+                if (del) parts.push('납품사항: ' + del);
+                if (gf) parts.push('증정사항: ' + gf);
+                if (fu) parts.push('후속조치: ' + fu);
+                if (parts.length) return base ? (base + ' | ' + parts.join(' | ')) : parts.join(' | ');
+                return base;
+              }catch(er){ return e.issue || ''; }
+            })(),
+            // omit legacy fields (server will read consolidated `issue`)
+            request: '',
+            delivery: '',
+            gift: '',
+            followup: '',
+            materials: Array.isArray(e.materials) ? e.materials : (e.materials ? [e.materials] : (e.material ? [e.material] : [])),
+            _savedAt: e._savedAt || new Date().toISOString(),
+            's-code': __mapped_scode || ''
           };
         }
+        
+          // Remove empty-string / empty-array fields so we don't overwrite
+          // existing server-side values with blanks when merging updates.
+          function sanitizePayload(p){
+            try{
+              const out = {};
+              for (const k of Object.keys(p || {})){
+                const v = p[k];
+                if (v === null || v === undefined) continue;
+                if (typeof v === 'string'){
+                  if (String(v).trim() === '') continue;
+                  out[k] = v;
+                  continue;
+                }
+                if (Array.isArray(v)){
+                  if (v.length === 0) continue;
+                  out[k] = v;
+                  continue;
+                }
+                out[k] = v;
+              }
+              return out;
+            }catch(e){ return p || {}; }
+          }
 
         // Prevent duplicate server uploads for the same entry
         async function uploadEntryToServer(entry) {
@@ -1303,13 +1408,15 @@
             if (!snap.empty) {
               // If found, update the first matching doc instead of adding a new one
               const doc = snap.docs[0];
-              await window.firebaseDb.collection('visit_entries').doc(doc.id).set(payload, { merge: true });
-              console.log('[서버업로드] 기존 문서 업데이트:', doc.id, payload);
+              const sanitized = sanitizePayload(payload);
+              await window.firebaseDb.collection('visit_entries').doc(doc.id).set(sanitized, { merge: true });
+              console.log('[서버업로드] 기존 문서 업데이트:', doc.id, sanitized);
               return doc.id;
             } else {
               // If not found, add new
-              const ref = await window.firebaseDb.collection('visit_entries').add(payload);
-              console.log('[서버업로드] 새 문서 추가:', ref.id, payload);
+              const sanitized = sanitizePayload(payload);
+              const ref = await window.firebaseDb.collection('visit_entries').add(sanitized);
+              console.log('[서버업로드] 새 문서 추가:', ref.id, sanitized);
               return ref.id;
             }
           } catch (err) {
@@ -1412,7 +1519,7 @@
               try{
                 console.log('[CMASS TEST] 시작');
                 const testEntry = {
-                  server_id: '', staff: staff || '김영업', staffLabel: staff || '김영업', region: '테스트', school: '테스트학교-삭제', visitDate: visitDate || new Date().toISOString().slice(0,10), startHour: '09', startMinute: '05', duration: 30, endTime: '09:35', subject: ['테스트과목'], activities: ['테스트행동'], favor: '보통', teacherName: '테스트선생', publisher: '', phone: '010-0000-9999', email: '', requests:'', notes:'테스트 노트', deliveries:'', followUp:'', _savedAt: new Date().toISOString()
+                  server_id: '', staff: staff || '김영업', staffLabel: staff || '김영업', region: '테스트', school: '테스트학교-삭제', visitDate: visitDate || new Date().toISOString().slice(0,10), startHour: '09', startMinute: '05', duration: 30, endTime: '09:35', subject: ['테스트과목'], activities: ['테스트행동'], favor: '보통', teacherName: '테스트선생', publisher: '', phone: '010-0000-9999', email: '', request:'', conversation:'테스트 노트', delivery:'', followup:'', _savedAt: new Date().toISOString()
                 };
                 // save locally
                 const arr = loadLocalReports(); arr.push(testEntry); localStorage.setItem('cmass_reports', JSON.stringify(arr));
@@ -1458,11 +1565,12 @@
 
               const payload = mapEntryToServerPayload(edited);
               try{
+                const sanitized = (typeof sanitizePayload === 'function') ? sanitizePayload(payload) : payload;
                 if (edited.server_id){
                   // update existing doc
-                  await window.firebaseDb.collection('visit_entries').doc(String(edited.server_id)).set(payload, { merge: true });
+                  await window.firebaseDb.collection('visit_entries').doc(String(edited.server_id)).set(sanitized, { merge: true });
                 }else{
-                  const ref = await window.firebaseDb.collection('visit_entries').add(payload);
+                  const ref = await window.firebaseDb.collection('visit_entries').add(sanitized);
                   // write back server_id into local arr and persist
                   arr[idx].server_id = ref.id;
                   localStorage.setItem('cmass_reports', JSON.stringify(arr));
@@ -1633,26 +1741,38 @@
                   try{ if (typeof loadStaffMapReport === 'function') await loadStaffMapReport().catch(()=>{}); }catch(e){}
                   const raw = buildOfficeSummary();
                   if (!raw) { alert('요약할 내용이 없습니다.'); return; }
-                  // sanitize for Kakao: remove any '재방문' tag occurrences
+                  // sanitize for Kakao: remove any '재방문' tag occurrences and strip '전달자료' segments
                   const sanitizeKakaoText = (t)=>{
                     try{
                       let s = String(t || '');
                       // remove '재방문: ...' anywhere
                       s = s.replace(/\b재방문:\s*[^,\n\r]*/g, '');
+
+                      // Remove common 전달자료/materials tokens from inline segments.
+                      // We'll split lines and remove any segment that looks like a material (contains these keywords).
+                      const materialKeywords = ['스프레드시트','학업설계','직업세계','챗GPT','엔트리','마이크로비트','파이썬','오렌지','코답','워크북','교과','브로셔','가이드북','포스터','문제집','프린트물','전달자료','증정','납품'];
+                      const matRegex = new RegExp(materialKeywords.join('|'),'i');
+
+                      // Process lines; extra fields are often separated by two or more spaces in summaries
+                      const lines = String(s||'').split('\n').map(l => {
+                        try{
+                          const segs = l.split(/\s{2,}/).map(x=>x.trim()).filter(Boolean);
+                          const filtered = segs.filter(seg => !matRegex.test(seg));
+                          return filtered.join('  ');
+                        }catch(e){ return l; }
+                      });
+
                       // Collapse repeated commas introduced by removal
-                      s = s.replace(/,\s*,/g, ',');
-                      s = s.replace(/자동 태그:\s*,/g, '자동 태그:');
-                      s = s.replace(/자동 태그:\s*$/g, '');
-                      // Trim trailing comma/space at line ends
-                      const lines = s.split('\n').map(l => l.replace(/\s+,\s*$/,'').replace(/\s+$/,'').replace(/^\s+/,'') );
-                      // Collapse multiple consecutive blank lines into a single blank line
+                      const normed = lines.map(l => l.replace(/,\s*,/g, ',').replace(/자동 태그:\s*,/g, '자동 태그:').replace(/자동 태그:\s*$/g, ''));
+
+                      // Trim trailing/leading whitespace per line and collapse multiple blank lines
                       const out = [];
                       let prevBlank = false;
-                      for (const L of lines){
+                      for (const L0 of normed){
+                        const L = L0.replace(/\s+,\s*$/,'').replace(/\s+$/,'').replace(/^\s+/,'');
                         const isBlank = (L.trim().length === 0);
-                        if (isBlank){
-                          if (!prevBlank){ out.push(''); prevBlank = true; }
-                        } else { out.push(L); prevBlank = false; }
+                        if (isBlank){ if (!prevBlank){ out.push(''); prevBlank = true; } }
+                        else { out.push(L); prevBlank = false; }
                       }
                       return out.join('\n');
                     }catch(e){ return t; }
@@ -1719,7 +1839,7 @@
                     const schools = Array.from(new Set(entries.map(it => (it.school||'').toString().trim()).filter(Boolean)));
                     const totalMeetings = entries.length;
                     const contacts = entries.reduce((s,it)=> s + (((it.phone && String(it.phone).trim()) || (it.email && String(it.email).trim())) ? 1:0), 0);
-                    const additional = entries.reduce((s,it)=> s + ((String(it.followUp||'') + String(it.requests||'') + String(it.notes||'')).indexOf('선정') !== -1 ? 1:0), 0);
+                    const additional = entries.reduce((s,it)=> s + ((String(it.followup||'') + String(it.request||'') + String(it.conversation||'')).indexOf('선정') !== -1 ? 1:0), 0);
                     const lines = [];
                     lines.push(`(${staffLabel} 퇴근보고)`);
                     lines.push(`방문일: ${visitDate || ''}`);
@@ -1732,22 +1852,19 @@
 
               if (!text){ alert('복사할 요약이 없습니다.'); return; }
 
-              // sanitize text for Kakao (remove '재방문' tags)
+              // sanitize text for Kakao (remove '재방문' tags and strip materials segments)
               const sanitizeKakaoText = (t)=>{
                 try{
                   let s = String(t || '');
                   s = s.replace(/\b재방문:\s*[^,\n\r]*/g, '');
-                  s = s.replace(/,\s*,/g, ',');
-                  s = s.replace(/자동 태그:\s*,/g, '자동 태그:');
-                  s = s.replace(/자동 태그:\s*$/g, '');
-                  const lines = s.split('\n').map(l => l.replace(/\s+,\s*$/,'').replace(/\s+$/,'').replace(/^\s+/,'') );
-                  const out = [];
-                  let prevBlank = false;
-                  for (const L of lines){
-                    const isBlank = (L.trim().length === 0);
-                    if (isBlank){ if (!prevBlank){ out.push(''); prevBlank = true; } }
-                    else { out.push(L); prevBlank = false; }
-                  }
+                  const materialKeywords = ['스프레드시트','학업설계','직업세계','챗GPT','엔트리','마이크로비트','파이썬','오렌지','코답','워크북','교과','브로셔','가이드북','포스터','문제집','프린트물','전달자료','증정','납품'];
+                  const matRegex = new RegExp(materialKeywords.join('|'),'i');
+                  const lines = String(s||'').split('\n').map(l => {
+                    try{ const segs = l.split(/\s{2,}/).map(x=>x.trim()).filter(Boolean); const filtered = segs.filter(seg => !matRegex.test(seg)); return filtered.join('  '); }catch(e){ return l; }
+                  });
+                  const normed = lines.map(l => l.replace(/,\s*,/g, ',').replace(/자동 태그:\s*,/g, '자동 태그:').replace(/자동 태그:\s*$/g, ''));
+                  const out = []; let prevBlank = false;
+                  for (const L0 of normed){ const L = L0.replace(/\s+,\s*$/,'').replace(/\s+$/,'').replace(/^\s+/,''); const isBlank = (L.trim().length === 0); if (isBlank){ if (!prevBlank){ out.push(''); prevBlank = true; } } else { out.push(L); prevBlank = false; } }
                   return out.join('\n');
                 }catch(e){ return t; }
               };
@@ -1800,7 +1917,7 @@
               const schools = Array.from(new Set(entries.map(it => (it.school||'').toString().trim()).filter(Boolean)));
               const totalMeetings = entries.length;
               const contacts = entries.reduce((s,it)=> s + (((it.phone && String(it.phone).trim()) || (it.email && String(it.email).trim())) ? 1:0), 0);
-              const additional = entries.reduce((s,it)=> s + ((String(it.followUp||'') + String(it.requests||'') + String(it.notes||'')).indexOf('선정') !== -1 ? 1:0), 0);
+              const additional = entries.reduce((s,it)=> s + ((String(it.followup||'') + String(it.request||'') + String(it.conversation||'')).indexOf('선정') !== -1 ? 1:0), 0);
               const lines = [];
               lines.push(`(${staffLabel} 퇴근보고)`);
               lines.push(`방문일: ${visitDate || ''}`);
@@ -1898,14 +2015,14 @@
                           enriched.teacherName = local.teacherName || local.teacher || '';
                         }
                         // Enrich textual fields if server doc lacks them
-                        if ((!enriched.requests || String(enriched.requests).trim() === '') && (local.requests || local.ask || local.askText || local.request || local.requestText)) {
-                          enriched.requests = local.requests || local.ask || local.askText || local.request || local.requestText || '';
+                        if ((!enriched.request || String(enriched.request).trim() === '') && (local.request || local.requests || local.req || local.askText || local.requestText)) {
+                          enriched.request = local.request || local.requests || local.req || local.askText || local.requestText || '';
                         }
-                        if ((!enriched.notes || String(enriched.notes).trim() === '') && (local.notes || local.conversation || local.memo || local.note)) {
-                          enriched.notes = local.notes || local.conversation || local.memo || local.note || '';
+                        if ((!enriched.conversation || String(enriched.conversation).trim() === '') && (local.conversation || local.notes || local.memo || local.note)) {
+                          enriched.conversation = local.conversation || local.notes || local.memo || local.note || '';
                         }
-                        if ((!enriched.deliveries || String(enriched.deliveries).trim() === '') && (local.deliveries || local.delivery || local.delivery_note)) {
-                          enriched.deliveries = local.deliveries || local.delivery || local.delivery_note || '';
+                        if ((!enriched.delivery || String(enriched.delivery).trim() === '') && (local.delivery || local.deliveries || local.delivery_note)) {
+                          enriched.delivery = local.delivery || local.deliveries || local.delivery_note || '';
                         }
                         merged.push(enriched);
                         // Any remaining local entries that share the same server_id but are distinct
@@ -2063,7 +2180,8 @@
                 // Build payload and add to Firestore
                 const payload = mapEntryToServerPayload(entry);
                 try{
-                  const ref = await window.firebaseDb.collection('visit_entries').add(payload);
+                  const sanitized = (typeof sanitizePayload === 'function') ? sanitizePayload(payload) : payload;
+                  const ref = await window.firebaseDb.collection('visit_entries').add(sanitized);
                   if (ref && ref.id){
                     // ensure server_id present on server doc
                     try{ await window.firebaseDb.collection('visit_entries').doc(ref.id).update({ server_id: ref.id }); }catch(e){}
@@ -2096,6 +2214,121 @@
         }
 
             try{ window.uploadSelected = uploadSelected; }catch(e){}
+
+        // Admin helper: backfill scode for existing visit_entries using CSV metadata (region+school disambiguation).
+        // Usage: open console on report.html and call `await window.backfillScodes()`
+        async function backfillScodes(){
+          if (!window.firebaseDb){ console.error('Firebase DB not ready'); return { ok:false, reason:'no-db' }; }
+          try{
+            if (typeof window.confirm === 'function'){
+              if (!confirm('기존 문서에 scode(정보공시학교코드)를 채웁니다. region+school 기반 매핑을 시도합니다. 계속하시겠습니까?')) return { ok:false, reason:'cancel' };
+            }
+
+            // Load and parse sales_staff.csv locally (independent of dashboard page)
+            let csvText = '';
+            try{ csvText = await fetch('/sales_staff.csv').then(r=> r.ok ? r.text() : ''); }catch(e){ console.warn('[backfillScodes] CSV fetch 실패', e); }
+            if (!csvText){ console.warn('[backfillScodes] CSV 내용을 가져오지 못했습니다. school 기반 추정만 수행'); }
+
+            function parseCSV(raw){
+              try{
+                raw = raw.replace(/\r\n/g,'\n');
+                const lines = raw.split(/\n/).filter(l=> l.trim().length>0);
+                if (!lines.length) return [];
+                const header = lines[0].split(',').map(h=> h.trim());
+                const idxSchool = header.findIndex(h => /^(school|학교|학교명)$/i.test(h));
+                const idxRegion = header.findIndex(h => /^(region|지역|시도|시군구)$/i.test(h));
+                const idxScode = header.findIndex(h => /^(scode|학교코드|정보공시학교코드)$/i.test(h));
+                const rows = [];
+                for (let i=1;i<lines.length;i++){
+                  const row = lines[i].split(',');
+                  if (row.length < header.length) continue;
+                  const school = (row[idxSchool]||'').trim();
+                  const region = (idxRegion !== -1 ? (row[idxRegion]||'').trim() : '');
+                  const scode = (idxScode !== -1 ? (row[idxScode]||'').trim() : '');
+                  if (!school || !scode) continue;
+                  rows.push({ school, region, scode });
+                }
+                return rows;
+              }catch(e){ console.warn('[backfillScodes] CSV parse 오류', e); return []; }
+            }
+
+            const csvRows = csvText ? parseCSV(csvText) : [];
+            console.log('[backfillScodes] CSV rows:', csvRows.length);
+
+            function normalizeSchoolKey(s){
+              try{
+                let t = (s||'').toString().toLowerCase();
+                t = t.replace(/\s+/g,'');
+                t = t.replace(/(남|여|여자|남자)(?=(?:고|중))/g,'');
+                t = t.replace(/학교|중학교|고등학교/g,'');
+                t = t.replace(/[^0-9a-z\u3131-\uD79D]/g,'');
+                return t;
+              }catch(e){ return (s||'').toString().toLowerCase(); }
+            }
+
+            // Build maps for fast lookup
+            const exactMap = new Map(); // region|school(lower) -> scode
+            const normBuckets = new Map(); // normalizedSchool -> array of {scode, regionLower}
+            for (const r of csvRows){
+              const regL = (r.region||'').toLowerCase();
+              const schL = (r.school||'').toLowerCase();
+              exactMap.set(regL+'|'+schL, r.scode);
+              const nk = normalizeSchoolKey(r.school);
+              if (nk){
+                const arr = normBuckets.get(nk) || [];
+                arr.push({ scode: r.scode, regionLower: regL });
+                normBuckets.set(nk, arr);
+              }
+            }
+
+            function resolveScode(school, region){
+              if (!school) return '';
+              const regL = (region||'').toLowerCase();
+              const schL = (school||'').toLowerCase();
+              const direct = exactMap.get(regL+'|'+schL);
+              if (direct) return direct;
+              const nk = normalizeSchoolKey(school);
+              const bucket = normBuckets.get(nk) || [];
+              if (!bucket.length) return '';
+              if (bucket.length === 1) return bucket[0].scode;
+              // try region disambiguation
+              const regionMatched = bucket.filter(b => b.regionLower === regL);
+              if (regionMatched.length === 1) return regionMatched[0].scode;
+              // fallback: unique scode across bucket
+              const uniqueSet = new Set(bucket.map(b=> b.scode));
+              if (uniqueSet.size === 1) return bucket[0].scode;
+              return ''; // ambiguous
+            }
+
+            console.log('[backfillScodes] 시작 - visit_entries 스캔 및 매핑 수행');
+            const snap = await window.firebaseDb.collection('visit_entries').get();
+            let total = 0, updated = 0, skipped = 0, failed = 0;
+            for (const d of snap.docs){
+              total++;
+              try{
+                const data = d.data() || {};
+                const existing = (data.scode || '').toString().trim();
+                if (existing){ skipped++; continue; }
+                const schoolName = (data.school || '').toString();
+                if (!schoolName){ skipped++; continue; }
+                const regionName = (data.region || '').toString();
+                let scode = '';
+                // Prefer local resolution (region+school) over global findSalesStaffMeta
+                try{ scode = resolveScode(schoolName, regionName); }catch(e){ scode=''; }
+                if (!scode && typeof findSalesStaffMeta === 'function'){
+                  try{ const meta = findSalesStaffMeta(schoolName); if (meta && meta.scode) scode = meta.scode; }catch(e){}
+                }
+                if (scode){
+                  try{ await window.firebaseDb.collection('visit_entries').doc(d.id).set({ 's-code': scode }, { merge: true }); updated++; console.log('[backfillScodes] updated', d.id, schoolName, '=>', scode); }
+                  catch(e){ failed++; console.warn('[backfillScodes] update 실패', d.id, e); }
+                } else { skipped++; }
+              }catch(e){ failed++; console.warn('[backfillScodes] item 처리 오류', e); }
+            }
+            console.log('[backfillScodes] 완료 - total:', total, 'updated:', updated, 'skipped:', skipped, 'failed:', failed);
+            return { ok:true, total, updated, skipped, failed };
+          }catch(e){ console.error('[backfillScodes] 실패', e); return { ok:false, error: e }; }
+        }
+        try{ window.backfillScodes = backfillScodes; }catch(e){}
 
     // 중복 바인딩 제거: 아래에서 한 번만 바인딩
     })();
@@ -2163,6 +2396,7 @@ function reloadServerReports() {
   });
 })();
 </script>
+  <!-- JSON bulk-merge upload removed per request -->
   <script>
   // 추가 진단 스크립트: 페이지 로드 시 버튼 상태를 자동으로 검사하고
   // 캡처 단계(click capture)에서 클릭을 기록하여 클릭이 차단되는지 확인합니다.

@@ -1,0 +1,2179 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>학교별 방문현황 - C-MASS</title>
+  <style>
+    /* Base look + Tailwind-like utility helpers used by this page */
+    :root{--slate-50:#f8fafc;--slate-100:#f1f5f9;--slate-200:rgba(15,23,42,0.04);--slate-500:#6b7280;--slate-700:#374151;--slate-900:#0b1220;--blue-600:#0b63d6}
+    body{font-family:Segoe UI, Arial, sans-serif;background:var(--slate-50);color:var(--slate-900);margin:0}
+    /* simple utility classes (subset of Tailwind used here) */
+    .min-h-screen{min-height:100vh}
+    .bg-slate-50{background:var(--slate-50)}
+    .p-4{padding:1rem}
+    @media(min-width:768px){.md\:p-8{padding:2rem}}
+    .font-sans{font-family:Segoe UI, Arial, sans-serif}
+    .text-slate-900{color:var(--slate-900)}
+     /* Make the main container responsive: use 95% of viewport width on wide screens
+       while keeping it centered. This replaces the fixed large pixel width. */
+     .max-w-7xl{max-width:95vw; width:95%; margin-left:auto; margin-right:auto}
+    .mx-auto{margin-left:auto;margin-right:auto}
+    .mb-6{margin-bottom:1.5rem}
+    .space-y-6 > * + *{margin-top:1.5rem}
+    .bg-white{background:#fff}
+    .rounded-xl{border-radius:12px}
+    .shadow-sm{box-shadow:0 6px 18px rgba(17,24,39,0.06)}
+    .border{border:1px solid var(--slate-200)}
+    .border-slate-200{border-color:var(--slate-200)}
+    .p-6{padding:1.5rem}
+    .text-lg{font-size:1.125rem}
+    .font-bold{font-weight:700}
+    .text-slate-500{color:var(--slate-500)}
+    .text-slate-800{color:#0b1220}
+    .flex{display:flex}
+    .items-center{align-items:center}
+    .gap-2{gap:0.5rem}
+    .rounded{border-radius:8px}
+    .px-4{padding-left:1rem;padding-right:1rem}
+    .py-2{padding-top:0.5rem;padding-bottom:0.5rem}
+    .w-64{width:16rem}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:var(--blue-600);color:#fff;border:none;cursor:pointer}
+
+    /* original local card/table styles preserved for internal use */
+    .page{max-width:1100px;margin:0 auto}
+    .card{background:#fff;border-radius:10px;padding:18px;margin-bottom:16px;box-shadow:0 8px 20px rgba(17,24,39,0.04);border:1px solid rgba(15,23,42,0.04)}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    thead th{background:var(--slate-100);padding:10px;text-align:left;border-bottom:1px solid var(--slate-200)}
+    tbody td{padding:10px;border-bottom:1px solid var(--slate-200)}
+    .muted{color:var(--slate-500);font-size:13px}
+    .pill{display:inline-block;padding:6px 8px;background:var(--slate-100);border-radius:8px;font-size:13px}
+    .chips{display:flex;flex-wrap:wrap;gap:6px}
+    /* Date/School summary styles refined for pixel-match */
+    /* Date blocks: stronger separation and subtle accent */
+    #schoolsSummary .date-block{margin-bottom:18px;padding:8px;border-radius:14px;background:linear-gradient(180deg, rgba(11,99,214,0.02), rgba(15,23,42,0.00));box-shadow:0 6px 18px rgba(11,99,214,0.03)}
+    #schoolsSummary .date-header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:#fff;border-radius:10px;border-left:6px solid rgba(11,99,214,0.14);box-shadow:0 4px 12px rgba(2,6,23,0.03)}
+    #schoolsSummary .date-header .date-text{font-weight:800;font-size:18px;color:var(--slate-900);letter-spacing:0.2px}
+    #schoolsSummary .date-header .date-count{color:var(--slate-500);font-size:14px}
+    #schoolsSummary .schools-wrap{margin-top:10px}
+    #schoolsSummary .school-row{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid rgba(15,23,42,0.03);border-radius:10px;background:#fff;margin-bottom:8px}
+    #schoolsSummary .school-left{font-weight:700;font-size:15px;color:var(--slate-900)}
+    #schoolsSummary .school-region{font-size:13px;color:var(--slate-500);margin-top:4px}
+    #schoolsSummary .count-pill{display:inline-block;padding:6px 10px;background:#f8fafc;border:1px solid rgba(11,99,214,0.08);border-radius:999px;font-size:13px;color:var(--slate-700)}
+    #schoolsSummary .toggle-pill{background:#0b1220;color:#fff;border-radius:999px;padding:6px 10px;border:none;cursor:pointer;font-size:13px}
+    #schoolsSummary .school-details{margin-top:10px;padding:12px;border-radius:8px;background:#fff;border:1px solid rgba(15,23,42,0.03)}
+    #schoolsSummary .visit-item{display:flex;gap:16px;padding:12px 0;border-top:1px solid rgba(15,23,42,0.03);align-items:flex-start}
+    #schoolsSummary .visit-left{min-width:220px}
+    #schoolsSummary .teacher-name{font-weight:700;font-size:14px;color:var(--slate-900)}
+    #schoolsSummary .meta-small{font-size:13px;color:var(--slate-500);margin-top:4px}
+    #schoolsSummary .visit-mid{flex:1}
+    #schoolsSummary .content-text{font-size:14px;line-height:1.5;color:var(--slate-700)}
+    #schoolsSummary .visit-right{min-width:160px;text-align:right}
+    #schoolsSummary .material-chip{display:inline-block;padding:4px 8px;border-radius:8px;border:1px solid rgba(11,99,214,0.08);background:#fff;color:var(--blue-600);font-size:12px;margin-right:6px}
+    @media(max-width:800px){.grid{grid-template-columns:1fr}}
+    /* Loading overlay while CSV/Firestore loads */
+    #loadingOverlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(11,18,28,0.6);color:#fff;font-size:18px;font-weight:700;z-index:1200}
+    #loadingOverlay .box{background:rgba(255,255,255,0.06);padding:18px 22px;border-radius:10px}
+     /* Ensure summary tables use a fixed layout so column widths remain consistent
+       between default and staff-filtered views. Use a dedicated class so both
+       statically-declared and dynamically-created tables share identical rules. */
+      .fixed-report-table { table-layout: fixed !important; width:1750px !important; min-width:1750px !important; }
+      .fixed-report-table th, .fixed-report-table td { overflow: hidden; box-sizing: border-box !important; }
+      /* Strongly enforce column widths via <col> so dynamically-created tables
+        and statically-declared ones render identical widths across views. */
+      .fixed-report-table col.col-teacher { width:150px !important; min-width:150px !important; }
+      .fixed-report-table col.col-subject { width:120px !important; min-width:120px !important; }
+      .fixed-report-table col.col-publisher { width:120px !important; min-width:120px !important; }
+      .fixed-report-table col.col-reaction { width:100px !important; min-width:100px !important; }
+      .fixed-report-table col.col-convo { width:650px !important; min-width:650px !important; }
+      .fixed-report-table col.col-sales { width:280px !important; min-width:280px !important; }
+      .fixed-report-table col.col-materials { width:280px !important; min-width:280px !important; }
+      .fixed-report-table col.col-follow { width:150px !important; min-width:150px !important; }
+      /* ensure the conversation column wraps as intended - support both
+        dynamic per-school tables (4th col) and the visitLogSection static
+        table (8th col). */
+      .fixed-report-table th:nth-child(4), .fixed-report-table td:nth-child(4),
+      .fixed-report-table th:nth-child(8), .fixed-report-table td:nth-child(8) { white-space: pre-wrap; }
+  </style>
+  <!-- Firebase (compat) for optional Firestore integration -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script>
+    // Initialize Firebase (same project config as dashboard)
+    try{
+      const firebaseConfig = {
+        apiKey: "AIzaSyARdXNfFCUShNeFXV8cTDzFbKa4GId5EvU",
+        authDomain: "cmass-sales.firebaseapp.com",
+        projectId: "cmass-sales",
+        storageBucket: "cmass-sales.firebasestorage.app",
+        messagingSenderId: "918981476485",
+        appId: "1:918981476485:web:7939150e23500e2703a9ec",
+        measurementId: "G-9188JJXRWX"
+      };
+      try{ firebase.initializeApp(firebaseConfig); window.__db = firebase.firestore(); }catch(e){}
+      window.waitForFirebase = function(){ return new Promise((resolve,reject)=>{ if(window.__db) return resolve(); let attempts=0; const t=setInterval(()=>{ attempts++; if(window.__db){ clearInterval(t); resolve(); } if(attempts>50){ clearInterval(t); reject(new Error('firebase init timeout')); } },100); }); };
+    }catch(e){}
+  </script>
+</head>
+<body>
+  <div id="loadingOverlay"><div class="box">보고서를 불러오는 중입니다...</div></div>
+  <div id="mappingDebug" style="position:fixed;right:12px;bottom:12px;z-index:1300;max-width:420px;min-width:300px;font-size:13px"></div>
+  <div class="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
+    <div class="max-w-7xl mx-auto mb-6">
+      <div class="flex items-center" style="justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div style="min-width:220px;flex:1">
+          <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">학교별 방문현황 리포트</h1>
+          <p class="text-slate-500 mt-1">학교 기본 정보 및 교과서 주문 현황 포함</p>
+        </div>
+        <div class="flex items-center" style="gap:8px;flex-wrap:wrap">
+          <div style="display:flex;gap:8px;align-items:center">
+            <label class="muted" style="font-size:13px;align-self:center">기간</label>
+              <input id="startDate" type="date" class="px-3 py-2 rounded border border-slate-200" />
+              <span class="muted" style="align-self:center">~</span>
+              <input id="endDate" type="date" class="px-3 py-2 rounded border border-slate-200" />
+              <label class="muted" style="font-size:13px;align-self:center;margin-left:8px">월</label>
+              <input id="monthPicker" type="month" class="px-3 py-2 rounded border border-slate-200" />
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label class="muted" style="font-size:13px;align-self:center">담당자</label>
+            <select id="staffSelect" class="px-3 py-2 rounded border border-slate-200">
+              <option value="">전체</option>
+            </select>
+          </div>
+          <input id="searchInput" type="search" placeholder="선생님, 과목, 내용 검색..." class="px-4 py-2 rounded border border-slate-200 w-64" />
+          <button id="applyFilters" class="btn" style="background:#2563eb">적용</button>
+          <button id="downloadCsv" class="btn">활동 CSV 다운로드</button>
+          <button id="expandAllBtn" class="btn" style="background:#10b981">전체 펼치기</button>
+        </div>
+      </div>
+
+      <!-- KPI metrics moved to top -->
+      <div class="metrics" style="margin-top:12px; display:flex; gap:12px; align-items:stretch">
+        <div class="metric-card" style="flex:1 1 220px; background:#fff; border-radius:10px; padding:12px; border:1px solid rgba(15,23,42,0.04); box-shadow:0 6px 18px rgba(17,24,39,0.06)">
+          <div class="kpi-title" style="font-size:13px;color:var(--slate-500)">이번 달 영업일수</div>
+          <div class="kpi-number" id="metric1" style="font-size:26px;font-weight:800;color:var(--slate-900)">0</div>
+          <div class="kpi-date" id="metric1_date" style="font-size:11px;color:#9ca3af;margin-top:6px">기준일: -</div>
+        </div>
+        <div class="metric-card" style="flex:1 1 220px; background:#fff; border-radius:10px; padding:12px; border:1px solid rgba(15,23,42,0.04); box-shadow:0 6px 18px rgba(17,24,39,0.06)">
+          <div class="kpi-title" style="font-size:13px;color:var(--slate-500)">방문 학교</div>
+          <div class="kpi-number" id="metric2" style="font-size:26px;font-weight:800;color:var(--slate-900)">0</div>
+          <div class="kpi-date" id="metric2_date" style="font-size:11px;color:#9ca3af;margin-top:6px">기준일: -</div>
+        </div>
+        <div class="metric-card" style="flex:1 1 220px; background:#fff; border-radius:10px; padding:12px; border:1px solid rgba(15,23,42,0.04); box-shadow:0 6px 18px rgba(17,24,39,0.06)">
+          <div class="kpi-title" style="font-size:13px;color:var(--slate-500)">미팅 건수</div>
+          <div class="kpi-number" id="metric3" style="font-size:26px;font-weight:800;color:var(--slate-900)">0</div>
+          <div class="kpi-date" id="metric3_date" style="font-size:11px;color:#9ca3af;margin-top:6px">기준일: -</div>
+        </div>
+      </div>
+      <div id="dataStatus" style="margin-top:8px;font-size:13px;color:var(--slate-500)"></div>
+      <!-- Schools summary (aggregated by school; expand to see detailed 영업활동일지 per school) -->
+      <!-- Make this wrapper full-width and allow a 2400px-wide inner section with horizontal scroll on desktop -->
+      <div class="w-full mx-auto mb-4" style="overflow-x:auto; max-width:none;">
+        <div style="min-width:0; width:100%; display:block;">
+          <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200" style="min-width:0; width:100%; box-sizing:border-box;">
+            <h3 class="text-lg font-bold text-slate-800">학교별 요약</h3>
+            <div id="schoolsSummary" class="space-y-3" style="margin-top:12px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI metrics similar to React example (moved to top) -->
+
+    </div>
+
+    <div class="max-w-7xl mx-auto space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6" style="display:none">
+        <!-- School Info Card (left) - hidden when using grouped summary -->
+        <div class="md:col-span-1 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">학교 기본 정보</h2>
+          <div class="space-y-3">
+            <div class="muted">학교명</div>
+            <div id="schoolName" style="font-weight:700;font-size:18px">명지고등학교</div>
+            <div style="margin-top:8px" class="muted">설립구분 / 학교급</div>
+            <div id="schoolMeta">사립 (일반고등학교) · 고등</div>
+            <div style="margin-top:10px" class="muted">총 학생수</div>
+            <div id="studentCount" style="font-weight:700;color:#0b63d6">1,296명</div>
+          </div>
+          <div class="mt-6">
+            <h3 class="text-sm font-semibold text-slate-600 mb-3">학년별 현황</h3>
+            <div id="gradeList" class="space-y-2"></div>
+          </div>
+        </div>
+
+        <!-- Textbook Orders Card (right, spans 2 columns) - hidden when grouped summary is primary -->
+        <div class="md:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <h2 class="text-lg font-bold text-slate-800 mb-4">교과서 주문 현황</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+              <thead class="bg-slate-50 text-slate-600 font-medium">
+                <tr>
+                  <th class="px-4 py-3">연도</th>
+                  <th class="px-4 py-3">교과군</th>
+                  <th class="px-4 py-3">과목명</th>
+                  <th class="px-4 py-3 text-right">부수</th>
+                </tr>
+              </thead>
+              <tbody id="ordersBody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    
+
+      <!-- Visit Log Section (hidden to avoid duplicate listing; grouped view is primary) -->
+      <div id="visitLogSection" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden" style="display:none">
+        <div class="overflow-x-auto">
+          <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2" style="padding:16px">영업 활동 일지
+            <span class="text-sm font-normal text-slate-500 ml-2 bg-slate-100 px-2 py-1 rounded-full flex items-center gap-1" id="visitDateBadge"></span>
+          </h2>
+          <table class="w-full text-sm text-left fixed-report-table" style="width:1750px;min-width:1750px;table-layout:fixed;">
+            <colgroup>
+              <col class="col-date" style="width:150px"> <!-- 방문일 -->
+              <col class="col-region" style="width:150px"> <!-- 지역 -->
+              <col class="col-school" style="width:150px"> <!-- 학교 -->
+              <col class="col-teacher" style="width:200px"> <!-- 선생님 -->
+              <col class="col-subject" style="width:120px"> <!-- 과목 -->
+              <col class="col-staff" style="width:150px"> <!-- 담당자 -->
+              <col class="col-reaction" style="width:100px"> <!-- 반응 -->
+              <col class="col-convo" style="width:650px"> <!-- 활동 / 전달자료 (대화내용 포함) -->
+            </colgroup>
+            <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-medium">
+              <tr>
+                <th class="px-6 py-4">방문일</th>
+                <th class="px-6 py-4">지역</th>
+                <th class="px-6 py-4">학교</th>
+                <th class="px-6 py-4">선생님</th>
+                <th class="px-6 py-4">과목</th>
+                <th class="px-6 py-4">담당자</th>
+                <th class="px-6 py-4 text-center">반응</th>
+                <th class="px-6 py-4">활동 / 전달자료</th>
+              </tr>
+            </thead>
+            <tbody id="visitsBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/js/csv-utils.js"></script>
+
+  <script>
+    // Page-provided SCHOOL_INFO should be empty by default; authoritative
+    // metadata comes from `public/sales_staff.csv` (CSV is canonical).
+    const SCHOOL_INFO = { name: '' };
+
+    // Placeholder emptied so CSV-loaded orders fully replace this array at runtime.
+    const TEXTBOOK_ORDERS = [];
+
+    // Visit records (raw rows). Initialize to empty array so code referencing
+    // `RAW_DATA` doesn't throw when the page loads before Firestore/CSV fills it.
+    const RAW_DATA = [];
+    window.RAW_DATA = RAW_DATA;
+
+    // Optional manual overrides for school name matching.
+    // Use when order CSV uses a different canonical name than visit logs.
+    // Example: { '명지중': '명지중학교' }
+    const SCHOOL_NAME_OVERRIDES = {};
+    // expose for runtime debugging/quick edits in console
+    window.__SCHOOL_NAME_OVERRIDES = SCHOOL_NAME_OVERRIDES;
+
+    function resolveSchoolOverride(rawName){
+      try{
+        if(!rawName) return rawName;
+        const k = normalizeSchool(rawName||'');
+        if(k && SCHOOL_NAME_OVERRIDES && SCHOOL_NAME_OVERRIDES[k]) return String(SCHOOL_NAME_OVERRIDES[k]);
+      }catch(e){}
+      return rawName;
+    }
+
+    // Return orders relevant to a specific school when possible.
+    // If orders have a `school` field, filter by it; otherwise, return global orders when school matches SCHOOL_INFO.name.
+    function getOrdersForSchool(schoolName){
+      if(!Array.isArray(TEXTBOOK_ORDERS) || !TEXTBOOK_ORDERS.length) return [];
+      try{
+        // apply manual override mapping if present
+        let key = String(schoolName||'').trim();
+        key = resolveSchoolOverride(key) || key;
+        const normKey = normalizeSchool(key, true);
+        const rawLower = String(key||'').trim().toLowerCase();
+
+        // Determine target school level token (초등/중등/고등) to avoid cross-level matches
+        const targetLevel = (function(){
+          try{
+            // prefer authoritative level from salesStaffMap or SCHOOLS_CSV_MAP if available
+            try{
+              if(window.salesStaffMap){ const sEntry = salesStaffMap.get(String(key||'').trim().toLowerCase()) || salesStaffMap.get(normalizeSchool(key, true)) || salesStaffMap.get(normalizeSchool(key)); if(sEntry && sEntry.schoolLevel) return mapSchoolLevelToKorean(sEntry.schoolLevel); }
+            }catch(e){}
+            try{ if(SCHOOLS_CSV_MAP && SCHOOLS_CSV_MAP.has(normalizeSchool(key))){ const s = SCHOOLS_CSV_MAP.get(normalizeSchool(key)); if(s && s.schoolLevel) return mapSchoolLevelToKorean(s.schoolLevel); } }catch(e){}
+            // fallback: detect from the provided schoolName string
+            return detectSchoolLevel(key) || '';
+          }catch(e){ return ''; }
+        })();
+
+        // Determine authoritative school code for the target school (if available)
+        // Prefer explicit code from schools CSV/metadata or salesStaff entries.
+        let targetCode = '';
+        try{
+          const preserved = normalizeSchool(key, true);
+          if(preserved && SCHOOLS_CSV_MAP && SCHOOLS_CSV_MAP.has(preserved)){
+            const s = SCHOOLS_CSV_MAP.get(preserved);
+            if(s && (s.infoCode || s.schoolCode)) targetCode = String(s.infoCode || s.schoolCode || '').trim();
+          }
+        }catch(e){}
+        try{
+          if(!targetCode && normKey && SCHOOLS_CSV_MAP && SCHOOLS_CSV_MAP.has(normKey)){
+            const s = SCHOOLS_CSV_MAP.get(normKey);
+            if(s && (s.infoCode || s.schoolCode)) targetCode = String(s.infoCode || s.schoolCode || '').trim();
+          }
+        }catch(e){}
+        try{
+          if(!targetCode && window.salesStaffMap){
+            const byRaw = salesStaffMap.get(String(key||'').trim().toLowerCase()) || salesStaffMap.get(normKey) || salesStaffMap.get(normalizeSchool(key, true));
+            if(byRaw && (byRaw.infoCode || byRaw.schoolCode)) targetCode = String(byRaw.infoCode || byRaw.schoolCode || '').trim();
+          }
+        }catch(e){}
+
+        // If we have a targetCode and there are orders keyed by code, prefer and return those immediately.
+        try{ if(targetCode && window.ORDER_SCHOOL_CODE_MAP && ORDER_SCHOOL_CODE_MAP.has(targetCode)) return ORDER_SCHOOL_CODE_MAP.get(targetCode) || []; }catch(e){}
+
+        // prefer precomputed ORDER maps when available (but filter by targetCode when present)
+        try{ if(window.ORDER_SCHOOL_MAP && ORDER_SCHOOL_MAP.has(normKey)){
+            const list = ORDER_SCHOOL_MAP.get(normKey) || [];
+            console.debug && console.debug('[getOrdersForSchool] ORDER_SCHOOL_MAP lookup', { normKey, listCount: list.length, targetCode, targetLevel });
+            if(targetCode){
+              // when we have an authoritative code, only return items that either lack a code or match it
+              return list.filter(o => !o.schoolCode || String(o.schoolCode).trim() === targetCode);
+            }
+            if(targetLevel){
+              // prefer same-level candidates
+              const filtered = list.filter(o => mapSchoolLevelToKorean(o.schoolLevel || o.level || o.schoolRaw || o.school || o.schoolFormula) === targetLevel);
+              if(filtered.length) return filtered;
+              // enforce strict same-level requirement: if no same-level candidates, avoid returning mixed-level list
+              const strict = list.filter(o => {
+                const candidateLevel = mapSchoolLevelToKorean(o.schoolLevel || o.level || o.schoolRaw || o.school || o.schoolFormula);
+                return candidateLevel === targetLevel;
+              });
+              if(strict.length) return strict;
+              return [];
+            }
+            return list;
+          } }catch(e){}
+        try{ if(window.ORDER_SCHOOL_RAW_MAP && ORDER_SCHOOL_RAW_MAP.has(rawLower)){
+            const list = ORDER_SCHOOL_RAW_MAP.get(rawLower) || [];
+            console.debug && console.debug('[getOrdersForSchool] ORDER_SCHOOL_RAW_MAP lookup', { rawLower, listCount: list.length, targetCode, targetLevel });
+            if(targetCode){
+              return list.filter(o => !o.schoolCode || String(o.schoolCode).trim() === targetCode);
+            }
+            if(targetLevel){
+              const filtered = list.filter(o => mapSchoolLevelToKorean(o.schoolLevel || o.level || o.schoolRaw || o.school || o.schoolFormula) === targetLevel);
+              if(filtered.length) return filtered;
+              const strict = list.filter(o => {
+                const candidateLevel = mapSchoolLevelToKorean(o.schoolLevel || o.level || o.schoolRaw || o.school || o.schoolFormula);
+                return candidateLevel === targetLevel;
+              });
+              if(strict.length) return strict;
+              return [];
+            }
+            return list;
+          } }catch(e){}
+
+        // fallback: scan TEXTBOOK_ORDERS for matches (normalize and compare)
+        // We'll prioritize candidates that match both name and schoolLevel when possible.
+        const exactMatches = [];
+        const partialMatches = [];
+        for(const o of TEXTBOOK_ORDERS){
+          try{
+            const oNorm = o.schoolNorm || normalizeSchool(o.school || o.schoolFormula || o.schoolRaw || '', true);
+            const oRaw = String(o.schoolRaw || o.school || o.schoolFormula || '').trim().toLowerCase();
+            // exact normalized match
+            // If targetCode is known, skip candidates with a different explicit schoolCode
+            if(targetCode && o.schoolCode && String(o.schoolCode).trim() && String(o.schoolCode).trim() !== targetCode){ continue; }
+            // exact normalized match
+            if(oNorm && normKey && oNorm === normKey){ exactMatches.push(o); continue; }
+            // exact raw match
+            if(oRaw && rawLower && oRaw === rawLower){ exactMatches.push(o); continue; }
+            // code match (match when candidate has same code)
+            if(o.schoolCode && targetCode && String(o.schoolCode).trim() === targetCode){ exactMatches.push(o); continue; }
+
+            // for partial matches, consider level-aware filtering
+            const candidateLevel = mapSchoolLevelToKorean(o.schoolLevel || o.level || (o.school||o.schoolFormula||o.schoolRaw||'') );
+            const nameContains = (String(o.school || o.schoolFormula || o.schoolRaw || '').toLowerCase().indexOf(String(key||'').toLowerCase()) !== -1);
+            if(nameContains){
+              // If targetCode is known, and candidate has a different explicit code, skip
+              if(targetCode && o.schoolCode && String(o.schoolCode).trim() && String(o.schoolCode).trim() !== targetCode) { continue; }
+              // if we have a targetLevel and candidateLevel, prefer same-level
+              if(targetLevel && candidateLevel){ if(targetLevel === candidateLevel) partialMatches.push(o); else { /* different level - skip for now */ } }
+              else { partialMatches.push(o); }
+            }
+          }catch(e){ /* per-entry ignore */ }
+        }
+
+        if(exactMatches.length){
+          if(targetLevel){
+            const fm = exactMatches.filter(o => mapSchoolLevelToKorean(o.schoolLevel || o.level || o.schoolRaw || o.school || o.schoolFormula) === targetLevel);
+            if(fm.length) return fm;
+            // strict: do not return cross-level exact matches
+            return [];
+          }
+          return exactMatches;
+        }
+        if(partialMatches.length){
+          if(targetLevel){
+            const fm = partialMatches.filter(o => mapSchoolLevelToKorean(o.schoolLevel || o.level || o.schoolRaw || o.school || o.schoolFormula) === targetLevel);
+            if(fm.length) return fm;
+            // strict fallback: don't return partial matches from other levels
+            return [];
+          }
+          return partialMatches;
+        }
+
+        // final fallback: return empty array to avoid cross-school pollution
+        return [];
+      }catch(e){ return []; }
+    }
+
+    // Apply a suggested mapping at runtime (updates SCHOOL_NAME_OVERRIDES and re-runs diagnostics)
+    function applySuggestedOverride(originalName, suggestedName){
+      try{
+        if(!originalName || !suggestedName) throw new Error('both originalName and suggestedName required');
+        const key = normalizeSchool(originalName||'');
+        SCHOOL_NAME_OVERRIDES[key] = suggestedName;
+        window.__SCHOOL_NAME_OVERRIDES = SCHOOL_NAME_OVERRIDES;
+        console.info('Applied runtime override:', key, '->', suggestedName);
+        // re-run diagnostics and re-render
+        analyzeOrderMatching();
+        renderSchoolSummary();
+        return true;
+      }catch(e){ console.warn('applySuggestedOverride failed', e); return false; }
+    }
+
+    // expose helpers for console testing
+    // provide a minimal implementation for runMappingTests and suggestMatchFor
+    // to avoid ReferenceError when these are referenced early from the page.
+    function runMappingTests(){
+      try{
+        // run the interactive mapping debug and return its result
+        return runMappingDebug();
+      }catch(e){ console.warn('runMappingTests failed', e); return null; }
+    }
+
+    function suggestMatchFor(name){
+      try{
+        if(!name) return [];
+        const q = String(name||'').trim().toLowerCase();
+        // prefer exact contains on keys, fallback to substring of name without common suffixes
+        const token = q.replace(/학교|중|고/g,'');
+        const keys = Array.from(salesStaffMap.keys());
+        const matches = keys.filter(k => k.indexOf(q) !== -1 || (token && k.indexOf(token) !== -1));
+        return matches.slice(0, 50);
+      }catch(e){ return []; }
+    }
+
+    window.runMappingTests = runMappingTests;
+    window.suggestMatchFor = suggestMatchFor;
+    window.applySuggestedOverride = applySuggestedOverride;
+
+    // --- Mapping debug helper (renders simple diagnostics into `#mappingDebug` and console) ---
+    function runMappingDebug(){
+      // Diagnostics panel suppressed in production mode — return null
+      return null;
+    }
+
+    // Enrich salesStaffMap entries (especially those created from orders) using
+    // SCHOOLS_CSV_MAP / SCHOOLS_RAW_MAP / SCHOOLS_CODE_MAP and existing
+    // salesStaffMap entries. This fills missing totalStudents / grade fields.
+    async function enrichSalesStaffFromSchools(){
+      try{
+        if(!salesStaffMap || !salesStaffMap.size) return;
+        // build helper lookup of normalized salesStaffMap entries (norm -> entry)
+        const normIndex = new Map();
+        for(const [k,v] of salesStaffMap.entries()){
+          try{ const n = normalizeSchool(k, true); if(n) normIndex.set(n, v); }catch(e){}
+        }
+
+        const keys = Array.from(salesStaffMap.keys());
+        for(const k of keys){
+          try{
+            const entry = salesStaffMap.get(k) || {};
+            // skip entries that already have totals
+            const hasTotals = (entry.totalStudents && Number(entry.totalStudents) > 0) || (entry.grade1 || entry.grade2 || entry.grade3);
+            if(hasTotals) continue;
+
+            const schoolName = entry.school || entry.name || k || '';
+            const norm = normalizeSchool(schoolName);
+            const preserved = normalizeSchool(schoolName, true);
+
+            // attempt 1: schools CSV map (normalized)
+            let found = null;
+            try{ if(norm && SCHOOLS_CSV_MAP && SCHOOLS_CSV_MAP.has(norm)) found = SCHOOLS_CSV_MAP.get(norm); }catch(e){}
+            try{ if(!found && preserved && SCHOOLS_CSV_MAP && SCHOOLS_CSV_MAP.has(preserved)) found = SCHOOLS_CSV_MAP.get(preserved); }catch(e){}
+            // attempt 2: raw map
+            try{ if(!found && SCHOOLS_RAW_MAP && SCHOOLS_RAW_MAP.has(String(schoolName||'').trim().toLowerCase())) found = SCHOOLS_RAW_MAP.get(String(schoolName||'').trim().toLowerCase()); }catch(e){}
+            // attempt 3: code map when entry has schoolCode
+            try{ if(!found && entry.schoolCode && SCHOOLS_CODE_MAP && SCHOOLS_CODE_MAP.has(String(entry.schoolCode).trim())) found = SCHOOLS_CODE_MAP.get(String(entry.schoolCode).trim()); }catch(e){}
+            // attempt 4: match against normalized salesStaffMap entries
+            try{
+              if(!found){
+                // look for any indexed normalized entry containing our norm token
+                for(const [nk, nv] of normIndex.entries()){
+                  if(!nk) continue;
+                  if(norm && nk.indexOf(norm) !== -1){ found = nv; break; }
+                  if(preserved && nk.indexOf(preserved) !== -1){ found = nv; break; }
+                }
+              }
+            }catch(e){}
+
+            if(found){
+              // merge useful fields into existing entry (do not overwrite explicit values)
+              try{
+                entry.totalStudents = entry.totalStudents || found.totalStudents || found['총학생수'] || found.total || entry.totalStudents || 0;
+                // prefer CSV-provided total classes when present (학급수계)
+                entry.totalClasses = entry.totalClasses || found.totalClasses || found['학급수계'] || found.totalClasses || entry.totalClasses || 0;
+                entry.grade1 = entry.grade1 || found.grade1 || found['1학년'] || '';
+                entry.grade2 = entry.grade2 || found.grade2 || found['2학년'] || '';
+                entry.grade3 = entry.grade3 || found.grade3 || found['3학년'] || '';
+                entry.establishment = entry.establishment || found.establishment || found.type || found['설립구분'] || '';
+                entry.schoolLevel = entry.schoolLevel || found.schoolLevel || found.level || '';
+                entry.features = entry.features || found.features || found.feature || '';
+                entry._enrichedFrom = entry._enrichedFrom || (found._source || 'schools_csv');
+                salesStaffMap.set(k, entry);
+              }catch(e){}
+            }
+            // fallback: if still no totals, try to parse numeric tokens from the raw CSV row
+            try{ if((!entry.totalStudents || Number(entry.totalStudents) === 0) && entry.raw && Array.isArray(entry.raw) && entry.raw.length){
+                try{ fillTotalsFromRaw(entry); salesStaffMap.set(k, entry); }catch(e){}
+            } }catch(e){}
+          }catch(e){ /* per-key ignore */ }
+        }
+        // post-process: ensure totals reflect per-grade stats when available
+        try{
+          for(const [k, entry] of salesStaffMap.entries()){
+            try{
+              const p = (v)=>{ try{ if(v===undefined||v===null) return 0; if(typeof v === 'number') return v; const s = String(v||'').replace(/[,\s\u00A0]/g,''); const m = s.match(/-?\d+/); return m ? Number(m[0]) : 0; }catch(e){return 0;} };
+              const g1 = p(entry.grade1 || entry['1학년'] || entry['1학년학생수'] || entry.grade1_students || entry['grade1']);
+              const g2 = p(entry.grade2 || entry['2학년'] || entry['2학년학생수'] || entry.grade2_students || entry['grade2']);
+              const g3 = p(entry.grade3 || entry['3학년'] || entry['3학년학생수'] || entry.grade3_students || entry['grade3']);
+              const c1 = p(entry.grade1_classes || entry['1학년학급수'] || entry.grade1class || entry.g1_classes);
+              const c2 = p(entry.grade2_classes || entry['2학년학급수'] || entry.grade2class || entry.g2_classes);
+              const c3 = p(entry.grade3_classes || entry['3학년학급수'] || entry.grade3class || entry.g3_classes);
+              const studentSum = (g1||0) + (g2||0) + (g3||0);
+              const classSum = (c1||0) + (c2||0) + (c3||0);
+              if(studentSum && (!entry.totalStudents || Number(entry.totalStudents) !== studentSum)) entry.totalStudents = studentSum;
+              if(classSum && (!entry.totalClasses || Number(entry.totalClasses) !== classSum)) entry.totalClasses = classSum;
+              salesStaffMap.set(k, entry);
+            }catch(e){}
+          }
+        }catch(e){}
+        // refresh completed (diagnostics suppressed)
+      }catch(e){ console.warn('enrichSalesStaffFromSchools failed', e); }
+    }
+
+    // Heuristic: examine CSV raw row array to find numeric tokens that look like
+    // student totals or per-grade student counts and populate entry fields.
+    function fillTotalsFromRaw(entry){
+      try{
+        if(!entry || !entry.raw || !Array.isArray(entry.raw)) return false;
+        const raw = entry.raw.map(r => String(r||'').replace(/\uFEFF/g,'').trim());
+        // collect integer tokens (remove commas) and floats as numbers
+        const nums = [];
+        for(const cell of raw){
+          if(!cell) continue;
+          // match numbers like 1,234 or 1234 or 31.1
+          const matches = cell.match(/\d{1,3}(?:[\,\d]{0,})?(?:\.\d+)?/g);
+          if(!matches) continue;
+          for(const m of matches){
+            const cleaned = m.replace(/,/g,'');
+            const n = Number(cleaned);
+            if(!isNaN(n)) nums.push(n);
+          }
+        }
+        if(!nums.length) return false;
+        // Candidate student-like numbers: prefer integers >= 20
+        const studentCandidates = nums.filter(n => Number.isFinite(n) && Math.round(n) >= 20);
+        if(studentCandidates.length){
+          // If there are at least 3 candidates, choose a run of three similar values as grades
+          // Find any sequence of three values in original order that are all >=20 and <= 2000
+          const grades = [];
+          for(let i=0;i<nums.length;i++){
+            const a = nums[i]; if(!(Number.isFinite(a) && Math.round(a) >=20 && a <= 5000)) continue;
+            const b = nums[i+1]; const c = nums[i+2];
+            if(b!==undefined && c!==undefined && Number.isFinite(b) && Number.isFinite(c) && Math.round(b) >=20 && Math.round(c) >=20){
+              // plausible grade triple found
+              grades.push(Math.round(a)); grades.push(Math.round(b)); grades.push(Math.round(c));
+              break;
+            }
+          }
+          if(grades.length === 3){ entry.grade1 = entry.grade1 || grades[0]; entry.grade2 = entry.grade2 || grades[1]; entry.grade3 = entry.grade3 || grades[2]; }
+          // totalStudents: prefer an explicit large candidate (>= sum of grades) or sum of grades
+          const possibleTotals = studentCandidates.filter(n=> n >= 30).map(n=>Math.round(n));
+          let total = entry.totalStudents && Number(entry.totalStudents) ? Number(entry.totalStudents) : 0;
+          if(!total){
+            // try to pick the largest candidate that is >= sum(grades)
+            const gradeSum = (entry.grade1||0) + (entry.grade2||0) + (entry.grade3||0);
+            const bySize = possibleTotals.sort((a,b)=> b-a);
+            if(bySize.length){
+              if(gradeSum && bySize[0] >= gradeSum) total = bySize[0];
+              else total = gradeSum || bySize[0];
+            } else if(gradeSum) total = gradeSum;
+          }
+          if(total) entry.totalStudents = Number(total);
+          return Boolean(entry.totalStudents || entry.grade1 || entry.grade2 || entry.grade3);
+        }
+        return false;
+      }catch(e){ return false; }
+    }
+
+    // visitDate -> show in badge
+    const visitDate = RAW_DATA[0]?.date || '';
+    const visitDateBadge = document.getElementById('visitDateBadge');
+    if(visitDateBadge) visitDateBadge.textContent = visitDate ? visitDate : '';
+
+    // reaction badge helper
+    function getReactionHtml(reaction){
+      // normalize incoming value to canonical buckets so mismatched inputs
+      // like 'favor' or 'good' still render with the expected colors.
+      try{ reaction = normalizeReaction(reaction); }catch(e){}
+      if(!reaction) return '';
+      const rc = String(reaction || '').trim();
+      // 색상 변경: 좋음=연두색, 보통=연한 노란색, 나쁨=붉은색
+      if(rc === '좋음') return `<span style="display:inline-block;padding:4px 8px;border-radius:999px;background:#ecfccb;color:#365314;font-size:12px;font-weight:600">좋음</span>`;
+      if(rc === '보통') return `<span style="display:inline-block;padding:4px 8px;border-radius:999px;background:#fff7cc;color:#7c5100;font-size:12px;font-weight:600">보통</span>`;
+      if(rc === '나쁨') return `<span style="display:inline-block;padding:4px 8px;border-radius:999px;background:#fee2e2;color:#b91c1c;font-size:12px;font-weight:600">나쁨</span>`;
+      return `<span style="display:inline-block;padding:4px 8px;border-radius:999px;background:#f3f4f6;color:#374151;font-size:12px;font-weight:600">${escapeHtml(String(rc))}</span>`;
+    }
+
+    // Normalize various possible reaction field values into Korean buckets
+    // so the UI displays consistent badges regardless of source field name or value.
+    function normalizeReaction(raw){
+      try{
+        if(raw === undefined || raw === null) return '';
+        const s = String(raw).trim().toLowerCase();
+        if(!s) return '';
+        // explicit mapping for common variants
+        const map = {
+          '좋음':'좋음','좋':'좋음','good':'좋음','positive':'좋음','favor':'좋음','fav':'좋음','추천':'좋음','1':'좋음','true':'좋음',
+          '보통':'보통','normal':'보통','neutral':'보통','중립':'보통','0':'보통',
+          '나쁨':'나쁨','bad':'나쁨','negative':'나쁨','싫음':'나쁨','-1':'나쁨','false':'나쁨'
+        };
+        if(map[s]) return map[s];
+        // handle cases where the token contains a keyword
+        if(/좋|fav|recommend|추천/.test(s)) return '좋음';
+        if(/보통|normal|neutral|중립/.test(s)) return '보통';
+        if(/나쁨|bad|negative|싫음/.test(s)) return '나쁨';
+        // if already a Korean bucket-like token (possibly lowercase), normalize to canonical form
+        if(/^(좋음|보통|나쁨)$/.test(s)) return s;
+        // fallback: return original trimmed string
+        return String(raw).trim();
+      }catch(e){ return String(raw||''); }
+    }
+
+    // normalize/format region strings like "경기도성남시분당구" -> "경기도 성남시 분당구"
+    function formatRegion(region){
+      if(!region) return '';
+      const s = String(region).trim();
+      // insert a space after common administrative unit suffixes when immediately followed by another Korean character
+      // order longer tokens first to avoid partial matches
+      return s.replace(/(특별자치도|특별자치시|광역시|특별시|도|시|군|구)(?=[가-힣])/g, '$1 ').replace(/\s+/g,' ').trim();
+    }
+
+    // detect school level (returns '초등'|'중등'|'고등' or empty string)
+    function detectSchoolLevel(s){
+      if(!s) return '';
+      const str = String(s).toLowerCase();
+      // check longer tokens first
+      if(/(초등학교|초등)/.test(str)) return '초등';
+      if(/(중학교|중등|중)/.test(str)) return '중등';
+      if(/(고등학교|고등|고)/.test(str)) return '고등';
+      return '';
+    }
+
+    // normalize school names (delegate to csv-utils when available)
+    // Note: we separately detect school level with `detectSchoolLevel` so
+    // we can avoid mapping across different school levels (예: 중 vs 고).
+    // normalize school names. If `preserveSuffix` is true, do not strip
+    // trailing tokens like '중학교'/'고등학교' — useful when the caller
+    // needs the full displayed name preserved for exact-key lookups.
+    function normalizeSchool(s, preserveSuffix){
+      try{ if(window.csvUtils && window.csvUtils.normalizeSchool) return window.csvUtils.normalizeSchool(s); }catch(e){}
+      if(!s) return '__unknown__';
+      let t = String(s).trim().toLowerCase();
+      // remove internal whitespace and harmless punctuation
+      t = t.replace(/\s+/g,'');
+      t = t.replace(/["'`\.,\-\/\\()\[\]]+/g,'');
+      if(!preserveSuffix){
+        // remove common long-form suffixes like '초등학교','중학교','고등학교','학교'
+        t = t.replace(/(초등학교|초등|중학교|중등학교|중등|고등학교|고등|학교|학교명)$/g,'');
+        // also remove trailing single-character suffixes only after we've
+        // captured the level via detectSchoolLevel where necessary elsewhere.
+        t = t.replace(/(학|교)$/g,'');
+      }
+      return t || '__unknown__';
+    }
+
+    // Subject priority ordering for visit tables. Entries with subjects
+    // earlier in this array will appear before later ones. Unlisted
+    // subjects are treated as lowest priority.
+    const SUBJECT_PRIORITY = ['정보','진로','보건','미술','체육','도서관사서','학년부장','특성화','기타'];
+    function subjectPriorityIndex(subject){
+      try{
+        if(!subject) return SUBJECT_PRIORITY.length;
+        const s = String(subject||'').trim();
+        for(let i=0;i<SUBJECT_PRIORITY.length;i++){
+          if(s.indexOf(SUBJECT_PRIORITY[i]) !== -1) return i;
+        }
+        return SUBJECT_PRIORITY.length;
+      }catch(e){ return SUBJECT_PRIORITY.length; }
+    }
+    function compareVisitsBySubjectThenDate(a,b){
+      try{
+        const pa = subjectPriorityIndex(a.subject || a.activity || '');
+        const pb = subjectPriorityIndex(b.subject || b.activity || '');
+        if(pa !== pb) return pa - pb;
+        const da = new Date(a.date||'1970-01-01');
+        const db = new Date(b.date||'1970-01-01');
+        return da - db;
+      }catch(e){ return 0; }
+    }
+
+    // return a lightweight school info object for a given school name.
+    // IMPORTANT: prefer metadata from `sales_staff.csv` (salesStaffMap) only.
+    function getSchoolInfoFor(schoolName, rows){
+      const name = String(schoolName||'').trim();
+      try{
+        if(name && salesStaffLoaded && salesStaffMap && salesStaffMap.size){
+          // try exact raw-lower key first
+          const rawKey = String(name||'').trim().toLowerCase();
+          let m = salesStaffMap.get(rawKey);
+          // then try preserved normalized full-name key
+          if(!m){ try{ const p = normalizeSchool(name, true); if(p) m = salesStaffMap.get(p); }catch(e){} }
+          // also allow lookup by normalized key without suffix if present (least preferred)
+          if(!m){ try{ const n = normalizeSchool(name); if(n) m = salesStaffMap.get(n); }catch(e){} }
+          if(m){
+            // Build a minimal schoolInfo shape from sales_staff entry
+            const makeGrade = (n) => ({ grade: `${n}학년`, classes: m[`grade${n}_classes`] || m[`grade${n}classes`] || '', students: m[`grade${n}`] || m[`grade${n}_students`] || m[`grade${n}students`] || '' });
+            const regionFromRows = (rows && rows[0] && rows[0].region) ? rows[0].region : (m.region || '');
+            return {
+              name: m.school || m.name || name,
+              region: regionFromRows || m.region || '',
+              type: m.establishment || m.type || '',
+              level: m.schoolLevel || m.level || '',
+              feature: m.features || m.feature || '',
+              totalStudents: m.totalStudents || '',
+              gradeStats: [ makeGrade(1), makeGrade(2), makeGrade(3) ],
+              _matchedBy: 'sales_staff'
+            };
+          }
+        }
+      }catch(e){ /* ignore */ }
+      // If no sales_staff match, return minimal info derived from rows (do not consult orders)
+      const region = (rows && rows[0] && rows[0].region) ? rows[0].region : '';
+      return { name, region, type: '', level: '', feature: '', totalStudents: '', gradeStats: [] };
+    }
+
+    // Fallback helper: try to enrich a schoolInfo object from salesStaffMap or raw row data
+    function enrichSchoolInfoFromSalesEntry(schoolInfo, schoolName){
+      try{
+        if(!schoolName) return schoolInfo;
+        if(!schoolInfo) schoolInfo = { name: schoolName, region: '', type: '', level: '', feature: '', totalStudents: '', gradeStats: [] };
+        // if already has totals/gradeStats, nothing to do
+        const hasTotals = (schoolInfo.totalStudents && Number(schoolInfo.totalStudents)) || (Array.isArray(schoolInfo.gradeStats) && schoolInfo.gradeStats.length && schoolInfo.gradeStats.some(g=>g.students));
+        if(hasTotals) return schoolInfo;
+
+        // Try salesStaffMap helper if available
+        let sEntry = undefined;
+        try{ if(typeof window.__findSalesStaff === 'function') sEntry = window.__findSalesStaff(schoolName); }catch(e){}
+        try{ if(!sEntry && typeof salesStaffMap !== 'undefined'){ sEntry = salesStaffMap.get(String(schoolName||'').trim().toLowerCase()) || salesStaffMap.get(normalizeSchool(schoolName)) || salesStaffMap.get(normalizeSchool(schoolName, true)); } }catch(e){}
+
+        const getNum = (obj, keys)=>{
+          if(!obj) return 0;
+          const probe = (k)=>{
+            if(k === undefined || k === null) return undefined;
+            try{ if(obj[k] !== undefined && obj[k] !== null && String(obj[k]).trim() !== '') return Number(String(obj[k]).replace(/[^0-9]/g,'')) || 0; }catch(e){}
+            try{ if(obj.raw && obj.raw[k] !== undefined && obj.raw[k] !== null && String(obj.raw[k]).trim() !== '') return Number(String(obj.raw[k]).replace(/[^0-9]/g,'')) || 0; }catch(e){}
+            try{ if(obj.row && obj.row[k] !== undefined && obj.row[k] !== null && String(obj.row[k]).trim() !== '') return Number(String(obj.row[k]).replace(/[^0-9]/g,'')) || 0; }catch(e){}
+            return undefined;
+          };
+          for(const k of keys){ const v = probe(k); if(v !== undefined) return v; }
+          // last resort: scan any string values in obj/raw/row for a reasonable number >=20
+          try{
+            const candidates = [];
+            const scanObj = (o)=>{ if(!o) return; for(const p in o){ try{ const s = String(o[p]||''); const m = s.match(/\d{1,4}(?:[,\d]{0,})?(?:\.\d+)?/g); if(m){ for(const mm of m){ const n = Number(String(mm).replace(/,/g,'')); if(!isNaN(n)) candidates.push(n); } } }catch(e){} } };
+            scanObj(obj); scanObj(obj.raw); scanObj(obj.row);
+            candidates.sort((a,b)=> b-a);
+            for(const c of candidates){ if(Number.isFinite(c) && Math.round(c) >= 20) return Math.round(c); }
+          }catch(e){}
+          return 0;
+        };
+
+        if(sEntry){
+          // map common fields
+          const total = getNum(sEntry, ['totalStudents','학생수계','학생수','total','students','학생수합계']);
+          const g1 = getNum(sEntry, ['grade1','1학년학생수','1학년 학생수','1학년','grade_1_students']);
+          const g2 = getNum(sEntry, ['grade2','2학년학생수','2학년 학생수','2학년','grade_2_students']);
+          const g3 = getNum(sEntry, ['grade3','3학년학생수','3학년 학생수','3학년','grade_3_students']);
+          if(total) schoolInfo.totalStudents = schoolInfo.totalStudents || total;
+          if(g1||g2||g3){
+            schoolInfo.gradeStats = schoolInfo.gradeStats && schoolInfo.gradeStats.length ? schoolInfo.gradeStats : [];
+            // ensure three entries
+            while(schoolInfo.gradeStats.length < 3) schoolInfo.gradeStats.push({ grade: `${schoolInfo.gradeStats.length+1}학년`, classes: '', students: '' });
+            if(g1) schoolInfo.gradeStats[0].students = schoolInfo.gradeStats[0].students || g1;
+            if(g2) schoolInfo.gradeStats[1].students = schoolInfo.gradeStats[1].students || g2;
+            if(g3) schoolInfo.gradeStats[2].students = schoolInfo.gradeStats[2].students || g3;
+          }
+        }
+        return schoolInfo;
+      }catch(e){ return schoolInfo; }
+    }
+
+    // Map various schoolLevel encodings (numbers or short tokens) to readable Korean
+    function mapSchoolLevelToKorean(level){
+      if(level === undefined || level === null) return '';
+      const s = String(level).trim();
+      if(!s) return '';
+      // numeric codes commonly used: 1=초등,2=중등,3=고등
+      if(/^\d+$/.test(s)){
+        const n = Number(s);
+        // CSV may encode levels with numeric codes where 3 typically means '중등' and 4 means '고등'.
+        if(n === 1) return '초등';
+        if(n === 2) return '중등';
+        if(n === 3) return '중등';
+        if(n === 4) return '고등';
+      }
+      // textual hints
+      if(/초/.test(s)) return '초등';
+      if(/중/.test(s)) return '중등';
+      if(/고/.test(s)) return '고등';
+      // fallback: return original
+      return s;
+    }
+
+    // render visits with optional search filter
+    const visitsBody = document.getElementById('visitsBody');
+    const searchInput = document.getElementById('searchInput');
+    const staffSelect = document.getElementById('staffSelect');
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    const applyFiltersBtn = document.getElementById('applyFilters');
+
+    // new renderVisits supports filtering by search, staff and date range and sorts ascending by date
+    function renderVisits({ search='', staff='', startDate='', endDate='' } = {}){
+      const q = String(search||'').trim().toLowerCase();
+      visitsBody.innerHTML = '';
+      const rows = RAW_DATA.filter(item=>{
+        // date filter
+        if(startDate){
+          const d = new Date(item.date);
+          const s = new Date(startDate + 'T00:00:00');
+          if(d < s) return false;
+        }
+        if(endDate){
+          const d = new Date(item.date);
+          const e = new Date(endDate + 'T23:59:59');
+          if(d > e) return false;
+        }
+        // staff filter: use staff display value (resolve raw staff and compare normalized forms)
+          if(staff) {
+            const sel = String(staff || '').trim();
+            const itemStaff = resolveStaffDisplay(item.staff || '');
+            const selNorm = resolveStaffDisplay(sel);
+            if (!itemStaff || itemStaff.indexOf(selNorm) === -1) return false;
+          }
+        // search filter
+        if(!q) return true;
+        return (String(item.teacher||'')+ ' ' + String(item.subject||'') + ' ' + String(item.content||'') + ' ' + String(item.materials||'')).toLowerCase().indexOf(q) !== -1;
+      });
+      // sort by subject priority then date
+      rows.sort(compareVisitsBySubjectThenDate);
+        rows.forEach(r=>{
+        const tr = document.createElement('tr');
+        const materialsHtml = (r.materials||'').split(',').map(m=>`<span style="display:inline-block;padding:4px 6px;border-radius:6px;background:#f1f5f9;margin-right:6px;font-size:12px">${m.trim()}</span>`).join('');
+        const activityHtml = (r.activity||'').split(',').map(a=>`<span style="display:inline-block;padding:4px 6px;border-radius:6px;background:#eef2ff;color:#0b63d6;margin-right:6px;font-size:12px">${a.trim()}</span>`).join('');
+        const staffDisplay = resolveStaffDisplay(r.staff || '');
+        const publisherCell = escapeHtml(r.publisher || r.publisherName || r.publisher_name || '');
+        tr.innerHTML = `<td>${r.date}</td><td>${formatRegion(r.region)}</td><td>${r.school}</td><td>${r.teacher}</td><td>${r.subject}</td><td>${publisherCell}</td><td>${staffDisplay}</td><td>${getReactionHtml(r.reaction)}</td><td>${activityHtml}<div style="margin-top:6px">${materialsHtml}</div></td>`;
+        visitsBody.appendChild(tr);
+      });
+      // expose the current visible rows for debugging/console access
+      try{ window.currentVisible = rows; }catch(e){}
+      return rows; // return visible rows for CSV
+      }
+
+      // render school summary grouped by date -> school with collapsed lists by default
+      function renderSchoolSummary(){
+        const container = document.getElementById('schoolsSummary');
+        if(!container) return;
+        container.innerHTML = '';
+        const startDate = startDateInput ? startDateInput.value : '';
+        const endDate = endDateInput ? endDateInput.value : '';
+        const staff = staffSelect ? staffSelect.value : '';
+        const q = searchInput ? String(searchInput.value||'').trim().toLowerCase() : '';
+
+        const visible = RAW_DATA.filter(item=>{
+          if(startDate){ const d=new Date(item.date); const s=new Date(startDate+'T00:00:00'); if(d < s) return false; }
+          if(endDate){ const d=new Date(item.date); const e=new Date(endDate+'T23:59:59'); if(d > e) return false; }
+          if(staff){ const sel = String(staff).trim(); const itemStaff = resolveStaffDisplay(item.staff || ''); const selNorm = resolveStaffDisplay(sel); if(!itemStaff || itemStaff.indexOf(selNorm) === -1) return false; }
+          if(q){ return (String(item.teacher||'')+ ' ' + String(item.subject||'') + ' ' + String(item.content||'') + ' ' + String(item.materials||'')).toLowerCase().indexOf(q) !== -1; }
+          return true;
+        });
+
+        if(visible.length === 0){ container.innerHTML = '<div class="muted">해당 조건의 방문 기록이 없습니다.</div>'; return; }
+
+        // group by date, then by school
+        const dateMap = new Map();
+        visible.forEach(r=>{
+          const dateKey = r.date || '미상';
+          if(!dateMap.has(dateKey)) dateMap.set(dateKey, new Map());
+          const smap = dateMap.get(dateKey);
+          const schoolKey = r.school || '미상';
+          if(!smap.has(schoolKey)) smap.set(schoolKey, []);
+          smap.get(schoolKey).push(r);
+        });
+
+        // track expanded state across re-renders to avoid UI flashing
+        if(!window.__expandedSchoolSet) window.__expandedSchoolSet = new Set();
+        const expandedSet = window.__expandedSchoolSet;
+
+        // render dates (most recent first)
+        Array.from(dateMap.keys()).sort((a,b)=> new Date(b) - new Date(a)).forEach(dateKey=>{
+          const smap = dateMap.get(dateKey);
+          const dateBlock = document.createElement('div'); dateBlock.className='date-block';
+          dateBlock.innerHTML = `<div class="date-header"><div class="date-text">${dateKey}</div><div style="display:flex;align-items:center;gap:8px"><div class="date-count">${Array.from(smap.keys()).length}개 학교</div></div></div>`;
+
+          const schoolsWrap = document.createElement('div'); schoolsWrap.className='schools-wrap';
+
+          // If a staff filter is active, render flat date->school list where each school expands into a full visit table
+          const staffFilter = staffSelect ? (staffSelect.value || '') : '';
+          if(staffFilter){
+            // render date header then a card-style school block (header + table) to match screenshot
+            Array.from(smap.keys()).sort().forEach(schoolName=>{
+              // rows matching current visible (may be filtered by staff)
+              const rows = smap.get(schoolName) || [];
+              // but for expanded view we want to show ALL visit rows for that date+school (ignore staff filter)
+              const allRows = RAW_DATA.filter(item => {
+                if((item.date || '') !== dateKey) return false;
+                if((item.school || '') !== schoolName) return false;
+                // respect global search text if present
+                if(q){ return (String(item.teacher||'')+ ' ' + String(item.subject||'') + ' ' + String(item.content||'') + ' ' + String(item.materials||'')).toLowerCase().indexOf(q) !== -1; }
+                return true;
+              }).sort(compareVisitsBySubjectThenDate);
+              // card wrapper
+              const schoolCard = document.createElement('div');
+              schoolCard.style.background = '#fff';
+              schoolCard.style.border = '1px solid rgba(15,23,42,0.03)';
+              schoolCard.style.borderRadius = '10px';
+              schoolCard.style.marginBottom = '10px';
+
+              // header: left = name+region+meta, right = count + toggle(접기)
+              let schoolInfo = getSchoolInfoFor(schoolName, allRows);
+              schoolInfo = enrichSchoolInfoFromSalesEntry(schoolInfo, schoolName);
+              const establishment = schoolInfo.type || schoolInfo.establishment || '';
+              const level = schoolInfo.level || schoolInfo.schoolLevel || '';
+              const levelDisplay = mapSchoolLevelToKorean(level || '');
+              const feature = schoolInfo.feature || schoolInfo.features || '';
+              const staffDisplay = resolveStaffDisplay(allRows && allRows[0] && allRows[0].staff ? allRows[0].staff : '');
+              // try to compute class/student totals
+              let classesTotal = '';
+              let studentsTotal = '';
+              try{
+                if(Array.isArray(schoolInfo.gradeStats) && schoolInfo.gradeStats.length){
+                  // robust numeric extractor: accepts '10', '10학급', '1,234' etc.
+                  const parseIntLike = (v) => { try{ if(v === undefined || v === null) return 0; const s = String(v||'').replace(/[,\s]/g,'').replace(/[^0-9\-]/g,''); const m = s.match(/-?\d+/); if(!m) return 0; const n = Number(m[0]); return Number.isFinite(n) ? n : 0; }catch(e){ return 0; } };
+                  let cSum = 0; let sSum = 0; let has=false;
+                  schoolInfo.gradeStats.forEach(g=>{ const cs = parseIntLike(g.classes); const ss = parseIntLike(g.students); if(cs) has=true; cSum += cs; if(ss) sSum += ss; });
+                  if(has){ classesTotal = cSum; studentsTotal = sSum; }
+                } else {
+                  // fallback to raw fields (grade1/2/3)
+                  const g1 = Number(schoolInfo.grade1)||0; const g2 = Number(schoolInfo.grade2)||0; const g3 = Number(schoolInfo.grade3)||0;
+                  const s1 = Number(schoolInfo.grade1_students)||0; const s2 = Number(schoolInfo.grade2_students)||0; const s3 = Number(schoolInfo.grade3_students)||0;
+                  if(g1||g2||g3){ classesTotal = g1+g2+g3; }
+                  if(s1||s2||s3){ studentsTotal = s1+s2+s3; }
+                }
+              }catch(e){ /* ignore */ }
+
+              const header = document.createElement('div');
+              header.style.display = 'flex'; header.style.justifyContent = 'space-between'; header.style.alignItems = 'center'; header.style.padding = '12px 14px';
+              const left = document.createElement('div');
+              // build single-line grade summary if available (1학년.. 전체)
+              let gradeLine = '';
+              try{
+                if(Array.isArray(schoolInfo.gradeStats) && schoolInfo.gradeStats.length){
+                  const parts = schoolInfo.gradeStats.map(g=>{ const cls = g.classes ? String(g.classes).trim() : '-'; const stu = g.students ? Number(String(g.students).replace(/,/g,'')).toLocaleString() : '-'; return `${escapeHtml(g.grade)}: ${escapeHtml(cls)}학급/${escapeHtml(stu)}명`; });
+                  // append overall totals (전체) and make the overall totals bold
+                  const overallC = classesTotal ? String(classesTotal) + '학급' : '-';
+                  const overallS = (studentsTotal && Number(studentsTotal)) ? Number(studentsTotal).toLocaleString() + '명' : (Number(schoolInfo.totalStudents||0)? Number(schoolInfo.totalStudents||0).toLocaleString() + '명' : '-');
+                  const overall = `<strong>${escapeHtml('전체: ' + overallC + '/' + overallS)}</strong>`;
+                  gradeLine = parts.join(' ') + ' ' + overall;
+                } else {
+                  // show overall only when per-grade stats unavailable
+                  const overallC = classesTotal ? String(classesTotal) + '학급' : '-';
+                  const overallS = (studentsTotal && Number(studentsTotal)) ? Number(studentsTotal).toLocaleString() + '명' : (Number(schoolInfo.totalStudents||0)? Number(schoolInfo.totalStudents||0).toLocaleString() + '명' : '-');
+                  gradeLine = `<strong>${escapeHtml('전체: ' + overallC + '/' + overallS)}</strong>`;
+                }
+              }catch(e){ gradeLine = `학급: ${classesTotal || '-'} · ${studentsTotal || (Number(schoolInfo.totalStudents||0) ? Number(schoolInfo.totalStudents||0).toLocaleString() : '-')}`; }
+
+              // Single-line layout: 담당자 학교명 지역 설립/급 학년요약
+              left.innerHTML = `<div style="display:flex;align-items:center;gap:12px"><div style="font-weight:650;color:var(--slate-700)">${staffDisplay ? staffDisplay : ''}</div><div style="font-weight:800;font-size:16px">${schoolName}</div><div class="muted" style="font-size:13px">${formatRegion(rows[0]?.region || '')}</div><div class="muted" style="font-size:13px">${establishment || '-'} · ${levelDisplay || (level || '-')} ${feature?('· '+feature):''}</div><div class="muted" style="font-size:13px;margin-left:8px">${gradeLine}</div></div>`;
+              // allow the left column to shrink and wrap so the toggle/count remain visible
+              left.style.flex = '1'; left.style.minWidth = '0';
+              const right = document.createElement('div'); right.style.display='flex'; right.style.alignItems='center'; right.style.gap='12px';
+              const count = document.createElement('div'); count.className='count-pill'; count.textContent = `${allRows.length}건`;
+              const btn = document.createElement('button'); btn.className='toggle-pill'; btn.style.padding='8px 12px'; btn.style.borderRadius='999px';
+              const key = dateKey + '||' + schoolName;
+              const initiallyOpen = expandedSet.has(key);
+              btn.textContent = initiallyOpen ? '접기' : '펼치기';
+              right.appendChild(count); right.appendChild(btn);
+              header.appendChild(left); header.appendChild(right);
+
+              // table container (hidden by default)
+              const tableWrap = document.createElement('div'); tableWrap.style.display= initiallyOpen ? 'block' : 'none'; tableWrap.style.padding='0 12px 12px 12px';
+
+              // add textbook orders card (top of expanded area) when there are orders for this school
+              const ordersForThisSchool = getOrdersForSchool(schoolName || '');
+              if(Array.isArray(ordersForThisSchool) && ordersForThisSchool.length){
+                const ordersWrap = document.createElement('div'); ordersWrap.className = 'card'; ordersWrap.style.padding = '12px'; ordersWrap.style.margin = '12px 0';
+                ordersWrap.innerHTML = buildAggregatedOrdersHtml(ordersForThisSchool, 2021, 2026);
+                tableWrap.appendChild(ordersWrap);
+              } else {
+                // show a small hint when no per-school orders exist
+                const hint = document.createElement('div'); hint.className = 'muted'; hint.style.padding = '8px 12px'; hint.style.margin = '8px 0'; hint.textContent = '이 학교에 대한 교과서 주문 데이터가 없습니다.';
+                tableWrap.appendChild(hint);
+              }
+
+              const table = document.createElement('table'); table.className='w-full text-sm text-left fixed-report-table'; table.style.borderCollapse='collapse'; table.style.minWidth = '1750px'; table.style.width = '1750px'; table.style.tableLayout = 'fixed';
+              // allow horizontal scrolling for wide table
+              tableWrap.style.overflowX = 'auto';
+              const thead = document.createElement('thead');
+              thead.innerHTML = `<tr class="bg-slate-50"><th class="px-6 py-4">선생님</th><th class="px-6 py-4">과목</th><th class="px-6 py-4">출판사</th><th class="px-6 py-4">반응</th><th class="px-6 py-4">대화내용/고객요청사항/특이사항/납품사항/증정사항</th><th class="px-6 py-4">영업활동</th><th class="px-6 py-4">전달자료</th><th class="px-6 py-4">후속조치</th></tr>`;
+              const tbody = document.createElement('tbody'); tbody.className='divide-y divide-slate-100';
+              // create and append colgroup as direct child of table (must not be inside thead)
+              const colgroup = document.createElement('colgroup');
+              colgroup.innerHTML = '<col class="col-teacher" style="width:150px"> <col class="col-subject" style="width:120px"> <col class="col-publisher" style="width:120px"> <col class="col-reaction" style="width:100px"> <col class="col-convo" style="width:650px"> <col class="col-sales" style="width:280px"> <col class="col-materials" style="width:280px"> <col class="col-follow" style="width:150px' + '">';
+              table.appendChild(colgroup);
+              // show all rows for this school in the expanded table (screenshot shows full visit list)
+              // but detect which rows match the selected staff to optionally highlight
+              const effectiveStaff = staffFilter;
+              const visibleRows = Array.isArray(allRows) ? allRows.slice() : [];
+              // sort by subject priority (정보, 진로, ...) then by date
+              visibleRows.sort(compareVisitsBySubjectThenDate).forEach(r=>{
+                const tr = document.createElement('tr');
+                const materialsHtml = (r.materials||'').split(',').map(m=>`<span style="display:inline-block;padding:4px 6px;border-radius:6px;background:#f1f5f9;margin-right:6px;font-size:12px">${m.trim()}</span>`).join('');
+                const activityHtml = (r.activity||'').split(',').map(a=>`<span style="display:inline-block;padding:4px 6px;border-radius:6px;background:#eef2ff;color:#0b63d6;margin-right:6px;font-size:12px">${a.trim()}</span>`).join('');
+                // highlight row if it matches the selected staff
+                const isMatchStaff = (function(){ if(!effectiveStaff) return false; const a = String(r.staff||'').replace(/님|선생님|부장|부장님/g,'').trim(); const b = String(effectiveStaff||'').replace(/님|선생님|부장|부장님/g,'').trim(); return a.indexOf(b) !== -1 || b.indexOf(a) !== -1; })();
+                if(isMatchStaff){ tr.style.background = 'rgba(11,99,214,0.03)'; }
+                // Conversation column should not duplicate 'activity' (영업활동)
+                // since activity is rendered in its own column to the right.
+                const convo = [r.content || ''].filter(Boolean).join('\n\n');
+                const salesAct = r.activity || '';
+                tr.innerHTML = `<td class="px-6 py-4"><div style="font-weight:700">${r.teacher||''}</div><div class="muted" style="font-size:12px">${r.date||''}</div></td><td class="px-6 py-4">${r.subject||''}</td><td class="px-6 py-4">${escapeHtml(r.publisher||r.publisherName||r.publisher_name||'')}</td><td class="px-6 py-4" style="text-align:center">${getReactionHtml(r.reaction)}</td><td class="px-6 py-4"><div style="white-space:pre-wrap">${convo||''}</div></td><td class="px-6 py-4">${activityHtml}</td><td class="px-6 py-4">${materialsHtml}</td><td class="px-6 py-4">${r.followUp||''}</td>`;
+                tbody.appendChild(tr);
+              });
+              table.appendChild(thead); table.appendChild(tbody); tableWrap.appendChild(table);
+
+              btn.addEventListener('click', ()=>{
+                const isHidden = tableWrap.style.display === 'none';
+                tableWrap.style.display = isHidden ? 'block' : 'none';
+                btn.textContent = isHidden ? '접기' : '펼치기';
+                if(isHidden) expandedSet.add(key); else expandedSet.delete(key);
+              });
+
+              table.appendChild(thead); table.appendChild(tbody); tableWrap.appendChild(table);
+              schoolCard.appendChild(header); schoolCard.appendChild(tableWrap);
+              schoolsWrap.appendChild(schoolCard);
+            });
+          } else {
+            // original date->school card behavior when no staff filter
+            Array.from(smap.keys()).sort().forEach(schoolName=>{
+              const rows = smap.get(schoolName) || [];
+              const rowEl = document.createElement('div'); rowEl.className='school-row';
+
+              let schoolInfo = getSchoolInfoFor(schoolName, rows);
+              schoolInfo = enrichSchoolInfoFromSalesEntry(schoolInfo, schoolName);
+              const establishment = schoolInfo.type || schoolInfo.establishment || '';
+              const level = schoolInfo.level || schoolInfo.schoolLevel || '';
+              const levelDisplay = mapSchoolLevelToKorean(level || '');
+              const feature = schoolInfo.feature || schoolInfo.features || '';
+              let classesTotal = '';
+              let studentsTotal = '';
+              try{
+                if(Array.isArray(schoolInfo.gradeStats) && schoolInfo.gradeStats.length){
+                  const parseIntLike = (v) => { try{ if(v === undefined || v === null) return 0; const s = String(v||'').replace(/[,\s]/g,'').replace(/[^0-9\-]/g,''); const m = s.match(/-?\d+/); if(!m) return 0; const n = Number(m[0]); return Number.isFinite(n) ? n : 0; }catch(e){ return 0; } };
+                  let c=0,s=0,has=false; schoolInfo.gradeStats.forEach(g=>{ const cs=parseIntLike(g.classes); const ss=parseIntLike(g.students); if(cs) has=true; c+=cs; s+=ss; }); if(has){ classesTotal=c; studentsTotal=s; }
+                }
+                else { const g1=Number(schoolInfo.grade1)||0,g2=Number(schoolInfo.grade2)||0,g3=Number(schoolInfo.grade3)||0; if(g1||g2||g3) classesTotal = g1+g2+g3; studentsTotal = Number(schoolInfo.totalStudents||0) || '' }
+              }catch(e){}
+
+              const left = document.createElement('div'); left.className='school-left';
+              // format region for readability
+              const formattedRegion = formatRegion(rows[0]?.region || '');
+              // horizontal meta layout: 담당자 앞에 추가, 학교명 오른쪽에 지역 노출, 그 뒤에 설립구분
+              const headerStaff = resolveStaffDisplay(rows[0]?.staff || '');
+              // grade summary for compact view
+              // build one-line grade summary for collapsed view and append overall totals
+              let gradeLine2 = '';
+              try{
+                if(Array.isArray(schoolInfo.gradeStats) && schoolInfo.gradeStats.length){
+                  const parts2 = schoolInfo.gradeStats.map(g=>{ const cls = g.classes ? String(g.classes).trim() : '-'; const stu = g.students ? Number(String(g.students).replace(/,/g,'')).toLocaleString() : '-'; return `${escapeHtml(g.grade)}: ${escapeHtml(cls)}학급/${escapeHtml(stu)}명`; });
+                  const overallC2 = classesTotal ? String(classesTotal) + '학급' : '-';
+                  const overallS2 = (studentsTotal && Number(studentsTotal)) ? Number(studentsTotal).toLocaleString() + '명' : (Number(schoolInfo.totalStudents||0)? Number(schoolInfo.totalStudents||0).toLocaleString() + '명' : '-');
+                  const overall2 = `<strong>${escapeHtml('전체: ' + overallC2 + '/' + overallS2)}</strong>`;
+                  gradeLine2 = parts2.join(' ') + ' ' + overall2;
+                } else {
+                  const overallC2 = classesTotal ? String(classesTotal) + '학급' : '-';
+                  const overallS2 = (studentsTotal && Number(studentsTotal)) ? Number(studentsTotal).toLocaleString() + '명' : (Number(schoolInfo.totalStudents||0)? Number(schoolInfo.totalStudents||0).toLocaleString() + '명' : '-');
+                  gradeLine2 = `<strong>${escapeHtml('전체: ' + overallC2 + '/' + overallS2)}</strong>`;
+                }
+              }catch(e){ gradeLine2 = `학급: ${classesTotal || '-'} · 학생수: ${studentsTotal || (Number(schoolInfo.totalStudents||0)?Number(schoolInfo.totalStudents||0).toLocaleString():'-')}`; }
+
+              left.innerHTML = `<div style="display:flex;align-items:center;gap:12px"><div style="font-weight:700;color:var(--slate-700)">${headerStaff?headerStaff:''}</div><div class="school-left" style="font-weight:800;font-size:15px">${schoolName}</div><div class="school-region muted" style="font-size:13px">${formattedRegion}</div><div class="muted" style="font-size:13px">${establishment || '-'} · ${levelDisplay || (level || '-')} ${feature?('· '+feature):''}</div><div class="muted" style="font-size:13px;margin-left:8px">${gradeLine2}</div></div>`;
+              // allow left to shrink so right-side controls remain visible
+              left.style.flex = '1'; left.style.minWidth = '0';
+              const right = document.createElement('div'); right.className='school-right'; right.style.display='flex'; right.style.gap='8px'; right.style.alignItems='center'; right.style.flex = '0 0 auto';
+              const count = document.createElement('div'); count.className='count-pill'; count.textContent = `${rows.length}건`;
+              const btn = document.createElement('button'); btn.className='toggle-pill';
+              const key = dateKey + '||' + schoolName;
+              const initiallyOpen = expandedSet.has(key);
+              btn.textContent = initiallyOpen ? '접기' : '펼치기';
+
+              right.appendChild(count); right.appendChild(btn);
+
+              const details = document.createElement('div'); details.className='school-details'; details.style.display='none';
+              // add textbook orders card (top of expanded area) when there are orders for this school
+              const ordersForThisSchool = getOrdersForSchool(schoolName || '');
+              if(Array.isArray(ordersForThisSchool) && ordersForThisSchool.length){
+                const ordersWrap = document.createElement('div'); ordersWrap.className = 'card'; ordersWrap.style.padding = '12px'; ordersWrap.style.margin = '12px 0';
+                ordersWrap.innerHTML = buildAggregatedOrdersHtml(ordersForThisSchool, 2021, 2026);
+                details.appendChild(ordersWrap);
+              } else {
+                const hint = document.createElement('div'); hint.className = 'muted'; hint.style.padding = '8px 12px'; hint.style.margin = '8px 0'; hint.textContent = '이 학교에 대한 교과서 주문 데이터가 없습니다.';
+                details.appendChild(hint);
+              }
+              // render compact visit table for this school
+              const table = document.createElement('table'); table.className='w-full text-sm text-left fixed-report-table'; table.style.borderCollapse='collapse'; table.style.minWidth = '1750px'; table.style.width = '1750px'; table.style.tableLayout = 'fixed';
+              // allow horizontal scrolling for wide table
+              details.style.overflowX = 'auto';
+              const thead2 = document.createElement('thead'); thead2.innerHTML = `<tr class="bg-slate-50"><th class="px-6 py-4">선생님</th><th class="px-6 py-4">과목</th><th class="px-6 py-4">출판사</th><th class="px-6 py-4">반응</th><th class="px-6 py-4">대화내용/고객요청사항/특이사항/납품사항/증정사항</th><th class="px-6 py-4">영업활동</th><th class="px-6 py-4">전달자료</th><th class="px-6 py-4">후속조치</th></tr>`;
+              const tbody2 = document.createElement('tbody'); tbody2.className='divide-y divide-slate-100';
+              // create and append colgroup as direct child of table (must not be inside thead)
+              const colgroup2 = document.createElement('colgroup');
+              colgroup2.innerHTML = '<col class="col-teacher" style="width:150px"> <col class="col-subject" style="width:120px"> <col class="col-publisher" style="width:120px"> <col class="col-reaction" style="width:100px"> <col class="col-convo" style="width:650px"> <col class="col-sales" style="width:280px"> <col class="col-materials" style="width:280px"> <col class="col-follow" style="width:150px' + '">';
+              table.appendChild(colgroup2);
+              rows.sort(compareVisitsBySubjectThenDate).forEach(r=>{
+                const tr = document.createElement('tr');
+                const materialsHtml = (r.materials||'').split(',').map(m=>`<span style="display:inline-block;padding:4px 6px;border-radius:6px;background:#f1f5f9;margin-right:6px;font-size:12px">${m.trim()}</span>`).join('');
+                const convo = [r.content || '', /* include customer requests or notes not in other fields */].filter(Boolean).join('\n\n');
+                // render activity as badge spans (match staff-filtered view)
+                const activityHtml = (r.activity||'').split(',').map(a=>`<span style="display:inline-block;padding:4px 6px;border-radius:6px;background:#eef2ff;color:#0b63d6;margin-right:6px;font-size:12px">${escapeHtml(a.trim())}</span>`).join('');
+                tr.innerHTML = `<td class="px-6 py-4"><div style="font-weight:700">${r.teacher||'미상'}</div><div class="muted" style="font-size:12px">${r.date||''}</div></td><td class="px-6 py-4">${r.subject||''}</td><td class="px-6 py-4">${escapeHtml(r.publisher||r.publisherName||r.publisher_name||'')}</td><td class="px-6 py-4" style="text-align:center">${getReactionHtml(r.reaction)}</td><td class="px-6 py-4"><div style="white-space:pre-wrap">${convo||''}</div></td><td class="px-6 py-4">${activityHtml}</td><td class="px-6 py-4">${materialsHtml}</td><td class="px-6 py-4">${r.followUp||''}</td>`;
+                tbody2.appendChild(tr);
+              });
+              table.appendChild(thead2); table.appendChild(tbody2); details.appendChild(table);
+
+              btn.addEventListener('click', ()=>{ const isHidden = details.style.display === 'none'; details.style.display = isHidden ? 'block' : 'none'; btn.textContent = isHidden ? '접기' : '펼치기'; if(isHidden) expandedSet.add(key); else expandedSet.delete(key); });
+
+              rowEl.appendChild(left); rowEl.appendChild(right);
+              schoolsWrap.appendChild(rowEl);
+              schoolsWrap.appendChild(details);
+            });
+          }
+
+          dateBlock.appendChild(schoolsWrap);
+          container.appendChild(dateBlock);
+        });
+      }
+
+    // initial render
+    // setup default date range = last 30 days
+    const today = new Date();
+    const endDefault = today.toISOString().slice(0,10);
+    const start = new Date(today.getTime() - (30*24*60*60*1000));
+    const startDefault = start.toISOString().slice(0,10);
+    if(startDateInput) startDateInput.value = startDefault;
+    if(endDateInput) endDateInput.value = endDefault;
+    const monthPicker = document.getElementById('monthPicker');
+    if(monthPicker){
+      // default to current month
+      monthPicker.value = endDefault.slice(0,7);
+      monthPicker.addEventListener('change', function(){
+        const v = this.value; // yyyy-mm
+        if(!v) return;
+        const [y,m] = v.split('-').map(Number);
+        const first = new Date(y, m-1, 1);
+        const last = new Date(y, m, 0);
+        if(startDateInput) startDateInput.value = first.toISOString().slice(0,10);
+        if(endDateInput) endDateInput.value = last.toISOString().slice(0,10);
+        currentVisible = renderVisits({ search: searchInput ? searchInput.value : '', staff: staffSelect ? staffSelect.value : '', startDate: startDateInput.value, endDate: endDateInput.value });
+        renderSchoolSummary();
+      });
+    }
+
+    // fixed staff mapping: backend StaffKey -> display name (Korean)
+    const STAFF_SLUG_MAP = {
+      'SongHoonJae': '송훈재',
+      'LimJunho': '임준호',
+      'ChoYoungHwan': '조영환'
+    };
+
+    // Resolve raw staff field (which may be Korean display like "조영환 부장" or ascii key like "ChoYounghwan")
+    // Returns a display-friendly Korean name when possible, otherwise a normalized form of the input.
+    function resolveStaffDisplay(raw){
+      if(!raw) return '';
+      const s = String(raw).trim();
+      // try ascii key match (remove spaces, compare lowercased)
+      const compact = s.replace(/\s+/g,'').toLowerCase();
+      for(const key of Object.keys(STAFF_SLUG_MAP)){
+        if(compact === key.toLowerCase()) return STAFF_SLUG_MAP[key];
+        if(compact.indexOf(key.toLowerCase()) !== -1) return STAFF_SLUG_MAP[key];
+      }
+      // try if it already contains a known display name
+      for(const key of Object.keys(STAFF_SLUG_MAP)){
+        const disp = STAFF_SLUG_MAP[key];
+        if(s.indexOf(disp) !== -1) return disp;
+      }
+      // fallback: remove common honorifics/suffixes and return normalized string
+      return s.replace(/님|선생님|부장|부장님/g,'').trim();
+    }
+
+    // populate a fixed staff list (do not include noisy/duplicated entries)
+    function populateStaffs(){
+      if(!staffSelect) return;
+      // clear existing options and add only '전체' + allowed staff
+      staffSelect.innerHTML = '';
+      const optAll = document.createElement('option'); optAll.value = ''; optAll.textContent = '전체'; staffSelect.appendChild(optAll);
+      Object.keys(STAFF_SLUG_MAP).forEach(slug => {
+        const display = STAFF_SLUG_MAP[slug];
+        const opt = document.createElement('option'); opt.value = display; opt.textContent = display; staffSelect.appendChild(opt);
+      });
+    }
+    populateStaffs();
+
+    // If a `staff` query parameter is present, pre-select that 담당자.
+    // Support English slug like ?staff=ChoYoungHwan by mapping slugs to display names below.
+    (function applyStaffFromQuery(){
+      try{
+        const params = new URLSearchParams(window.location.search || location.search);
+        let qsStaff = params.get('staff');
+        if(!qsStaff) return;
+        try{ qsStaff = decodeURIComponent(qsStaff); }catch(e){}
+
+        // If the query is an ascii slug (StaffKey), map to display name; otherwise accept a Korean display name directly.
+        const normalizeSlug = s => String(s||'').replace(/[^A-Za-z0-9]/g,'');
+        const token = normalizeSlug(qsStaff);
+        let displayName = null;
+        if(token && /^[A-Za-z0-9]+$/.test(token)){
+          const foundKey = Object.keys(STAFF_SLUG_MAP).find(k => k.toLowerCase() === token.toLowerCase());
+          if(foundKey) displayName = STAFF_SLUG_MAP[foundKey];
+        }
+        // If not resolved from slug, treat qsStaff as display name directly
+        if(!displayName) displayName = qsStaff;
+
+        if(staffSelect){
+          // select the matching display name option if present
+          const opt = Array.from(staffSelect.options).find(o => o.value === displayName || o.textContent === displayName);
+          if(opt) opt.selected = true;
+        }
+      }catch(e){ console.warn('staff param parse failed', e); }
+    })();
+
+    let currentVisible = renderVisits({ search: '', staff: (staffSelect?staffSelect.value:''), startDate: startDefault, endDate: endDefault });
+
+    // wire up search and filters
+    if(searchInput){ searchInput.addEventListener('input', function(e){ currentVisible = renderVisits({ search: e.target.value, staff: staffSelect ? staffSelect.value : '', startDate: startDateInput ? startDateInput.value : '', endDate: endDateInput ? endDateInput.value : '' }); }); }
+    if(applyFiltersBtn){ applyFiltersBtn.addEventListener('click', function(){ currentVisible = renderVisits({ search: searchInput ? searchInput.value : '', staff: staffSelect ? staffSelect.value : '', startDate: startDateInput ? startDateInput.value : '', endDate: endDateInput ? endDateInput.value : '' }); renderSchoolSummary(); }); }
+    if(staffSelect){ staffSelect.addEventListener('change', function(){ currentVisible = renderVisits({ search: searchInput ? searchInput.value : '', staff: staffSelect.value, startDate: startDateInput ? startDateInput.value : '', endDate: endDateInput ? endDateInput.value : '' }); renderSchoolSummary(); }); }
+    const expandAllBtn = document.getElementById('expandAllBtn');
+    if(expandAllBtn){ expandAllBtn.addEventListener('click', function(){ const toggles = Array.from(document.querySelectorAll('.toggle-pill')); if(!toggles.length) return; const anyClosed = toggles.some(t=> (t.textContent||'').trim() !== '접기'); if(anyClosed){ toggles.forEach(t=>{ if((t.textContent||'').trim() !== '접기') t.click(); }); expandAllBtn.textContent = '전체 접기'; } else { toggles.forEach(t=>{ if((t.textContent||'').trim() === '접기') t.click(); }); expandAllBtn.textContent = '전체 펼치기'; } }); }
+    if(startDateInput){ startDateInput.addEventListener('change', function(){ /* no-op until apply */ }); }
+    if(endDateInput){ endDateInput.addEventListener('change', function(){ /* no-op until apply */ }); }
+
+    // ensure metrics update when filters change
+    const refreshMetricsAfter = () => { updateMetrics(); };
+    if(searchInput) searchInput.addEventListener('input', refreshMetricsAfter);
+    if(staffSelect) staffSelect.addEventListener('change', refreshMetricsAfter);
+    if(startDateInput) startDateInput.addEventListener('change', refreshMetricsAfter);
+    if(endDateInput) endDateInput.addEventListener('change', refreshMetricsAfter);
+
+    // CSV download uses currentVisible
+    document.getElementById('downloadCsv').addEventListener('click', function(){
+      const headers = ["방문일","지역","학교","선생님","과목","출판사","담당자","반응","활동","전달자료","대화내용","특이사항","후속조치"];
+        const rows = currentVisible.map(r=>[r.date, r.region, r.school, r.teacher, r.subject, (r.publisher||''), r.staff, r.reaction, r.activity, r.materials, r.content, (r.issue||''), r.followUp]);
+      let csv = "data:text/csv;charset=utf-8,\uFEFF" + headers.join(',') + "\r\n";
+      rows.forEach(row=>{ csv += row.map(f=>`"${String(f||'').replace(/"/g,'""')}"`).join(',') + "\r\n"; });
+      const link = document.createElement('a'); link.href = encodeURI(csv); link.download = `학교별_방문현황_${new Date().toISOString().slice(0,10)}.csv`; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    });
+
+    // Update KPI metric cards based on current date range / staff / search
+    function updateMetrics(){
+      const s = startDateInput ? startDateInput.value : '';
+      const e = endDateInput ? endDateInput.value : '';
+      const staff = staffSelect ? staffSelect.value : '';
+      const q = searchInput ? (searchInput.value||'').trim().toLowerCase() : '';
+      const rows = RAW_DATA.filter(item=>{
+        if(s){ const d=new Date(item.date); const sd=new Date(s+'T00:00:00'); if(d < sd) return false; }
+        if(e){ const d=new Date(item.date); const ed=new Date(e+'T23:59:59'); if(d > ed) return false; }
+        if(staff){
+          // normalize staff display using resolveStaffDisplay to match filtering elsewhere
+          const sel = String(staff||'').trim();
+          const selNorm = resolveStaffDisplay(sel || '');
+          const itemStaff = resolveStaffDisplay(item.staff || '');
+          if(!itemStaff || itemStaff.indexOf(selNorm) === -1) return false;
+        }
+        if(q){ return (String(item.teacher||'')+ ' ' + String(item.subject||'') + ' ' + String(item.content||'') + ' ' + String(item.materials||'')).toLowerCase().indexOf(q) !== -1; }
+        return true;
+      });
+      const entriesCount = rows.length;
+      const uniqueSchools = new Set(rows.map(r=>r.school)).size;
+      const meetingCount = rows.length;
+      // Compute '이번 달 영업 기록' as the count of unique visit DATEs recorded
+      // in the backend (RAW_DATA) for the currently selected month (monthPicker)
+      // or the current month when monthPicker is not set.
+      const selectedMonth = (typeof monthPicker !== 'undefined' && monthPicker && monthPicker.value) ? monthPicker.value : (new Date()).toISOString().slice(0,7);
+      // Count unique visit days from the currently filtered rows.
+      // This ensures staff/date/search filters affect the KPI.
+      const uniqueDates = new Set((rows || []).filter(r => r && r.date).map(r => String(r.date).slice(0,10)));
+      const monthlyUniqueVisitDays = uniqueDates.size;
+      const el1 = document.getElementById('metric1'); if(el1) el1.textContent = monthlyUniqueVisitDays;
+      const el2 = document.getElementById('metric2'); if(el2) el2.textContent = uniqueSchools;
+      const el3 = document.getElementById('metric3'); if(el3) el3.textContent = meetingCount;
+      // show same date range for metric1 as used for visits/meetings (startDate ~ endDate)
+      try{
+        const d1 = document.getElementById('metric1_date'); if(d1) d1.textContent = `기준: ${s || '-'} ~ ${e || '-'}`;
+      }catch(e){ /* ignore */ }
+      const d2 = document.getElementById('metric2_date'); if(d2) d2.textContent = `기준: ${s || '-'} ~ ${e || '-'}`;
+      const d3 = document.getElementById('metric3_date'); if(d3) d3.textContent = `기준: ${s || '-'} ~ ${e || '-'}`;
+    }
+
+    // simple CSV parser that supports quoted fields (delegates to csvUtils when available)
+    function parseCSV(text){
+      try{
+        if(window.csvUtils && window.csvUtils.parseCsvText){
+          const p = window.csvUtils.parseCsvText(text);
+          const hdr = p.header || [];
+          const rows = p.rows || [];
+          const out = [];
+          if(hdr && hdr.length) out.push(hdr.slice());
+          for(const r of rows) out.push(Object.values(r));
+          return out.map(r=> r.map(c=> (c||'').trim()));
+        }
+      }catch(e){ /* fallthrough to local parser below */ }
+      const rows = [];
+      let cur = '';
+      let row = [];
+      let inQuotes = false;
+      for(let i=0;i<text.length;i++){
+        const ch = text[i];
+        if(ch === '"'){
+          if(inQuotes && text[i+1] === '"'){ cur += '"'; i++; }
+          else { inQuotes = !inQuotes; }
+        } else if(ch === ',' && !inQuotes){ row.push(cur); cur = ''; }
+        else if((ch === '\n' || ch === '\r') && !inQuotes){
+          if(ch === '\r' && text[i+1] === '\n') continue;
+          row.push(cur); rows.push(row); row = []; cur = ''; }
+        else { cur += ch; }
+      }
+      if(cur !== '' || row.length) { row.push(cur); rows.push(row); }
+      return rows.map(r=> r.map(c=> (c||'').trim()));
+    }
+
+    // robust fetch+decode+parse CSV (delegates to csvUtils when available)
+    async function fetchCsvFlexible(url){
+      try{
+        if(window.csvUtils && window.csvUtils.fetchCsv){
+          return await window.csvUtils.fetchCsv(url);
+        }
+      }catch(e){ /* fallthrough to simple fallback */ }
+      // fallback: fetch as text and try to parse via csvUtils.parseCsvText if present
+      const resp = await fetch(url);
+      if(!resp.ok) throw new Error('fetch failed');
+      const txt = await resp.text();
+      if(window.csvUtils && window.csvUtils.parseCsvText){
+        return window.csvUtils.parseCsvText(txt);
+      }
+      // minimal fallback: split lines into header + rows
+      const lines = String(txt || '').split(/\r?\n/).filter(Boolean);
+      if(!lines.length) return { header: [], rows: [] };
+      const header = lines[0].split(',').map(h=>h.replace(/^\s+|\s+$/g,''));
+      const rowsObj = [];
+      for(let i=1;i<lines.length;i++){
+        const cols = lines[i].split(',');
+        const obj = {};
+        for(let j=0;j<header.length;j++) obj[header[j]||('c'+j)] = (cols[j]||'').trim();
+        rowsObj.push(obj);
+      }
+      return { header, rows: rowsObj };
+    }
+
+    // sales staff CSV map (school name -> metadata) - reuse same loader as dashboard
+    let salesStaffMap = new Map();
+    let salesStaffLoaded = false;
+    // schools CSV map (normalized school -> metadata including gradeStats)
+    const SCHOOLS_CSV_MAP = new Map();
+    // also keep a raw-name map (lowercased full school name) to prefer exact matches
+    const SCHOOLS_RAW_MAP = new Map();
+    // map by official school code (정보공시학교코드, 학교코드 등) when available
+    const SCHOOLS_CODE_MAP = new Map();
+    async function loadSalesStaffCsv(){
+      try{
+        // Improved CSV loader: robustly parse quoted CSV fields, extract per-grade
+        // student counts and per-grade class counts, and preserve schoolLevel
+        // value from the CSV (avoid incorrect defaulting).
+        const res = await fetch('/sales_staff.csv');
+        if(!res || !res.ok){ salesStaffLoaded = true; window.salesStaffMap = salesStaffMap; return; }
+        const txt = await res.text();
+        const rawLines = String(txt || '').split(/\r?\n/);
+        if(!rawLines || !rawLines.length){ salesStaffLoaded = true; window.salesStaffMap = salesStaffMap; return; }
+
+        const splitCsv = (line)=>{
+          const out = [];
+          let cur = '';
+          let inQuotes = false;
+          for(let i=0;i<line.length;i++){
+            const ch = line[i];
+            if(ch === '"'){
+              if(inQuotes && i+1 < line.length && line[i+1] === '"'){ cur += '"'; i++; }
+              else { inQuotes = !inQuotes; }
+            } else if(ch === ',' && !inQuotes){ out.push(cur); cur = ''; }
+            else { cur += ch; }
+          }
+          out.push(cur);
+          return out.map(s=>String(s||'').replace(/^\"|\"$/g,'').trim());
+        };
+
+        const lines = rawLines.filter((l,i)=> { return i===0 || String(l||'').trim() !== ''; });
+        const header = splitCsv(lines[0]||'');
+        const idx = {};
+        header.forEach((h,i)=> idx[h] = i);
+        // header preserved internally for debugging when needed (not exposed)
+        const __localSalesStaffHeader = header.slice();
+
+        const findColVal = (cols, regex)=>{ for(const h of header){ if(!h) continue; try{ if(regex.test(h)) return cols[idx[h]]; }catch(e){} } return ''; };
+        const findColIdx = (regex)=>{ for(const h of header){ if(!h) continue; try{ if(regex.test(h)) return idx[h]; }catch(e){} } return -1; };
+        const toNumber = (v)=>{ if(v === undefined || v === null) return 0; const s = String(v||'').replace(/[^0-9\-]/g,''); if(s==='') return 0; return Number(s) || 0; };
+
+        for(let i=1;i<lines.length;i++){
+          try{
+            const cols = splitCsv(lines[i]||'');
+            if(!cols || !cols.length) continue;
+            // find school name
+            let schoolName = findColVal(cols, /학교명|^학교$|schoolname|school/i) || cols[0] || '';
+            if(!String(schoolName).trim()) continue;
+
+            const totalVal = findColVal(cols, /학생수계|총학생수|총학생|total.*students|학생수/i) || '';
+            // total classes column (학급수계) may be present in sales_staff.csv
+            const totalClassesVal = findColVal(cols, /학급수계|총학급수|학급수|total.*classes|totalClasses/i) || '';
+            const g1Val = findColVal(cols, /^1학년.*학생수|^1학년학생수|grade.*1/i) || '';
+            const g2Val = findColVal(cols, /^2학년.*학생수|^2학년학생수|grade.*2/i) || '';
+            const g3Val = findColVal(cols, /^3학년.*학생수|^3학년학생수|grade.*3/i) || '';
+            // class counts often use '학급' or '반' in header
+            const g1ClassesVal = findColVal(cols, /^1학년.*학급|^1학년.*반|1학년.*class/i) || '';
+            const g2ClassesVal = findColVal(cols, /^2학년.*학급|^2학년.*반|2학년.*class/i) || '';
+            const g3ClassesVal = findColVal(cols, /^3학년.*학급|^3학년.*반|3학년.*class/i) || '';
+
+            const estVal = findColVal(cols, /설립구분|설립|establishment|type/i) || '';
+            const lvlVal = findColVal(cols, /학교급|schoollevel|level|교육급|급별/i) || '';
+            const featureVal = findColVal(cols, /학교특성|특성|feature/i) || '';
+
+            const entry = {
+              school: String(schoolName||'').trim(),
+              totalStudents: toNumber(totalVal) || (toNumber(g1Val) + toNumber(g2Val) + toNumber(g3Val)),
+              totalClasses: toNumber(totalClassesVal) || (toNumber(g1ClassesVal) + toNumber(g2ClassesVal) + toNumber(g3ClassesVal)),
+              grade1: toNumber(g1Val),
+              grade2: toNumber(g2Val),
+              grade3: toNumber(g3Val),
+              grade1_classes: toNumber(g1ClassesVal),
+              grade2_classes: toNumber(g2ClassesVal),
+              grade3_classes: toNumber(g3ClassesVal),
+              establishment: String(estVal||''),
+              schoolLevel: String(lvlVal||''),
+              features: String(featureVal||''),
+              raw: cols
+            };
+
+            const key = String(entry.school||'').trim().toLowerCase();
+            if(key) salesStaffMap.set(key, entry);
+            try{
+              // also register a preserved-normalized key (keep '중학교'/'고등학교')
+              const pres = normalizeSchool(String(entry.school||''), true);
+              if(pres) salesStaffMap.set(pres, entry);
+            }catch(e){}
+          }catch(e){ /* per-row ignore */ }
+        }
+
+        // expose only the minimal helper (do not expose verbose diagnostics)
+        window.salesStaffMap = salesStaffMap;
+        try {
+          window.__findSalesStaff = function(q){
+            try {
+              if(!q && q !== 0) return undefined;
+              const k = String(q||'').trim().toLowerCase();
+              if(salesStaffMap.has(k)) return salesStaffMap.get(k);
+              try {
+                const p = normalizeSchool(String(q||''), true);
+                if(p && salesStaffMap.has(p)) return salesStaffMap.get(p);
+              } catch(e){}
+              return undefined;
+            } catch(e){ return undefined; }
+          };
+        } catch(e){}
+
+      }catch(e){ console.warn('loadSalesStaffCsv failed', e); }
+      salesStaffLoaded = true;
+      window.salesStaffMap = salesStaffMap;
+    }
+    // start loading sales_staff CSV early (removed eager fire-and-forget)
+    // Note: `initData` will `await loadSalesStaffCsv()` to ensure mapping is available before rendering
+
+    // Try to load CSV files (public/data/schools.csv and public/data/orders.csv)
+    async function tryLoadCSVs(){
+      try{
+        // Derive a safe base path. When opened via file:// we should avoid
+        // building leading-root absolute paths like '/C:/...' which break fetch.
+        // Prefer relative candidate paths first, then fall back to root-prefixed
+        // paths that work when served over HTTP (hosting).
+        const isFileProtocol = window && window.location && window.location.protocol === 'file:';
+        const rawBase = window.location && window.location.pathname ? window.location.pathname.replace(/\/[^/]*$/, '') : '.';
+        const base = isFileProtocol ? '.' : (rawBase || '.');
+        // schools.csv - try multiple candidate paths and flexible decoding (support .csv.csv)
+        try{
+          // Try relative paths first (work for file:// and local static servers),
+          // then try root-absolute variants for hosting deployments.
+          const schoolCandidates = [
+            'data/schools.csv', './data/schools.csv', 'schools.csv', './schools.csv',
+            base + '/data/schools.csv', base + '/schools.csv',
+            '/data/schools.csv', '/schools.csv'
+          ];
+          let schoolParsed = null; let schoolUsed = null; const schoolAttempted = [];
+          for(const p of schoolCandidates){
+            try{
+              schoolAttempted.push(p);
+              const parsed = await fetchCsvFlexible(p);
+              if(parsed && parsed.rows && parsed.rows.length){ schoolParsed = parsed; schoolUsed = p; break; }
+            }catch(e){ continue; }
+          }
+          window.__schoolsCsvDiagnostic = { candidates: schoolCandidates, attempted: schoolAttempted, used: schoolUsed, parsedRowsCount: schoolParsed && schoolParsed.rows ? schoolParsed.rows.length : 0 };
+          if(schoolParsed && schoolParsed.rows && schoolParsed.rows.length){
+            const hdr = schoolParsed.header || [];
+            const rows = schoolParsed.rows || [];
+            // header heuristics helper
+            const pickHeader = (regex)=>{ for(const h of hdr){ if(!h) continue; if(regex.test(h)) return h; } return null; };
+            const nameKey = pickHeader(/school|학교|학교명|schoolName/i) || hdr[0] || null;
+            // expanded header patterns for robustness
+            const totalKey = pickHeader(/학생수|totalStudents|total_students|total|학생수계|학생수합계/i) || null;
+            const typeKey = pickHeader(/설립|establishment|type|설립구분|설립구분명/i) || null;
+            const levelKey = pickHeader(/학교급|level|schoolLevel|학교구분|school_level/i) || null;
+            const featureKey = pickHeader(/특성|feature|학교특성|학교특징/i) || null;
+            const regionKey = pickHeader(/지역|region|시군구|시읍면|address|주소/i) || null;
+            const staffKey = pickHeader(/담당자|담당|staff|Staff|담당자명/i) || null;
+            const g1sKey = pickHeader(/^1학년.*학생|^grade1.*students|^1_grade_students/i);
+            const g2sKey = pickHeader(/^2학년.*학생|^grade2.*students|^2_grade_students/i);
+            const g3sKey = pickHeader(/^3학년.*학생|^grade3.*students|^3_grade_students/i);
+            const g1cKey = pickHeader(/^1학년.*학급|^grade1.*class/i);
+            const g2cKey = pickHeader(/^2학년.*학급|^grade2.*class/i);
+            const g3cKey = pickHeader(/^3학년.*학급|^grade3.*class/i);
+
+            // build map of all schools from CSV
+            for(const first of rows){
+              try{
+                const nameVal = nameKey ? (first[nameKey] || '') : (first[hdr[0]] || '');
+                if(!nameVal) continue;
+                const name = String(nameVal).trim();
+                const total = totalKey ? (first[totalKey] || '') : '';
+                const est = typeKey ? (first[typeKey] || '') : '';
+                const lvl = levelKey ? (first[levelKey] || '') : '';
+                const feat = featureKey ? (first[featureKey] || '') : '';
+                const g1s = g1sKey ? (first[g1sKey] || '') : '';
+                const g2s = g2sKey ? (first[g2sKey] || '') : '';
+                const g3s = g3sKey ? (first[g3sKey] || '') : '';
+                const g1c = g1cKey ? (first[g1cKey] || '') : '';
+                const g2c = g2cKey ? (first[g2cKey] || '') : '';
+                const g3c = g3cKey ? (first[g3cKey] || '') : '';
+                // try to detect official school code column (정보공시학교코드 등)
+                const codeKey = pickHeader(/정보공시학교코드|학교코드|school[_ ]?code|schoolId|school_id|교육청코드/i);
+                const infoCodeVal = codeKey ? (first[codeKey] || '') : '';
+                const entry = { name: name, school: name, totalStudents: total ? Number(String(total).replace(/[^0-9]/g,''))||0 : 0, establishment: est||'', schoolLevel: lvl||'', features: feat||'', region: regionKey ? (first[regionKey]||'') : '', staff: staffKey ? (first[staffKey]||'') : '', raw: first, _source: 'schools_csv' };
+                if(infoCodeVal) entry.infoCode = String(infoCodeVal).trim();
+                // build gradeStats array
+                const stats = [];
+                stats.push({ grade: '1학년', classes: g1c ? Number(String(g1c).replace(/[^0-9]/g,'')) || '' : '', students: g1s ? Number(String(g1s).replace(/[^0-9]/g,'')) || '' : '' });
+                stats.push({ grade: '2학년', classes: g2c ? Number(String(g2c).replace(/[^0-9]/g,'')) || '' : '', students: g2s ? Number(String(g2s).replace(/[^0-9]/g,'')) || '' : '' });
+                stats.push({ grade: '3학년', classes: g3c ? Number(String(g3c).replace(/[^0-9]/g,'')) || '' : '', students: g3s ? Number(String(g3s).replace(/[^0-9]/g,'')) || '' : '' });
+                entry.gradeStats = stats;
+                // Use preserveSuffix=true so '구산중학교' and '구산고등학교'
+                // remain distinct (do not strip '중학교'/'고등학교').
+                SCHOOLS_CSV_MAP.set(normalizeSchool(name, true), entry);
+                try{ if(entry.infoCode) SCHOOLS_CODE_MAP.set(String(entry.infoCode).trim(), entry); }catch(e){}
+                try{ SCHOOLS_RAW_MAP.set(String(name).trim().toLowerCase(), entry); }catch(e){}
+              }catch(e){ /* ignore per-row errors */ }
+            }
+            // expose a sample of registered school codes for debugging
+            try{ window.__schoolsCodeKeys = Array.from(SCHOOLS_CODE_MAP.keys()).slice(0,200); }catch(e){}
+            // if there is a first row and its school matches the page SCHOOL_INFO, prefer it to fill top-card
+            if(rows.length){
+              const first = rows[0] || {};
+              const firstName = nameKey ? (first[nameKey] || '') : (first[hdr[0]] || '');
+              if(firstName && String(firstName).trim() === String(SCHOOL_INFO.name || '').trim()){
+                const info = SCHOOLS_CSV_MAP.get(normalizeSchool(firstName, true));
+                if(info){ SCHOOL_INFO.name = info.name || SCHOOL_INFO.name; SCHOOL_INFO.totalStudents = info.totalStudents || SCHOOL_INFO.totalStudents; SCHOOL_INFO.gradeStats = info.gradeStats || SCHOOL_INFO.gradeStats; }
+              }
+            }
+          }
+        }catch(e){ console.warn('schools csv load failed', e); }
+        // orders.csv - try multiple candidate paths and use flexible parser
+        try{
+          // Order CSV candidates: include both singular/plural and relative/absolute
+          const candidates = [
+            'order.csv', './order.csv', 'orders.csv', './orders.csv', 'data/orders.csv', './data/orders.csv', 'data/order.csv', './data/order.csv',
+            base + '/order.csv', base + '/orders.csv', base + '/data/orders.csv', base + '/data/order.csv',
+            '/order.csv', '/orders.csv', '/data/orders.csv'
+          ];
+          let parsed = null;
+          const attempted = [];
+          let usedPath = null;
+          for(const p of candidates){
+            try{
+              attempted.push(p);
+              parsed = await fetchCsvFlexible(p);
+              if(parsed && parsed.rows && parsed.rows.length) { usedPath = p; break; }
+            }catch(e){ parsed = null; continue; }
+          }
+          // expose diagnostic info for debugging missing CSVs
+          window.__ordersCsvDiagnostic = { candidates, attempted, used: usedPath, parsedHeaderCount: parsed && parsed.header ? parsed.header.length : 0, parsedRowsCount: parsed && parsed.rows ? parsed.rows.length : 0 };
+            if(parsed && parsed.rows && parsed.rows.length){
+            const hdr = parsed.header || [];
+            // detect candidate header names
+            const yearRegex = /연도|학년도|year|年度/i;
+            const groupRegex = /교과군|교과|group|계열|subject.?group/i;
+            const subjectRegex = /과목명|subject|과목|subjectName/i;
+            const countRegex = /부수|수량|qty|quantity|copies|부수합계/i;
+              const schoolRegex = /학교|school|schoolName|학교명/i;
+              // prefer an explicit '학교명 수식' header when present in order CSVs
+              const schoolFormulaRegex = /학교명\s*수식|학교명수식/i;
+              const schoolCodeRegex = /정보공시학교코드|학교코드|school[_ ]?code|schoolId|school_id|교육청코드/i;
+            const rows = parsed.rows || [];
+            const arr = [];
+            for(const r of rows){
+              // helper to pick header key
+              const pickKey = (regex)=>{ for(const h of hdr){ if(h && regex.test(h)) return h; } return null; };
+              const yKey = pickKey(yearRegex);
+              const gKey = pickKey(groupRegex);
+              const sKey = pickKey(subjectRegex);
+              const cKey = pickKey(countRegex);
+              const scKey = pickKey(schoolRegex);
+                const scCodeKey = pickKey(schoolCodeRegex);
+              const yearVal = yKey ? (r[yKey] || r['year'] || '') : (r['year'] || r['연도'] || '');
+              const groupVal = gKey ? (r[gKey] || '') : (r['group'] || r['교과군'] || '');
+              const subjectVal = sKey ? (r[sKey] || '') : (r['subject'] || r['과목명'] || '');
+              const countVal = cKey ? (r[cKey] || r['count'] || r['부수'] || '') : (r['count'] || r['부수'] || r['qty'] || '');
+              const schoolVal = scKey ? (r[scKey] || '') : (r['school'] || r['학교'] || r['schoolName'] || '');
+              // detect column that indicates publication type (교지명 등). If present, only include rows where type includes '교과서'
+              const itemTypeKey = (function(){ for(const h of hdr){ if(!h) continue; if(/교지명|교지|교지종류|교과서구분|publication|itemtype|item_type/i.test(h)) return h; } return null; })();
+              const itemTypeVal = itemTypeKey ? (r[itemTypeKey] || '') : '';
+              if(itemTypeKey && itemTypeVal){ const it = String(itemTypeVal||'').trim(); if(!/교과서/.test(it)) continue; }
+              // if CSV provides a '학교명 수식' (official/processed name) column, prefer it as canonical school label
+              const schoolFormulaKey = (function(){ for(const h of hdr){ if(!h) continue; if(schoolFormulaRegex.test(h)) return h; } return null; })();
+              const schoolFormulaVal = schoolFormulaKey ? (r[schoolFormulaKey] || '') : '';
+              const schoolCodeVal = scCodeKey ? (r[scCodeKey] || '') : (r['정보공시학교코드'] || r['학교코드'] || r['school_code'] || r['schoolId'] || r['school_id'] || '');
+              const yearNum = Number(String(yearVal||'').replace(/[^0-9]/g,'')) || null;
+              const countNum = Number(String(countVal||'').replace(/[^0-9]/g,'')) || 0;
+              const schoolStr = String(schoolVal||'').trim();
+              // entry.school will prefer the 학교명 수식 when available, but keep original raw value too
+              const canonicalSchool = schoolFormulaVal ? String(schoolFormulaVal).trim() : schoolStr;
+              const entry = { year: yearNum, group: String(groupVal||'').trim(), subject: String(subjectVal||'').trim(), count: countNum, schoolRaw: schoolStr, schoolFormula: (schoolFormulaVal? String(schoolFormulaVal).trim() : ''), school: canonicalSchool, schoolNorm: normalizeSchool(canonicalSchool, true) };
+              if(schoolCodeVal) entry.schoolCode = String(schoolCodeVal).trim();
+              // also expose normalized code form for matching convenience
+              if(entry.schoolCode) entry.schoolCodeNorm = String(entry.schoolCode).replace(/\s+/g,'').toLowerCase();
+              arr.push(entry);
+            }
+            if(arr.length){ TEXTBOOK_ORDERS.splice(0, TEXTBOOK_ORDERS.length, ...arr); }
+            // populate TEXTBOOK_ORDERS and build lookup maps for faster matching
+            if(arr.length){
+              TEXTBOOK_ORDERS.splice(0, TEXTBOOK_ORDERS.length, ...arr);
+              try{
+                // ORDER_SCHOOL_MAP: normalized -> [orders]
+                window.ORDER_SCHOOL_MAP = new Map();
+                // ORDER_SCHOOL_RAW_MAP: raw-lower -> [orders]
+                window.ORDER_SCHOOL_RAW_MAP = new Map();
+                // ORDER_SCHOOL_CODE_MAP: code -> [orders]
+                window.ORDER_SCHOOL_CODE_MAP = new Map();
+                for(const o of arr){
+                  try{
+                    // Use both raw and formula names to build raw-map keys so exact lookups succeed
+                    const raw = String(o.schoolRaw || o.school || '').trim();
+                    const formula = String(o.schoolFormula || '').trim();
+                    // Preserve school-type suffixes (예: '중학교','고등학교') when
+                    // building the normalized key so schools of different levels
+                    // do not collapse to the same key (e.g., '구산중' vs '구산고').
+                    const norm = o.schoolNorm || normalizeSchool(o.school || o.schoolFormula || raw || '', true);
+                    if(norm){ if(!window.ORDER_SCHOOL_MAP.has(norm)) window.ORDER_SCHOOL_MAP.set(norm, []); window.ORDER_SCHOOL_MAP.get(norm).push(o); }
+                    if(raw){ const rk = raw.toLowerCase(); if(!window.ORDER_SCHOOL_RAW_MAP.has(rk)) window.ORDER_SCHOOL_RAW_MAP.set(rk, []); window.ORDER_SCHOOL_RAW_MAP.get(rk).push(o); }
+                    if(formula){ const fk = formula.toLowerCase(); if(!window.ORDER_SCHOOL_RAW_MAP.has(fk)) window.ORDER_SCHOOL_RAW_MAP.set(fk, []); window.ORDER_SCHOOL_RAW_MAP.get(fk).push(o); }
+                    if(o.schoolCode){ const ck = String(o.schoolCode).trim(); if(!window.ORDER_SCHOOL_CODE_MAP.has(ck)) window.ORDER_SCHOOL_CODE_MAP.set(ck, []); window.ORDER_SCHOOL_CODE_MAP.get(ck).push(o); }
+                  }catch(e){ /* per-row ignore */ }
+                }
+              }catch(e){ /* ignore map build errors */ }
+            }
+
+            // NOTE: intentionally not merging ORDER_* keys into salesStaffMap here.
+            // School metadata should come only from `sales_staff.csv` (and schools CSV/Firestore).
+            // This prevents orders CSV from polluting or creating shorthand mappings.
+
+            // expose diagnostic keys for orders (school values and codes)
+            try{ window.__ordersSchoolKeys = Array.from(new Set(arr.map(o=> o.school || o.schoolNorm || ''))).slice(0,200); }catch(e){}
+            try{ window.__ordersSchoolCodeKeys = Array.from(new Set(arr.map(o=> o.schoolCode || '')).values()).slice(0,200); }catch(e){}
+          }
+        }catch(e){ console.warn('orders csv load failed', e); }
+      }catch(e){ console.warn('CSV load failed', e); }
+    }
+
+    // Try to load visits from Firestore collection 'visit_entries' (if available)
+    async function tryLoadFirestoreVisits(){
+      try{
+        if(typeof window.waitForFirebase === 'function'){
+          await window.waitForFirebase();
+          if(window.__db && window.__db.collection){
+            // prefer 'visit_entries' collection (backend)
+            const snap = await window.__db.collection('visit_entries').get();
+            if(snap && snap.size){
+              const rows = [];
+              snap.forEach(doc=>{
+                const d = doc.data() || {};
+                // normalize date (string or Firestore Timestamp)
+                let dateVal = '';
+                if(d.date){
+                  if(typeof d.date === 'string') dateVal = d.date;
+                  else if(d.date.toDate) dateVal = d.date.toDate().toISOString().slice(0,10);
+                  else dateVal = String(d.date);
+                } else if(d.visitDate){
+                  if(typeof d.visitDate === 'string') dateVal = d.visitDate;
+                  else if(d.visitDate.toDate) dateVal = d.visitDate.toDate().toISOString().slice(0,10);
+                  else dateVal = String(d.visitDate);
+                }
+
+                // helper to pick first existing field among candidates
+                const pick = (...names) => { for(const n of names){ if(d[n] !== undefined && d[n] !== null) return d[n]; } return undefined; };
+
+                const teacher = pick('teacher','Teacher','teacherName','teacher_name') || '';
+                const subject = pick('subject','Subject','course') || '';
+                const staffVal = pick('staff','Staff','StaffKey','staffKey') || '';
+                let reaction = pick('reaction','favor','반응') || '';
+                reaction = normalizeReaction(reaction);
+                const activity = pick('activity','activities','영업활동') || '';
+                const materialsRaw = pick('materials','Materials','전달자료') || '';
+                const materials = Array.isArray(materialsRaw) ? materialsRaw.join(', ') : (materialsRaw || '');
+                const conversation = pick('conversation','content','대화내용','대화') || '';
+                const requestField = pick('request','requests','customerRequest','고객요청사항') || '';
+                const issueField = pick('issue','issues','특이사항') || '';
+                const delivery = pick('delivery','납품사항') || '';
+                const gift = pick('gift','증정사항') || '';
+                const followUp = pick('followUp','followup','후속조치') || '';
+                const publisher = pick('publisher','publisherName','출판사','publisher_name') || '';
+
+                // Do NOT merge issue/delivery/gift into conversation. Keep conversation (대화내용) separate.
+                const convoFinal = String(conversation || '');
+
+                rows.push({
+                  id: doc.id,
+                  date: dateVal,
+                  school: pick('school','schoolName','School') || '',
+                  region: pick('region','Region') || '',
+                  teacher: String(teacher || ''),
+                  subject: String(subject || ''),
+                  publisher: String(publisher || ''),
+                  staff: String(staffVal || ''),
+                  reaction: String(reaction || ''),
+                  activity: String(activity || ''),
+                  materials: materials,
+                  content: convoFinal || String(conversation || ''),
+                  request: String(requestField || ''),
+                  issue: String(issueField || ''),
+                  delivery: String(delivery || ''),
+                  gift: String(gift || ''),
+                  followUp: String(followUp || '')
+                });
+              });
+              if(rows.length){ RAW_DATA.length = 0; RAW_DATA.push(...rows); }
+            }
+          }
+        }
+      }catch(e){ console.warn('Firestore load error', e); }
+    }
+
+    // Try to load school metadata from Firestore if backend stores it
+    async function tryLoadSchoolMetadataFromFirestore(){
+      try{
+        if(typeof window.waitForFirebase === 'function'){
+          await window.waitForFirebase();
+          if(window.__db && window.__db.collection){
+            const candidates = ['schools','school_metadata','school_info','schoolInfo','schoolMeta'];
+            for(const col of candidates){
+              try{
+                const snap = await window.__db.collection(col).get();
+                if(!snap || snap.empty) continue;
+                snap.forEach(doc=>{
+                  const d = doc.data() || {};
+                  const name = d.name || d.school || d.schoolName || d.학교명 || '';
+                  if(!name) return;
+                  const entry = { name: String(name).trim(), school: String(name).trim(), raw: d, _source: 'firestore' };
+                  // common fields
+                  if(d.totalStudents || d.total_students || d['학생수'] ) entry.totalStudents = Number(String(d.totalStudents||d.total_students||d['학생수']).replace(/[^0-9]/g,''))||0;
+                  entry.establishment = d.establishment || d.설립구분 || d.type || '';
+                  entry.schoolLevel = d.schoolLevel || d.level || d.학교급 || '';
+                  entry.features = d.features || d.학교특성 || d.feature || '';
+                  entry.region = d.region || d.지역 || d.address || '';
+                  entry.staff = d.staff || d['담당자'] || d.manager || '';
+                  // gather grade stats if available
+                  const stats = [];
+                  const g1c = d.grade1_classes || d['1학년학급수'] || d.grade1_class || d.g1_classes || d.g1_class || '';
+                  const g2c = d.grade2_classes || d['2학년학급수'] || d.grade2_class || d.g2_classes || '';
+                  const g3c = d.grade3_classes || d['3학년학급수'] || d.grade3_class || d.g3_classes || '';
+                  const g1s = d.grade1_students || d['1학년학생수'] || d.grade1_student || d.g1_students || '';
+                  const g2s = d.grade2_students || d['2학년학생수'] || d.grade2_student || d.g2_students || '';
+                  const g3s = d.grade3_students || d['3학년학생수'] || d.grade3_student || d.g3_students || '';
+                  stats.push({ grade: '1학년', classes: g1c? Number(String(g1c).replace(/[^0-9]/g,''))||'':'', students: g1s? Number(String(g1s).replace(/[^0-9]/g,''))||'':'' });
+                  stats.push({ grade: '2학년', classes: g2c? Number(String(g2c).replace(/[^0-9]/g,''))||'':'', students: g2s? Number(String(g2s).replace(/[^0-9]/g,''))||'':'' });
+                  stats.push({ grade: '3학년', classes: g3c? Number(String(g3c).replace(/[^0-9]/g,''))||'':'', students: g3s? Number(String(g3s).replace(/[^0-9]/g,''))||'':'' });
+                  entry.gradeStats = stats;
+                  // capture possible school code fields from Firestore doc
+                  const possibleCode = d.infoCode || d['정보공시학교코드'] || d.schoolCode || d.school_id || d.schoolId || d.school_code || d.code || d['학교코드'] || '';
+                  if(possibleCode) entry.infoCode = String(possibleCode).trim();
+                  // preserve suffixes when storing CSV-derived school keys
+                  SCHOOLS_CSV_MAP.set(normalizeSchool(entry.name, true), entry);
+                try{ SCHOOLS_RAW_MAP.set(String(entry.name).trim().toLowerCase(), entry); }catch(e){}
+                try{ if(entry.infoCode) SCHOOLS_CODE_MAP.set(String(entry.infoCode).trim(), entry); }catch(e){}
+                });
+                // if we found a collection with docs, stop trying others
+                return;
+              }catch(e){ continue; }
+            }
+          }
+        }
+      }catch(e){ console.warn('school metadata load failed', e); }
+    }
+
+    // simple HTML escape helper for safe insertion
+    function escapeHtml(s){
+      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    // Initialize: try CSV -> Firestore, then re-render
+    // Render functions: provide minimal implementations so initData can call them
+    // Build an aggregated orders table (years as columns) for a given orders array
+    function buildAggregatedOrdersHtml(orders, startYear = 2021, endYear = 2026){
+      try{
+        if(!Array.isArray(orders) || !orders.length){
+          return '<h3 style="font-size:16px;font-weight:800;margin:0 0 8px 0">교과서 주문 현황</h3><div style="padding:8px" class="muted">주문 데이터가 없습니다.</div>';
+        }
+        const years = [];
+        // build years in descending order so table shows newest year first
+        for(let y = endYear; y >= startYear; y--) years.push(y);
+        // aggregate by group + subject
+        const map = new Map();
+        for(const o of orders){
+          try{
+            const group = String(o.group || '').trim();
+            const subject = String(o.subject || '').trim();
+            const key = group + '||' + subject;
+            if(!map.has(key)) map.set(key, { group, subject, counts: {}, total: 0 });
+            const entry = map.get(key);
+            const y = Number(o.year) || 0;
+            const cnt = Number(o.count) || 0;
+            if(y) entry.counts[y] = (entry.counts[y] || 0) + cnt;
+            entry.total = (entry.total || 0) + cnt;
+          }catch(e){ /* per-row ignore */ }
+        }
+        let html = '<h3 style="font-size:16px;font-weight:800;margin:0 0 8px 0">교과서 주문 현황</h3><div style="overflow-x:auto"><table style="width:1000px;min-width:1000px;font-size:13px;border-collapse:collapse"><thead><tr class="bg-slate-50"><th style="padding:8px;text-align:left; width:180px">교과군</th><th style="padding:8px;text-align:left; width:320px">과목명</th>';
+        years.forEach(y=> html += `<th style="padding:8px;text-align:right">${y}년</th>`);
+        html += '<th style="padding:8px;text-align:right">합계</th></tr></thead><tbody>';
+        for(const [k, entry] of map){
+          html += `<tr><td style="padding:8px; width:180px">${escapeHtml(entry.group)}</td><td style="padding:8px;font-weight:700; width:320px">${escapeHtml(entry.subject)}</td>`;
+          years.forEach(y=>{
+            const v = entry.counts[y] || 0;
+            html += `<td style="padding:8px;text-align:right;font-weight:700;color:#0b63d6; width:120px">${v? Number(v).toLocaleString() : ''}</td>`;
+          });
+          html += `<td style="padding:8px;text-align:right;font-weight:700;color:#0b63d6; width:120px">${entry.total? Number(entry.total).toLocaleString() : ''}</td></tr>`;
+        }
+        html += '</tbody></table></div>';
+        return html;
+      }catch(e){ return '<div class="muted">주문 데이터 렌더링 중 오류</div>'; }
+    }
+    function renderSchoolInfo(){
+      try{
+        const elName = document.getElementById('schoolName');
+        const elMeta = document.getElementById('schoolMeta');
+        const elCount = document.getElementById('studentCount');
+        const elGrade = document.getElementById('gradeList');
+        // Build display parts. Prefer authoritative data from `sales_staff.csv` when available.
+        const pageInfo = Object.assign({}, SCHOOL_INFO || {});
+        // attempt to enrich pageInfo with any available data from sales_staff or schools CSV
+        try{ if(typeof enrichSchoolInfoFromSalesEntry === 'function') enrichSchoolInfoFromSalesEntry(pageInfo, pageInfo.name || SCHOOL_INFO.name || ''); }catch(e){}
+        // --- Authoritative sales_staff.csv override ---
+        // If salesStaffMap contains a matching entry, prefer its values for totals/gradeStats
+        try{
+          if(window.salesStaffMap && salesStaffMap.size){
+            const probe = [];
+            if(pageInfo && pageInfo.name) probe.push(pageInfo.name);
+            try{ if(Array.isArray(window.RAW_DATA) && window.RAW_DATA.length && window.RAW_DATA[0] && window.RAW_DATA[0].school) probe.push(window.RAW_DATA[0].school); }catch(e){}
+            let matched = null;
+            for(const nm of probe){
+              if(!nm) continue;
+              const rawKey = String(nm||'').trim().toLowerCase();
+              matched = salesStaffMap.get(rawKey) || salesStaffMap.get(normalizeSchool(nm, true)) || salesStaffMap.get(normalizeSchool(nm));
+              if(matched) break;
+            }
+            if(matched){
+              // merge authoritative fields
+              pageInfo._matchedBy = 'sales_staff';
+              pageInfo.region = matched.region || pageInfo.region;
+              pageInfo.establishment = matched.establishment || pageInfo.establishment;
+              pageInfo.schoolLevel = matched.schoolLevel || matched.level || pageInfo.schoolLevel || pageInfo.level;
+              pageInfo.features = matched.features || matched.feature || pageInfo.features;
+              if(matched.totalStudents !== undefined && matched.totalStudents !== null) pageInfo.totalStudents = matched.totalStudents;
+              if(matched.totalClasses !== undefined && matched.totalClasses !== null) pageInfo.totalClasses = matched.totalClasses;
+              if(matched.grade1 || matched.grade2 || matched.grade3 || matched.grade1_classes || matched.grade2_classes || matched.grade3_classes){
+                pageInfo.gradeStats = [
+                  { grade:'1학년', classes: matched.grade1_classes || matched['1학년학급수'] || '', students: matched.grade1 || matched['1학년학생수'] || '' },
+                  { grade:'2학년', classes: matched.grade2_classes || matched['2학년학급수'] || '', students: matched.grade2 || matched['2학년학생수'] || '' },
+                  { grade:'3학년', classes: matched.grade3_classes || matched['3학년학급수'] || '', students: matched.grade3 || matched['3학년학생수'] || '' }
+                ];
+              }
+              if(matched.school) { pageInfo.name = matched.school; SCHOOL_INFO.name = matched.school; }
+              // Ensure totals reflect per-grade sums when gradeStats are present
+              try{
+                if(Array.isArray(pageInfo.gradeStats) && pageInfo.gradeStats.length){
+                  const sumParse = v => { try{ if(v === undefined || v === null) return 0; if(typeof v === 'number') return v; const s = String(v||'').replace(/[,\s]/g,''); const m = s.match(/-?\d+/); if(!m) return 0; return Number(m[0])||0; }catch(e){return 0;} };
+                  let tc = 0, ts = 0;
+                  pageInfo.gradeStats.forEach(g => { tc += sumParse(g.classes); ts += sumParse(g.students); });
+                  if(tc) pageInfo.totalClasses = tc;
+                  if(ts) pageInfo.totalStudents = ts;
+                }
+              }catch(e){ /* ignore total-sum errors */ }
+            }
+          }
+        }catch(e){ /* ignore */ }
+        // Authoritative override: prefer `sales_staff.csv` entry whenever possible.
+        // If salesStaffMap contains a matching entry (by pageInfo.name or first RAW_DATA school),
+        // use that entry's totals and display name as the source of truth for the top card.
+        try{
+          if(window.salesStaffMap && typeof window.salesStaffLoaded !== 'undefined' && window.salesStaffLoaded){
+            let matched = null;
+            const probeNames = [];
+            if(pageInfo && pageInfo.name) probeNames.push(pageInfo.name);
+            try{ if(Array.isArray(window.RAW_DATA) && window.RAW_DATA.length && window.RAW_DATA[0] && window.RAW_DATA[0].school) probeNames.push(window.RAW_DATA[0].school); }catch(e){}
+            for(const nm of probeNames){
+              if(!nm) continue;
+              const rawKey = String(nm||'').trim().toLowerCase();
+              matched = window.salesStaffMap.get(rawKey) || window.salesStaffMap.get(normalizeSchool(nm, true)) || window.salesStaffMap.get(normalizeSchool(nm));
+              if(matched) break;
+            }
+            // If we found a matched sales staff entry, merge authoritative fields
+            if(matched){
+              try{
+                // copy safe fields into pageInfo but do not remove existing other metadata
+                pageInfo._matchedBy = 'sales_staff';
+                pageInfo.region = matched.region || pageInfo.region;
+                pageInfo.establishment = matched.establishment || pageInfo.establishment;
+                pageInfo.schoolLevel = matched.schoolLevel || matched.level || pageInfo.schoolLevel || pageInfo.level;
+                pageInfo.features = matched.features || matched.feature || pageInfo.features;
+                // prefer CSV-provided totalStudents and per-grade values
+                if(matched.totalStudents !== undefined && matched.totalStudents !== null) pageInfo.totalStudents = matched.totalStudents;
+                if(matched.grade1 || matched.grade2 || matched.grade3 || matched.grade1_classes || matched.grade2_classes || matched.grade3_classes){
+                  pageInfo.gradeStats = [
+                    { grade: '1학년', classes: matched.grade1_classes || matched['1학년학급수'] || '', students: matched.grade1 || matched['1학년학생수'] || '' },
+                    { grade: '2학년', classes: matched.grade2_classes || matched['2학년학급수'] || '', students: matched.grade2 || matched['2학년학생수'] || '' },
+                    { grade: '3학년', classes: matched.grade3_classes || matched['3학년학급수'] || '', students: matched.grade3 || matched['3학년학생수'] || '' }
+                  ];
+                }
+                // Use CSV school name as authoritative display name when present
+                if(matched.school) { pageInfo.name = matched.school; SCHOOL_INFO.name = matched.school; }
+              }catch(e){ /* ignore merge errors */ }
+            }
+          }
+        }catch(e){ /* ignore salesStaffMap probe errors */ }
+        try{
+          if(salesStaffLoaded && window.salesStaffMap && pageInfo && pageInfo.name){
+            try{
+              const key = String(pageInfo.name||'').trim().toLowerCase();
+              let m = window.salesStaffMap.get(key);
+              if(!m){ try{ const p = normalizeSchool(pageInfo.name, true); if(p) m = window.salesStaffMap.get(p); }catch(e){} }
+              if(!m){ try{ const n = normalizeSchool(pageInfo.name); if(n) m = window.salesStaffMap.get(n); }catch(e){} }
+              if(m){
+                // Prefer CSV-provided authoritative fields when present (CSV wins)
+                pageInfo.region = m.region || pageInfo.region;
+                pageInfo.establishment = m.establishment || pageInfo.establishment;
+                // prefer CSV schoolLevel/level over page value
+                pageInfo.schoolLevel = m.schoolLevel || m.level || pageInfo.schoolLevel || pageInfo.level;
+                pageInfo.features = m.features || m.feature || pageInfo.features;
+                pageInfo.totalStudents = (m.totalStudents !== undefined && m.totalStudents !== null) ? m.totalStudents : pageInfo.totalStudents;
+                // if CSV contains explicit grade counts, override pageInfo.gradeStats
+                if((m.grade1 || m.grade2 || m.grade3 || m.grade1_classes || m.grade2_classes || m.grade3_classes)){
+                  pageInfo.gradeStats = [ {grade:'1학년',classes:m.grade1_classes||'',students:m.grade1||''},{grade:'2학년',classes:m.grade2_classes||'',students:m.grade2||''},{grade:'3학년',classes:m.grade3_classes||'',students:m.grade3||''} ];
+                }
+                // keep page staff if present; otherwise use CSV staff
+                pageInfo.staff = pageInfo.staff || m.staff || pageInfo.staff;
+              }
+            }catch(e){}
+          }
+        }catch(e){}
+
+        const staff = (pageInfo && (pageInfo.staff || pageInfo.manager || pageInfo['담당자'] || '')) || '';
+        const schoolName = pageInfo.name || '';
+        const region = formatRegion(pageInfo.region || pageInfo.regionName || '');
+        const establishment = pageInfo.establishment || pageInfo.type || '';
+        const schoolLevel = pageInfo.schoolLevel || pageInfo.level || '';
+        const levelDisplay = mapSchoolLevelToKorean(schoolLevel || '');
+        const features = pageInfo.features || pageInfo.feature || pageInfo['학교특성'] || '';
+
+        // compute per-grade class/student counts -- prefer pageInfo (CSV-enriched), fall back to SCHOOL_INFO
+        let g1c = ''; let g2c = ''; let g3c = '';
+        let g1s = ''; let g2s = ''; let g3s = '';
+        const preferredStats = (Array.isArray(pageInfo.gradeStats) && pageInfo.gradeStats.length) ? pageInfo.gradeStats : ((Array.isArray(SCHOOL_INFO.gradeStats) && SCHOOL_INFO.gradeStats.length) ? SCHOOL_INFO.gradeStats : null);
+        if(preferredStats){
+          const s = preferredStats;
+          if(s[0]){ g1c = s[0].classes || s[0].class || s[0].학급 || ''; g1s = s[0].students || s[0].students || s[0].학생수 || ''; }
+          if(s[1]){ g2c = s[1].classes || s[1].class || s[1].학급 || ''; g2s = s[1].students || s[1].students || s[1].학생수 || ''; }
+          if(s[2]){ g3c = s[2].classes || s[2].class || s[2].학급 || ''; g3s = s[2].students || s[2].students || s[2].학생수 || ''; }
+        } else {
+          // fallback to explicit per-grade fields from pageInfo, then SCHOOL_INFO
+          g1c = pageInfo.grade1_classes || pageInfo['1학년학급수'] || pageInfo.grade1class || SCHOOL_INFO.grade1_classes || SCHOOL_INFO['1학년학급수'] || SCHOOL_INFO.grade1class || '';
+          g2c = pageInfo.grade2_classes || pageInfo['2학년학급수'] || pageInfo.grade2class || SCHOOL_INFO.grade2_classes || SCHOOL_INFO['2학년학급수'] || SCHOOL_INFO.grade2class || '';
+          g3c = pageInfo.grade3_classes || pageInfo['3학년학급수'] || pageInfo.grade3class || SCHOOL_INFO.grade3_classes || SCHOOL_INFO['3학년학급수'] || SCHOOL_INFO.grade3class || '';
+          g1s = pageInfo.grade1 || pageInfo['1학년학생수'] || pageInfo.grade1_students || SCHOOL_INFO.grade1 || SCHOOL_INFO['1학년학생수'] || SCHOOL_INFO.grade1_students || '';
+          g2s = pageInfo.grade2 || pageInfo['2학년학생수'] || pageInfo.grade2_students || SCHOOL_INFO.grade2 || SCHOOL_INFO['2학년학생수'] || SCHOOL_INFO.grade2_students || '';
+          g3s = pageInfo.grade3 || pageInfo['3학년학생수'] || pageInfo.grade3_students || SCHOOL_INFO.grade3 || SCHOOL_INFO['3학년학생수'] || SCHOOL_INFO.grade3_students || '';
+        }
+
+        // robust numeric parsing helper: extract first reasonable integer from a string
+        const parseIntSafe = (v) => { try{ if(v === undefined || v === null) return 0; const s = String(v||'').replace(/[,\s]/g,''); const m = s.match(/-?\d+/); if(!m) return 0; const n = Number(m[0]); return Number.isFinite(n) ? n : 0; }catch(e){ return 0; } };
+        const g1c_n = parseIntSafe(g1c); const g2c_n = parseIntSafe(g2c); const g3c_n = parseIntSafe(g3c);
+        const g1s_n = parseIntSafe(g1s); const g2s_n = parseIntSafe(g2s); const g3s_n = parseIntSafe(g3s);
+        // compute totals from available per-grade stats first, then fall back to pageInfo / SCHOOL_INFO
+        let totalClasses = (g1c_n + g2c_n + g3c_n);
+        if(!totalClasses){ totalClasses = parseIntSafe(pageInfo.totalClasses) || parseIntSafe(SCHOOL_INFO.totalClasses) || 0; }
+        let totalStudents = (g1s_n + g2s_n + g3s_n);
+        if(!totalStudents){ totalStudents = parseIntSafe(pageInfo.totalStudents) || parseIntSafe(SCHOOL_INFO.totalStudents) || 0; }
+
+        // Fill DOM elements in requested format
+        if(elName){
+          elName.innerHTML = `<div style="font-weight:700">${escapeHtml(String(staff || ''))}</div><div style="font-size:18px;font-weight:800">${escapeHtml(String(schoolName||''))}</div>`;
+        }
+        if(elMeta){
+          const parts = [];
+          if(establishment) parts.push(establishment);
+          if(levelDisplay) parts.push(levelDisplay);
+          if(features) parts.push(features);
+          elMeta.textContent = parts.join(' · ');
+        }
+        if(elCount){
+          const displayTotalClasses = totalClasses || 0;
+          const displayTotalStudents = totalStudents || 0;
+          // always show a placeholder dash when missing rather than an empty string
+          const classesLabel = displayTotalClasses ? `${displayTotalClasses}학급` : '-';
+          const studentsLabel = displayTotalStudents ? `${Number(displayTotalStudents).toLocaleString()}명` : '-';
+          elCount.textContent = `학급수계: ${classesLabel} · 학생수계: ${studentsLabel}`;
+        }
+        if(elGrade){
+          // display region as a separate small line and then the grade summary single-line
+          elGrade.innerHTML = '';
+          if(region){ const rdiv = document.createElement('div'); rdiv.className = 'muted'; rdiv.style.marginBottom = '6px'; rdiv.textContent = region; elGrade.appendChild(rdiv); }
+          const gradesLine = document.createElement('div');
+          const p1 = `1학년: ${g1c_n? g1c_n+'학급' : '-'}${'/'}` + `${g1s_n? Number(g1s_n).toLocaleString()+'명' : '-'}`;
+          const p2 = `2학년: ${g2c_n? g2c_n+'학급' : '-'}${'/'}` + `${g2s_n? Number(g2s_n).toLocaleString()+'명' : '-'}`;
+          const p3 = `3학년: ${g3c_n? g3c_n+'학급' : '-'}${'/'}` + `${g3s_n? Number(g3s_n).toLocaleString()+'명' : '-'}`;
+          // Display per-grade summary and append overall totals (전체)
+          try{
+            const overallClassesLabel = totalClasses ? `${totalClasses}학급` : '-';
+            const overallStudentsLabel = totalStudents ? `${Number(totalStudents).toLocaleString()}명` : '-';
+            const overall = `<strong>${escapeHtml('전체: ' + overallClassesLabel + '/' + overallStudentsLabel)}</strong>`;
+            gradesLine.innerHTML = `${escapeHtml(p1)} ${escapeHtml(p2)} ${escapeHtml(p3)} ${overall}`;
+          }catch(e){
+            gradesLine.textContent = `${p1} ${p2} ${p3}`;
+          }
+          elGrade.appendChild(gradesLine);
+        }
+      }catch(e){ console.warn('renderSchoolInfo failed', e); }
+    }
+
+    function renderOrders(){
+      try{
+        const tbody = document.getElementById('ordersBody');
+        if(!tbody) return;
+        // replace the whole wrapper containing the table with aggregated table HTML
+        const tableEl = tbody.parentElement;
+        const wrapper = tableEl && tableEl.parentElement ? tableEl.parentElement : tableEl;
+        try{
+          const aggHtml = buildAggregatedOrdersHtml(TEXTBOOK_ORDERS, 2021, 2026);
+          if(wrapper) wrapper.innerHTML = aggHtml;
+        }catch(e){
+          // fallback: render simple rows into tbody
+          tbody.innerHTML = '';
+          if(!Array.isArray(TEXTBOOK_ORDERS) || !TEXTBOOK_ORDERS.length){ const tr = document.createElement('tr'); tr.innerHTML = `<td colspan="4" style="padding:12px" class="muted">주문 데이터가 없습니다.</td>`; tbody.appendChild(tr); return; }
+          TEXTBOOK_ORDERS.forEach(o=>{ const tr = document.createElement('tr'); tr.innerHTML = `<td class="px-4 py-3">${o.year || ''}</td><td class="px-4 py-3">${o.group || ''}</td><td class="px-4 py-3">${o.subject || ''}</td><td class="px-4 py-3" style="text-align:right">${o.count? Number(o.count).toLocaleString() : ''}</td>`; tbody.appendChild(tr); });
+        }
+      }catch(e){ console.warn('renderOrders failed', e); }
+    }
+    (async function initData(){
+      // ensure sales staff CSV is loaded before other CSV-dependent rendering
+      try{ await loadSalesStaffCsv(); }catch(e){ console.warn('loadSalesStaffCsv (await) failed', e); }
+      await tryLoadCSVs();
+      // after orders/schools CSVs loaded, attempt to enrich any merged-order entries
+      try{ if(typeof enrichSalesStaffFromSchools === 'function') await enrichSalesStaffFromSchools(); }catch(e){ console.warn('enrichSalesStaffFromSchools failed', e); }
+      // try backend school metadata first (merge into SCHOOLS_CSV_MAP)
+      try{ await tryLoadSchoolMetadataFromFirestore(); }catch(e){}
+      await tryLoadFirestoreVisits();
+      // If the page did not provide `SCHOOL_INFO.name`, try to derive a sensible
+      // default from the first loaded visit row so the top card isn't empty.
+      // This only provides a visible fallback for single-school pages; CSV/Firestore
+      // metadata (sales_staff.csv / schools.csv) remain authoritative when present.
+      try{
+        if((!SCHOOL_INFO || !SCHOOL_INFO.name || String(SCHOOL_INFO.name).trim() === '') && Array.isArray(RAW_DATA) && RAW_DATA.length){
+          const first = RAW_DATA[0];
+          const candidate = first && (first.school || first.schoolName || first.School) ? (first.school || first.schoolName || first.School) : '';
+          if(candidate) {
+            SCHOOL_INFO.name = String(candidate).trim();
+            console.info('[initData] SCHOOL_INFO.name auto-filled from RAW_DATA:', SCHOOL_INFO.name);
+          }
+        }
+      }catch(e){ /* ignore fallback failure */ }
+
+      // Expose convenient debug handles so console checks are straightforward
+      // (these are read-only helpers for debugging and won't change runtime logic).
+      try{ window._TEXTBOOK_ORDERS = (typeof TEXTBOOK_ORDERS !== 'undefined') ? TEXTBOOK_ORDERS : null; }catch(e){}
+      try{ window.salesStaffLoaded = (typeof salesStaffLoaded !== 'undefined') ? salesStaffLoaded : (window.salesStaffLoaded || false); }catch(e){}
+      try{ window.salesStaffMap = window.salesStaffMap || (typeof salesStaffMap !== 'undefined' ? salesStaffMap : window.salesStaffMap); }catch(e){}
+
+      renderSchoolInfo();
+      renderOrders();
+      // show simple diagnostics about backend loads
+      try{
+        const ds = document.getElementById('dataStatus');
+        let msg = '';
+        if(window.__db){ msg += 'Firestore: available. '; } else { msg += 'Firestore: not initialized. '; }
+        msg += `Visits rows: ${RAW_DATA.length || 0}. `;
+        // orders CSV diagnostics
+        try{
+          const oDiag = window.__ordersCsvDiagnostic || {};
+          if(oDiag && oDiag.used){ msg += ` orders: loaded from ${oDiag.used} (${oDiag.parsedRowsCount} rows).`; }
+          else if(oDiag && Array.isArray(oDiag.attempted) && oDiag.attempted.length){ msg += ` orders: not found (attempted ${oDiag.attempted.length} paths).`; }
+          else { msg += ' orders: unknown.'; }
+          msg += ` TEXTBOOK_ORDERS: ${TEXTBOOK_ORDERS.length || 0}`;
+        }catch(e){ /* ignore */ }
+        if(ds) ds.textContent = msg;
+        console.info('schoolreport initData:', msg, { db: !!window.__db, rawCount: RAW_DATA.length, salesLoaded: salesStaffLoaded });
+      }catch(e){ console.warn(e); }
+      // refresh staff list (may have changed with new data)
+      populateStaffs();
+      currentVisible = renderVisits({ search: searchInput ? searchInput.value : '', staff: staffSelect ? staffSelect.value : '', startDate: startDateInput ? startDateInput.value : '', endDate: endDateInput ? endDateInput.value : '' });
+      renderSchoolSummary();
+      updateMetrics();
+      // expose a deployment timestamp for quick verification in console
+      try{ window.__SCHOOLREPORT_DEPLOY = new Date().toISOString(); console.info('[schoolreport] deploy timestamp', window.__SCHOOLREPORT_DEPLOY); }catch(e){}
+      // hide loading overlay after initial data and rendering complete
+      try{ const lo = document.getElementById('loadingOverlay'); if(lo) lo.style.display = 'none'; }catch(e){}
+    })();
+  </script>
+</body>
+</html>

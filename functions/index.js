@@ -1,3 +1,5 @@
+// NOTE: aggregateVisitEntries was migrated into the Express app routes below to avoid duplicate
+// top-level declarations. See the Express `app.get('/aggregateVisitEntries', ...)` route.
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const express = require('express');
@@ -103,6 +105,54 @@ app.use((req, res, next) => {
 
 // Health
 app.get('/', (req, res) => res.json({ ok: true, service: 'cmass-sales-api' }));
+
+// Aggregate endpoint for dashboard consumption (migrated from standalone function)
+app.get('/aggregateVisitEntries', async (req, res) => {
+  try{
+    const q = req.query || {};
+    const staff = q.staff || '';
+    const start = q.start || '';
+    const end = q.end || '';
+    const region = q.region || '';
+    const subjectFilter = q.subject || '';
+    const MAX_DOCS = 8000;
+
+    let ref = db.collection('visit_entries');
+    if(staff) ref = ref.where('staff','==', staff);
+    const snap = await ref.limit(MAX_DOCS).get();
+    const docs = snap.docs.map(d=>{ const data = d.data(); data._id = d.id; return data; });
+
+    function normDate(d){ if(!d) return ''; if(typeof d==='string' && /^\d{4}-\d{2}-\d{2}/.test(d)) return d.substring(0,10); if(d && d._seconds) return (new Date(Number(d._seconds)*1000)).toISOString().substring(0,10); try{ return (new Date(d)).toISOString().substring(0,10); }catch(e){ return ''; } }
+
+    let rows = docs.map(r=>{ r._date = normDate(r.visitDate||r._savedAt||r.createdAt); return r; });
+    if(start) rows = rows.filter(d=> d._date && d._date >= start);
+    if(end) rows = rows.filter(d=> d._date && d._date <= end);
+    if(region) rows = rows.filter(d=> (d.region||'').toLowerCase().indexOf(region.toLowerCase()) !== -1 );
+    if(subjectFilter) rows = rows.filter(d=> { const subs = Array.isArray(d.subject)? d.subject : (Array.isArray(d.subjects)? d.subjects : (d.subject? [d.subject] : (d.subjects? [d.subjects] : []))); return subs.some(s=> String(s||'').toLowerCase().indexOf(subjectFilter.toLowerCase()) !== -1); });
+
+    const byDate = {};
+    const subjects = {};
+    const activities = {};
+    const regions = {};
+    const hours = {};
+    const topTeachers = {};
+
+    rows.forEach(r=>{
+      const d = r._date || '';
+      if(d) byDate[d] = (byDate[d]||0) + 1;
+      const subs = Array.isArray(r.subject)? r.subject : (Array.isArray(r.subjects)? r.subjects : (r.subject? [r.subject] : (r.subjects? [r.subjects] : [])));
+      subs.forEach(s=>{ if(!s) return; const k=String(s).trim(); subjects[k] = (subjects[k]||0) + 1; });
+      const acts = Array.isArray(r.activities)? r.activities : (r.activities? (Array.isArray(r.activities)? r.activities : [r.activities]) : []);
+      acts.forEach(a=>{ if(!a) return; const k=String(a).trim(); activities[k] = (activities[k]||0) + 1; });
+      const reg = String(r.region||'').trim(); if(reg) regions[reg] = (regions[reg]||0) + 1;
+      const sstart = String(r.visitStart||''); if(sstart){ const h = sstart.split(':')[0]; hours[h] = (hours[h]||0) + 1; }
+      const teacher = String(r.teacher||r.teacherName||'').trim(); if(teacher) topTeachers[teacher] = (topTeachers[teacher]||0) + 1;
+    });
+
+    const toArr = (obj) => Object.entries(obj).sort((a,b)=> b[1]-a[1]);
+    return res.json({ ok:true, byDate, subjects: toArr(subjects), activities: toArr(activities), regions: toArr(regions), hours: toArr(hours), topTeachers: toArr(topTeachers) });
+  }catch(err){ console.error('aggregateVisitEntries error', err); return res.status(500).json({ ok:false, error: String(err) }); }
+});
 
 // POST /save-meeting - accept meeting payload and persist to Firestore
 app.post('/save-meeting', async (req, res) => {

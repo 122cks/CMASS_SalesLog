@@ -785,20 +785,26 @@ async function loadPersonalVisits(){
         const followUp = escapeHtml(e.followUp || e.followup || '');
         const contact = escapeHtml((e.phone||e.contact||e.email||'').toString());
 
-        // canonicalize possible request/delivery fields from various doc shapes
-        const rawRequests = (e.requests||e.ask||e.request||e.requestText||e.askText||'').toString();
-        const rawDeliveries = (e.deliveries||e.delivery||e.delivery_note||e.deliveryItems||e.delivered||'').toString();
-        const rawConversation = (e.conversation||e.note||e.notes||'').toString();
+          // canonicalize possible fields from various doc shapes
+          const rawRequests = (e.request||e.requests||e.requestText||e.askText||'').toString();
+          const rawMaterials = (e.materials||e.material||e.deliveryMaterials||e.delivery_materials||'').toString();
+          const rawDeliveries = (e.deliveries||e.delivery||e.delivery_note||e.deliveryItems||e.delivered||'').toString();
+          const rawConversation = (e.conversation||e.convo||e.note||e.notes||'').toString();
+          const rawIssue = (e.issue||e.issues||e.specialNotes||e.remark||e.remarks||'').toString();
+          const rawGift = (e.gift||e.gifts||e.present||'').toString();
 
-  // Build full HTML used in modal (include activities, requests/deliveries + notes + contact)
-  let parts = [];
-  if (activities && String(activities).trim()) parts.push('<div><strong>영업활동:</strong> ' + escapeHtml(String(activities)).replace(/\n/g,'<br>') + '</div>');
-  if (rawRequests && String(rawRequests).trim()) parts.push('<div style="margin-top:6px"><strong>고객요청사항:</strong> ' + escapeHtml(String(rawRequests)).replace(/\n/g,'<br>') + '</div>');
-  if (rawDeliveries && String(rawDeliveries).trim()) parts.push('<div style="margin-top:6px"><strong>납품사항:</strong> ' + escapeHtml(String(rawDeliveries)).replace(/\n/g,'<br>') + '</div>');
-  if (rawConversation && String(rawConversation).trim()) parts.push('<div style="margin-top:8px"><strong>특이사항:</strong><div style="margin-top:6px">' + escapeHtml(String(rawConversation)).replace(/\n/g,'<br>') + '</div></div>');
-  if (followUp && String(followUp).trim()) parts.push('<div style="margin-top:6px"><strong>후속 조치:</strong> ' + escapeHtml(String(followUp)).replace(/\n/g,'<br>') + '</div>');
-  if (contact && String(contact).trim()) parts.push('<div style="margin-top:6px"><strong>연락처:</strong> ' + contact + '</div>');
-  const fullNoteHtml = parts.length ? parts.join('') : '<div class="small">내용이 없습니다.</div>';
+        // Build full HTML used in modal (ordered per user request)
+        let parts = [];
+        if (activities && String(activities).trim()) parts.push('<div><strong>영업활동:</strong> ' + escapeHtml(String(activities)).replace(/\n/g,'<br>') + '</div>');
+        if (rawMaterials && String(rawMaterials).trim()) parts.push('<div style="margin-top:6px"><strong>전달자료:</strong> ' + escapeHtml(String(rawMaterials)).replace(/\n/g,'<br>') + '</div>');
+        if (rawRequests && String(rawRequests).trim()) parts.push('<div style="margin-top:6px"><strong>고객요청사항:</strong> ' + escapeHtml(String(rawRequests)).replace(/\n/g,'<br>') + '</div>');
+        if (rawConversation && String(rawConversation).trim()) parts.push('<div style="margin-top:6px"><strong>대화내용:</strong> ' + escapeHtml(String(rawConversation)).replace(/\n/g,'<br>') + '</div>');
+        if (rawIssue && String(rawIssue).trim()) parts.push('<div style="margin-top:6px"><strong>특이사항:</strong> ' + escapeHtml(String(rawIssue)).replace(/\n/g,'<br>') + '</div>');
+        if (rawDeliveries && String(rawDeliveries).trim()) parts.push('<div style="margin-top:6px"><strong>납품사항:</strong> ' + escapeHtml(String(rawDeliveries)).replace(/\n/g,'<br>') + '</div>');
+        if (rawGift && String(rawGift).trim()) parts.push('<div style="margin-top:6px"><strong>증정사항:</strong> ' + escapeHtml(String(rawGift)).replace(/\n/g,'<br>') + '</div>');
+        if (followUp && String(followUp).trim()) parts.push('<div style="margin-top:6px"><strong>후속조치:</strong> ' + escapeHtml(String(followUp)).replace(/\n/g,'<br>') + '</div>');
+        if (contact && String(contact).trim()) parts.push('<div style="margin-top:6px"><strong>연락처:</strong> ' + contact + '</div>');
+        const fullNoteHtml = parts.length ? parts.join('') : '<div class="small">내용이 없습니다.</div>';
 
     // safe id using server_id or doc id; fallback to a short random token
     const idToken = String(e.server_id || e.id || ('r' + Math.random().toString(36).slice(2))).replace(/[^a-zA-Z0-9_\-]/g,'_');

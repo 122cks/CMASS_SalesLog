@@ -6,7 +6,8 @@
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#1e3c72">
   <title>영업일지 입력</title>
-  <script src="js/silence-console.js"></script>
+  <scri src="js/silence-console.js"></scri
+    pt>
   <script src="collectFormData.js"></script>
   <script>
     // Hard guard: prevent external scripts from wiping core CMASS nodes or replacing the body entirely.
@@ -150,11 +151,23 @@
             const lvl = pickMeta(meta, ['급','학교급','학교급코드','level','schoolLevel','급별']);
             const tot = pickMeta(meta, ['총학생수','학생수계','studentsTotal','totalStudents','총학생','학생수']);
             const feat = pickMeta(meta, ['특성','학교특성','특성화','특성화고 구분','특성화고','feature','special']);
+            let scode = pickMeta(meta, ['s-code','scode','학교코드','정보공시학교코드','학교코드(정보공시)','schoolCode','school_code','s_code','sCode']);
+            // If meta didn't contain scode but we previously resolved one, prefer that as a fallback
+            try{
+              if ((!scode || String(scode).trim() === '') && window._cmass_lastScode) scode = window._cmass_lastScode;
+            }catch(e){}
             console.log('[applyMeta] 추출된 값:', { est, lvl, tot, feat });
             const inlineEst = document.getElementById('inlinePillEstablish'); if(inlineEst) inlineEst.textContent = est ? ('설립: ' + String(est)) : '설립: -';
             const inlineLvl = document.getElementById('inlinePillLevel'); if(inlineLvl) inlineLvl.textContent = lvl ? ('급: ' + String(lvl)) : '급: -';
             const inlineTot = document.getElementById('inlinePillStudents'); if(inlineTot) inlineTot.textContent = tot ? ('총학생수: ' + String(tot)) : '총학생수: -';
             const inlineFeat = document.getElementById('inlinePillFeature'); if(inlineFeat) { inlineFeat.style.display = feat ? '' : 'none'; if(feat) inlineFeat.textContent = '특성: ' + String(feat); }
+            const inlineScode = document.getElementById('inlinePillScode'); if(inlineScode) inlineScode.textContent = scode ? ('학교코드: ' + String(scode)) : '학교코드: -';
+            try{ window._cmass_lastScode = scode || ''; }catch(e){}
+            try{ window._cmass_currentScode = scode || ''; }catch(e){}
+            try{ if (sessionStorage && sessionStorage.setItem) sessionStorage.setItem('cmass:next_scode', window._cmass_lastScode || ''); }catch(e){}
+            try{ const scEl = document.getElementById('scodeDisplay'); if(scEl) scEl.textContent = scode ? ('학교코드: ' + String(scode)) : scEl.textContent; }catch(e){}
+            try{ if (typeof updateScodeBadge === 'function') updateScodeBadge(); }catch(e){}
+            try{ console.log('[applyMeta] scode applied to UI/session:', window._cmass_lastScode); }catch(e){}
             console.log('[applyMeta] DOM 업데이트 완료:', { 
               inlineEst: inlineEst?.textContent, 
               inlineLvl: inlineLvl?.textContent, 
@@ -207,11 +220,71 @@
           }
 
       // initialize when DOM ready
-      document.addEventListener('DOMContentLoaded', function(){ removeLegacyRedirects(); watchDbgMeta(); if(window._cmass_lastFoundMeta) applyMeta(window._cmass_lastFoundMeta); });
+      document.addEventListener('DOMContentLoaded', function(){ removeLegacyRedirects(); watchDbgMeta(); if(window._cmass_lastFoundMeta) applyMeta(window._cmass_lastFoundMeta); try{ if (typeof updateScodeBadge === 'function') updateScodeBadge(); }catch(e){} });
 
   // expose for tests / external code
   window.applyMeta = applyMeta;
     })();
+  </script>
+  <script>
+    // Temporary mapping debug panel (created on-demand)
+    (function(){
+      function ensurePanel(){
+        if (document.getElementById('mappingDebugPanel')) return;
+        try{
+          const p = document.createElement('div');
+          p.id = 'mappingDebugPanel';
+          p.style.position = 'fixed';
+          p.style.right = '12px';
+          p.style.bottom = '12px';
+          p.style.maxWidth = '420px';
+          p.style.maxHeight = '50vh';
+          p.style.overflow = 'auto';
+          p.style.background = 'rgba(255,255,255,0.98)';
+          p.style.border = '1px solid #ccc';
+          p.style.padding = '8px';
+          p.style.fontSize = '12px';
+          p.style.zIndex = 99999;
+          p.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+          p.style.display = 'none';
+          const h = document.createElement('div'); h.style.fontWeight='600'; h.textContent='매핑 디버그';
+          const c = document.createElement('pre'); c.id = 'mappingDebugContent'; c.style.whiteSpace='pre-wrap'; c.style.margin='6px 0 0 0'; c.style.fontSize='11px';
+          const tbtn = document.createElement('button'); tbtn.textContent='닫기'; tbtn.style.float='right'; tbtn.addEventListener('click', ()=>{ p.style.display='none'; });
+          p.appendChild(tbtn); p.appendChild(h); p.appendChild(c);
+          document.body.appendChild(p);
+        }catch(e){ /* ignore */ }
+      }
+      window.updateMappingDebug = function(info){
+        try{ ensurePanel(); }catch(e){}
+        try{
+          const p = document.getElementById('mappingDebugPanel');
+          const c = document.getElementById('mappingDebugContent');
+          if(!p||!c) return;
+          const txt = (typeof info === 'string') ? info : JSON.stringify(info, null, 2);
+          c.textContent = txt;
+          p.style.display = 'block';
+        }catch(e){}
+      };
+      window.clearMappingDebug = function(){ try{ const p=document.getElementById('mappingDebugPanel'); if(p) p.style.display='none'; }catch(e){} };
+    })();
+  </script>
+  <script>
+    function updateScodeBadge(){
+      try{
+        const b = document.getElementById('inlineScodeBadge');
+        if (!b) return;
+        const scode = (window._cmass_lastScode || (window.sessionStorage && sessionStorage.getItem('cmass:next_scode')) || '');
+        const ambiguous = !!(window._cmass_lastMappingCandidates && Array.isArray(window._cmass_lastMappingCandidates) && window._cmass_lastMappingCandidates.length > 1) || !!window._cmass_lastMappingAmbiguous;
+        b.classList.remove('scode-success','scode-ambiguous','scode-unmatched');
+        if (scode){
+          if (ambiguous){ b.classList.add('scode-ambiguous'); b.textContent = '모호'; b.title = '여러 후보가 있어 모호합니다'; }
+          else { b.classList.add('scode-success'); b.textContent = '성공'; b.title = 's-code 매핑 성공'; }
+          // Ensure inline pill reflects the latest scode as well
+          try{ const pill = document.getElementById('inlinePillScode'); if (pill) pill.textContent = '학교코드: ' + String(scode); }catch(e){}
+        } else { b.classList.add('scode-unmatched'); b.textContent = '미일치'; b.title = 's-code를 찾지 못했습니다'; }
+      }catch(e){ /* tolerate */ }
+    }
+    window.updateScodeBadge = updateScodeBadge;
   </script>
 
   <style>
@@ -256,6 +329,13 @@
     .grade-row .small-note { color:#4e5b73; font-size:13px; margin-left:6px }
     .meta-summary { display:flex; gap:14px; margin:8px 12px 6px 12px; }
     .meta-summary .meta-pill { background:#f3f6ff; padding:.45rem .7rem; border-radius:10px; border:1px solid #e0e8ff; color:#082044; font-weight:800; font-size:14px }
+  </style>
+  <style>
+    /* s-code mapping status badge */
+    .scode-badge { display:inline-block; margin-left:8px; padding:4px 8px; border-radius:999px; font-weight:800; font-size:12px; vertical-align:middle }
+    .scode-success { background:#e6fff3; color:#006644; border:1px solid #a6e6c9 }
+    .scode-ambiguous { background:#fff7e6; color:#7a5200; border:1px solid #f0d7a8 }
+    .scode-unmatched { background:#fff0f0; color:#8a1f1f; border:1px solid #f1c6c6 }
   </style>
   <style>
   table.timetable { border-collapse:collapse; width:100%; font-size:11px; line-height:1.12; }
@@ -389,6 +469,22 @@
     }
   </style>
   <style id="pinProceed-style">#pinProceed{margin-top:12px;padding:.7rem 1rem;border-radius:.8rem;border:none;background:#1e3c72;color:#fff;font-weight:800;cursor:pointer}</style>
+  <script>
+    // Global school key normalizer (needed by early preload + render). Ensures consistent map keys.
+    (function(){
+      function cmassNormalizeSchoolKey(s){
+        try{
+          let t = (s||'').toString().toLowerCase();
+          t = t.replace(/\s+/g,'');
+          t = t.replace(/(남|여|여자|남자)(?=(?:고|중))/g,'');
+          t = t.replace(/학교|중학교|고등학교/g,'');
+          t = t.replace(/[^0-9a-z\u3131-\uD79D]/g,'');
+          return t;
+        }catch(e){ return (s||'').toString().toLowerCase(); }
+      }
+      try{ window.cmassNormalizeSchoolKey = cmassNormalizeSchoolKey; }catch(e){}
+    })();
+  </script>
   <script>
     // Lightweight modal confirm and toast helpers to replace native confirm/alert
     (function(){
@@ -723,8 +819,12 @@
           const visitDate = (document.getElementById('visitDate')?.value || '').trim();
           const region = window.selectedRegion || '-';
           const school = window.selectedSchool || '-';
+          // Append s-code in parentheses if available
+          let scode = '';
+          try{ scode = window._cmass_lastScode || (sessionStorage && sessionStorage.getItem('cmass:next_scode')) || ''; }catch(e){ scode=''; }
+          const schoolWithCode = scode ? `${school} (${scode})` : school;
           
-          const text = `${staff} - ${visitDate || '-'} - ${region} - ${school}`;
+          const text = `${staff} - ${visitDate || '-'} - ${region} - ${schoolWithCode}`;
           
           // Update both Step1 and Step2 toplines
           const topline = document.getElementById('cmass-topline');
@@ -837,11 +937,48 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  document.getElementById('schoolButtons')?.addEventListener('click', function(e) {
+  document.getElementById('schoolButtons')?.addEventListener('click', async function(e) {
     const btn = e.target.closest('button');
     if (btn) {
       window.selectedSchool = btn.textContent.trim();
-      sessionStorage.setItem('cmass:next_school', window.selectedSchool);
+      try{ sessionStorage.setItem('cmass:next_school', window.selectedSchool); }catch(e){}
+      // attempt to resolve metadata (prefer global helper if present)
+      try{
+        let meta = null;
+        const nameKey = (window.selectedSchool || '').trim();
+        if (typeof findSalesStaffMeta === 'function'){
+          try{ meta = findSalesStaffMeta(nameKey); }catch(e){ meta = null; }
+        }
+        // fallback: try a few sources - preferring an existing cached map, then CSV rows
+        if (!meta){
+          try{
+            if (window._cmass_staffMapsForInput && window._cmass_staffMapsForInput.byName && window._cmass_staffMapsForInput.byName[nameKey]){
+              meta = { scode: window._cmass_staffMapsForInput.byName[nameKey] };
+            } else if (typeof window.fetchCsvRows === 'function'){
+              try{
+                const rows = await window.fetchCsvRows().catch(()=>[]);
+                if (rows && rows.length){
+                  const header = rows[0].map(h=>String(h||'').trim());
+                  const data = rows.slice(1);
+                  const codeKeys = header.filter(h=> /정보공시학교코드|학교코드|school[_ ]?code|schoolid|school_id|code/i.test(h));
+                  const nameKeys = header.filter(h=> /학교명|school[_ ]?name|name/i.test(h));
+                  const lk = String(nameKey || '').trim().toLowerCase();
+                  for(const r of data){
+                    const obj = {};
+                    for(let i=0;i<header.length;i++) obj[header[i]] = String(r[i]||'').trim();
+                    const code = (codeKeys.map(k=>obj[k]).find(v=>v) || '').trim();
+                    const name = (nameKeys.map(k=>obj[k]).find(v=>v) || obj['학교명'] || obj['name'] || '').trim();
+                    if (name && String(name).trim().toLowerCase() === lk && code){ meta = { scode: code }; break; }
+                  }
+                }
+              }catch(e){ }
+            }
+          }catch(e){}
+        }
+        if (meta){ try{ applyMeta(meta); }catch(e){} }
+        else { try{ const el = document.getElementById('inlinePillScode'); if (el) el.textContent = '학교코드: -'; window._cmass_lastScode = ''; }catch(e){} }
+        try{ if (typeof updateScodeBadge === 'function') updateScodeBadge(); }catch(e){}
+      }catch(e){ console.warn('schoolButtons click lookup failed', e); }
     }
   });
 });
@@ -857,6 +994,8 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="meta-pill" id="inlinePillLevel">급: -</div>
         <div class="meta-pill" id="inlinePillStudents">총학생수: -</div>
         <div class="meta-pill" id="inlinePillFeature" style="display:none;">특성: -</div>
+        <div class="meta-pill" id="inlinePillScode">학교코드: -</div>
+        <div id="inlineScodeBadge" class="scode-badge scode-unmatched" title="s-code 매핑 상태">미일치</div>
       </div>
       <div class="grade-rows">
         <div class="grade-row"><div class="grade-label">1학년:</div><div class="grade-value"><span id="inlineG1c"></span> 학급 / <span id="inlineG1s"></span> 학생</div></div>
@@ -1007,6 +1146,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (region) sessionStorage.setItem('cmass:next_region', region);
                 // Persist the selected school so meeting.html can prefill it
                 try{ if (school) sessionStorage.setItem('cmass:next_school', school); }catch(e){}
+              // Persist resolved scode if metadata already applied
+              try{ if (window._cmass_lastScode) sessionStorage.setItem('cmass:next_scode', window._cmass_lastScode); }catch(e){}
                 // 미팅내용 관련 값 초기화 (but keep next_school)
                 sessionStorage.removeItem('cmass:edit_entry');
                 sessionStorage.removeItem('cmass:edit_index');
@@ -1169,6 +1310,16 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch(e) {}
         renderState();
         attachSearchHandlers();
+
+        // Re-render schools with s-code when the quick map finishes building
+        try{
+          window.addEventListener('cmass:scode-map-ready', function(){
+            try{
+              let activeRegion = findRegion(window.selectedRegion, visibleRegions) || visibleRegions[0] || null;
+              if (activeRegion) renderSchools(activeRegion);
+            }catch(e){}
+          });
+        }catch(e){}
       }
 
       async function loadRegionData(){
@@ -1440,6 +1591,18 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.setAttribute('aria-pressed', 'false');
           }
           if (staffToken && (school.staff || []).some((s) => normalizeStaff(s) === normalizeStaff(staffToken))) btn.classList.add('assigned');
+          // Append s-code in parentheses under the school name if available
+          try{
+            const normKey = (typeof window.cmassNormalizeSchoolKey === 'function') ? window.cmassNormalizeSchoolKey(school.name) : school.name.trim().toLowerCase();
+            const exactKey = String(school.name||'').trim();
+            const scode = (window._cmass_scodeQuickMap && (window._cmass_scodeQuickMap.get(exactKey) || window._cmass_scodeQuickMap.get(normKey))) || '';
+            if (scode){
+              const under = document.createElement('span');
+              under.className = 'scode-under';
+              under.textContent = `(${scode})`;
+              btn.appendChild(under);
+            }
+          }catch(e){}
           btn.addEventListener('click', () => selectSchool(region.name, school.name));
           frag.appendChild(btn);
         });
@@ -1508,28 +1671,41 @@ document.addEventListener('DOMContentLoaded', function() {
               name = name.replace(/\(.+?\)/g,'');
               name = name.replace(/[\p{P}\p{S}\s]+/gu,'');
               name = name.replace(/(고등학교|중학교|초등학교|학교)$/,'');
-              return name.toLowerCase();
+              return name.toLowerCase().trim();
             }
 
+            // Simple, robust matching: exact normalized match first, then startsWith, then includes
             const normTarget = normalizeForMatch(school || '');
+            let matched = null;
             for (let i = 1; i < rows.length; i++){
               const row = rows[i] || [];
               const name = (row[schoolColIndex] || '').trim();
               if (!name) continue;
-              const normRow = normalizeForMatch(name);
-              if (!normRow) continue;
-              if (normRow === normTarget || normRow.includes(normTarget) || normTarget.includes(normRow)){
-                const parsed = {};
-                headers.forEach((h, idx) => { if (typeof row[idx] !== 'undefined' && String(row[idx]).trim() !== '') parsed[h] = row[idx]; });
-                window._cmass_lastFoundMeta = parsed;
-                if (typeof window.applyMeta === 'function') {
-                  try{ window.applyMeta(parsed); }catch(e){ console.warn('[Mapping Shim] applyMeta failed', e); }
-                }
-                try{ window._cmass_lastAppliedMappingKey = `${region}::${school}`; }catch(e){}
-                return;
+              const n = normalizeForMatch(name);
+              if (n === normTarget){ matched = row; break; }
+            }
+            if (!matched){
+              // prefer rows that startWith the target
+              for (let i = 1; i < rows.length; i++){
+                const row = rows[i] || [];
+                const name = (row[schoolColIndex] || '').trim(); if (!name) continue;
+                const n = normalizeForMatch(name);
+                if (n.startsWith(normTarget) || normTarget.startsWith(n)) { matched = row; break; }
               }
             }
-          }catch(e){ console.warn('[Mapping Shim] failed', e); }
+
+            if (matched){
+              const parsed = {};
+              headers.forEach((h, idx)=>{ const v = matched[idx]; if (v !== undefined && String(v).trim() !== '') parsed[h] = v; });
+              try{ window._cmass_lastFoundMeta = parsed; if (typeof window.applyMeta === 'function') window.applyMeta(parsed); }catch(e){}
+            } else {
+              window._cmass_lastFoundMeta = null;
+            }
+          } catch (mapErr) {
+            console.warn('[Mapping] applyMappingIfPresent failed', mapErr);
+          } finally {
+            try{ window._cmass_mappingInProgress = null; }catch(e){}
+          }
         };
       }
 
@@ -1557,12 +1733,37 @@ document.addEventListener('DOMContentLoaded', function() {
   if (hiddenRegionInput) hiddenRegionInput.value = regionName;
   window.selectedSchool = schoolName;
   if (hiddenSchoolInput) hiddenSchoolInput.value = schoolName;
-
     // Persist selection and refresh UI so selection is visible and mappings applied
     try{ if (sessionStorage && sessionStorage.setItem) sessionStorage.setItem('cmass:last_region', window.selectedRegion); }catch(e){}
     try{ if (sessionStorage && sessionStorage.setItem) sessionStorage.setItem('cmass:last_school', window.selectedSchool); }catch(e){}
     try{ renderState(); }catch(e){}
-    try{ if (typeof applyMappingIfPresent === 'function') applyMappingIfPresent(regionName, schoolName); }catch(e){}
+
+    // If the clicked school button/card already shows a scode under the name,
+    // prefer that value and persist it instead of overwriting from CSV lookup.
+    try{
+      let preservedScode = '';
+      try{
+        const btns = Array.from(document.querySelectorAll('#schoolButtons button'));
+        const matching = btns.find(b => (b.dataset && b.dataset.school) ? b.dataset.school === schoolName : (b.textContent||'').trim() === schoolName);
+        if (matching){
+          const scEl = matching.querySelector && matching.querySelector('.scode-under');
+          if (scEl && scEl.textContent) preservedScode = scEl.textContent.replace(/[()\s]/g,'').trim();
+        }
+      }catch(e){ preservedScode = ''; }
+
+      if (preservedScode){
+        try{ window._cmass_lastScode = preservedScode; }catch(e){}
+        try{ if (sessionStorage && sessionStorage.setItem) sessionStorage.setItem('cmass:next_scode', String(preservedScode)); }catch(e){}
+        try{ const pill = document.getElementById('inlinePillScode'); if (pill) pill.textContent = '학교코드: ' + String(preservedScode); }catch(e){}
+        try{ if (typeof updateScodeBadge === 'function') updateScodeBadge(); }catch(e){}
+      } else {
+        // No preserved scode on card — attempt to resolve via CSV mapping
+        try{ if (typeof applyMappingIfPresent === 'function') applyMappingIfPresent(regionName, schoolName); }catch(e){}
+      }
+    }catch(e){
+      try{ if (typeof applyMappingIfPresent === 'function') applyMappingIfPresent(regionName, schoolName); }catch(e){}
+    }
+
     try{ if (typeof updateTopline === 'function') updateTopline(); }catch(e){}
     try{ if (typeof window.updateDebugOverlay === 'function') window.updateDebugOverlay(); }catch(e){}
 
@@ -1578,6 +1779,66 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     })(); // Close IIFE correctly
     </script>
+  <style>
+    /* Legacy badge style kept (unused by new render) */
+    .selector-btn .scode-hint{display:inline-block;margin-left:6px;padding:0 6px;border-radius:12px;background:#eef;font-size:11px;color:#334;line-height:16px;border:1px solid #ccd;vertical-align:middle;}
+    /* New under-name parentheses style */
+    .selector-btn .scode-under{display:block;margin-top:4px;font-size:0.72rem;font-weight:600;color:#445;letter-spacing:.5px;}
+  </style>
+  <script>
+    // Preload CSV to build quick school -> s-code map for list display
+    (function(){
+      async function preloadScodes(){
+        if (window._cmass_scodeQuickMap) return; // already built
+        const map = new Map();
+        let rows = null;
+        try {
+          if (typeof window.fetchCsvRows === 'function') {
+            rows = await window.fetchCsvRows().catch(()=>null);
+          }
+          if (!rows) {
+            const res = await fetch('/sales_staff.csv', { cache: 'no-store' });
+            if (!res.ok) throw new Error('CSV fetch failed');
+            const text = await res.text();
+            const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter(l => l.trim().length);
+            rows = lines.map(line => {
+              const cols = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+              return cols.map(c => {
+                let t = (c || '').trim();
+                if (t.startsWith('"') && t.endsWith('"')) t = t.slice(1, -1).replace(/""/g, '"');
+                return t;
+              });
+            });
+          }
+          if (rows && rows.length >= 2) {
+            const header = rows[0].map(h => String(h || '').trim());
+            const idxSchool = header.findIndex(h => /^(school|학교|학교명)$/i.test(h));
+            const idxScode = header.findIndex(h => /^(s[-_ ]?code|scode|학교코드|정보공시학교코드)$/i.test(h));
+            if (idxSchool !== -1 && idxScode !== -1) {
+              for (let i = 1; i < rows.length; i++){
+                const row = rows[i] || [];
+                const sch = (row[idxSchool] || '').trim();
+                const code = (row[idxScode] || '').trim();
+                if (!sch || !code) continue;
+                const normKey = (typeof window.cmassNormalizeSchoolKey === 'function') ? window.cmassNormalizeSchoolKey(sch) : sch.toLowerCase();
+                map.set(normKey, code);
+                map.set(sch, code);
+              }
+            }
+          }
+        } catch (e) {
+          // keep whatever was parsed
+        } finally {
+          window._cmass_scodeQuickMap = map;
+          try { window.dispatchEvent(new CustomEvent('cmass:scode-map-ready')); } catch(e){}
+        }
+      }
+      document.addEventListener('DOMContentLoaded', function(){
+        try{ preloadScodes(); }catch(e){}
+      });
+      try{ window.preloadScodes = preloadScodes; }catch(e){}
+    })();
+  </script>
 
   <script>
     // Apply school metadata from CSV mapping files
@@ -1613,121 +1874,244 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
-          // Try to fetch per-school metadata CSVs first
-          const schoolKey = (school || '').replace(/\s+/g, '_');
-          const candidates = schoolKey ? [
-            `/school_meta/${schoolKey}.csv`,
-            `/school_mappings/${schoolKey}.csv`,
-            `/mappings/${schoolKey}.csv`
-          ] : [];
+          // Build region+school exact map and normalized buckets from consolidated CSV
+          const rows = (typeof fetchCsvRows === 'function') ? await fetchCsvRows().catch(() => null) : null;
+          if (!rows || rows.length < 2){ console.warn('[Mapping] CSV rows unavailable'); return; }
+          const headers = (rows[0] || []).map(h => (h || '').trim());
+          const idxRegion = headers.findIndex(h => /^(region|지역|시도|시군구|시도교육청|교육지원청)$/i.test(h));
+          const idxSchool = headers.findIndex(h => /^(school|학교|학교명)$/i.test(h));
+          const idxScode = headers.findIndex(h => /^(s[-_ ]?code|scode|학교코드|정보공시학교코드)$/i.test(h));
+          const idxLevel = headers.findIndex(h => /^(학교급|학교급코드|급|level|schoolLevel)$/i.test(h));
+          // also collect meta columns
+          if (idxSchool === -1){ console.warn('[Mapping] school column not found'); return; }
 
-          let metaData = null;
-          for (const path of candidates){
+          function normalizeSchoolKey(s){
             try{
-              const res = await fetch(path, { cache: 'no-store' }).catch(() => null);
-              if (!res || !res.ok){ lastError = res ? res.status : 'fetch-failed'; continue; }
-              const ct = (res.headers.get('content-type') || '').toLowerCase();
-              if (!(ct.includes('csv') || ct.includes('text/plain') || ct.includes('application/octet-stream'))){
-                lastError = `unexpected-content-type:${ct}`;
-                continue;
-              }
-              const text = await res.text();
-              if (!text || !text.trim()){ lastError = 'empty'; continue; }
-              // Prefer small per-school CSV parser to return canonical meta
-              const m = (typeof parseSchoolMetaCsv === 'function') ? parseSchoolMetaCsv(text) : null;
-              if (m) { metaData = m; console.log('[Mapping] Found metadata for', school, 'at', path); break; }
-            }catch(e){
-              console.warn('[Mapping] per-school fetch failed for', path, e);
-            }
+              let t = (s||'').toString().toLowerCase();
+              t = t.replace(/\s+/g,'');
+              t = t.replace(/(남|여|여자|남자)(?=(?:고|중))/g,'');
+              t = t.replace(/학교|중학교|고등학교/g,'');
+              t = t.replace(/[^0-9a-z\u3131-\uD79D]/g,'');
+              return t;
+            }catch(e){ return (s||'').toString().toLowerCase(); }
           }
-          // Fallback: if no per-school CSV, try the consolidated sales_staff.csv you provided
 
-          // Fallback: if no per-school CSV, try the consolidated sales_staff.csv you provided
-          if (!metaData) {
-            try {
-              console.log('[Mapping] attempting consolidated CSV search using fetchCsvRows()');
-              const rows = (typeof fetchCsvRows === 'function') ? await fetchCsvRows().catch(() => null) : null;
-              if (rows && rows.length >= 2){
-                const headers = (rows[0] || []).map(h => (h || '').trim());
+          function normalizeRegionKey(r){
+            try{
+              let t = (r||'').toString().toLowerCase();
+              // remove common office suffixes and whitespace
+              t = t.replace(/교육지원청|교육청|시도|특별시|광역시|도|구|시/g,'');
+              t = t.replace(/\s+/g,'');
+              t = t.replace(/[^0-9a-z\u3131-\uD79D]/g,'');
+              return t;
+            }catch(e){ return (r||'').toString().toLowerCase(); }
+          }
 
-                // detect school column robustly
-                let schoolColIndex = -1;
-                schoolColIndex = headers.findIndex(h => /^school$/i.test(h) || /^학교$/i.test(h));
-                if (schoolColIndex < 0) schoolColIndex = headers.findIndex(h => /\bschool\b/i.test(h));
-                if (schoolColIndex < 0) schoolColIndex = headers.findIndex(h => /학교/i.test(h));
-                if (schoolColIndex < 0) schoolColIndex = headers.findIndex(h => /school|학교/i.test(h));
+          const exactMap = new Map(); // regionLower|schoolLower -> row
+          const normBuckets = new Map(); // normalized -> [row]
+          for (let i=1;i<rows.length;i++){
+            const row = rows[i] || [];
+            const sch = (row[idxSchool]||'').trim(); if (!sch) continue;
+            const reg = idxRegion !== -1 ? (row[idxRegion]||'').trim() : '';
+            const key = normalizeRegionKey(reg) + '|' + normalizeSchoolKey(sch);
+            exactMap.set(key, row);
+            const nk = normalizeSchoolKey(sch);
+            const arr = normBuckets.get(nk) || []; arr.push(row); normBuckets.set(nk, arr);
+          }
 
-                console.log('[Mapping] consolidated headers count', headers.length, 'sample', headers.slice(0,8));
-                console.log('[Mapping] detected schoolColIndex', schoolColIndex);
+          function pickMetaFromRow(row){
+            const obj = {};
+            headers.forEach((h, idx)=>{ const v = row[idx]; if (v !== undefined && String(v).trim() !== '') obj[h] = v; });
+            return obj;
+          }
 
-                function normalizeForMatch(name){
-                  if (!name) return '';
-                  try{ name = String(name); }catch(e){ name = ''; }
-                  try{ if (name.normalize) name = name.normalize('NFKC'); }catch(e){}
-                  name = name.replace(/\(.+?\)/g, '');
-                  name = name.replace(/[\p{P}\p{S}\s]+/gu, '');
-                  name = name.replace(/(고등학교|중학교|초등학교|학교)$/,'');
-                  return name.toLowerCase();
-                }
-
-                const normTarget = normalizeForMatch(school || '');
-                console.log('[Mapping] normTarget for lookup:', normTarget);
-
-                if (schoolColIndex >= 0){
-                  let mismatchCount = 0;
-                  for (let i = 1; i < rows.length; i++){
-                    const row = rows[i] || [];
-                    if (!Array.isArray(row) || row.length === 0) continue;
-                    if (row.length !== headers.length) mismatchCount += 1;
-                    const name = (row[schoolColIndex] || '').trim();
-                    const normRow = normalizeForMatch(name);
-                    if (i < 6) console.log('[Mapping] sample row', i, 'name:', name, 'normRow:', normRow);
-                    if (!name) continue;
-                    // exact normalized match
-                    if (normRow === normTarget && normTarget){
-                      const parsed = {};
-                      headers.forEach((h, idx) => { if (typeof row[idx] !== 'undefined' && String(row[idx]).trim() !== '') parsed[h] = row[idx]; });
-                      metaData = parsed; console.log('[Mapping] Found metadata for', school, 'in consolidated CSV (row', i, ')'); break;
-                    }
-                    // substring / token heuristics
-                    if (normRow && normTarget){
-                      const shortLen = Math.min([...normRow].length, [...normTarget].length);
-                      const isSubstr = (normRow.includes(normTarget) || normTarget.includes(normRow));
-                      if (isSubstr && shortLen >= 2){ const parsed = {}; headers.forEach((h, idx) => { if (typeof row[idx] !== 'undefined' && String(row[idx]).trim() !== '') parsed[h] = row[idx]; }); metaData = parsed; console.log('[Mapping] Found metadata (partial match) for', school, 'in consolidated CSV (row', i, ')'); break; }
-                      try{ const tokensRow = (normRow || '').split(/[^\p{L}\p{N}]+/u).filter(Boolean); const tokensTarget = (normTarget || '').split(/[^\p{L}\p{N}]+/u).filter(Boolean); const shared = tokensRow.filter(t => tokensTarget.includes(t)); if (!metaData && shared.length && shared.some(t => [...t].length >= 2)){ const parsed = {}; headers.forEach((h, idx) => { if (typeof row[idx] !== 'undefined' && String(row[idx]).trim() !== '') parsed[h] = row[idx]; }); metaData = parsed; console.log('[Mapping] Found metadata (token match) for', school, 'in consolidated CSV (row', i, ')', 'shared:', shared); break; } }catch(e){}
-                    }
+          function resolveRow(schoolName, regionName){
+            const regL = (regionName||'').toLowerCase(); const schL = (schoolName||'').toLowerCase();
+            // Use the same normalization used when building exactMap
+            const key = normalizeRegionKey(regL) + '|' + normalizeSchoolKey(schL);
+            try{ console.log('[Mapping DEBUG] exact key lookup:', key, 'exactMap.has(key):', exactMap.has(key)); }catch(e){}
+            const direct = exactMap.get(key);
+            if (direct) return direct;
+            // If exact lookup failed, try finding exactMap entries whose normalized
+            // school key equals our normalized target. This helps when region
+            // normalization differs slightly between CSV and selection UI.
+            try{
+              const nk = normalizeSchoolKey(schoolName);
+              const matchesFromExact = [];
+              for (const [k, row] of exactMap.entries()){
+                try{
+                  const parts = k.split('|');
+                  const sk = parts[1] || '';
+                  if (sk === nk) matchesFromExact.push(row);
+                }catch(e){}
+              }
+                if (matchesFromExact.length === 1) return matchesFromExact[0];
+                // If not unique, surface debug info
+                try{ window.updateMappingDebug({ when: 'exact-fallback', keyAttempt: key, normalizedSchool: nk, matchesFromExactCount: matchesFromExact.length, matchesFromExact: (matchesFromExact||[]).slice(0,6).map(r=>({ school:(r[idxSchool]||'').trim(), scode:(idxScode!==-1? (r[idxScode]||'').trim():''), region:(idxRegion!==-1? (r[idxRegion]||'').trim():'' ) })) }); }catch(e){}
+            }catch(e){ /* tolerate */ }
+            const nk = normalizeSchoolKey(schoolName);
+            const bucket = normBuckets.get(nk) || [];
+            if (!bucket.length) return null;
+            if (bucket.length === 1) return bucket[0];
+            // filter by region if present (support both 'region' and 시도/지원청)
+            function rowRegionLower(r){
+              const a = (idxRegion !== -1 ? (r[idxRegion]||'') : '').toString().toLowerCase();
+              return a;
+            }
+            // Loosen region matching: allow exact, includes, or normalized-education-office-insensitive match
+            const regionFiltered = bucket.filter(r => {
+              try{
+                const rr = rowRegionLower(r) || '';
+                if (!rr && !regL) return true;
+                if (rr === regL) return true;
+                if (rr.includes(regL) || regL.includes(rr)) return true;
+                // strip common office suffixes and whitespace for fuzzy compare
+                const stripOffice = s => (s||'').toString().toLowerCase().replace(/교육지원청|교육청|시도|특별시|광역시|도|구|시/g,'').replace(/\s+/g,'');
+                try{ const srr = stripOffice(rr), sreg = stripOffice(regL); if (srr && sreg && (srr === sreg || sreg.startsWith(srr) || srr.startsWith(sreg) || sreg.includes(srr) || srr.includes(sreg))) return true; }catch(e){}
+                return false;
+              }catch(e){ return false; }
+            });
+            if (regionFiltered.length === 1) return regionFiltered[0];
+            // If original school string contains level hint, prefer rows matching it
+            const original = (schoolName||'');
+            const wantsMiddle = /중(학교)?/.test(original);
+            const wantsHigh = /고(등학교)?/.test(original);
+            if (regionFiltered.length > 1){
+              let levelFiltered = regionFiltered;
+              if (wantsMiddle){ levelFiltered = levelFiltered.filter(r => (((r[idxSchool]||'').includes('중학교')) || (idxLevel!==-1 && String(r[idxLevel]||'').includes('중')))); }
+              if (wantsHigh){ levelFiltered = levelFiltered.filter(r => (((r[idxSchool]||'').includes('고등학교')) || (idxLevel!==-1 && String(r[idxLevel]||'').includes('고')))); }
+              // Tie-breakers: prefer exact name match, then gender-token alignment
+              try{
+                const exactMatches = levelFiltered.filter(r => (String(r[idxSchool]||'').trim() === String(original).trim()));
+                if (exactMatches.length === 1) return exactMatches[0];
+                const hasFemaleToken = /(여|여자)/.test(original);
+                const hasMaleToken = /(남|남자)/.test(original);
+                let genderFiltered = levelFiltered.slice();
+                if (!hasFemaleToken) genderFiltered = genderFiltered.filter(r => !/(여|여자)/.test(String(r[idxSchool]||'')));
+                if (!hasMaleToken) genderFiltered = genderFiltered.filter(r => !/(남|남자)/.test(String(r[idxSchool]||'')));
+                if (genderFiltered.length === 1) return genderFiltered[0];
+                // If still multiple, prefer rows whose school name startsWith original without gender token
+                const baseName = String(original||'').replace(/여자|남자/g,'');
+                const starts = levelFiltered.filter(r => String(r[idxSchool]||'').startsWith(baseName));
+                if (starts.length === 1) return starts[0];
+              }catch(e){ /* tolerate */ }
+              if (levelFiltered.length === 1) return levelFiltered[0];
+            } else if (bucket.length > 1){
+              let levelFiltered = bucket;
+              if (wantsMiddle){ levelFiltered = levelFiltered.filter(r => (((r[idxSchool]||'').includes('중학교')) || (idxLevel!==-1 && String(r[idxLevel]||'').includes('중')))); }
+              if (wantsHigh){ levelFiltered = levelFiltered.filter(r => (((r[idxSchool]||'').includes('고등학교')) || (idxLevel!==-1 && String(r[idxLevel]||'').includes('고')))); }
+              // Apply the same tie-breakers when only level filtering was possible
+              try{
+                const exactMatches = levelFiltered.filter(r => (String(r[idxSchool]||'').trim() === String(original).trim()));
+                if (exactMatches.length === 1) return exactMatches[0];
+                const hasFemaleToken = /(여|여자)/.test(original);
+                const hasMaleToken = /(남|남자)/.test(original);
+                let genderFiltered = levelFiltered.slice();
+                if (!hasFemaleToken) genderFiltered = genderFiltered.filter(r => !/(여|여자)/.test(String(r[idxSchool]||'')));
+                if (!hasMaleToken) genderFiltered = genderFiltered.filter(r => !/(남|남자)/.test(String(r[idxSchool]||'')));
+                if (genderFiltered.length === 1) return genderFiltered[0];
+                const baseName = String(original||'').replace(/여자|남자/g,'');
+                const starts = levelFiltered.filter(r => String(r[idxSchool]||'').startsWith(baseName));
+                if (starts.length === 1) return starts[0];
+              }catch(e){ /* tolerate */ }
+              if (levelFiltered.length === 1) return levelFiltered[0];
+            }
+            // unique scode across bucket
+            if (idxScode !== -1){ const uniq = new Set(bucket.map(r => (r[idxScode]||'').trim())); if (uniq.size === 1) return bucket[0]; }
+            // As a last resort, try a global normalized lookup (ignore region)
+            // If multiple rows share the normalized name but only one has a non-empty, unique scode,
+            // prefer that row — this handles cases like "청담중학교" vs "청담고등학교" where
+            // the level differs but the school code is the canonical identifier.
+            try{
+              if (idxScode !== -1){
+                const candidates = [];
+                for (const [k, rowsArr] of normBuckets.entries()){
+                  if (!k) continue;
+                  if (k === nk || k.includes(nk) || nk.includes(k)){
+                    for (const rr of rowsArr) candidates.push(rr);
                   }
-                  if (mismatchCount) console.log('[Mapping] total rows with length mismatch:', mismatchCount);
-                } else {
-                  console.warn('[Mapping] could not detect school column in consolidated CSV headers', headers);
                 }
-              } else {
-                console.log('[Mapping] consolidated CSV parsed but no rows found');
+                if (candidates.length === 1) return candidates[0];
+                if (candidates.length > 1){
+                  const scodeMap = new Map();
+                  for (const r of candidates){ const s = (r[idxScode]||'').trim(); if (s) { if (!scodeMap.has(s)) scodeMap.set(s, []); scodeMap.get(s).push(r); } }
+                  // if exactly one non-empty scode exists across candidates, use it
+                  const nonEmptyScodes = Array.from(scodeMap.keys()).filter(x=>x && String(x).trim());
+                  if (nonEmptyScodes.length === 1) {
+                    const pick = scodeMap.get(nonEmptyScodes[0])[0];
+                    return pick;
+                  }
+                }
               }
-            } catch (e) {
-              console.warn('[Mapping] consolidated CSV read failed', e);
-            }
+            }catch(e){ /* tolerate */ }
+            // Detailed debug output for unmatched normalized buckets
+            try{
+              try{ console.groupCollapsed('[Mapping DEBUG] no single match for', school, 'in', region); }catch(e){}
+              try{ console.log('normTarget (nk):', nk); }catch(e){}
+              try{ console.log('bucket length:', (bucket||[]).length); }catch(e){}
+              try{
+                const bucketSummary = (bucket||[]).map(r => ({ school: (r[idxSchool]||'').trim(), scode: (idxScode!==-1? (r[idxScode]||'').trim() : '') }));
+                console.log('bucket candidates:', bucketSummary);
+              }catch(e){}
+              try{ console.log('regionFiltered length:', (regionFiltered||[]).length); }catch(e){}
+              try{ const regionSummary = (regionFiltered||[]).map(r=>({ school:(r[idxSchool]||'').trim(), scode:(idxScode!==-1? (r[idxScode]||'').trim():''), region:(idxRegion!==-1? (r[idxRegion]||'').trim():'' ) })); console.log('regionFiltered candidates:', regionSummary); }catch(e){}
+              try{ console.log('wantsMiddle:', wantsMiddle, 'wantsHigh:', wantsHigh); }catch(e){}
+              try{
+                if (idxScode !== -1){
+                  const uniq = Array.from(new Set((bucket||[]).map(r => (r[idxScode]||'').trim()).filter(x=>x && String(x).trim())));
+                  console.log('unique non-empty scodes in bucket:', uniq);
+                }
+              }catch(e){}
+              try{ console.groupEnd(); }catch(e){}
+              try{
+                window.updateMappingDebug({ when: 'no-single-match', region, school, normTarget: nk, bucketLength: (bucket||[]).length, bucketCandidates: (bucket||[]).slice(0,8).map(r=>({ school:(r[idxSchool]||'').trim(), scode:(idxScode!==-1? (r[idxScode]||'').trim():''), region:(idxRegion!==-1? (r[idxRegion]||'').trim():'' ) })), regionFilteredCount: (regionFiltered||[]).length, regionFiltered: (regionFiltered||[]).slice(0,8).map(r=>({ school:(r[idxSchool]||'').trim(), scode:(idxScode!==-1? (r[idxScode]||'').trim():''), region:(idxRegion!==-1? (r[idxRegion]||'').trim():'' ) })), wantsMiddle, wantsHigh });
+              }catch(e){}
+            }catch(e){}
+            return null;
           }
 
-          if (metaData) {
-            // Store and apply the metadata
+          const matched = resolveRow(school, region);
+          if (matched){
+            const metaData = pickMetaFromRow(matched);
             window._cmass_lastFoundMeta = metaData;
+            // expose scode
             try{
-              if (typeof window.applyMeta === 'function') window.applyMeta(metaData);
-              // Mark this mapping as applied so subsequent identical calls will be no-ops
-              try{ window._cmass_lastAppliedMappingKey = `${region}::${school}`; }catch(e){}
-            }catch(e){ console.warn('[Mapping] applyMeta failed', e); }
+              const scode = idxScode !== -1 ? (matched[idxScode]||'').trim() : '';
+              window._cmass_lastScode = scode || '';
+              try{ if (sessionStorage) sessionStorage.setItem('cmass:next_scode', window._cmass_lastScode); }catch(e){}
+            }catch(e){}
+            try{ if (typeof window.applyMeta === 'function') window.applyMeta(metaData); }catch(e){ console.warn('[Mapping] applyMeta failed', e); }
+            try{ window._cmass_lastAppliedMappingKey = `${region}::${school}`; }catch(e){}
           } else {
-            console.log('[Mapping] No metadata found for', school);
+            // Fallback: if centralized helper exists, try it before giving up
+            let fallbackMeta = null;
+            try{
+              if (typeof findSalesStaffMeta === 'function'){
+                try{ fallbackMeta = findSalesStaffMeta(school); }catch(e){ fallbackMeta = null; }
+              }
+            }catch(e){ fallbackMeta = null; }
+
+            if (fallbackMeta && typeof fallbackMeta === 'object'){
+              try{
+                window._cmass_lastFoundMeta = fallbackMeta;
+                // try to extract scode from common keys
+                const scKeys = ['s-code','scode','학교코드','정보공시학교코드','schoolCode','school_code'];
+                let sc = '';
+                for(const k of scKeys){ if (fallbackMeta[k] && String(fallbackMeta[k]).trim()){ sc = String(fallbackMeta[k]).trim(); break; } }
+                window._cmass_lastScode = sc || '';
+                try{ if (sessionStorage) sessionStorage.setItem('cmass:next_scode', window._cmass_lastScode); }catch(e){}
+                try{ if (typeof window.applyMeta === 'function') window.applyMeta(fallbackMeta); }catch(e){ console.warn('[Mapping] applyMeta(fallback) failed', e); }
+                try{ window._cmass_lastAppliedMappingKey = `${region}::${school}`; }catch(e){}
+              }catch(e){ console.warn('[Mapping] fallback apply failed', e); window._cmass_lastFoundMeta = null; window._cmass_lastScode = ''; }
+            } else {
+              console.warn('[Mapping] no match for', { region, school });
+              window._cmass_lastFoundMeta = null; window._cmass_lastScode = '';
+            }
           }
         } catch(err) {
           console.warn('[Mapping] Error loading metadata:', err);
         } finally {
-          // Clear in-progress flag for this mapping so future different selections can run.
-          try{
-            const mapKeyClear = `${region}::${school}`;
-            if (window._cmass_mappingInProgress === mapKeyClear) window._cmass_mappingInProgress = null;
-          }catch(e){}
+          try{ const mapKeyClear = `${region}::${school}`; if (window._cmass_mappingInProgress === mapKeyClear) window._cmass_mappingInProgress = null; }catch(e){}
         }
       };
 
@@ -1745,8 +2129,9 @@ document.addEventListener('DOMContentLoaded', function() {
           }); // Close event handler
         }
 
-      // (Auto-save removed to prevent confusion when entering multiple schools)
-  </script>
+        // (Auto-save removed to prevent confusion when entering multiple schools)
+        })();
+      </script>
 
   <!-- Debug block removed -->
 <!-- Portrait-lock overlay styles and element (moved to body end to avoid parsing order issues) -->
