@@ -569,6 +569,8 @@
             if (b.earliest === null) return -1;
             return a.earliest - b.earliest;
           });
+          // global meeting counter so Kakao numbering continues across schools (가1, 가2, 가3...)
+          let globalMeetingCounter = 0;
           for (const se of schoolEntries){
             idxSchool++;
             const sch = se.school;
@@ -681,7 +683,8 @@
               if (gift) extraParts.push(gift);
               if (follow) extraParts.push(follow);
               const extra = extraParts.join('  ');
-              let meetingLine = `-  ${korNums[idxSchool-1]}${j+1}.${subjText} (${teacher}${pub?'-'+pub:''}${favorText?'-'+favorText:''})`;
+              globalMeetingCounter++;
+              let meetingLine = `-  ${korNums[0]}${globalMeetingCounter}.${subjText} (${teacher}${pub?'-'+pub:''}${favorText?'-'+favorText:''})`;
               if (extra) meetingLine += ` : ${extra}`;
               lines.push(meetingLine);
             });
@@ -1742,9 +1745,11 @@
                         out.push(`(${head.staffLabel || head.staff || ''} 퇴근보고)`);
                         out.push(`방문일: ${head.visitDate || ''}`);
                         out.push('');
-                        let idx = 0;
+                        // global meeting counter so Kakao numbering continues across schools (가1, 가2, 가3...)
+                        let globalIdx = 0;
                         for (const se of schoolEntries) {
-                          idx++;
+                          // idx not used for numbering now, but keep for fallback labels
+                          const idx = (function(){ try{ return (schoolEntries.indexOf(se) + 1); }catch(e){ return 1; } })();
                           const sch = se.school;
                           const list = se.list || [];
                           const listSorted = (list||[]).slice().sort(function(a, b) {
@@ -1775,7 +1780,8 @@
                               if (issue) extraParts.push(issue);
                               const extra = extraParts.join('  ');
                               const teacherPart = teacher ? (teacher + (favor ? '-' + favor : '')) : (favor ? ('(' + favor + ')') : '');
-                              const line = `-  ${korNums[idx-1] || String(idx)}${j+1}. ${subj}` + (teacherPart ? (` (${teacherPart})`) : '') + (extra ? (` : ${extra}`) : '');
+                              globalIdx++;
+                              const line = `-  ${korNums[0]}${globalIdx}. ${subj}` + (teacherPart ? (` (${teacherPart})`) : '') + (extra ? (` : ${extra}`) : '');
                               out.push(line);
                             } catch(e) {}
                           });
