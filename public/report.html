@@ -1781,68 +1781,21 @@
                   // If the existing summary does not contain the detailed per-school
                   // meeting bullets (e.g. '-  가1.'), synthesize them here using
                   // the current filtered entries so copy produces the expected format.
-                  try{
+                      try{
                     if (!raw || !(/-\s*가1\.|2\. 세부업무/.test(raw))){
-                      // build school-by-school meeting text from available entries
+                      // Delegate to centralized builder if available
                       let entries = [];
                       try{ entries = (typeof window._cmass_report_lastFiltered !== 'undefined') ? (window._cmass_report_lastFiltered || []) : []; }catch(e){}
                       try{ if ((!entries || entries.length===0) && typeof window.loadLocalReports === 'function') entries = window.loadLocalReports() || []; }catch(e){}
                       try{ if ((!entries || entries.length===0)) entries = JSON.parse(localStorage.getItem('cmass_reports')||'[]') || []; }catch(e){}
                       if (entries && entries.length){
-                        const korNums = ['가','나','다','라','마','바','사','아','자','차','카','타','파','하'];
-                        const bySchool = {};
-                        entries.forEach(it=>{ try{ const s = (it.school||'학교 미정').toString().trim(); (bySchool[s] = bySchool[s]||[]).push(it); }catch(e){} });
-                        const schoolEntries = Object.keys(bySchool).map(sch=>{ const list = bySchool[sch]||[]; const startTimes = list.map(it=>{ try{ if (it.visitStart && String(it.visitStart).trim()){ const m = String(it.visitStart).match(/(\d{1,2}):(\d{1,2})/); if (m) return Number(m[1])*60 + Number(m[2]); } if (it.startHour !== undefined && it.startHour !== '') return (Number(it.startHour||0)*60 + Number(it.startMinute||0)); }catch(e){} return null; }).filter(x=>x!==null).sort((a,b)=>a-b); const first = startTimes.length?startTimes[0]:null; return { school: sch, list: list, earliest: first }; });
-                        schoolEntries.sort((a,b)=>{ if (a.earliest===null && b.earliest===null) return 0; if (a.earliest===null) return 1; if (b.earliest===null) return -1; return a.earliest - b.earliest; });
-                        const out = [];
-                        const head = entries[0] || {};
-                        out.push(`(${head.staffLabel || head.staff || ''} 퇴근보고)`);
-                        out.push(`방문일: ${head.visitDate || ''}`);
-                        out.push('');
-                        // global meeting counter so Kakao numbering continues across schools (가1, 가2, 가3...)
-                        let globalIdx = 0;
-                        for (const se of schoolEntries) {
-                          // idx not used for numbering now, but keep for fallback labels
-                          const idx = (function(){ try{ return (schoolEntries.indexOf(se) + 1); }catch(e){ return 1; } })();
-                          const sch = se.school;
-                          const list = se.list || [];
-                          const listSorted = (list||[]).slice().sort(function(a, b) {
-                            function ga(it) {
-                              try {
-                                if (it.visitStart && String(it.visitStart).trim()){
-                                  const m = String(it.visitStart).match(/(\d{1,2}):(\d{1,2})/);
-                                  if (m) return Number(m[1]) * 60 + Number(m[2]);
-                                }
-                                if (it.startHour !== undefined && it.startHour !== '') return (Number(it.startHour||0) * 60 + Number(it.startMinute||0));
-                              } catch(e){}
-                              return 1e9;
-                            }
-                            return ga(a) - ga(b);
-                          });
-
-                          listSorted.forEach(function(it, j) {
-                            try {
-                              const subj = Array.isArray(it.subject) ? it.subject.join(', ') : (Array.isArray(it.subjects) ? it.subjects.join(', ') : (it.subject || it.subjects || ''));
-                                              const teacher = (it.teacherName || it.teacher || it.teacher_name || it.instructor || it.teacherFullName || it.tchr || '').toString().trim();
-                                              const favor = (it.favor || it.reaction || it.favorText || it.favour || '').toString().trim();
-                              const activitiesText = Array.isArray(it.activities) ? (it.activities.join(', ')) : (it.activities || '');
-                              const conv = (it.conversation || it.notes || '') ? String(it.conversation || it.notes || '').trim() : '';
-                              const issue = (it.issue || it.special || it.remark || '') ? String(it.issue || it.special || it.remark || '').trim() : '';
-                              const extraParts = [];
-                              if (activitiesText) extraParts.push(activitiesText);
-                              if (conv) extraParts.push(conv);
-                              if (issue) extraParts.push(issue);
-                              const extra = extraParts.join('  ');
-                              const teacherPart = teacher ? (teacher + (favor ? '-' + favor : '')) : (favor ? ('(' + favor + ')') : '');
-                              globalIdx++;
-                              const line = `-  ${korNums[0]}${globalIdx}. ${subj}` + (teacherPart ? (` (${teacherPart})`) : '') + (extra ? (` : ${extra}`) : '');
-                              out.push(line);
-                            } catch(e) {}
-                          });
-
-                          out.push('');
+                        if (typeof window.cmassBuildKakaoSummary === 'function'){
+                          raw = window.cmassBuildKakaoSummary(entries);
+                        } else if (typeof window.cmassBuildKakaoPerMeeting === 'function'){
+                          const head = entries[0] || {};
+                          const header = `(${head.staffLabel || head.staff || ''} 퇴근보고)\n방문일: ${head.visitDate || ''}\n\n`;
+                          raw = header + window.cmassBuildKakaoPerMeeting(entries);
                         }
-                        raw = out.join('\n');
                       }
                     }
                   }catch(e){}
@@ -2649,6 +2602,33 @@ function reloadServerReports() {
     }
     // Hook: if a global kakao summary builder exists, override fallback to use our formatter
     window.cmassBuildKakaoPerMeeting = buildPerMeetingLines;
+    // Sanitize Kakao text: remove 전달자료 tokens and normalize spacing/blank lines
+    function cmassSanitizeKakaoText(t){
+      try{
+        let s = String(t || '');
+        s = s.replace(/\b재방문:\s*[^,\n\r]*/g, '');
+        const materialKeywords = ['스프레드시트','학업설계','직업세계','챗GPT','엔트리','마이크로비트','파이썬','오렌지','코답','워크북','교과','브로슈어','가이드북','포스터','문제집','프린트물','전달자료','증정','납품','전달','전달물'];
+        const matRegex = new RegExp(materialKeywords.join('|'),'i');
+        const lines = String(s||'').split('\n').map(l => {
+          try{ const segs = l.split(/\s{2,}/).map(x=>x.trim()).filter(Boolean); const filtered = segs.filter(seg => !matRegex.test(seg)); return filtered.join('  '); }catch(e){ return l; }
+        });
+        const normed = lines.map(l => l.replace(/,\s*,/g, ',').replace(/자동 태그:\s*,/g, '자동 태그:').replace(/자동 태그:\s*$/g, ''));
+        const out = []; let prevBlank = false;
+        for (const L0 of normed){ const L = L0.replace(/\s+,\s*$/,'').replace(/\s+$/,'').replace(/^\s+/,''); const isBlank = (L.trim().length === 0); if (isBlank){ if (!prevBlank){ out.push(''); prevBlank = true; } } else { out.push(L); prevBlank = false; } }
+        return out.join('\n');
+      }catch(e){ return t; }
+    }
+
+    // Build full Kakao summary (header + per-meeting lines) and sanitize.
+    window.cmassBuildKakaoSummary = function(entries){
+      try{
+        if (!entries || !entries.length) return '';
+        const head = entries[0] || {};
+        const header = `(${head.staffLabel || head.staff || ''} 퇴근보고)\n방문일: ${head.visitDate || ''}\n\n`;
+        const body = (typeof window.cmassBuildKakaoPerMeeting === 'function') ? window.cmassBuildKakaoPerMeeting(entries) : '';
+        return cmassSanitizeKakaoText(header + body);
+      }catch(e){ return ''; }
+    };
   })();
   </script>
   </html>
