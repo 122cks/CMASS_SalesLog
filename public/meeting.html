@@ -299,30 +299,24 @@
             try{ obj.meta = (window.schoolMetaMap && window.schoolMetaMap[obj.school]) ? window.schoolMetaMap[obj.school] : ''; }catch(e){ obj.meta = ''; }
             // Attach resolved s-code. Prefer the selected option's dataset or the visible label (e.g. "학교명 (S090000609)")
             try{
+              // STRICT: Only accept the selected option's dataset.scode. Do NOT parse CSV, option text, or session fallbacks.
               let resolved = '';
               try{
                 const sel = qs('schoolSelect');
                 if (sel && sel.options && sel.selectedIndex >= 0){
                   const opt = sel.options[sel.selectedIndex];
-                  // prefer explicit dataset.scode when present
                   if (opt && opt.dataset && opt.dataset.scode && String(opt.dataset.scode).trim()){
                     resolved = String(opt.dataset.scode).trim();
-                  } else if (opt && opt.text){
-                    // attempt to parse trailing parenthesized code from option text or visible school
-                    const txt = String(opt.text).trim();
-                    const m = txt.match(/\(([^)]+)\)\s*$/);
-                    if (m && m[1]) resolved = String(m[1]).trim();
+                  } else {
+                    resolved = '';
                   }
                 }
-              }catch(_){ }
-              // fallback: sessionStorage or prior mapping
-              if (!resolved){ try{ resolved = (sessionStorage && sessionStorage.getItem('cmass:next_scode')) || window._cmass_currentScode || ''; }catch(e){ resolved = window._cmass_currentScode || ''; } }
+              }catch(_){ resolved = ''; }
               obj.scode = resolved || '';
-              // Also store canonical key form used elsewhere ('s-code') so report rendering can read it directly
-              try{ obj['s-code'] = obj.scode || (sessionStorage && sessionStorage.getItem('cmass:next_school_scode')) || ''; }catch(e){ obj['s-code'] = obj.scode || ''; }
-              // persist the parsed value back to sessionStorage so other pages use it
-              try{ if (sessionStorage && obj.scode){ sessionStorage.setItem('cmass:next_scode', obj.scode); sessionStorage.setItem('cmass:next_school_scode', obj.scode); } }catch(_){ }
-            }catch(e){ obj.scode = window._cmass_currentScode || ''; }
+              try{ obj['s-code'] = obj.scode || ''; }catch(_){ obj['s-code'] = obj.scode || ''; }
+              // persist the explicit dataset value (or empty) so UI reflects the strict choice
+              try{ if (sessionStorage){ sessionStorage.setItem('cmass:next_scode', obj.scode || ''); sessionStorage.setItem('cmass:next_school_scode', obj.scode || ''); } }catch(_){ }
+            }catch(e){ obj.scode = ''; obj['s-code'] = ''; }
             // Unified field names: request, conversation, issue, delivery, gift, followup
             // Legacy fields (requests/deliveries/gifts/followUp) are consolidated into 'issue'
             obj.request = (qs('requests') && qs('requests').value) || '';
