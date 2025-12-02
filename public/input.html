@@ -167,6 +167,7 @@
             try{ if (sessionStorage && sessionStorage.setItem) sessionStorage.setItem('cmass:next_scode', window._cmass_lastScode || ''); }catch(e){}
             try{ const scEl = document.getElementById('scodeDisplay'); if(scEl) scEl.textContent = scode ? ('학교코드: ' + String(scode)) : scEl.textContent; }catch(e){}
             try{ if (typeof updateScodeBadge === 'function') updateScodeBadge(); }catch(e){}
+            try{ window.dispatchEvent(new CustomEvent('cmass:scode-updated', { detail: { scode: window._cmass_lastScode || '' } })); }catch(e){}
             try{ console.log('[applyMeta] scode applied to UI/session:', window._cmass_lastScode); }catch(e){}
             console.log('[applyMeta] DOM 업데이트 완료:', { 
               inlineEst: inlineEst?.textContent, 
@@ -278,7 +279,7 @@
         b.classList.remove('scode-success','scode-ambiguous','scode-unmatched');
         if (scode){
           if (ambiguous){ b.classList.add('scode-ambiguous'); b.textContent = '모호'; b.title = '여러 후보가 있어 모호합니다'; }
-          else { b.classList.add('scode-success'); b.textContent = '성공'; b.title = 's-code 매핑 성공'; }
+          else { b.classList.add('scode-success'); b.textContent = ''; b.title = 's-code 매핑 성공'; }
           // Ensure inline pill reflects the latest scode as well
           try{ const pill = document.getElementById('inlinePillScode'); if (pill) pill.textContent = '학교코드: ' + String(scode); }catch(e){}
         } else { b.classList.add('scode-unmatched'); b.textContent = '미일치'; b.title = 's-code를 찾지 못했습니다'; }
@@ -939,9 +940,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
   document.getElementById('schoolButtons')?.addEventListener('click', async function(e) {
     const btn = e.target.closest('button');
-    if (btn) {
+      if (btn) {
       window.selectedSchool = btn.textContent.trim();
-      try{ sessionStorage.setItem('cmass:next_school', window.selectedSchool); }catch(e){}
+      try{
+        const name = window.selectedSchool || '';
+        let scode = window._cmass_lastScode || '';
+        try{
+          const matching = Array.from(document.querySelectorAll('#schoolButtons button')).find(b => (b.dataset && b.dataset.school) ? b.dataset.school === name : (b.textContent||'').trim() === name);
+          if (matching){ const scEl = matching.querySelector && matching.querySelector('.scode-under'); if (scEl && scEl.textContent) scode = scEl.textContent.replace(/[()\s]/g,'').trim(); }
+        }catch(e){}
+        const display = scode ? (name + ' (' + scode + ')') : name;
+        try{ if (window.sessionStorage){ sessionStorage.setItem('cmass:next_school', name); sessionStorage.setItem('cmass:next_school_display', display); if (scode) sessionStorage.setItem('cmass:next_school_scode', scode); } }catch(e){}
+      }catch(e){}
       // attempt to resolve metadata (prefer global helper if present)
       try{
         let meta = null;
@@ -994,8 +1004,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="meta-pill" id="inlinePillLevel">급: -</div>
         <div class="meta-pill" id="inlinePillStudents">총학생수: -</div>
         <div class="meta-pill" id="inlinePillFeature" style="display:none;">특성: -</div>
-        <div class="meta-pill" id="inlinePillScode">학교코드: -</div>
-        <div id="inlineScodeBadge" class="scode-badge scode-unmatched" title="s-code 매핑 상태">미일치</div>
+        <!-- inline s-code badge removed per user request -->
       </div>
       <div class="grade-rows">
         <div class="grade-row"><div class="grade-label">1학년:</div><div class="grade-value"><span id="inlineG1c"></span> 학급 / <span id="inlineG1s"></span> 학생</div></div>
@@ -1145,8 +1154,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (visitDate) sessionStorage.setItem('cmass:next_visitDate', visitDate);
                 if (region) sessionStorage.setItem('cmass:next_region', region);
                 // Persist the selected school so meeting.html can prefill it
-                try{ if (school) sessionStorage.setItem('cmass:next_school', school); }catch(e){}
-              // Persist resolved scode if metadata already applied
+                try{
+                  if (school) sessionStorage.setItem('cmass:next_school', school);
+                  try{
+                    // attempt to derive scode/display from current selection or cached last scode
+                    let sc = window._cmass_lastScode || '';
+                    try{
+                      const btn = Array.from(document.querySelectorAll('#schoolButtons button')).find(b => (b.dataset && b.dataset.school) ? b.dataset.school === school : (b.textContent||'').trim() === school);
+                      if (btn){ const se = btn.querySelector && btn.querySelector('.scode-under'); if (se && se.textContent) sc = se.textContent.replace(/[()\s]/g,'').trim(); }
+                    }catch(e){}
+                    const disp = sc ? (school + ' (' + sc + ')') : school;
+                    if (disp) sessionStorage.setItem('cmass:next_school_display', disp);
+                    if (sc) sessionStorage.setItem('cmass:next_school_scode', sc);
+                  }catch(e){}
+                }catch(e){}
+              // Persist resolved scode if metadata already applied (keep legacy key too)
               try{ if (window._cmass_lastScode) sessionStorage.setItem('cmass:next_scode', window._cmass_lastScode); }catch(e){}
                 // 미팅내용 관련 값 초기화 (but keep next_school)
                 sessionStorage.removeItem('cmass:edit_entry');
@@ -1759,6 +1781,46 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         // No preserved scode on card — attempt to resolve via CSV mapping
         try{ if (typeof applyMappingIfPresent === 'function') applyMappingIfPresent(regionName, schoolName); }catch(e){}
+      }
+
+      // If we preserved a scode from the card, still attempt to fetch full metadata
+      // for that scode so other fields (설립/급/학생수 등) are populated.
+      if (preservedScode){
+        (async function(){
+          try{
+            let rows = null;
+            if (typeof fetchCsvRows === 'function'){
+              try{ rows = await fetchCsvRows(); }catch(e){ rows = null; }
+            }
+            if (!rows){
+              try{
+                const res = await fetch('/sales_staff.csv', { cache: 'no-store' });
+                if (res && res.ok){
+                  const txt = await res.text();
+                  const lines = txt.replace(/^\uFEFF/, '').split(/\r?\n/).filter(l => l.trim());
+                  rows = lines.map(l => l.split(/,(?=(?:[^"]*\"[^"]*\")*[^\"]*$)/).map(c => { let t=(c||'').trim(); if (t.startsWith('"') && t.endsWith('"')) t = t.slice(1,-1).replace(/""/g,'"'); return t; }));
+                }
+              }catch(e){ rows = null; }
+            }
+            if (!rows || rows.length < 2) return;
+            const headers = (rows[0] || []).map(h => (h||'').trim());
+            const idxScode = headers.findIndex(h => /^(s[-_ ]?code|scode|학교코드|정보공시학교코드)$/i.test(h));
+            if (idxScode === -1) return;
+            for (let i = 1; i < rows.length; i++){
+              const row = rows[i] || [];
+              const code = (row[idxScode] || '').trim();
+              if (!code) continue;
+              if (code === preservedScode || code === (preservedScode.replace(/^S/i,'')) || ('S'+code) === preservedScode) {
+                const parsed = {};
+                headers.forEach((h, idx) => { const v = row[idx]; if (v !== undefined && String(v).trim() !== '') parsed[h] = v; });
+                try{ window._cmass_lastFoundMeta = parsed; if (typeof applyMeta === 'function') applyMeta(parsed); }catch(e){}
+                break;
+              }
+            }
+          }catch(e){ /* tolerate */ }
+        })();
+          // Notify listeners that a scode was preserved from the card
+          try{ window.dispatchEvent(new CustomEvent('cmass:scode-updated', { detail: { scode: String(preservedScode || '') } })); }catch(e){}
       }
     }catch(e){
       try{ if (typeof applyMappingIfPresent === 'function') applyMappingIfPresent(regionName, schoolName); }catch(e){}

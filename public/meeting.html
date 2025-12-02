@@ -147,14 +147,19 @@
     // input.html에서 선택한 지역/학교를 sessionStorage에서 읽어 select에 반영
     try {
       const nextRegion = sessionStorage.getItem('cmass:next_region');
-      const nextSchool = sessionStorage.getItem('cmass:next_school');
+      const nextSchoolDisplay = sessionStorage.getItem('cmass:next_school_display') || '';
+      const nextSchoolCode = sessionStorage.getItem('cmass:next_school_scode') || '';
+      const nextSchool = nextSchoolDisplay || sessionStorage.getItem('cmass:next_school');
       if (nextRegion) {
         const regionSelect = document.getElementById('regionSelect');
         if (regionSelect) regionSelect.value = nextRegion;
       }
       if (nextSchool) {
         const schoolSelect = document.getElementById('schoolSelect');
-        if (schoolSelect) schoolSelect.value = nextSchool;
+        if (schoolSelect){
+          const opt = Array.from(schoolSelect.options).find(o => (o.value === nextSchool) || ((o.text||'') === nextSchool) || ((o.dataset && o.dataset.scode) === nextSchoolCode));
+          if (opt) schoolSelect.value = opt.value; else schoolSelect.value = nextSchool;
+        }
       }
     } catch(e) {}
     // 방문일 기준 입력리스트(historyList) 표시 함수
@@ -164,6 +169,7 @@
         const school = (document.getElementById('schoolSelect') && document.getElementById('schoolSelect').value) || '';
         const arr = JSON.parse(localStorage.getItem('cmass_reports') || '[]') || [];
         let filtered = arr.filter(it => String(it.visitDate || '') === String(visitDate));
+        const container = document.getElementById('historyList');
         if (school) {
           filtered = filtered.filter(it => String(it.school || '') === String(school));
         }
@@ -179,14 +185,35 @@
               if (ambiguous){ b.classList.add('scode-ambiguous'); b.textContent = '모호'; b.title = '여러 후보가 있어 모호합니다'; }
               else { b.classList.add('scode-success'); b.textContent = '성공'; b.title = 's-code 매핑 성공'; }
             } else { b.classList.add('scode-unmatched'); b.textContent = '미일치'; b.title = 's-code를 찾지 못했습니다'; }
-          }catch(e){ /* ignore */ }
+
+            try{
+              if (sessionStorage){
+                // persist canonical code and also keep display in sync
+                sessionStorage.setItem('cmass:next_scode', scode);
+                sessionStorage.setItem('cmass:next_school_scode', scode);
+                // also persist the visible label for convenience
+                try{
+                  const opt = (schoolEl && schoolEl.options && schoolEl.selectedIndex >= 0) ? schoolEl.options[schoolEl.selectedIndex] : null;
+                  const disp = opt ? (opt.text || schoolName) : schoolName;
+                  if (disp) sessionStorage.setItem('cmass:next_school_display', String(disp));
+                  if (opt && opt.value) sessionStorage.setItem('cmass:next_school', String(opt.value));
+                  try{ window.selectedSchool = disp; }catch(e){}
+                }catch(e){}
+              }
+            }catch(e){}
+
+            window._cmass_currentScode = scode;
+            if (typeof scodeEl !== 'undefined' && scodeEl) scodeEl.textContent = '학교코드: ' + scode;
+            try{ window.dispatchEvent(new CustomEvent('cmass:scode-updated', { detail: { scode: scode } })); }catch(e){}
+          }catch(e){}
         }
-        const container = document.getElementById('historyList');
-        if (!container) return;
         container.innerHTML = '';
         if (!filtered.length) {
           container.innerHTML = '<div style="color:#888;font-size:13px;">해당 조건에 맞는 입력이 없습니다.</div>';
-          return;
+              try{
+                if (sessionStorage){ sessionStorage.removeItem('cmass:next_school_scode'); sessionStorage.removeItem('cmass:next_scode'); }
+              }catch(e){}
+              try{ window.dispatchEvent(new CustomEvent('cmass:scode-updated', { detail: { scode: '' } })); }catch(e){}
         }
         filtered.forEach(entry => {
           const subjects = Array.isArray(entry.subject) ? entry.subject.join(', ') : (Array.isArray(entry.subjects) ? entry.subjects.join(', ') : (entry.subject || entry.subjects || ''));
@@ -272,6 +299,8 @@
             try{ obj.meta = (window.schoolMetaMap && window.schoolMetaMap[obj.school]) ? window.schoolMetaMap[obj.school] : ''; }catch(e){ obj.meta = ''; }
             // Attach resolved s-code sourced from sessionStorage or previous mapping
             try{ obj.scode = (sessionStorage && sessionStorage.getItem('cmass:next_scode')) || window._cmass_currentScode || ''; }catch(e){ obj.scode = window._cmass_currentScode || ''; }
+            // Also store canonical key form used elsewhere ('s-code') so report rendering can read it directly
+            try{ obj['s-code'] = obj.scode || (sessionStorage && sessionStorage.getItem('cmass:next_school_scode')) || ''; }catch(e){ obj['s-code'] = obj.scode || ''; }
             // Unified field names: request, conversation, issue, delivery, gift, followup
             // Legacy fields (requests/deliveries/gifts/followUp) are consolidated into 'issue'
             obj.request = (qs('requests') && qs('requests').value) || '';
@@ -545,10 +574,14 @@
               const date = dateEl && dateEl.value;
               const region = (qs('regionSelect') && qs('regionSelect').value) || '';
               const school = (qs('schoolSelect') && qs('schoolSelect').value) || '';
+              const schoolElRef = qs('schoolSelect');
+              const schoolOpt = (schoolElRef && schoolElRef.options && schoolElRef.selectedIndex >= 0) ? schoolElRef.options[schoolElRef.selectedIndex] : null;
+              const schoolDisplay = schoolOpt ? (schoolOpt.text || school) : school;
+              const schoolScode = schoolOpt && schoolOpt.dataset ? (schoolOpt.dataset.scode || '') : '';
               if (!date){ alert('방문일을 선택해 주세요.'); return; }
               try{ computeAndStoreMetrics(staff || '', date); }catch(e){}
               // Persist region/school in sessionStorage only (do NOT add them to the URL)
-              try{ if (window.sessionStorage){ if (region) sessionStorage.setItem('cmass:next_region', String(region)); if (school) sessionStorage.setItem('cmass:next_school', String(school)); } }catch(e){}
+              try{ if (window.sessionStorage){ if (region) sessionStorage.setItem('cmass:next_region', String(region)); if (school) sessionStorage.setItem('cmass:next_school', String(school)); if (schoolDisplay) sessionStorage.setItem('cmass:next_school_display', String(schoolDisplay)); if (schoolScode) sessionStorage.setItem('cmass:next_school_scode', String(schoolScode)); } }catch(e){}
               try{ const params = new URLSearchParams(); if (staff) params.set('staff', String(staff)); params.set('visitDate', String(date)); window.location.href = '/report' + (params.toString() ? ('?' + params.toString()) : ''); }catch(e){ let q = '?visitDate=' + encodeURIComponent(String(date)); if (staff) q = 'staff=' + encodeURIComponent(String(staff)) + '&visitDate=' + encodeURIComponent(String(date)); window.location.href = '/report' + q; }
             }, true);
           }
@@ -574,7 +607,16 @@
                       try{ if (label) sessionStorage.setItem('cmass:next_staff_label', String(label)); }catch(e){}
                       try{ if (date) sessionStorage.setItem('cmass:next_visitDate', String(date)); }catch(e){}
                       try{ if (region) sessionStorage.setItem('cmass:next_region', String(region)); }catch(e){}
-                      try{ if (school) sessionStorage.setItem('cmass:next_school', String(school)); }catch(e){}
+                      try{
+                        if (school) sessionStorage.setItem('cmass:next_school', String(school));
+                        try{
+                          const sel = (qs('schoolSelect') && qs('schoolSelect').options && qs('schoolSelect').selectedIndex >= 0) ? qs('schoolSelect').options[qs('schoolSelect').selectedIndex] : null;
+                          const disp = sel ? (sel.text || school) : school;
+                          const sc = sel && sel.dataset ? (sel.dataset.scode || '') : '';
+                          if (disp) sessionStorage.setItem('cmass:next_school_display', String(disp));
+                          if (sc) sessionStorage.setItem('cmass:next_school_scode', String(sc));
+                        }catch(e){}
+                      }catch(e){}
                     }catch(e){}
                   };
                   back.addEventListener('click', window.__cmass_back_click__, true);
@@ -635,45 +677,7 @@
       })();
       </script>
   <header>
-          function getScodeFromMetaOrSession(meta){
-            try{
-              // prefer meta keys including hyphenated 's-code'
-              const candidates = ['s-code','scode','학교코드','정보공시학교코드','schoolCode','school_code','s_code','sCode'];
-              for (const k of candidates){ if (meta && meta[k] && String(meta[k]).trim()) return String(meta[k]).trim(); }
-              // fallback to sessionStorage value set on input page
-              try{
-                const s = (sessionStorage && sessionStorage.getItem) ? sessionStorage.getItem('cmass:next_scode') : '';
-                if (s && String(s).trim()) return String(s).trim();
-              }catch(e){}
-              // fallback to any window-scoped value
-              try{ if (window._cmass_currentScode && String(window._cmass_currentScode).trim()) return String(window._cmass_currentScode).trim(); }catch(e){}
-              try{ if (window._cmass_lastScode && String(window._cmass_lastScode).trim()) return String(window._cmass_lastScode).trim(); }catch(e){}
-            }catch(e){}
-            return '';
-          }
 
-          function updateScodeDisplay(){
-            try{
-              const el = document.getElementById('scodeDisplay');
-              if (!el) return;
-              // try to read from last meta first
-              const meta = (window._cmass_lastFoundMeta || {});
-              const scode = getScodeFromMetaOrSession(meta);
-              if (scode) {
-                el.textContent = '학교코드: ' + scode;
-                try{ window._cmass_currentScode = scode; }catch(e){}
-              } else {
-                // preserve existing text if we don't have a code
-                try{ if (!el.textContent || !/학교코드\s*:/ .test(el.textContent)) el.textContent = '학교코드: -'; }catch(e){}
-              }
-              // update badge if available
-              try{ if (typeof updateScodeBadge === 'function') updateScodeBadge(); }catch(e){}
-            }catch(e){}
-          }
-
-          // call on DOM ready and when selection changes (input page typically sets session key)
-          document.addEventListener('DOMContentLoaded', updateScodeDisplay);
-          try{ window.updateScodeDisplay = updateScodeDisplay; }catch(e){}
     <div id="schoolDisplay" style="margin-left:12px;font-weight:900;color:#042046;">
       <!-- school name will be shown here -->
     </div>
@@ -711,9 +715,9 @@
           </div>
           <!-- 학교 메타는 CSV에서 자동으로 채워집니다; 수동 입력란 제거 -->
         </div>
+        <!-- s-code display removed per user request -->
         <div style="display:flex;align-items:center;gap:8px;margin:4px 0 0 2px;">
-          <div id="scodeDisplay" style="font-weight:800;color:#1e3c72">학교코드: -</div>
-          <div id="scodeBadge" class="scode-badge scode-unmatched" title="s-code 매핑 상태">미일치</div>
+          <!-- removed: #scodeDisplay and #scodeBadge -->
         </div>
       </section>
 
@@ -1017,13 +1021,76 @@
       function populateSchools(schoolEl, schools){
         schoolEl.innerHTML = '';
         const ph = document.createElement('option'); ph.value = ''; ph.text = '학교 선택...'; schoolEl.appendChild(ph);
-        Array.from(schools).sort((a,b)=>a.localeCompare(b)).forEach(s=>{ const o=document.createElement('option'); o.value = s; o.text = s; schoolEl.appendChild(o); });
+        Array.from(schools).sort((a,b)=>a.localeCompare(b)).forEach(s=>{
+          try{
+            const o = document.createElement('option');
+            o.value = s;
+            // Prefer to show school code when available (restore behavior):
+            // option text becomes "학교명 (scode)" if metadata has scode.
+            let display = s;
+            try{
+              if (typeof findSalesStaffMeta === 'function'){
+                const meta = findSalesStaffMeta(s);
+                if (meta && meta.scode){ display = s + ' (' + meta.scode + ')'; o.dataset.scode = meta.scode; }
+              }
+              // fallback to quick map if available
+              if (!o.dataset.scode && window._cmass_scodeQuickMap){
+                const normKey = (typeof window.cmassNormalizeSchoolKey === 'function') ? window.cmassNormalizeSchoolKey(s) : (s||'').toLowerCase();
+                const sc = window._cmass_scodeQuickMap.get(s) || window._cmass_scodeQuickMap.get(normKey) || '';
+                if (sc) { display = s + ' (' + sc + ')'; o.dataset.scode = sc; }
+              }
+            }catch(e){}
+            o.text = display;
+            schoolEl.appendChild(o);
+          }catch(e){ /* tolerate per-row errors */ }
+        });
       }
 
       async function wire() {
         const rows = await loadSalesStaff();
         if (!rows) return;
         const map = buildMap(rows);
+        // Build a quick lookup map for school scodes and a helper so populateSchools
+        // can always find scodes when available. This mirrors similar logic in
+        // input.html so dropdown options can show "학교명 (scode)" reliably.
+        try{
+          const scMap = new Map();
+          const salesStaffMap = new Map();
+          (rows || []).forEach(r => {
+            try{
+              const name = ((r['school'] || r['학교'] || '') + '').trim();
+              const scode = ((r['scode'] || r['s-code'] || r['code'] || '') + '').trim();
+              if (!name) return;
+              const exact = name;
+              const norm = (typeof window.cmassNormalizeSchoolKey === 'function') ? window.cmassNormalizeSchoolKey(name) : name.toLowerCase();
+              if (scode) {
+                scMap.set(exact, scode);
+                scMap.set(norm, scode);
+              }
+              // store a lightweight meta for findSalesStaffMeta
+              const meta = Object.assign({}, r, { scode: scode });
+              salesStaffMap.set(exact.toLowerCase(), meta);
+              salesStaffMap.set(norm, meta);
+            }catch(e){}
+          });
+          try{
+            if (!window._cmass_scodeQuickMap || !(window._cmass_scodeQuickMap instanceof Map)){
+              window._cmass_scodeQuickMap = scMap;
+            } else {
+              scMap.forEach((v,k) => { try{ window._cmass_scodeQuickMap.set(k,v); }catch(e){} });
+            }
+          }catch(e){ window._cmass_scodeQuickMap = scMap; }
+          try{ if (!window.salesStaffMap || !(window.salesStaffMap instanceof Map)) window.salesStaffMap = salesStaffMap; else { salesStaffMap.forEach((v,k)=>{ try{ window.salesStaffMap.set(k,v); }catch(e){} }); } }catch(e){ window.salesStaffMap = salesStaffMap; }
+          if (typeof window.findSalesStaffMeta !== 'function'){
+            window.findSalesStaffMeta = function(raw){
+              try{
+                if (!raw) return null;
+                const k = (typeof window.cmassNormalizeSchoolKey === 'function') ? window.cmassNormalizeSchoolKey(raw) : String(raw||'').trim().toLowerCase();
+                return salesStaffMap.get(raw) || salesStaffMap.get(k) || null;
+              }catch(e){ return null; }
+            };
+          }
+        }catch(e){}
         const staffEl = document.getElementById('staff');
         const regionEl = document.getElementById('regionSelect');
         const schoolEl = document.getElementById('schoolSelect');
@@ -1065,7 +1132,34 @@
           const allRegions = new Set();
           for (const s of Object.keys(map)) for (const r of map[s].regions) allRegions.add(r);
           populateRegions(regionEl, allRegions);
-          populateSchools(schoolEl, []);
+
+          // If the user landed here with a previously selected region (from /input),
+          // populate the school list with ALL schools that belong to that region
+          // across all staff entries rather than leaving it empty.
+          try{
+            const prevRegion = (sessionStorage && sessionStorage.getItem('cmass:next_region')) || window.selectedRegion || '';
+            if (prevRegion){
+              // gather schools for this region from all staff entries
+              const schoolsForRegion = new Set();
+              for (const k of Object.keys(map)){
+                try{
+                  const entry = map[k];
+                  if (!entry || !entry.schoolsByRegion) continue;
+                  const set = entry.schoolsByRegion[prevRegion] || new Set();
+                  for (const s of set) schoolsForRegion.add(s);
+                }catch(e){}
+              }
+              if (schoolsForRegion.size){
+                // set regionSelect to prevRegion if option exists
+                try{ regionEl.value = prevRegion; }catch(e){}
+                populateSchools(schoolEl, schoolsForRegion);
+              } else {
+                populateSchools(schoolEl, []);
+              }
+            } else {
+              populateSchools(schoolEl, []);
+            }
+          }catch(e){ populateSchools(schoolEl, []); }
           return;
         }
 
@@ -1083,10 +1177,12 @@
               const schools = staffEntry.schoolsByRegion[prevRegion] || new Set();
               populateSchools(schoolEl, schools);
               setTimeout(() => {
-                const prevSchool = sessionStorage.getItem('cmass:next_school') || '';
+                const prevSchoolDisplay = sessionStorage.getItem('cmass:next_school_display') || '';
+                const prevSchoolCode = sessionStorage.getItem('cmass:next_school_scode') || '';
+                const prevSchool = prevSchoolDisplay || (sessionStorage.getItem('cmass:next_school') || '');
                 if (prevSchool){
-                  const opt = Array.from(schoolEl.options).find(o=>o.value===prevSchool);
-                  if (opt) schoolEl.value = prevSchool;
+                  const opt = Array.from(schoolEl.options).find(o => (o.value === prevSchool) || ((o.text || '') === prevSchool) || ((o.dataset && o.dataset.scode) === prevSchoolCode));
+                  if (opt) schoolEl.value = opt.value;
                 }
                   // Robust restoration: 담당자, 방문일, 지역, 학교
                   try {
@@ -1164,12 +1260,14 @@
               try{ const meta = findSalesStaffMeta(schoolName); if (meta && meta.scode) scode = meta.scode; }catch(e){}
             }
             if (scode){
-              try{ if (sessionStorage) sessionStorage.setItem('cmass:next_scode', scode); }catch(e){}
+              try{ if (sessionStorage) { sessionStorage.setItem('cmass:next_scode', scode); sessionStorage.setItem('cmass:next_school_scode', scode); } }catch(e){}
               window._cmass_currentScode = scode;
               if (scodeEl) scodeEl.textContent = '학교코드: ' + scode;
+              try{ window.dispatchEvent(new CustomEvent('cmass:scode-updated', { detail: { scode: scode } })); }catch(e){}
             } else {
               window._cmass_currentScode = '';
               if (scodeEl) scodeEl.textContent = '학교코드: -';
+              try{ window.dispatchEvent(new CustomEvent('cmass:scode-updated', { detail: { scode: '' } })); }catch(e){}
             }
             try{ if (typeof updateScodeBadge === 'function') updateScodeBadge(); }catch(e){}
           }catch(e){ /* tolerate */ }
@@ -1484,8 +1582,15 @@
                     if (r !== null && r !== undefined) sessionStorage.setItem('cmass:next_region', String(r));
                   }
                   if (id === 'schoolSelect'){
-                    const s = window.selectedSchool || (el.value || '');
-                    if (s !== null && s !== undefined) sessionStorage.setItem('cmass:next_school', String(s));
+                    try{
+                      const opt = el.options && el.selectedIndex >= 0 ? el.options[el.selectedIndex] : null;
+                      const val = opt ? (opt.value || '') : (el.value || '');
+                      const disp = opt ? (opt.text || val) : val;
+                      const scode = opt && opt.dataset ? (opt.dataset.scode || '') : '';
+                      if (val !== null && val !== undefined) sessionStorage.setItem('cmass:next_school', String(val));
+                      if (disp) sessionStorage.setItem('cmass:next_school_display', String(disp));
+                      if (scode) sessionStorage.setItem('cmass:next_school_scode', String(scode));
+                    }catch(e){}
                   }
                   if (id === 'staff'){
                     try{
@@ -1509,7 +1614,9 @@
           if (schoolEl){
             const syncSchool = ()=>{
               try{
-                const val = schoolEl.value || (schoolEl.options[schoolEl.selectedIndex] && schoolEl.options[schoolEl.selectedIndex].text) || '';
+                // Prefer the displayed option text (which may include the s-code)
+                // so sessionStorage stores the user-visible label.
+                const val = (schoolEl.options && schoolEl.selectedIndex >= 0 && schoolEl.options[schoolEl.selectedIndex].text) ? schoolEl.options[schoolEl.selectedIndex].text : (schoolEl.value || '');
                 if (val){ window.selectedSchool = val; }
                 try{ const p = currentParams(); const q = buildQuery(p); console.debug('[URL] syncSchool val=', val, ' currentParams=', p, ' query=', q); }catch(e){}
                 replaceUrlIfNeeded();
@@ -1846,12 +1953,15 @@
                 const trySetSchool = () => {
                   const sh = qs('schoolSelect');
                   if (sh && sh.options && sh.options.length > 1) {
-                    const found = Array.from(sh.options).some(o => o.value === entry.school);
-                    if (found) {
-                      sh.value = entry.school;
-                      sh.dispatchEvent(new Event('change', { bubbles: true }));
-                      return true;
-                    }
+                      const found = Array.from(sh.options).some(o => (o.value === entry.school) || ((o.text || '') === entry.school));
+                      if (found) {
+                        const opt = Array.from(sh.options).find(o => (o.value === entry.school) || ((o.text || '') === entry.school));
+                        if (opt) {
+                          sh.value = opt.value;
+                          sh.dispatchEvent(new Event('change', { bubbles: true }));
+                          return true;
+                        }
+                      }
                   }
                   return false;
                 };
@@ -2057,8 +2167,10 @@
             nextLabel = sessionStorage.getItem('cmass:next_staff_label') || null;
             nextDate = sessionStorage.getItem('cmass:next_visitDate') || null;
             nextRegion = sessionStorage.getItem('cmass:next_region') || null;
-            // input.html may also set next_school to let meeting.html pre-select the school
-            nextSchool = sessionStorage.getItem('cmass:next_school') || null;
+            // input.html may also set next_school (value) and next_school_display/next_school_scode
+            const nextSchoolDisplayFromInput = sessionStorage.getItem('cmass:next_school_display') || null;
+            const nextSchoolCodeFromInput = sessionStorage.getItem('cmass:next_school_scode') || null;
+            nextSchool = nextSchoolDisplayFromInput || sessionStorage.getItem('cmass:next_school') || null;
           }
         }catch(e){/* ignore */}
 
@@ -2142,8 +2254,15 @@
           if (nextSchool && String(nextSchool).trim()){
             const schoolEl = document.getElementById('schoolSelect');
             if (schoolEl) {
-              schoolEl.value = nextSchool;
-              schoolEl.dispatchEvent(new Event('change', { bubbles: true }));
+              try{
+                const opt = Array.from(schoolEl.options).find(o => (o.value === nextSchool) || ((o.text||'') === nextSchool) || ((o.dataset && o.dataset.scode) === (nextSchoolCodeFromInput || '')));
+                if (opt) {
+                  schoolEl.value = opt.value;
+                } else {
+                  schoolEl.value = nextSchool;
+                }
+                schoolEl.dispatchEvent(new Event('change', { bubbles: true }));
+              }catch(e){ schoolEl.value = nextSchool; schoolEl.dispatchEvent(new Event('change', { bubbles: true })); }
             }
           }
         } catch (e) {
@@ -2262,7 +2381,26 @@
                   while (schoolSelect.options && schoolSelect.options.length > 1) schoolSelect.remove(1);
                   if (!sel || !window._cmass_regionSchoolMap || !window._cmass_regionSchoolMap[sel]) return;
                   const schools = Array.from(window._cmass_regionSchoolMap[sel] || []).sort((a,b)=> a.localeCompare(b,'ko'));
-                  schools.forEach(sn => { const o = document.createElement('option'); o.value = sn; o.text = sn; if (window.schoolMetaMap && window.schoolMetaMap[sn]) o.setAttribute('data-meta', window.schoolMetaMap[sn]); schoolSelect.appendChild(o); });
+                  schools.forEach(sn => {
+                    const o = document.createElement('option');
+                    o.value = sn;
+                    let display = sn;
+                    if (window.schoolMetaMap && window.schoolMetaMap[sn]) o.setAttribute('data-meta', window.schoolMetaMap[sn]);
+                    try{
+                      let scode = '';
+                      if (typeof findSalesStaffMeta === 'function'){
+                        const m = findSalesStaffMeta(sn);
+                        if (m && m.scode) scode = m.scode;
+                      }
+                      if (!scode && window._cmass_scodeQuickMap){
+                        const norm = (typeof window.cmassNormalizeSchoolKey === 'function') ? window.cmassNormalizeSchoolKey(sn) : (sn||'').toLowerCase();
+                        scode = window._cmass_scodeQuickMap.get(sn) || window._cmass_scodeQuickMap.get(norm) || '';
+                      }
+                      if (scode){ o.dataset.scode = scode; display = sn + ' (' + scode + ')'; }
+                    }catch(e){}
+                    o.text = display;
+                    schoolSelect.appendChild(o);
+                  });
                   // if there is a previously selectedSchool global, try to set it
                   if (window.selectedSchool){ try{ schoolSelect.value = window.selectedSchool; schoolSelect.dispatchEvent(new Event('change',{ bubbles:true })); }catch(e){} }
                 }catch(e){ console.warn('region change handler error', e); }
@@ -2279,7 +2417,10 @@
                 try{ regionSelect.value = window.selectedRegion; regionSelect.dispatchEvent(new Event('change', { bubbles: true })); didSet = true; }catch(e){}
               }
               if (schoolSelect && window.selectedSchool && schoolSelect.options.length > 1) {
-                try{ schoolSelect.value = window.selectedSchool; schoolSelect.dispatchEvent(new Event('change', { bubbles: true })); didSet = true; }catch(e){}
+                try{
+                  const opt = Array.from(schoolSelect.options).find(o => (o.value === window.selectedSchool) || ((o.text || '') === window.selectedSchool));
+                  if (opt) { schoolSelect.value = opt.value; schoolSelect.dispatchEvent(new Event('change', { bubbles: true })); didSet = true; }
+                }catch(e){}
               }
               return didSet;
             }catch(e){ return false; }
@@ -2327,7 +2468,9 @@
           const ss = window.sessionStorage;
           if (!ss) return;
           const region = ss.getItem('cmass:next_region') || ss.getItem('cmass:region') || '';
-          const school = ss.getItem('cmass:next_school') || ss.getItem('cmass:school') || '';
+          const schoolDisplayStored = ss.getItem('cmass:next_school_display') || '';
+          const schoolCodeStored = ss.getItem('cmass:next_school_scode') || '';
+          const school = schoolDisplayStored || ss.getItem('cmass:next_school') || ss.getItem('cmass:school') || '';
           if (region){
             const rEl = document.getElementById('regionSelect');
             if (rEl){
@@ -2339,8 +2482,11 @@
           if (school){
             const sEl = document.getElementById('schoolSelect');
             if (sEl){
-              const opt = Array.from(sEl.options || []).find(o=>String(o.value) === String(school));
-              if (opt) sEl.value = school; else { sEl.innerHTML = '<option value="'+school+'" selected>'+school+'</option>'; }
+              const opt = Array.from(sEl.options || []).find(o=> String(o.value) === String(school) || String((o.text||'')) === String(school));
+              if (opt) sEl.value = opt.value; else {
+                const dataAttr = schoolCodeStored ? ' data-scode="'+schoolCodeStored+'"' : '';
+                sEl.innerHTML = '<option value="'+school+'" selected'+dataAttr+'>'+school+'</option>';
+              }
             }
           }
         }catch(e){ /* tolerate */ }
@@ -2476,7 +2622,7 @@
       // visitDate / region / school — prefer session next_* keys
       try{ var ss = window.sessionStorage; var visitDate = ss && ss.getItem('cmass:next_visitDate') || ss && ss.getItem('cmass:visitDate') || new URLSearchParams(window.location.search || '').get('visitDate') || ''; if (visitDate){ var vd = document.getElementById('visitDate'); if (vd) vd.value = visitDate; } }catch(e){}
       try{ var region = ss && ss.getItem('cmass:next_region') || ss && ss.getItem('cmass:region') || ''; if (region){ var rs = document.getElementById('regionSelect'); if (rs) rs.innerHTML = '<option value="'+region+'" selected>'+region+'</option>'; } }catch(e){}
-      try{ var school = ss && ss.getItem('cmass:next_school') || ss && ss.getItem('cmass:school') || ''; if (school){ var ssEl = document.getElementById('schoolSelect'); if (ssEl) ssEl.innerHTML = '<option value="'+school+'" selected>'+school+'</option>'; } }catch(e){}
+      try{ var schoolDisplayStored = ss && ss.getItem('cmass:next_school_display') || ''; var schoolCodeStored = ss && ss.getItem('cmass:next_school_scode') || ''; var school = schoolDisplayStored || (ss && ss.getItem('cmass:next_school')) || (ss && ss.getItem('cmass:school')) || ''; if (school){ var ssEl = document.getElementById('schoolSelect'); if (ssEl) { var dataAttr = schoolCodeStored ? ' data-scode="'+schoolCodeStored+'"' : ''; ssEl.innerHTML = '<option value="'+school+'" selected'+dataAttr+'>'+school+'</option>'; } } }catch(e){}
 
     } catch (e) {
       console.error('Error populating meeting fields (centralized):', e);
@@ -2657,6 +2803,59 @@
         // Defensive: if gatherForm/saveReport were attached earlier they should already exist, but log status for diagnostics
         try{ console.debug('[meeting] global-expose', { computeEndTime: typeof window.computeEndTime, gatherForm: typeof window.gatherForm, saveReport: typeof window.saveReport }); }catch(e){}
       }catch(e){ try{ console.warn('[meeting] global-expose error', e); }catch(_){} }
+    })();
+  </script>
+  <script>
+    // Display selected school name in the header and append (s-code) if available.
+    // Avoid double-showing codes when option text already contains a parenthetical code.
+    (function(){
+      function getScode(){ try{ return window._cmass_currentScode || (window.sessionStorage && sessionStorage.getItem('cmass:next_scode')) || ''; }catch(e){ return ''; } }
+      function getSelectedOption(){ try{ const s = document.getElementById('schoolSelect'); if (!s) return null; return (s.options && s.selectedIndex >= 0) ? s.options[s.selectedIndex] : null; }catch(e){ return null; } }
+      function getSchoolName(){
+        try{
+          const opt = getSelectedOption();
+          if (opt) return (opt.text || opt.value) || '';
+          if (window.selectedSchool) return window.selectedSchool;
+          const s = document.getElementById('schoolSelect');
+          return s ? (s.value || '') : '';
+        }catch(e){ return ''; }
+      }
+
+      function stripTrailingParen(text){ try{ return (text||'').replace(/\s*\([^\)]*\)\s*$/,'').trim(); }catch(e){ return text || ''; } }
+
+      function updateHeader(){
+        try{
+          const el = document.getElementById('schoolDisplay'); if (!el) return;
+          const opt = getSelectedOption();
+          let name = '';
+          let code = '';
+
+          if (opt) {
+            // prefer explicit dataset.scode on the option (this corresponds to the option the user actually selected)
+            code = (opt.dataset && opt.dataset.scode) ? opt.dataset.scode : getScode();
+            // display the option text but remove any trailing parenthetical code to avoid duplication
+            name = stripTrailingParen(opt.text || opt.value || '');
+          } else {
+            name = stripTrailingParen(getSchoolName());
+            code = getScode();
+          }
+
+          if (name && code) el.textContent = name + ' (' + code + ')';
+          else if (name) el.textContent = name;
+          else el.textContent = '';
+        }catch(e){}
+      }
+
+      document.addEventListener('DOMContentLoaded', function(){
+        try{
+          const sel = document.getElementById('schoolSelect');
+          if (sel){ sel.addEventListener('change', updateHeader, false); sel.addEventListener('input', updateHeader, false); }
+          // Listen for scode updates dispatched by selection or CSV meta loaders and update the header.
+          window.addEventListener('cmass:scode-updated', function(ev){ try{ updateHeader(); }catch(e){} }, false);
+          // initial sync after other initializers run
+          setTimeout(updateHeader, 120);
+        }catch(e){}
+      }, { once:true });
     })();
   </script>
 </body>

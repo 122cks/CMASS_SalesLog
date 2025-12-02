@@ -282,7 +282,7 @@
 
               // FIELD_LABELS (renderEntries와 동일한 한글 레이블 맵)
               const FIELD_LABELS = {
-                server_id: '서버 ID', staff: '직원', staffLabel: '직원(표시명)', region: '지역', school: '학교', visitDate: '방문일', startHour: '방문시작시간', startMinute: '방문시작분', duration: '총 방문시간', endTime: '방문종료시간', subject: '과목', activities: '영업활동', favor: '우호도', teacherName: '선생님 이름', publisher: '출판사', phone: '연락처', email: '이메일', conversation: '대화내용', issue: '특이사항', _savedAt: '저장시기'
+                server_id: '서버 ID', staff: '직원', staffLabel: '직원(표시명)', region: '지역', school: '학교', 's-code': '학교코드', visitDate: '방문일', startHour: '방문시작시간', startMinute: '방문시작분', duration: '총 방문시간', endTime: '방문종료시간', subject: '과목', activities: '영업활동', favor: '우호도', teacherName: '선생님 이름', phone: '연락처', email: '이메일', conversation: '대화내용', issue: '특이사항', _savedAt: '저장시기'
               };
 
               function reverseLabelToKey(lbl){
@@ -444,33 +444,24 @@
                 listSorted.forEach((it,j)=>{
                   const subj = (Array.isArray(it.subject) ? it.subject.join(', ') : (it.subject||''));
                   const teacher = it.teacherName || '';
-                  const pub = it.publisher || '';
                   const favor = it.favor || '';
                   // Ensure textual fields appear per-meeting with clear labels
-                  // Pull raw backend fields: prefer canonical keys (request, conversation, delivery, gift, followup)
-                  // Keep backward compatibility by checking legacy names (requests, requestText, notes, deliveries, gifts, followUp)
-                  const req = (it.request && String(it.request).trim()) ? String(it.request).trim() : ((it.requests && String(it.requests).trim()) ? String(it.requests).trim() : '');
+                  // Pull raw backend fields: prefer canonical keys (conversation)
                   const conv = (it.conversation && String(it.conversation).trim()) ? String(it.conversation).trim() : ((it.notes && String(it.notes).trim()) ? String(it.notes).trim() : '');
-                  const del = (it.delivery && String(it.delivery).trim()) ? String(it.delivery).trim() : ((it.deliveries && String(it.deliveries).trim()) ? String(it.deliveries).trim() : '');
-                  const gift = (it.gift && String(it.gift).trim()) ? String(it.gift).trim() : ((it.gifts && String(it.gifts).trim()) ? String(it.gifts).trim() : '');
-                  const follow = (it.followup && String(it.followup).trim()) ? String(it.followup).trim() : ((it.followUp && String(it.followUp).trim()) ? String(it.followUp).trim() : '');
                   // materials (전달자료) — some entries store as 'materials' or singular 'material'
                   const materials = (it.materials && String(it.materials).trim()) ? String(it.materials).trim() : ((it.material && String(it.material).trim()) ? String(it.material).trim() : '');
                   // issue / special / remark (특이사항)
                   const issue = (it.issue && String(it.issue).trim()) ? String(it.issue).trim() : ((it.special && String(it.special).trim()) ? String(it.special).trim() : ((it.remark && String(it.remark).trim()) ? String(it.remark).trim() : ''));
                   const activitiesText = Array.isArray(it.activities) ? (it.activities.length ? it.activities.join(', ') : '') : (it.activities ? String(it.activities).trim() : '');
                   const extraParts = [];
-                  // Order: 영업활동, 전달자료, 고객요청사항, 대화내용, 특이사항, 납품사항, 증정사항, 후속조치
+                  // Order: 영업활동, 전달자료, 대화내용, 특이사항
                   if (activitiesText) extraParts.push(activitiesText);
                   if (materials) extraParts.push(materials);
-                  if (req) extraParts.push(req);
                   if (conv) extraParts.push(conv);
                   if (issue) extraParts.push(issue);
-                  if (del) extraParts.push(del);
-                  if (gift) extraParts.push(gift);
-                  if (follow) extraParts.push(follow);
                   const extra = extraParts.join('  ');
-                  let line = `-  ${schoolLabel}${j+1}. ${subj} (${teacher}${pub?'-'+pub:''})`;
+                  let teacherPart = teacher ? String(teacher) : '';
+                  let line = `-  ${schoolLabel}${j+1}. ${subj}` + (teacherPart ? (` (${teacherPart})`) : '');
                   if (extra) line += ` : ${extra}`;
                   lines.push(line);
                 });
@@ -510,15 +501,8 @@
           const totalSchools = schools.length;
           const totalMeetings = entries.length;
           const contacts = entries.filter(e=> (e.phone || '').toString().trim()).length;
-          // Count entries whose publisher is present and NOT '씨마스'
-          const additional = entries.filter(e=> {
-            try{
-              const pub = (e.publisher || '').toString().trim();
-              // only count when publisher exists and is not the excluded publisher
-              return !!pub && pub !== '씨마스';
-            }catch(_){ return false; }
-          }).length;
-          lines.push(`총 방문 학교: ${totalSchools}개 · 총 미팅수: ${totalMeetings}건 · 연락처 확보: ${contacts}건 · 추가선정 확인: ${additional}건`);
+          // Legacy 'publisher' reporting removed — omit additional selection count
+          lines.push(`총 방문 학교: ${totalSchools}개 · 총 미팅수: ${totalMeetings}건 · 연락처 확보: ${contacts}건`);
 
           // 1. 출근/퇴근
           // 출근: 가장 이른 방문 시작시간(있는 경우)을 사용, 없으면 오피스 입력 사용
@@ -777,6 +761,7 @@
               const establishKeys = header.filter(h=> /설립|설립구분|establish|establishment|type/i.test(h));
               const studentsKeys = header.filter(h=> /총학생수|학생수|students|student/i.test(h));
               const featureKeys = header.filter(h=> /특성|feature|character/i.test(h));
+              const scodeKeys = header.filter(h => /scode|학교코드|school[_ ]?code|schoolcode/i.test(h));
               for (let r=1;r<rows.length;r++){
                 const row = rows[r];
                 const obj = {};
@@ -786,7 +771,10 @@
                 const establish = (establishKeys.map(k=>obj[k]).find(v=>v) || obj['설립'] || obj['establish'] || '').trim();
                 const students = (studentsKeys.map(k=>obj[k]).find(v=>v) || obj['총학생수'] || obj['students'] || '').trim();
                 const feature = (featureKeys.map(k=>obj[k]).find(v=>v) || obj['특성'] || obj['feature'] || '').trim();
-                const meta = { establish: establish || '', students: students || '', feature: feature || '' };
+                // attempt to extract canonical school code (scode) when available in CSV
+                let scodeVal = '';
+                try{ scodeVal = (scodeKeys.map(k=>obj[k]).find(v=>v) || obj['scode'] || obj['학교코드'] || obj['school_code'] || obj['schoolcode'] || '').trim(); }catch(e){ scodeVal = ''; }
+                const meta = { establish: establish || '', students: students || '', feature: feature || '', scode: scodeVal || '' };
                 byName[name] = meta;
                 const norm = (String(name||'').toLowerCase().replace(/\s+/g,' ').trim());
                 byNorm[norm] = meta;
@@ -799,6 +787,21 @@
         // start loading in background
         try{ loadStaffMap().catch(()=>{}); }catch(e){}
         window.loadStaffMapReport = loadStaffMap;
+        // Lightweight helper to resolve school metadata (including scode) by name.
+        try{
+          window.findSalesStaffMeta = function(rawName){
+            try{
+              if (!rawName) return null;
+              // ensure loader started
+              try{ if (!window._cmass_staffMapReport && typeof loadStaffMapReport === 'function') loadStaffMapReport().catch(()=>{}); }catch(e){}
+              const norm = String(rawName||'').toLowerCase().replace(/\s+/g,' ').trim();
+              const map = window._cmass_staffMapReport || { byName: {}, byNorm: {} };
+              if (map.byName && map.byName[rawName]) return map.byName[rawName];
+              if (map.byNorm && map.byNorm[norm]) return map.byNorm[norm];
+              return null;
+            }catch(e){ return null; }
+          };
+        }catch(e){}
       })();
 
       function computeMetrics(entries){
@@ -848,13 +851,9 @@
           const schools = new Set(filtered.map(it => (it.school||'').toString().trim()).filter(Boolean));
           const totalSchools = schools.size;
           const contactsSecured = filtered.reduce((s,it)=> s + (((it.phone && String(it.phone).trim()) || (it.email && String(it.email).trim())) ? 1:0), 0);
-          const additionalSelections = filtered.reduce((s,it)=>{
-            try{
-              const pub = (it.publisher||'').toString().trim();
-              // Count only entries where publisher exists and is not '씨마스'
-              return s + ((pub && pub !== '씨마스') ? 1 : 0);
-            }catch(e){ return s; }
-          },0);
+          // Legacy 'publisher' reporting has been removed from the UI.
+          // Keep the metric present but force to 0 to avoid relying on removed fields.
+          const additionalSelections = 0;
           return { totalMeetings, totalSchools, contactsSecured, additionalSelections, filtered };
         }catch(e){ return { totalMeetings:0, totalSchools:0, contactsSecured:0, additionalSelections:0, filtered:[] }; }
       }
@@ -869,7 +868,7 @@
         html.push(`<div class="summary-item"><div class="muted">총 방문 학교</div><div style="font-weight:800">${m.totalSchools||0}개</div></div>`);
         html.push(`<div class="summary-item"><div class="muted">총 미팅수</div><div style="font-weight:800">${m.totalMeetings||0}건</div></div>`);
         html.push(`<div class="summary-item"><div class="muted">연락처 확보</div><div style="font-weight:800">${m.contactsSecured||0}건</div></div>`);
-        html.push(`<div class="summary-item"><div class="muted">추가선정 확인</div><div style="font-weight:800">${m.additionalSelections||0}건</div></div>`);
+        // '추가선정 확인' metric removed from summary per recent UI change
         html.push('</div>');
         if ((m.filtered || []).length === 0) html.push('<div style="margin-top:12px;color:#c33">해당 일자의 기록이 없습니다.</div>');
         mainEl.innerHTML = html.join('');
@@ -1050,6 +1049,7 @@
             staffLabel: '직원(표시명)',
             region: '지역',
             school: '학교',
+            's-code': '학교코드',
             visitDate: '방문일',
             visitStart: '방문시작',
             duration: '총 방문시간',
@@ -1064,7 +1064,7 @@
           };
 
           // Preferred order for display (canonical keys)
-          const fields = ['server_id','staff','staffLabel','region','school','visitDate','visitStart','duration','visitEnd','subject','teacherName','publisher','activities','materials','request','conversation','issue','delivery','gift','followup','_savedAt'];
+          const fields = ['server_id','staff','staffLabel','region','school','s-code','visitDate','visitStart','duration','visitEnd','subject','teacherName','activities','materials','conversation','issue','_savedAt'];
 
           // Details container (hidden by default — start collapsed)
           const details = document.createElement('div'); details.className = 'report-entry-details'; details.style.display = 'none';
@@ -1082,7 +1082,8 @@
               conversation: ['conversation','conversationText','convo','notes','memo'],
               issue: ['issue','issues','specialNotes','note','remarks'],
               delivery: ['delivery','deliveries','delivery_note','deliveryNotes','delivered','delivery_info','deliv'],
-              gift: ['gift','gifts','증정','present']
+              gift: ['gift','gifts','증정','present'],
+              's-code': ['s-code','scode','s_code','school_code','학교코드','학교 코드']
             };
             const keys = aliases[key] || [key];
             for (const k of keys){
@@ -1104,6 +1105,7 @@
             else if (f === 'subject') raw = Array.isArray(e.subject) ? e.subject.join(', ') : (e.subject || '');
             else if (f === 'activities') raw = Array.isArray(e.activities) ? e.activities.join(', ') : (e.activities || '');
             else if (f === 'materials') raw = Array.isArray(e.materials) ? e.materials.join(', ') : (e.materials || e.material || '');
+            else if (f === 's-code') raw = e['s-code'] || e.scode || e.sc || e['scode'] || (function(){ try{ const m = (typeof findSalesStaffMeta === 'function') ? findSalesStaffMeta(e.school) : null; return (m && m.scode) ? m.scode : ''; }catch(_){ return ''; } })();
             else raw = (e[f] !== undefined && e[f] !== null) ? e[f] : '';
 
             const display = Array.isArray(raw) ? (raw.length ? raw.join(', ') : '') : String(raw || '');
@@ -1334,33 +1336,12 @@
             activities: Array.isArray(e.activities) ? e.activities : (e.activities ? [e.activities] : []),
             favor: e.favor || '',
             teacher: e.teacherName || e.teacher || '',
-            publisher: e.publisher || '',
             Phonenumber: e.phone || e.Phonenumber || '',
             phone: e.phone || e.Phonenumber || '',
             email: e.email || '',
-            // Consolidate legacy fields into `issue` so server stores a single field
+            // conversation and issue (do not merge legacy request/delivery/gift/followup)
             conversation: e.conversation || e.notes || '',
-            issue: (function(){
-              try{
-                const base = e.issue ? String(e.issue).trim() : '';
-                const parts = [];
-                const req = e.request || e.requests || '';
-                const del = e.delivery || e.deliveries || '';
-                const gf = e.gift || e.gifts || '';
-                const fu = e.followup || e.followUp || '';
-                if (req) parts.push('요청사항: ' + req);
-                if (del) parts.push('납품사항: ' + del);
-                if (gf) parts.push('증정사항: ' + gf);
-                if (fu) parts.push('후속조치: ' + fu);
-                if (parts.length) return base ? (base + ' | ' + parts.join(' | ')) : parts.join(' | ');
-                return base;
-              }catch(er){ return e.issue || ''; }
-            })(),
-            // omit legacy fields (server will read consolidated `issue`)
-            request: '',
-            delivery: '',
-            gift: '',
-            followup: '',
+            issue: e.issue || '',
             materials: Array.isArray(e.materials) ? e.materials : (e.materials ? [e.materials] : (e.material ? [e.material] : [])),
             _savedAt: e._savedAt || new Date().toISOString(),
             's-code': __mapped_scode || ''
@@ -1739,7 +1720,72 @@
                 try{
                   // Ensure staff map (school metadata) is loaded before building summary
                   try{ if (typeof loadStaffMapReport === 'function') await loadStaffMapReport().catch(()=>{}); }catch(e){}
-                  const raw = buildOfficeSummary();
+                  let raw = (typeof buildOfficeSummary === 'function') ? (buildOfficeSummary() || '') : '';
+                  // If the existing summary does not contain the detailed per-school
+                  // meeting bullets (e.g. '-  가1.'), synthesize them here using
+                  // the current filtered entries so copy produces the expected format.
+                  try{
+                    if (!raw || !(/-\s*가1\.|2\. 세부업무/.test(raw))){
+                      // build school-by-school meeting text from available entries
+                      let entries = [];
+                      try{ entries = (typeof window._cmass_report_lastFiltered !== 'undefined') ? (window._cmass_report_lastFiltered || []) : []; }catch(e){}
+                      try{ if ((!entries || entries.length===0) && typeof window.loadLocalReports === 'function') entries = window.loadLocalReports() || []; }catch(e){}
+                      try{ if ((!entries || entries.length===0)) entries = JSON.parse(localStorage.getItem('cmass_reports')||'[]') || []; }catch(e){}
+                      if (entries && entries.length){
+                        const korNums = ['가','나','다','라','마','바','사','아','자','차','카','타','파','하'];
+                        const bySchool = {};
+                        entries.forEach(it=>{ try{ const s = (it.school||'학교 미정').toString().trim(); (bySchool[s] = bySchool[s]||[]).push(it); }catch(e){} });
+                        const schoolEntries = Object.keys(bySchool).map(sch=>{ const list = bySchool[sch]||[]; const startTimes = list.map(it=>{ try{ if (it.visitStart && String(it.visitStart).trim()){ const m = String(it.visitStart).match(/(\d{1,2}):(\d{1,2})/); if (m) return Number(m[1])*60 + Number(m[2]); } if (it.startHour !== undefined && it.startHour !== '') return (Number(it.startHour||0)*60 + Number(it.startMinute||0)); }catch(e){} return null; }).filter(x=>x!==null).sort((a,b)=>a-b); const first = startTimes.length?startTimes[0]:null; return { school: sch, list: list, earliest: first }; });
+                        schoolEntries.sort((a,b)=>{ if (a.earliest===null && b.earliest===null) return 0; if (a.earliest===null) return 1; if (b.earliest===null) return -1; return a.earliest - b.earliest; });
+                        const out = [];
+                        const head = entries[0] || {};
+                        out.push(`(${head.staffLabel || head.staff || ''} 퇴근보고)`);
+                        out.push(`방문일: ${head.visitDate || ''}`);
+                        out.push('');
+                        let idx = 0;
+                        for (const se of schoolEntries) {
+                          idx++;
+                          const sch = se.school;
+                          const list = se.list || [];
+                          const listSorted = (list||[]).slice().sort(function(a, b) {
+                            function ga(it) {
+                              try {
+                                if (it.visitStart && String(it.visitStart).trim()){
+                                  const m = String(it.visitStart).match(/(\d{1,2}):(\d{1,2})/);
+                                  if (m) return Number(m[1]) * 60 + Number(m[2]);
+                                }
+                                if (it.startHour !== undefined && it.startHour !== '') return (Number(it.startHour||0) * 60 + Number(it.startMinute||0));
+                              } catch(e){}
+                              return 1e9;
+                            }
+                            return ga(a) - ga(b);
+                          });
+
+                          listSorted.forEach(function(it, j) {
+                            try {
+                              const subj = Array.isArray(it.subject) ? it.subject.join(', ') : (it.subject || '');
+                              const teacher = it.teacherName || '';
+                              const favor = it.favor || '';
+                              const activitiesText = Array.isArray(it.activities) ? (it.activities.join(', ')) : (it.activities || '');
+                              const conv = (it.conversation || it.notes || '') ? String(it.conversation || it.notes || '').trim() : '';
+                              const issue = (it.issue || it.special || it.remark || '') ? String(it.issue || it.special || it.remark || '').trim() : '';
+                              const extraParts = [];
+                              if (activitiesText) extraParts.push(activitiesText);
+                              if (conv) extraParts.push(conv);
+                              if (issue) extraParts.push(issue);
+                              const extra = extraParts.join('  ');
+                              const teacherPart = teacher ? (teacher + (favor ? '-' + favor : '')) : (favor ? ('(' + favor + ')') : '');
+                              const line = `-  ${korNums[idx-1] || String(idx)}${j+1}. ${subj}` + (teacherPart ? (` (${teacherPart})`) : '') + (extra ? (` : ${extra}`) : '');
+                              out.push(line);
+                            } catch(e) {}
+                          });
+
+                          out.push('');
+                        }
+                        raw = out.join('\n');
+                      }
+                    }
+                  }catch(e){}
                   if (!raw) { alert('요약할 내용이 없습니다.'); return; }
                   // sanitize for Kakao: remove any '재방문' tag occurrences and strip '전달자료' segments
                   const sanitizeKakaoText = (t)=>{
