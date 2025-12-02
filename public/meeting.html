@@ -239,7 +239,9 @@
               timeStr = String(end);
             }
 
-            const lineParts = [subjects, teacher, favor].filter(Boolean);
+            // include school name in the displayed history line
+            const schoolName = entry.school || '';
+            const lineParts = [schoolName, subjects, teacher, favor].filter(Boolean);
             if (timeStr) lineParts.push('방문시간: ' + timeStr);
             const line = lineParts.join(' - ');
 
