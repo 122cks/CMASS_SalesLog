@@ -2587,3 +2587,60 @@ function reloadServerReports() {
   </script>
   </body>
   </html>
+  <script>
+  // Kakao copy: enforce per-meeting lines like
+  // 가1. 정보(홍길동-반응보통): 명함인사, 홍보물증정, 채널/연수소개, 도서증정, 도서/교구재안내, 자료전달, AIDT관련안내, 부재중/출입불가/자료거부 대화내용 특이사항
+  // This formatter builds continuous numbering (가1, 가2, ...) across all schools.
+  (function(){
+    function hangulCounter(n){
+      // Always prefix with '가' followed by number as per requirement
+      return '가' + n;
+    }
+    function pick(e, keys){
+      for (const k of keys){
+        if (e && e[k] != null && String(e[k]).trim() !== '') return String(e[k]).trim();
+      }
+      return '';
+    }
+    function collectActions(e){
+      // Combine various action-related fields into a comma-separated list
+      const parts = [];
+      const candidates = [
+        'materials','material','자료','자료전달','홍보물','홍보물증정','브로슈어','도서증정','채널소개','연수소개','채널/연수소개','교구재안내','도서/교구재안내',
+        'conversation','대화내용','비고','notes','note','extras'
+      ];
+      for (const k of candidates){
+        const v = e[k];
+        if (v != null && String(v).trim() !== '') parts.push(String(v).trim());
+      }
+      // De-duplicate while preserving order
+      const seen = new Set();
+      const uniq = [];
+      for (const p of parts){
+        if (!seen.has(p)){ seen.add(p); uniq.push(p); }
+      }
+      return uniq.join(', ');
+    }
+    function formatMeetingLine(e, idx){
+      const num = hangulCounter(idx);
+      const subject = pick(e, ['subject','subjects','주요과목','과목']) || '정보';
+      const teacher = pick(e, ['teacher','교사','담당교사']) || '';
+      const favor = pick(e, ['favor','reaction','반응']) || '';
+      const actions = collectActions(e);
+      const head = teacher && favor ? `${subject}(${teacher}-${favor})` : teacher ? `${subject}(${teacher})` : favor ? `${subject}(${favor})` : subject;
+      return `${num}. ${head}: ${actions}`.trim();
+    }
+    function buildPerMeetingLines(entries){
+      let lines = [];
+      let idx = 1;
+      for (const e of entries){
+        lines.push(formatMeetingLine(e, idx));
+        idx++;
+      }
+      return lines.join('\n');
+    }
+    // Hook: if a global kakao summary builder exists, override fallback to use our formatter
+    window.cmassBuildKakaoPerMeeting = buildPerMeetingLines;
+  })();
+  </script>
+  </html>
