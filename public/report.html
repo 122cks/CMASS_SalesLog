@@ -2603,15 +2603,23 @@ function reloadServerReports() {
       return '';
     }
     function collectActions(e){
-      // Combine various action-related fields into a comma-separated list
+      // Combine various action-related fields into a comma-separated list,
+      // but explicitly exclude material/delivery keywords (전달자료 등).
+      const materialKeywords = ['전달자료','전달','증정','증정물','브로슈어','교과','워크북','프린트물','증정','납품','전달물','자료전달','전달물품','전달자료'];
+      const matRegex = new RegExp(materialKeywords.join('|'), 'i');
+
       const parts = [];
       const candidates = [
-        'materials','material','자료','자료전달','홍보물','홍보물증정','브로슈어','도서증정','채널소개','연수소개','채널/연수소개','교구재안내','도서/교구재안내',
-        'conversation','대화내용','비고','notes','note','extras'
+        'activities','activity','actions','작업','활동','행동','conversation','대화내용','대화','비고','notes','note','extras','request','요청','followup','후속','remark','특이사항'
       ];
       for (const k of candidates){
         const v = e[k];
-        if (v != null && String(v).trim() !== '') parts.push(String(v).trim());
+        if (v != null && String(v).trim() !== ''){
+          const s = String(v).trim();
+          // skip any segment that looks like material/delivery
+          if (matRegex.test(s)) continue;
+          parts.push(s);
+        }
       }
       // De-duplicate while preserving order
       const seen = new Set();
