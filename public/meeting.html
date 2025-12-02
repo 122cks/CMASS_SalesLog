@@ -1172,54 +1172,63 @@
           // 옵션을 모두 채운 뒤 sessionStorage 값을 select에 반영
           setTimeout(() => {
             const prevRegion = sessionStorage.getItem('cmass:next_region') || '';
-            if (prevRegion && Array.from(staffEntry.regions).indexOf(prevRegion) !== -1) {
-              regionEl.value = prevRegion;
-              const schools = staffEntry.schoolsByRegion[prevRegion] || new Set();
-              populateSchools(schoolEl, schools);
-              setTimeout(() => {
-                const prevSchoolDisplay = sessionStorage.getItem('cmass:next_school_display') || '';
-                const prevSchoolCode = sessionStorage.getItem('cmass:next_school_scode') || '';
-                const prevSchool = prevSchoolDisplay || (sessionStorage.getItem('cmass:next_school') || '');
-                if (prevSchool){
-                  const opt = Array.from(schoolEl.options).find(o => (o.value === prevSchool) || ((o.text || '') === prevSchool) || ((o.dataset && o.dataset.scode) === prevSchoolCode));
-                  if (opt) schoolEl.value = opt.value;
-                }
+            if (prevRegion) {
+              // Prefer to show all schools that belong to the prevRegion across all staff entries
+              const schoolsForRegion = new Set();
+              for (const k of Object.keys(map)){
+                try{
+                  const entry = map[k];
+                  if (!entry || !entry.schoolsByRegion) continue;
+                  const set = entry.schoolsByRegion[prevRegion] || new Set();
+                  for (const s of set) schoolsForRegion.add(s);
+                }catch(e){}
+              }
+              if (schoolsForRegion.size){
+                try{ regionEl.value = prevRegion; }catch(e){}
+                populateSchools(schoolEl, schoolsForRegion);
+                setTimeout(() => {
+                  const prevSchoolDisplay = sessionStorage.getItem('cmass:next_school_display') || '';
+                  const prevSchoolCode = sessionStorage.getItem('cmass:next_school_scode') || '';
+                  const prevSchool = prevSchoolDisplay || (sessionStorage.getItem('cmass:next_school') || '');
+                  if (prevSchool){
+                    const opt = Array.from(schoolEl.options).find(o => (o.value === prevSchool) || ((o.text || '') === prevSchool) || ((o.dataset && o.dataset.scode) === prevSchoolCode));
+                    if (opt) schoolEl.value = opt.value;
+                  }
                   // Robust restoration: 담당자, 방문일, 지역, 학교
                   try {
-                    // Restore 담당자 (staff)
                     const staffToken = sessionStorage.getItem('cmass:next_staff_token') || '';
                     const staffLabel = sessionStorage.getItem('cmass:next_staff_label') || '';
                     if (staffToken) {
-                      // Try to resolve token (case-insensitive/normalized) and set staff select
                       const resolved = resolveStaffKey(map, staffToken) || '';
                       if (resolved) {
                         const staffOpt = Array.from(staffEl.options).find(o => o.value === resolved);
                         if (staffOpt) staffEl.value = resolved;
                       }
                     } else if (staffLabel) {
-                      // Try to set staff select by label
                       const staffOpt = Array.from(staffEl.options).find(o => o.text === staffLabel);
                       if (staffOpt) staffEl.value = staffOpt.value;
                     }
-                    // Restore 방문일 (visitDate)
                     const visitDate = sessionStorage.getItem('cmass:next_visitDate') || '';
                     if (visitDate) {
-                      const visitDateEl = document.getElementById('visitDate');
-                      if (visitDateEl) visitDateEl.value = visitDate;
+                      const visitDateEl = document.getElementById('visitDate'); if (visitDateEl) visitDateEl.value = visitDate;
                     }
-                    // Restore 지역 (already set above)
-                    // Restore 학교 (already set above)
                   } catch(e) {}
-              }, 0);
-            } else {
-              // default: populate all schools for the staff across regions
-              const allSchools = new Set();
-              for (const reg of staffEntry.regions){ const sset = staffEntry.schoolsByRegion[reg] || new Set(); for (const sc of sset) allSchools.add(sc); }
-              populateSchools(schoolEl, allSchools);
+                }, 0);
+                // done
+              } else {
+                // fallback to staff-local behavior when no global schools found for the region
+                if (prevRegion && Array.from(staffEntry.regions).indexOf(prevRegion) !== -1) {
+                  try{ regionEl.value = prevRegion; }catch(e){}
+                  const schools = staffEntry.schoolsByRegion[prevRegion] || new Set();
+                  populateSchools(schoolEl, schools);
+                } else {
+                  const allSchools = new Set();
+                  for (const reg of staffEntry.regions){ const sset = staffEntry.schoolsByRegion[reg] || new Set(); for (const sc of sset) allSchools.add(sc); }
+                  populateSchools(schoolEl, allSchools);
+                }
                 // Robust restoration for staff/visitDate even if region/school not set
                 setTimeout(() => {
                   try {
-                    // Restore 담당자 (staff)
                     const staffToken = sessionStorage.getItem('cmass:next_staff_token') || '';
                     const staffLabel = sessionStorage.getItem('cmass:next_staff_label') || '';
                     if (staffToken) {
@@ -1229,14 +1238,32 @@
                       const staffOpt = Array.from(staffEl.options).find(o => o.text === staffLabel);
                       if (staffOpt) staffEl.value = staffOpt.value;
                     }
-                    // Restore 방문일 (visitDate)
                     const visitDate = sessionStorage.getItem('cmass:next_visitDate') || '';
-                    if (visitDate) {
-                      const visitDateEl = document.getElementById('visitDate');
-                      if (visitDateEl) visitDateEl.value = visitDate;
-                    }
+                    if (visitDate) { const visitDateEl = document.getElementById('visitDate'); if (visitDateEl) visitDateEl.value = visitDate; }
                   } catch(e) {}
                 }, 0);
+              }
+            } else {
+              // no prevRegion: default populate all schools for the staff across regions
+              const allSchools = new Set();
+              for (const reg of staffEntry.regions){ const sset = staffEntry.schoolsByRegion[reg] || new Set(); for (const sc of sset) allSchools.add(sc); }
+              populateSchools(schoolEl, allSchools);
+              // Robust restoration for staff/visitDate even if region/school not set
+              setTimeout(() => {
+                try {
+                  const staffToken = sessionStorage.getItem('cmass:next_staff_token') || '';
+                  const staffLabel = sessionStorage.getItem('cmass:next_staff_label') || '';
+                  if (staffToken) {
+                    const staffOpt = Array.from(staffEl.options).find(o => o.value === staffToken);
+                    if (staffOpt) staffEl.value = staffToken;
+                  } else if (staffLabel) {
+                    const staffOpt = Array.from(staffEl.options).find(o => o.text === staffLabel);
+                    if (staffOpt) staffEl.value = staffOpt.value;
+                  }
+                  const visitDate = sessionStorage.getItem('cmass:next_visitDate') || '';
+                  if (visitDate) { const visitDateEl = document.getElementById('visitDate'); if (visitDateEl) visitDateEl.value = visitDate; }
+                } catch(e) {}
+              }, 0);
             }
           }, 0);
 
