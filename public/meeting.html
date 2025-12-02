@@ -239,8 +239,8 @@
               timeStr = String(end);
             }
 
-            // include school name in the displayed history line
-            const schoolName = entry.school || '';
+            // include school name in the displayed history line (prefer saved display including scode)
+            const schoolName = entry.schoolDisplay || entry.school || '';
             const lineParts = [schoolName, subjects, teacher, favor].filter(Boolean);
             if (timeStr) lineParts.push('방문시간: ' + timeStr);
             const line = lineParts.join(' - ');
@@ -283,7 +283,27 @@
             obj.staffLabel = (qs('staff') && qs('staff').options && qs('staff').selectedIndex>=0) ? qs('staff').options[qs('staff').selectedIndex].text : '';
             obj.visitDate = (qs('visitDate') && qs('visitDate').value) || '';
             obj.region = (qs('regionSelect') && qs('regionSelect').value) || '';
-            try{ const selVal = (qs('schoolSelect') && qs('schoolSelect').value) || ''; obj.school = selVal || (window.selectedSchool || ''); }catch(e){ obj.school = (qs('schoolSelect') && qs('schoolSelect').value) || (window.selectedSchool || ''); }
+            try{
+              const selVal = (qs('schoolSelect') && qs('schoolSelect').value) || '';
+              // keep canonical school name/value for server matching
+              obj.school = selVal || (window.selectedSchool || '');
+              // build a UI-friendly display that includes the scode from the selected option.dataset.scode
+              try{
+                const sel = qs('schoolSelect');
+                let disp = '';
+                let scodeFromOpt = '';
+                if (sel && sel.options && sel.selectedIndex >= 0){
+                  const opt = sel.options[sel.selectedIndex];
+                  disp = (opt && opt.text) ? String(opt.text).trim() : (selVal || window.selectedSchool || '');
+                  if (opt && opt.dataset && opt.dataset.scode) scodeFromOpt = String(opt.dataset.scode).trim();
+                } else {
+                  disp = selVal || window.selectedSchool || '';
+                }
+                // Append code in parentheses only when explicitly present on the option and not already included
+                if (scodeFromOpt && disp && disp.indexOf(scodeFromOpt) === -1){ disp = disp + ' (' + scodeFromOpt + ')'; }
+                obj.schoolDisplay = disp || obj.school || '';
+              }catch(_){ obj.schoolDisplay = obj.school || ''; }
+            }catch(e){ obj.school = (qs('schoolSelect') && qs('schoolSelect').value) || (window.selectedSchool || ''); obj.schoolDisplay = obj.school || ''; }
             obj.startHour = (qs('startHour') && qs('startHour').value) || '';
             obj.startMinute = (qs('startMinute') && qs('startMinute').value) || '';
             obj.duration = (qs('duration') && qs('duration').value) || '';
@@ -316,8 +336,8 @@
               }catch(_){ resolved = ''; }
               obj.scode = resolved || '';
               try{ obj['s-code'] = obj.scode || ''; }catch(_){ obj['s-code'] = obj.scode || ''; }
-              // persist the explicit dataset value (or empty) so UI reflects the strict choice
-              try{ if (sessionStorage){ sessionStorage.setItem('cmass:next_scode', obj.scode || ''); sessionStorage.setItem('cmass:next_school_scode', obj.scode || ''); } }catch(_){ }
+              // persist the explicit dataset value and display so UI reflects the strict choice
+              try{ if (sessionStorage){ sessionStorage.setItem('cmass:next_scode', obj.scode || ''); sessionStorage.setItem('cmass:next_school_scode', obj.scode || ''); sessionStorage.setItem('cmass:next_school_display', obj.schoolDisplay || ''); } }catch(_){ }
             }catch(e){ obj.scode = ''; obj['s-code'] = ''; }
             // Unified field names: request, conversation, issue, delivery, gift, followup
             // Legacy fields (requests/deliveries/gifts/followUp) are consolidated into 'issue'
