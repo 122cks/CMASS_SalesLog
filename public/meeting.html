@@ -1140,13 +1140,26 @@
             const prevRegion = (sessionStorage && sessionStorage.getItem('cmass:next_region')) || window.selectedRegion || '';
             if (prevRegion){
               // gather schools for this region from all staff entries
+              // Be tolerant of minor mismatches in region string (whitespace, case, partial matches)
               const schoolsForRegion = new Set();
+              const target = (prevRegion || '').toString().trim().toLowerCase();
               for (const k of Object.keys(map)){
                 try{
                   const entry = map[k];
                   if (!entry || !entry.schoolsByRegion) continue;
-                  const set = entry.schoolsByRegion[prevRegion] || new Set();
-                  for (const s of set) schoolsForRegion.add(s);
+                  // try direct hit first
+                  let set = entry.schoolsByRegion[prevRegion] || entry.schoolsByRegion[target] || null;
+                  if (!set){
+                    // try tolerant matching against the region keys in this staff entry
+                    for (const rk of Object.keys(entry.schoolsByRegion || {})){
+                      try{
+                        if (!rk) continue;
+                        const rkNorm = rk.toString().trim().toLowerCase();
+                        if (rkNorm === target || rkNorm.indexOf(target) !== -1 || target.indexOf(rkNorm) !== -1){ set = entry.schoolsByRegion[rk]; break; }
+                      }catch(e){}
+                    }
+                  }
+                  if (set){ for (const s of set) schoolsForRegion.add(s); }
                 }catch(e){}
               }
               if (schoolsForRegion.size){
@@ -1174,13 +1187,24 @@
             const prevRegion = sessionStorage.getItem('cmass:next_region') || '';
             if (prevRegion) {
               // Prefer to show all schools that belong to the prevRegion across all staff entries
+              // gather schools across all staff entries, tolerant of minor region-name mismatches
               const schoolsForRegion = new Set();
+              const target = (prevRegion || '').toString().trim().toLowerCase();
               for (const k of Object.keys(map)){
                 try{
                   const entry = map[k];
                   if (!entry || !entry.schoolsByRegion) continue;
-                  const set = entry.schoolsByRegion[prevRegion] || new Set();
-                  for (const s of set) schoolsForRegion.add(s);
+                  let set = entry.schoolsByRegion[prevRegion] || entry.schoolsByRegion[target] || null;
+                  if (!set){
+                    for (const rk of Object.keys(entry.schoolsByRegion || {})){
+                      try{
+                        if (!rk) continue;
+                        const rkNorm = rk.toString().trim().toLowerCase();
+                        if (rkNorm === target || rkNorm.indexOf(target) !== -1 || target.indexOf(rkNorm) !== -1){ set = entry.schoolsByRegion[rk]; break; }
+                      }catch(e){}
+                    }
+                  }
+                  if (set){ for (const s of set) schoolsForRegion.add(s); }
                 }catch(e){}
               }
               if (schoolsForRegion.size){
