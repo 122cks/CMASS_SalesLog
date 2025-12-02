@@ -1368,11 +1368,16 @@
 
         // Map local entry shape back to server payload
         function mapEntryToServerPayload(e){
-          // attempt to attach scode (정보공시학교코드) by consulting CSV metadata if available
+          // Prefer the local entry's scode values (explicit) over CSV lookup.
+          // Accept both canonical 's-code' and shorthand 'scode' fields set by meeting form.
           let __mapped_scode = '';
           try{
-            if (e && e.school){ try{ const m = (typeof findSalesStaffMeta === 'function') ? findSalesStaffMeta(e.school) : null; if (m && m.scode) __mapped_scode = m.scode; }catch(_e){} }
-            if (!__mapped_scode && e && e.scode) __mapped_scode = e.scode || '';
+            if (e){
+              if (e['s-code'] && String(e['s-code']).trim()) __mapped_scode = String(e['s-code']).trim();
+              else if (e.scode && String(e.scode).trim()) __mapped_scode = String(e.scode).trim();
+            }
+            // If still empty, fall back to CSV metadata only as last resort
+            if (!__mapped_scode && e && e.school){ try{ const m = (typeof findSalesStaffMeta === 'function') ? findSalesStaffMeta(e.school) : null; if (m && m.scode) __mapped_scode = m.scode; }catch(_e){} }
           }catch(_e){}
 
           return {
