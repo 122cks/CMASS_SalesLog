@@ -651,8 +651,8 @@
               return getStart(a) - getStart(b);
             });
             listSorted.forEach((it, j)=>{
-              const subjArr = Array.isArray(it.subject) ? it.subject : (it.subject ? [it.subject] : []);
-              const subjText = subjArr.length ? subjArr.join(', ') : '';
+              const subjArr = Array.isArray(it.subject) ? it.subject : (Array.isArray(it.subjects) ? it.subjects : (it.subject ? [it.subject] : (it.subjects ? (Array.isArray(it.subjects)? it.subjects : [it.subjects]) : [])));
+              const subjText = subjArr && subjArr.length ? subjArr.join(', ') : '';
               const teacher = it.teacherName || '';
               const pub = it.publisher || '';
               const dur = Number(it.duration||0);
@@ -1822,7 +1822,7 @@
 
                           listSorted.forEach(function(it, j) {
                             try {
-                              const subj = Array.isArray(it.subject) ? it.subject.join(', ') : (it.subject || '');
+                              const subj = Array.isArray(it.subject) ? it.subject.join(', ') : (Array.isArray(it.subjects) ? it.subjects.join(', ') : (it.subject || it.subjects || ''));
                                               const teacher = (it.teacherName || it.teacher || it.teacher_name || it.instructor || it.teacherFullName || it.tchr || '').toString().trim();
                                               const favor = (it.favor || it.reaction || it.favorText || it.favour || '').toString().trim();
                               const activitiesText = Array.isArray(it.activities) ? (it.activities.join(', ')) : (it.activities || '');
