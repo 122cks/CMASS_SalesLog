@@ -443,8 +443,8 @@
                 });
                 listSorted.forEach((it,j)=>{
                   const subj = (Array.isArray(it.subject) ? it.subject.join(', ') : (it.subject||''));
-                  const teacher = it.teacherName || '';
-                  const favor = it.favor || '';
+                  const teacher = (it.teacherName || it.teacher || it.teacher_name || it.instructor || it.teacherFullName || it.tchr || '').toString().trim();
+                  const favor = (it.favor || it.reaction || it.favorText || it.favour || '').toString().trim();
                   // Ensure textual fields appear per-meeting with clear labels
                   // Pull raw backend fields: prefer canonical keys (conversation)
                   const conv = (it.conversation && String(it.conversation).trim()) ? String(it.conversation).trim() : ((it.notes && String(it.notes).trim()) ? String(it.notes).trim() : '');
@@ -1769,8 +1769,8 @@
                           listSorted.forEach(function(it, j) {
                             try {
                               const subj = Array.isArray(it.subject) ? it.subject.join(', ') : (it.subject || '');
-                              const teacher = it.teacherName || '';
-                              const favor = it.favor || '';
+                                              const teacher = (it.teacherName || it.teacher || it.teacher_name || it.instructor || it.teacherFullName || it.tchr || '').toString().trim();
+                                              const favor = (it.favor || it.reaction || it.favorText || it.favour || '').toString().trim();
                               const activitiesText = Array.isArray(it.activities) ? (it.activities.join(', ')) : (it.activities || '');
                               const conv = (it.conversation || it.notes || '') ? String(it.conversation || it.notes || '').trim() : '';
                               const issue = (it.issue || it.special || it.remark || '') ? String(it.issue || it.special || it.remark || '').trim() : '';
