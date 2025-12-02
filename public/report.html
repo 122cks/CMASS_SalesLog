@@ -684,7 +684,12 @@
               if (follow) extraParts.push(follow);
               const extra = extraParts.join('  ');
               globalMeetingCounter++;
-              let meetingLine = `-  ${korNums[0]}${globalMeetingCounter}.${subjText} (${teacher}${pub?'-'+pub:''}${favorText?'-'+favorText:''})`;
+              // build safe subject/teacher parts to avoid empty bullets
+              const korPrefix = (korNums && korNums.length) ? korNums[0] : '가';
+              const subjPart = subjText && String(subjText).trim() ? String(subjText).trim() : '(과목미정)';
+              const teacherPart = (teacher && String(teacher).trim()) ? (String(teacher).trim() + (pub ? ('-' + String(pub).trim()) : '') + (favorText ? ('-' + String(favorText).trim()) : '')) : (pub ? String(pub).trim() : '');
+              let meetingLine = `-  ${korPrefix}${globalMeetingCounter}. ${subjPart}`;
+              if (teacherPart) meetingLine += ` (${teacherPart})`;
               if (extra) meetingLine += ` : ${extra}`;
               lines.push(meetingLine);
             });
@@ -1008,6 +1013,9 @@
           const title = document.createElement('div'); title.className='school-title'; title.textContent = (e.school||'(학교 미정)') + ' · ' + (e.visitDate||'');
           // Combine meta into a single line to avoid duplicate school lines
           const meta = document.createElement('div'); meta.className='muted';
+          // reduce title/meta font slightly to match compact card style
+          title.style.fontSize = '13px';
+          meta.style.fontSize = '13px';
           // Preferred compact meta: 학교 · 과목 · 선생님 이름 · 우호도 (fall back to staff/region if missing)
           try{
             const subjectsText = Array.isArray(e.subject) ? (e.subject.join(', ')) : (e.subject || '');
@@ -1029,12 +1037,53 @@
           meta.style.display = 'none';
           div.appendChild(title); div.appendChild(meta);
 
-          // Compact summary visible when collapsed: show 학교 · 과목 · 선생님 이름 · 우호도
+          // Compact summary visible when collapsed: show 학교 · 방문시간 · 과목 · 선생님 이름 · 우호도
           const summaryDiv = document.createElement('div'); summaryDiv.className = 'report-entry-summary';
+          // slightly smaller font for compact cards
+          summaryDiv.style.fontSize = '13px';
           const left = document.createElement('div'); left.className = 'meta-left';
           const subjectsText = Array.isArray(e.subject) ? (e.subject.join(', ')) : (e.subject || '');
+          // compute a human-friendly visit time range (HH:MM~HH:MM) when possible
+          function computeVisitTimeRange(entry){
+            try{
+              if (!entry) return '';
+              const rawStart = entry.visitStart || '';
+              const rawEnd = entry.visitEnd || entry.endTime || '';
+              // if start already contains a range marker, return as-is
+              if (String(rawStart).indexOf('~') !== -1 || String(rawStart).indexOf('-') !== -1) return String(rawStart);
+              let start = '';
+              if (rawStart && String(rawStart).indexOf(':') !== -1) start = String(rawStart);
+              else if (entry.startHour !== undefined && entry.startHour !== null){
+                const h = String(entry.startHour).padStart(2,'0');
+                const m = String(entry.startMinute || '0').padStart(2,'0');
+                start = h + ':' + m;
+              }
+              let end = '';
+              if (rawEnd && String(rawEnd).indexOf(':') !== -1) end = String(rawEnd);
+              else if (entry.endHour !== undefined && entry.endHour !== null){
+                const eh = String(entry.endHour).padStart(2,'0');
+                const em = String(entry.endMinute || '0').padStart(2,'0');
+                end = eh + ':' + em;
+              } else if (entry.duration && start){
+                // try to compute end from duration (minutes)
+                try{
+                  const parts = start.split(':');
+                  const sh = Number(parts[0]||0); const sm = Number(parts[1]||0);
+                  const totalM = sh*60 + sm + Number(entry.duration||0);
+                  const eh = String(Math.floor(totalM/60)).padStart(2,'0');
+                  const em = String(totalM%60).padStart(2,'0');
+                  end = eh + ':' + em;
+                }catch(_){ }
+              }
+              if (start && end) return start + '~' + end;
+              if (start) return start;
+              return '';
+            }catch(_){ return ''; }
+          }
+          const visitRange = computeVisitTimeRange(e);
           const parts = [];
           if (e.school) parts.push(e.school);
+          if (visitRange) parts.push(visitRange);
           if (subjectsText) parts.push(subjectsText);
           if (e.teacherName) parts.push(e.teacherName);
           if (e.favor) parts.push(e.favor);
