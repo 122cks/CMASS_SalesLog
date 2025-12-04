@@ -1539,6 +1539,60 @@ app.post('/log-access', async (req, res) => {
 
 // Export as single function to receive /visits in Seoul (asia-northeast3)
 // Set explicit region to avoid deploying to the default (us-central1).
+// POST /generateSummary - generate a summary of visit_entries using OpenAI Chat API
+app.post('/generateSummary', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const startDate = (body.startDate || '').toString().trim();
+    const endDate = (body.endDate || '').toString().trim();
+    const staff = (body.staff || '').toString().trim();
+
+    if (!startDate || !endDate) return res.status(400).json({ ok: false, msg: 'startDate and endDate required' });
+
+    const qBase = db.collection('visit_entries')
+      .where('visitDate', '>=', startDate)
+      .where('visitDate', '<=', endDate);
+    const q = staff ? qBase.where('staff', '==', staff) : qBase;
+    const snap = await q.get();
+    const docs = [];
+    snap.forEach(d => { docs.push(d.data() || {}); });
+
+    const lines = docs.map(d => {
+      const date = d.visitDate || '';
+      const school = d.school || d.schoolDisplay || '';
+      const teacher = d.teacher || d.teacherName || '';
+      const subjects = Array.isArray(d.subject) ? d.subject.join(', ') : (d.subjects || '');
+      const issue = d.issue || d.conversation || '';
+      return `- ${date} | ${school} | ${teacher} | ${subjects} | ${issue}`;
+    }).join('\n');
+
+    const prompt = `지난 주 방문기록을 요약해줘. 항목: 방문일, 학교, 담당선생님, 과목, 주요 이슈. 항목별로 요약하고 마지막에 추천 액션 3개를 제시해줘.\n\n데이터:\n${lines}`;
+
+    const OPENAI_KEY = functions.config().openai && functions.config().openai.key;
+    if (!OPENAI_KEY) return res.status(500).json({ ok: false, msg: 'OpenAI key not configured in functions config' });
+
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: '당신은 영업 요약 전문가입니다.' },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 800
+      })
+    });
+    const j = await resp.json();
+    const summary = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || j.result || '';
+
+    return res.json({ ok: true, summary });
+  } catch (e) {
+    console.error('generateSummary error', e);
+    return res.status(500).json({ ok: false, msg: String(e) });
+  }
+});
+
 exports.api = functions
   .region('asia-northeast3')
   .runWith({ memory: '512MB', timeoutSeconds: 540 })
