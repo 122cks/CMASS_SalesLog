@@ -485,6 +485,7 @@
     <input type="date" id="filterStart">
     <input type="date" id="filterEnd">
     <button class="export-btn" id="exportBtn">Excel 내보내기</button>
+    <button class="export-btn" id="generateSummaryBtn" style="background:#0b74de;margin-left:6px">요약보고서 생성하기</button>
     <button class="export-btn" id="toggleCsvCols" style="background:#2a5298;margin-left:6px">CSV 컬럼 선택</button>
     <button class="export-btn" id="resetFiltersBtn" style="background:#6b7280;margin-left:6px">초기화</button>
     <div id="csvColsPanel" style="display:none;position:absolute;background:#111;padding:10px;border-radius:8px;border:1px solid #333;color:#fff;margin-top:40px;z-index:999">
@@ -4853,6 +4854,45 @@
             </div>
           `;
           try{ document.body.insertAdjacentHTML('beforeend', modalHtml); }catch(e){ /* ignore */ }
+        })();
+        // Summary modal: used by '요약보고서 생성하기' button
+        (function(){
+          const sHtml = `
+            <div id="summaryModal" class="modal" style="display:none">
+              <div class="modal-content">
+                <div class="modal-header"><h3 id="summaryTitle">요약보고서</h3><button class="modal-close" id="summaryClose">✕</button></div>
+                <div class="modal-body" id="summaryBody">요약을 요청하세요.</div>
+              </div>
+            </div>
+          `;
+          try{ document.body.insertAdjacentHTML('beforeend', sHtml); }catch(e){}
+          // wire close
+          document.addEventListener('click', function(e){ if(e.target && (e.target.id === 'summaryClose' || e.target.closest && e.target.closest('#summaryModal'))) { const m = document.getElementById('summaryModal'); if(m) m.style.display='none'; } });
+        })();
+
+        // Attach generateSummary button handler
+        (function(){
+          const btn = document.getElementById('generateSummaryBtn');
+          if(!btn) return;
+          btn.addEventListener('click', async function(){
+            try{
+              const start = (document.getElementById('filterStart') && document.getElementById('filterStart').value) || '';
+              const end = (document.getElementById('filterEnd') && document.getElementById('filterEnd').value) || '';
+              const staff = (document.getElementById('filterUser') && document.getElementById('filterUser').value) || '';
+              const body = { startDate: start, endDate: end };
+              if(staff) body.staff = staff;
+              const bodyJson = JSON.stringify(body);
+              btn.disabled = true; btn.textContent = '요약 생성 중...';
+              const resp = await fetch('/api/generateSummary', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: bodyJson });
+              const j = await resp.json();
+              btn.disabled = false; btn.textContent = '요약보고서 생성하기';
+              const modal = document.getElementById('summaryModal');
+              const bodyEl = document.getElementById('summaryBody');
+              if(!modal || !bodyEl){ alert(j && j.summary ? j.summary : JSON.stringify(j)); return; }
+              if(j && j.ok && j.summary){ bodyEl.innerText = j.summary; } else if(j && j.summary){ bodyEl.innerText = j.summary; } else { bodyEl.innerText = JSON.stringify(j); }
+              modal.style.display = 'flex';
+            }catch(e){ btn.disabled = false; btn.textContent = '요약보고서 생성하기'; alert('요약 생성 중 오류: ' + (e && e.message)); }
+          });
         })();
   </script>
 </div>
