@@ -242,57 +242,73 @@ app.get('/get-draft', async (req, res) => {
 });
 
 // GET /visits - return recent visits (supports ?limit=N)
-app.get('/visits', async (req, res) => {
+app.post('/generateSummary', async (req, res) => {
   try {
-    // Support two modes:
-    // - legacy: query the top-level `visits` documents which contain an array of visits
-    // - entries: query `visit_entries` collection where each saved subject/visit is its own document
-    const useEntries = String(req.query.useEntries || 'false').toLowerCase() === 'true';
-    const pageSize = Math.min(500, Math.max(1, parseInt(req.query.pageSize || req.query.limit || '100')));
-    const cursor = req.query.cursor || null; // expected as encodeURIComponent("<ISO>|<docId>")
-    const staffParam = req.query.staff || null;
-    const subject = req.query.subject || null;
-    const start = req.query.start || null;
-    const end = req.query.end || null;
+    const body = req.body || {};
+    const startDate = (body.startDate || '').toString().trim();
+    const endDate = (body.endDate || '').toString().trim();
+    const staff = (body.staff || '').toString().trim();
 
-    if (useEntries) {
-      // Query per-visit entries with indexed filters where possible
-      let q = db.collection('visit_entries');
-      // Ensure we have a timestamp field for ordering: visitDate_ts (Firestore Timestamp)
-      q = q.orderBy('visitDate_ts', 'desc').orderBy(admin.firestore.FieldPath.documentId(), 'desc').limit(pageSize);
+    if (!startDate || !endDate) return res.status(400).json({ ok: false, msg: 'startDate and endDate required' });
 
-      // apply simple equality filters (these are index-friendly)
-      if (staffParam) q = q.where('staff', '==', staffParam);
-      if (subject) q = q.where('subject', '==', subject);
-      if (start) {
-        const sDate = new Date(start);
-        if (!isNaN(sDate.getTime())) q = q.where('visitDate_ts', '>=', admin.firestore.Timestamp.fromDate(new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate())));
-      }
-      if (end) {
-        const eDate = new Date(end);
-        if (!isNaN(eDate.getTime())){
-          const eEx = new Date(eDate.getFullYear(), eDate.getMonth(), eDate.getDate()+1);
-          q = q.where('visitDate_ts', '<', admin.firestore.Timestamp.fromDate(eEx));
-        }
-      }
+    const qBase = db.collection('visit_entries')
+      .where('visitDate', '>=', startDate)
+      .where('visitDate', '<=', endDate);
+    const q = staff ? qBase.where('staff', '==', staff) : qBase;
+    const snap = await q.get();
+    const docs = [];
+    snap.forEach(d => { docs.push(d.data() || {}); });
 
-      // apply cursor-based pagination if present
-      if (cursor) {
-        try {
-          const dec = decodeURIComponent(cursor);
-          const parts = dec.split('|');
-          if (parts.length === 2) {
-            const dt = new Date(parts[0]);
-            const docId = parts[1];
-            if (!isNaN(dt.getTime()) && docId) {
-              q = q.startAfter(admin.firestore.Timestamp.fromDate(dt), docId);
-            }
-          }
-        } catch (e) { /* ignore bad cursor */ }
-      }
+    const lines = docs.map(d => {
+      const date = d.visitDate || '';
+      const school = d.school || d.schoolDisplay || '';
+      const teacher = d.teacher || d.teacherName || '';
+      const subjects = Array.isArray(d.subject) ? d.subject.join(', ') : (d.subjects || '');
+      const issue = d.issue || d.conversation || '';
+      return `- ${date} | ${school} | ${teacher} | ${subjects} | ${issue}`;
+    }).join('\n');
 
-      const snap = await q.get();
-      const rows = [];
+    const prompt = `지난 주 방문기록을 요약해줘. 항목: 방문일, 학교, 담당선생님, 과목, 주요 이슈. 항목별로 요약하고 마지막에 추천 액션 3개를 제시해줘.\n\n데이터:\n${lines}`;
+
+    // Prefer Gemini (Google Generative) when configured, otherwise fallback to OpenAI
+    const GEMINI_KEY = functions.config().gemini && functions.config().gemini.key;
+    if (GEMINI_KEY) {
+      // Call Google Generative Language REST endpoint using API key
+      const url = `https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generate?key=${GEMINI_KEY}`;
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: { text: prompt }, maxOutputTokens: 800 })
+      });
+      const j = await resp.json();
+      const summary = (j.candidates && j.candidates[0] && (j.candidates[0].output || j.candidates[0].content)) || (j.result || '\n');
+      return res.json({ ok: true, summary, provider: 'gemini' });
+    }
+
+    // Fallback: OpenAI-compatible call (existing behavior)
+    const OPENAI_KEY = functions.config().openai && functions.config().openai.key;
+    if (!OPENAI_KEY) return res.status(500).json({ ok: false, msg: 'LLM key not configured in functions config' });
+
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: '당신은 영업 요약 전문가입니다.' },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 800
+      })
+    });
+    const j = await resp.json();
+    const summary = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || j.result || '\n';
+    return res.json({ ok: true, summary, provider: 'openai' });
+  } catch (e) {
+    console.error('generateSummary error', e);
+    return res.status(500).json({ ok: false, msg: String(e) });
+  }
+});
       snap.forEach(doc => {
         const data = doc.data() || {};
         // convert visitDate_ts to ISO for clients
