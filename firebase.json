@@ -24,7 +24,7 @@
       { "source": "/report/", "destination": "/report.html" },
       { "source": "/dashboard", "destination": "/dashboard.html" },
       { "source": "/dashboard/", "destination": "/dashboard.html" },
-      { "source": "/api/**", "function": { "functionId": "api", "region": "asia-northeast3" } },
+      { "source": "/api/**", "function": { "functionId": "api", "region": "us-central1" } },
       { "source": "/", "destination": "/index.html" },
       { "source": "**", "destination": "/index.html" }
     ]

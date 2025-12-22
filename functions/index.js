@@ -1976,16 +1976,16 @@ app.get('/fetchGeneratedSummary', async (req, res) => {
   }
 });
 
-// Support environments where `functions.region` may not be available (safe fallback).
-// Export `api` explicitly into the asia-northeast3 region to avoid accidental
-// creation in the default region (us-central1) due to runtime SDK differences.
-exports.api = functions.region('asia-northeast3').runWith({ memory: '512MB', timeoutSeconds: 540 }).https.onRequest(app);
+// Export the API using the default functions runtime. This allows the
+// project default region (us-central1) to host the HTTP function and
+// matches the hosting rewrite for safe recovery.
+exports.api = functions.https.onRequest(app);
 
 // Daily scheduler: 00:00 KST (15:00 UTC)
 exports.scheduledDailySummariesKST = onSchedule({
   schedule: '0 15 * * *',
   timeZone: 'UTC',
-  region: 'asia-northeast3',
+  region: 'us-central1',
   retryConfig: { retryCount: 0 }
 }, async () => {
   try {
@@ -1999,7 +1999,7 @@ exports.scheduledDailySummariesKST = onSchedule({
 exports.scheduledWeeklySummariesKST = onSchedule({
   schedule: '0 15 * * 4',
   timeZone: 'UTC',
-  region: 'asia-northeast3',
+  region: 'us-central1',
   retryConfig: { retryCount: 0 }
 }, async () => {
   try {
@@ -2013,7 +2013,7 @@ exports.scheduledWeeklySummariesKST = onSchedule({
 exports.scheduledStaffSummaries = onSchedule({
   schedule: '0 16 */3 * *',
   timeZone: 'UTC',
-  region: 'asia-northeast3',
+  region: 'us-central1',
   retryConfig: { retryCount: 0 }
 }, async () => {
   try {
