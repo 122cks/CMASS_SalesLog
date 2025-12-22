@@ -1977,9 +1977,9 @@ app.get('/fetchGeneratedSummary', async (req, res) => {
 });
 
 // Support environments where `functions.region` may not be available (safe fallback).
-const _functionsExportRoot = (typeof functions.region === 'function' ? functions.region('asia-northeast3') : functions);
-exports.api = _functionsExportRoot
-  .runWith ? _functionsExportRoot.runWith({ memory: '512MB', timeoutSeconds: 540 }).https.onRequest(app) : functions.https.onRequest(app);
+// Export `api` explicitly into the asia-northeast3 region to avoid accidental
+// creation in the default region (us-central1) due to runtime SDK differences.
+exports.api = functions.region('asia-northeast3').runWith({ memory: '512MB', timeoutSeconds: 540 }).https.onRequest(app);
 
 // Daily scheduler: 00:00 KST (15:00 UTC)
 exports.scheduledDailySummariesKST = onSchedule({
