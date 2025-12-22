@@ -1,4 +1,8 @@
 {
+  "functions": {
+    "source": "functions"
+  },
+  
   "hosting": {
     "public": "public",
     "ignore": [
@@ -20,6 +24,7 @@
       { "source": "/report/", "destination": "/report.html" },
       { "source": "/dashboard", "destination": "/dashboard.html" },
       { "source": "/dashboard/", "destination": "/dashboard.html" },
+      { "source": "/api/**", "function": { "functionId": "api", "region": "asia-northeast3" } },
       { "source": "/", "destination": "/index.html" },
       { "source": "**", "destination": "/index.html" }
     ]

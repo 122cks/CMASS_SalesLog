@@ -98,12 +98,19 @@
     /* Section wrapper to clearly group dashboard areas */
     .section {
       background: #ffffff;
-      border-radius: 12px;
-      padding: 12px 14px;
-      margin-bottom: 18px;
-      border: 1px solid rgba(15,23,42,0.04);
-      box-shadow: 0 8px 20px rgba(17,24,39,0.04);
     }
+
+    /* Map marker address tooltip style */
+    .cmass-address-tooltip {
+      background: rgba(255,255,255,0.95);
+      color: #0b1220;
+      border: 1px solid rgba(11,18,32,0.08);
+      padding: 4px 6px;
+      font-size: 12px;
+      border-radius: 4px;
+      box-shadow: 0 2px 6px rgba(11,18,32,0.08);
+    }
+    
     /* Slightly different background for filter strip so controls stand out */
     .filters { background: linear-gradient(180deg,#fbfdff,#f7fbfc); padding:12px 14px; border-radius:10px; border:1px solid rgba(15,23,42,0.04); box-shadow: 0 6px 14px rgba(17,24,39,0.03); }
     /* Metrics area as a card group */
@@ -399,6 +406,13 @@
         <h2 style="margin:0;font-size:1.8rem;color:#0b1220">씨마스 영업 관리자 대시보드</h2>
       </div>
       <!-- quick actions and per-user summary removed per request -->
+      <div class="top-actions" style="justify-content:center;margin-top:10px">
+        <label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#0b1220">
+          <input id="forceAddrGeocodeToggle" type="checkbox" />
+          <span>도로명 주소 우선 사용 (위도/경도 무시, 클라이언트 지오코딩)</span>
+        </label>
+        <div id="geocodeStatus" style="margin-left:18px;font-size:13px;color:#0b1220">지오코딩: 대기</div>
+      </div>
     </div>
     <div class="section">
     <div class="section-title">핵심 KPI</div>
@@ -445,6 +459,237 @@
   <!-- quick staff buttons removed per user request -->
     </div>
   </div>
+  <!-- 신규 섹션: 일일 Gemini 분석 (KPI와 필터 사이) -->
+  <div class="section" id="geminiSection">
+    <div class="section-title">Gemini 분석</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start">
+      <div class="metric-card" style="flex:1 1 420px;min-width:300px;">
+        <div style="font-weight:800">최근 50건 요약</div>
+        <div id="gemini_yesterday" style="margin-top:8px;white-space:pre-wrap;color:#374151;min-height:84px">수동으로 불러오거나 생성해 주세요.</div>
+        <div style="font-size:12px;color:#6b7280;margin-top:8px"><span id="gemini_yesterday_meta"></span></div>
+      </div>
+      <div class="metric-card" style="flex:1 1 420px;min-width:300px;">
+        <div style="font-weight:800">최근 300건 요약</div>
+        <div id="gemini_last7" style="margin-top:8px;white-space:pre-wrap;color:#374151;min-height:84px">수동으로 불러오거나 생성해 주세요.</div>
+        <div style="font-size:12px;color:#6b7280;margin-top:8px"><span id="gemini_last7_meta"></span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start;justify-content:flex-start">
+        <button class="export-btn" id="geminiRefreshBtn" style="background:#0b74de;">요약 새로고침</button>
+        <button class="secondary-btn" id="geminiManualGenerate" style="background:#fff;color:#0b1220">수동 생성 (50건 / 300건)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 요약 통계 카드 -->
+  <div class="section" id="summaryStatsSection" style="margin-top:12px">
+    <div class="section-title">요약 생성 통계</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start">
+      <div class="metric-card" style="min-width:220px;flex:1 1 220px">
+        <div class="kpi-title">총 사용 토큰(최근)</div>
+        <div id="stats_totalTokens" class="kpi-number">-</div>
+      </div>
+      <div class="metric-card" style="min-width:220px;flex:1 1 220px">
+        <div class="kpi-title">저장된 요약 건수 (최근)</div>
+        <div id="stats_totalEntries" class="kpi-number">-</div>
+      </div>
+      <div class="metric-card" style="flex:2 1 420px;min-width:300px">
+        <div class="kpi-title">모델별 토큰 사용량</div>
+        <div id="stats_byModel" style="font-size:13px;color:#374151;white-space:pre-wrap;max-height:120px;overflow:auto">로딩 중...</div>
+      </div>
+      <div class="metric-card" style="flex:2 1 420px;min-width:300px">
+        <div class="kpi-title">월별 생성 건수</div>
+        <div id="stats_byMonth" style="font-size:13px;color:#374151;white-space:pre-wrap;max-height:120px;overflow:auto">로딩 중...</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start;justify-content:flex-start">
+        <button class="export-btn" id="statsRefreshBtn" style="background:#0b74de;">통계 새로고침</button>
+        <button class="secondary-btn" id="initQuotaBtn" style="background:#fff;color:#0b1220">쿼터 초기화</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Gemini 요약 불러오기 및 수동 생성 (간단한 클라이언트 로직)
+    (function(){
+      // local helper for DOM selection inside this IIFE to avoid depending on later globals
+      function q(selector){ return document.querySelector(selector); }
+      async function normalizeDateStr(v){
+        try{ if(!v) return ''; if(typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) return v.substring(0,10); if(v && v._seconds) return new Date(v._seconds*1000).toISOString().substring(0,10); if(v && v.toDate) return v.toDate().toISOString().substring(0,10); return new Date(v).toISOString().substring(0,10); }catch(e){ return '' }
+      }
+      function daysBetween(isoA, isoB){ try{ const a = new Date(isoA); const b = new Date(isoB); const diff = Math.round((b - a) / (1000*60*60*24)); return Math.abs(diff); }catch(e){ return null } }
+
+      // Helper: escape HTML to avoid XSS when inserting model-generated content
+      function escapeHtml(str){ if(str===null||str===undefined) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+      // Render structured object into HTML: show each category title and its paragraph
+      function renderStructuredHTML(doc){
+        try{
+          // If structured is null but summary text exists, render the raw summary text
+          if((!doc || !doc.structured) && doc && doc.summary){
+             return `<div style="white-space:pre-wrap;color:#374151">${escapeHtml(doc.summary)}</div>`;
+          }
+          const structured = (doc && doc.structured) ? doc.structured : {};
+          const categories = Array.isArray(doc && doc.categories) && doc.categories.length ? doc.categories : [
+            '총평 및 시장 동향','주요 성과 및 우수 사례','납품사항','증정사항','특이사항','AIDT 관련사항','향후 계획 및 요청사항 (Action Plan)'
+          ];
+          let html = '';
+          for(const cat of categories){
+            const val = structured[cat] || '';
+            html += `<div style="margin-bottom:10px"><div style="font-weight:800;color:#0b1220">${escapeHtml(cat)}</div><div style="margin-top:6px;white-space:pre-wrap;color:#374151">${escapeHtml(val)}</div></div>`;
+          }
+          return html || '<div style="color:#6b7280">요약된 항목이 없습니다.</div>';
+        }catch(e){ return '<div style="color:#6b7280">요약 렌더링 중 오류</div>'; }
+      }
+
+      async function loadGeminiSummaries(){
+        try{ await window.waitForFirebase(); }catch(e){ console.warn('firebase not ready for gemini summaries', e); }
+        const outY = q('#gemini_yesterday'); const out7 = q('#gemini_last7'); const metaY = q('#gemini_yesterday_meta'); const meta7 = q('#gemini_last7_meta');
+        if(!window.__db){ if(outY) outY.textContent = 'Firestore 미연결'; if(out7) out7.textContent = 'Firestore 미연결'; return; }
+        try{
+          // Fetch latest summaries from 'generated_summaries' collection
+          // We look for docs with meta.limit around 50 and 300
+          async function fetchLatestByLimit(targetLimit){
+            try{
+              // We can't easily query by meta.limit without an index, so we fetch recent 20 items and filter in client
+              const colRef = window.__db.collection('generated_summaries').orderBy('createdAt','desc').limit(20);
+              const snap = await colRef.get();
+              const docs = snap.docs.map(d=> Object.assign({ id: d.id }, d.data()));
+              
+              // Find the most recent doc that has meta.limit close to targetLimit (allow small variance or exact match)
+              // Or check entryCount if limit is missing
+              const match = docs.find(d => {
+                const lim = (d.meta && d.meta.limit) ? Number(d.meta.limit) : 0;
+                const cnt = (d.meta && d.meta.entryCount) ? Number(d.meta.entryCount) : 0;
+                // If target is 50, accept limit=50 or entryCount around 50 (if limit missing)
+                // If target is 300, accept limit=300 or entryCount > 100
+                if(targetLimit === 50) return lim === 50 || (lim===0 && cnt > 0 && cnt <= 100);
+                if(targetLimit === 300) return lim === 300 || lim === 200 || (lim===0 && cnt > 100);
+                return false;
+              });
+              return match || null;
+            }catch(e){ console.warn('fetchLatestByLimit failed', targetLimit, e); return null; }
+          }
+
+          const yDoc = await fetchLatestByLimit(50);
+          const l7Doc = await fetchLatestByLimit(300);
+
+          function metaTextFor(doc){ try{ const created = (doc && doc.createdAt && doc.createdAt.toDate) ? doc.createdAt.toDate().toLocaleString() : (doc && doc.createdAt) || ''; const cnt = (doc && doc.meta && doc.meta.entryCount) ? doc.meta.entryCount : '?'; const lim = (doc && doc.meta && doc.meta.limit) ? doc.meta.limit : '?'; return `생성: ${created} · 건수: ${cnt} (Limit: ${lim}) · provider: ${doc.provider || ''}`; }catch(e){ return ''; } }
+
+          if(yDoc){ if(outY) outY.innerHTML = renderStructuredHTML(yDoc); if(metaY) metaY.textContent = metaTextFor(yDoc); }
+          else { if(outY) outY.textContent = '저장된 최근 50건 요약이 없습니다.'; if(metaY) metaY.textContent = ''; }
+          if(l7Doc){ if(out7) out7.innerHTML = renderStructuredHTML(l7Doc); if(meta7) meta7.textContent = metaTextFor(l7Doc); }
+          else { if(out7) out7.textContent = '저장된 최근 300건 요약이 없습니다.'; if(meta7) meta7.textContent = ''; }
+        }catch(e){ console.warn('loadGeminiSummaries failed', e); if(outY) outY.textContent = '요약 불러오기 실패'; if(out7) out7.textContent = '요약 불러오기 실패'; }
+      }
+
+      async function manualGenerate(){
+          // ask user which range to generate: 1=최근50건, 2=최근300건, 3=둘다
+          const choice = prompt('요약 생성 범위를 선택하세요:\n1 = 최근 50건\n2 = 최근 300건\n3 = 둘다 (50건 + 300건)', '1');
+          const requests = [];
+          
+          // useRecent mode: fetch most recent N entries regardless of date
+          if(String(choice || '1').trim() === '1'){
+            requests.push({ useRecent: true, limit: 50, label: 'recent50' });
+          } else if(String(choice || '').trim() === '2'){
+            requests.push({ useRecent: true, limit: 300, label: 'recent300' });
+          } else if(String(choice || '').trim() === '3'){
+            requests.push({ useRecent: true, limit: 50, label: 'recent50' });
+            requests.push({ useRecent: true, limit: 300, label: 'recent300' });
+          } else {
+            // default to 50
+            requests.push({ useRecent: true, limit: 50, label: 'recent50' });
+          }
+        try{
+          const btn = q('#geminiManualGenerate'); if(btn) btn.disabled = true; const refreshBtn = q('#geminiRefreshBtn'); if(refreshBtn) refreshBtn.disabled = true;
+          // request persist:true so server will save the generated summary to Firestore
+          // categories to request from LLM (per user instruction)
+          const categories = [
+            '총평 및 시장 동향',
+            '주요 성과 및 우수 사례',
+            '납품사항',
+            '증정사항',
+            '특이사항',
+            'AIDT 관련사항',
+            '향후 계획 및 요청사항 (Action Plan)'
+          ];
+
+          let anyPersisted = false;
+          let summariesByLabel = {};
+          for(const r of requests){
+            try{
+              // useRecent mode: server will fetch most recent N entries
+              const payload = { useRecent: true, limit: r.limit, persist: true, categories };
+              const res = await fetch('/api/generateSummary', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+              const j = await res.json().catch(()=>null);
+              if(!j || !j.ok){ console.warn('generateSummary returned error for', r, j); continue; }
+              summariesByLabel[r.label] = { summary: j.summary || '', structured: j.structured || null, provider: j.provider || '', persisted: !!j.persisted, meta: j.meta };
+              if(j.persisted) anyPersisted = true;
+            }catch(e){ console.warn('request for range failed', r, e); }
+          }
+
+          // show returned summaries in panels immediately
+          // map recent50 to gemini_yesterday, recent300 to gemini_last7 (reusing existing UI IDs)
+          if(summariesByLabel['recent50']){
+            const out = q('#gemini_yesterday'); const meta = q('#gemini_yesterday_meta'); 
+            if(out) out.innerHTML = renderStructuredHTML(summariesByLabel['recent50']); 
+            if(meta) meta.textContent = `생성: ${ summariesByLabel['recent50'].provider || '' } · 최근 50건 · ${ summariesByLabel['recent50'].persisted ? '저장 완료' : '임시 생성 (미저장)' }`;
+          }
+          if(summariesByLabel['recent300']){
+            const out = q('#gemini_last7'); const meta = q('#gemini_last7_meta'); 
+            if(out) out.innerHTML = renderStructuredHTML(summariesByLabel['recent300']); 
+            if(meta) meta.textContent = `생성: ${ summariesByLabel['recent300'].provider || '' } · 최근 300건 · ${ summariesByLabel['recent300'].persisted ? '저장 완료' : '임시 생성 (미저장)' }`;
+          }
+
+          // if server persisted any summaries, refresh Firestore read to pick up persisted records
+          if(anyPersisted){
+            try{ await loadGeminiSummaries(); }catch(_e){}
+            alert('요약 생성 및 저장(해당되는 경우)이 완료되었습니다. 대시보드를 갱신했습니다.');
+          } else {
+            alert('요약 생성은 완료되었지만 저장되지 않았습니다.');
+          }
+        }catch(e){ console.warn('manualGenerate failed', e); alert('생성 중 오류가 발생했습니다'); }
+        finally{ const btn = q('#geminiManualGenerate'); if(btn) btn.disabled = false; const refreshBtn = q('#geminiRefreshBtn'); if(refreshBtn) refreshBtn.disabled = false; }
+      }
+
+      // wire events
+      try{ q('#geminiRefreshBtn').addEventListener('click', loadGeminiSummaries); q('#geminiManualGenerate').addEventListener('click', manualGenerate); }catch(_e){}
+      // NOTE: 자동 로딩/자동 생성 제거 (수동 버튼으로만 실행)
+    })();
+    
+    // Load aggregated summary stats from admin endpoint and hook initQuota
+    (function(){
+      function q(selector){ return document.querySelector(selector); }
+      async function loadStats(){
+        try{
+          const res = await fetch('/api/admin/summary_stats');
+          const j = await res.json().catch(()=>null);
+          if(!j || !j.ok) { q('#stats_byModel').textContent = '조회 실패'; q('#stats_byMonth').textContent = '조회 실패'; return; }
+          q('#stats_totalTokens').textContent = String(j.usage.totalTokens || 0);
+          q('#stats_totalEntries').textContent = String(j.generated.count || 0);
+          const byModel = j.usage.byModel || {};
+          let modelText = '';
+          for(const m of Object.keys(byModel)){
+            modelText += `${m}: count=${byModel[m].count}, tokens=${byModel[m].totalTokens}\n`;
+          }
+          q('#stats_byModel').textContent = modelText || '없음';
+          const byMonth = j.generated.byMonth || {};
+          let monthText = '';
+          for(const k of Object.keys(byMonth).sort().reverse()) monthText += `${k}: ${byMonth[k]}\n`;
+          q('#stats_byMonth').textContent = monthText || '없음';
+        }catch(e){ console.warn('load summary_stats failed', e); q('#stats_byModel').textContent = '조회 실패'; q('#stats_byMonth').textContent = '조회 실패'; }
+      }
+      try{ q('#statsRefreshBtn').addEventListener('click', loadStats); }catch(_e){}
+      try{ q('#initQuotaBtn').addEventListener('click', async ()=>{
+        if(!confirm('쿼터를 초기화 하시겠습니까? 현재 월/분당 제한을 재설정합니다.')) return;
+        try{
+          const res = await fetch('/api/admin/init_quota', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ monthly_limit: 1000000, per_minute_limit: 5 }) });
+          const j = await res.json().catch(()=>null);
+          if(j && j.ok) { alert('쿼터 초기화 완료'); loadStats(); } else { alert('쿼터 초기화 실패'); }
+        }catch(e){ alert('쿼터 초기화 중 오류'); }
+      }); }catch(_e){}
+      // initial load
+      setTimeout(()=> loadStats(), 600);
+    })();
+  </script>
   <div class="section">
     <div class="section-title">필터</div>
     <div class="filters">
@@ -485,7 +730,7 @@
     <input type="date" id="filterStart">
     <input type="date" id="filterEnd">
     <button class="export-btn" id="exportBtn">Excel 내보내기</button>
-    <button class="export-btn" id="generateSummaryBtn" style="background:#0b74de;margin-left:6px">요약보고서 생성하기</button>
+    <button class="export-btn" id="generateSummaryBtn" style="background:#0b74de;margin-left:6px">요약보고서 생성(제미나이)</button>
     <button class="export-btn" id="toggleCsvCols" style="background:#2a5298;margin-left:6px">CSV 컬럼 선택</button>
     <button class="export-btn" id="resetFiltersBtn" style="background:#6b7280;margin-left:6px">초기화</button>
     <div id="csvColsPanel" style="display:none;position:absolute;background:#111;padding:10px;border-radius:8px;border:1px solid #333;color:#fff;margin-top:40px;z-index:999">
@@ -822,6 +1067,7 @@
       }catch(e){ console.warn('renderPagedVisitList failed', e); }
     }
       let salesStaffMap = new Map();
+      let salesStaffCodeMap = new Map();
       let salesStaffLoaded = false;
       // expose initial flag to window so console checks can read it
       try{ window.salesStaffLoaded = salesStaffLoaded; }catch(_e){}
@@ -909,6 +1155,11 @@
             let featuresVal = '';
             if(featuresHeader && idx[featuresHeader] !== undefined) featuresVal = cols[idx[featuresHeader]];
 
+            // NOTE: 위도/경도 고정 매핑은 사용하지 않음 (학교 주소 기반 지오코딩)
+            const lat = '';
+            const lon = '';
+            const addr = findColByHeaderMatch(/도로명.*주소|도로명|address|addr/i) || '';
+
             // sanitize numeric total (remove commas/other non-digits) before Number()
             const sanitizedTotal = total ? Number(String(total).replace(/[^0-9]/g,'')) || 0 : 0;
             const schoolKey = schoolName.trim().toLowerCase();
@@ -922,7 +1173,14 @@
               if(!scode){ for(const c of cols){ if(!c) continue; const v = String(c).trim(); if(/^[A-Za-z]\d{5,}|^S\d{6,}|^\d{6,}$/i.test(v)){ scode = v; break; } } }
               scode = scode || '';
             }catch(_e){ scode = ''; }
-            salesStaffMap.set(schoolKey, { school: schoolName, scode: scode || '', totalStudents: sanitizedTotal, establishment: est||'', schoolLevel: lvl||'', raw: cols, grade1: g1||'', grade2: g2||'', grade3: g3||'', features: featuresVal });
+
+            const meta = { school: schoolName, scode: scode || '', totalStudents: sanitizedTotal, establishment: est||'', schoolLevel: lvl||'', raw: cols, grade1: g1||'', grade2: g2||'', grade3: g3||'', features: featuresVal, lat: lat, lon: lon, address: addr };
+            salesStaffMap.set(schoolKey, meta);
+            // Also index by official school code when present
+            try{
+              const ckey = String(scode || '').trim().replace(/\s+/g,'').toLowerCase();
+              if(ckey) salesStaffCodeMap.set(ckey, meta);
+            }catch(_e){}
           }
           // detect optional staff color mapping in CSV: headers containing 'staff' and 'color' (or '색상')
           try{
@@ -980,7 +1238,7 @@
             window.__normalizeSchoolKey = normalizeSchoolKey;
             window.__normalizeEstablishment = normalizeEstablishment;
             // expose salesStaffMap and helper to global for debugging/runtime use
-            try{ window.salesStaffMap = salesStaffMap; window.findSalesStaffMeta = findSalesStaffMeta; }catch(_e){}
+            try{ window.salesStaffMap = salesStaffMap; window.salesStaffCodeMap = salesStaffCodeMap; window.findSalesStaffMeta = findSalesStaffMeta; }catch(_e){}
             console.info('loadSalesStaffCsv: parsed rows', salesStaffMap.size, Array.from(salesStaffMap.keys()).slice(0,8));
           }catch(_e){}
         }catch(e){ console.warn('loadSalesStaffCsv failed', e); window.__salesStaffLoadError = e; }
@@ -1004,6 +1262,12 @@
       function findSalesStaffMeta(rawSchoolName){
         try{
           if(!rawSchoolName) return null;
+          // 1) Prefer lookup by official school code (scode / schoolCode)
+          try{
+            const codeKey = String(rawSchoolName||'').trim().replace(/\s+/g,'').toLowerCase();
+            if(codeKey && salesStaffCodeMap && salesStaffCodeMap.has(codeKey)) return salesStaffCodeMap.get(codeKey);
+          }catch(_e){}
+
           const key = String(rawSchoolName||'').trim().toLowerCase();
           if(salesStaffMap.has(key)) return salesStaffMap.get(key);
           // try normalized map
@@ -1056,13 +1320,16 @@
           const snap = await qref.get();
           const docs = (snap && snap.docs) ? snap.docs.map(d=>{ const data = d.data(); data.id = d.id; return data; }) : [];
 
-          // Normalize text fields per-document: ensure `conversation` and `issue` are explicit
+          // Normalize fields per-document: ensure `conversation` and `issue` are explicit, and extract school code when present
           try{
             docs.forEach(d=>{
               try{
                 const pick = (...names) => { for(const n of names){ if(d[n] !== undefined && d[n] !== null) return d[n]; } return undefined; };
                 d.conversation = String(pick('conversation','content','대화내용','대화') || '');
                 d.issue = String(pick('issue','issues','특이사항') || '');
+                // normalize school code into `scode`
+                const sc = pick('scode','schoolCode','school_code','infoCode','정보공시학교코드','학교코드');
+                if(sc !== undefined && sc !== null && String(sc).trim()) d.scode = String(sc).trim();
               }catch(_e){}
             });
           }catch(_e){}
@@ -1073,9 +1340,10 @@
             while(!salesStaffLoaded && Date.now() - startWait < 3000) await new Promise(r=>setTimeout(r,50));
             if(salesStaffLoaded){
               docs.forEach(d=>{
+                const sc = String(d.scode || d.schoolCode || d.school_code || d.infoCode || d['정보공시학교코드'] || d['학교코드'] || '').trim();
                 const name = (d.school||'').trim().toLowerCase();
-                if(!name) return;
-                const m = (typeof findSalesStaffMeta === 'function') ? findSalesStaffMeta(name) : (salesStaffMap.get ? salesStaffMap.get(name) : null);
+                if(!sc && !name) return;
+                const m = (typeof findSalesStaffMeta === 'function') ? findSalesStaffMeta(sc || name) : (salesStaffMap.get ? salesStaffMap.get(name) : null);
                 if(m){
                   if(!d.totalStudents || Number(d.totalStudents) === 0) d.totalStudents = m.totalStudents;
                   if(!d.establishment) d.establishment = d.establishment || m.establishment;
@@ -1083,6 +1351,8 @@
                   if(!d.publisher && m.publisher) d.publisher = m.publisher;
                   // propagate scode from sales_staff.csv when available
                   if(!d.scode && m.scode) d.scode = m.scode;
+                  // propagate address (lat/lon are intentionally not copied; map uses address-based geocoding)
+                  if(!d.address && m.address) d.address = m.address;
                 }
               });
             }
@@ -1622,7 +1892,8 @@
           let lvl = String(v.schoolLevel || v.school_grade || v['학교급'] || v.학교급 || '').trim();
           try{
             if((!est || est === '(없음)' || est === '') && typeof findSalesStaffMeta === 'function'){
-              const meta = findSalesStaffMeta(v.school || '');
+              const code = String(v.scode || v.schoolCode || v.school_code || v.infoCode || v['정보공시학교코드'] || v['학교코드'] || '').trim();
+              const meta = findSalesStaffMeta(code || v.school || '');
               if(meta && meta.establishment) est = String(meta.establishment).trim();
               if(meta && meta.schoolLevel && (!lvl || lvl==='')) lvl = String(meta.schoolLevel).trim();
               if(meta && meta.totalStudents && (!v.totalStudents || Number(v.totalStudents)===0)) v.totalStudents = meta.totalStudents;
@@ -1649,7 +1920,8 @@
           // fallback: if visit record lacks totalStudents, try to enrich from sales_staff.csv via findSalesStaffMeta()
           if(!totalStudents){
             try{
-              const meta = (typeof findSalesStaffMeta === 'function') ? findSalesStaffMeta(v.school || '') : null;
+              const code = String(v.scode || v.schoolCode || v.school_code || v.infoCode || v['정보공시학교코드'] || v['학교코드'] || '').trim();
+              const meta = (typeof findSalesStaffMeta === 'function') ? findSalesStaffMeta(code || v.school || '') : null;
               if(meta && meta.totalStudents) totalStudents = Number(meta.totalStudents) || 0;
             }catch(_e){}
           }
@@ -2213,367 +2485,245 @@
   const rLabels = regEntries.map(e=> e[0]); const rData = regEntries.map(e=> e[1]);
   try{ console.log('DEBUG: regions labels count', rLabels.length, rLabels.slice(0,6)); }catch(e){}
 
-  // Helper: region -> representative coords (lat,lng). Add or adjust entries as needed.
-  const REGION_COORDS = {
-    '서울특별시': [37.5665, 126.9780],
-    '부산광역시': [35.1796, 129.0756],
-    '대구광역시': [35.8714, 128.6014],
-    '인천광역시': [37.4563, 126.7052],
-    '광주광역시': [35.1595, 126.8526],
-    '대전광역시': [36.3504, 127.3845],
-    '울산광역시': [35.5396, 129.3114],
-    '세종특별자치시': [36.4800, 127.2890],
-    '경기도': [37.4138, 127.5183],
-    '강원도': [37.8228, 128.1555],
-    '충청북도': [36.6356, 127.4910],
-    '충청남도': [36.5184, 126.8000],
-    '전라북도': [35.7167, 127.1446],
-    '전라남도': [34.8679, 126.9910],
-    '경상북도': [36.4919, 128.8889],
-    '경상남도': [35.4606, 128.2132],
-    '제주특별자치도': [33.4996, 126.5312],
-    // 서울 자치구 (대표 중심 좌표)
-    '종로구': [37.5729, 126.9794],
-    '중구': [37.5610, 126.9971],
-    '용산구': [37.5326, 126.9901],
-    '성동구': [37.5638, 127.0364],
-    '광진구': [37.5385, 127.0820],
-    '동대문구': [37.5743, 127.0390],
-    '중랑구': [37.6068, 127.0931],
-    '성북구': [37.5890, 127.0164],
-    '강북구': [37.6396, 127.0253],
-    '도봉구': [37.6659, 127.0319],
-    '노원구': [37.6544, 127.0560],
-    '은평구': [37.6020, 126.9300],
-    '서대문구': [37.5779, 126.9368],
-    '마포구': [37.5663, 126.9088],
-    '양천구': [37.5151, 126.8666],
-    '강서구': [37.5509, 126.8495],
-    '구로구': [37.4951, 126.8879],
-    '금천구': [37.4560, 126.8952],
-    '영등포구': [37.5260, 126.8962],
-    '동작구': [37.5125, 126.9390],
-    '관악구': [37.4783, 126.9516],
-    '서초구': [37.4836, 127.0324],
-    '강남구': [37.5172, 127.0473],
-    '송파구': [37.5145, 127.1059],
-    '강동구': [37.5301, 127.1236],
-    // 경기도 주요 도시
-    '수원시': [37.2636, 127.0286],
-    '성남시': [37.4208, 127.1265],
-    '고양시': [37.6584, 126.8320],
-    '용인시': [37.2411, 127.1775],
-    '부천시': [37.5036, 126.7650],
-    '안산시': [37.3294, 126.8307],
-    '안양시': [37.3910, 126.9303],
-    '평택시': [36.9904, 127.1094],
-    '의정부시': [37.7389, 127.0453],
-    '남양주시': [37.6329, 127.2197],
-    '화성시': [37.1886, 126.8310],
-    '시흥시': [37.3807, 126.8037],
-    '파주시': [37.7599, 126.7798],
-    '광명시': [37.4781, 126.8643],
-    '김포시': [37.6156, 126.7161],
-    '광주시': [37.4302, 127.3246],
-    '군포시': [37.3596, 126.9368],
-    '오산시': [37.1501, 127.0775],
-    '양주시': [37.7858, 127.0455],
-    '구리시': [37.5945, 127.1319],
-    '포천시': [37.8880, 127.2089],
-    '의왕시': [37.3522, 126.9576],
-    '하남시': [37.5406, 127.2153],
-    '이천시': [37.2715, 127.4350],
-    '안성시': [37.0079, 127.2748],
-    '여주시': [37.2988, 127.6293],
-    '연천군': [38.1474, 127.0754],
-    '양평군': [37.4879, 127.4864]
-    ,
-    // Additional specific cities/districts requested by user (ensure 구 단위 매칭)
-    '경기도김포시': [37.6156, 126.7161],
-    '경기도성남시분당구': [37.3796, 127.1186],
-    '경기도양주시': [37.7858, 127.0455],
-    '경기도고양시일산동구': [37.6585, 127.0860],
-    '인천광역시부평구': [37.5040, 126.7340],
-    '서울특별시성동구': [37.5638, 127.0364],
-    '경기도파주시': [37.7599, 126.7798],
-    '경기도평택시': [36.9904, 127.1094],
-    '서울특별시서대문구': [37.5779, 126.9368],
-    '경기도부천시원미구': [37.4932, 126.7620],
-    '서울특별시성북구': [37.5890, 127.0164],
-    '서울특별시도봉구': [37.6659, 127.0319],
-    '경기도수원시영통구': [37.2841, 127.0445],
-    '경기도고양시일산서구': [37.6796, 126.7730],
-    '경기도남양주시': [37.6329, 127.2197],
-    '서울특별시광진구': [37.5385, 127.0820],
-    '경기도용인시기흥구': [37.2408, 127.1064],
-    '경기도구리시': [37.5945, 127.1319],
-    '서울특별시노원구': [37.6544, 127.0560],
-    '경기도용인시처인구': [37.1710, 127.2480],
-    '서울특별시동작구': [37.5125, 126.9390],
-    '경기도광명시': [37.4781, 126.8643],
-    '경기도수원시팔달구': [37.0093, 127.0210],
-    '경기도안양시만안구': [37.3923, 126.9560],
-    '경기도이천시': [37.2715, 127.4350],
-    '경기도안성시': [37.0079, 127.2748],
-    '경기도고양시덕양구': [37.6660, 126.8270]
-  };
+  // NOTE: 위도/경도 하드코딩 매핑 제거 (학교 주소 기반 지오코딩 사용)
+  const REGION_COORDS = {};
   // If regionMap container exists, render Leaflet proportional circles
   const mapEl = document.getElementById('regionMap');
   if (mapEl && typeof L !== 'undefined'){
-    (function renderRegionMap(entries){
+    (async function renderRegionMap(entries){
       try{
-        // diagnostic log of incoming region entries
-        try{ console.log('renderRegionMap: entries', entries && entries.slice ? entries.slice(0,12) : entries); }catch(e){}
-        // prepare markers data with tolerant region name matching
-        function normRegion(s){ return String(s||'').replace(/\s+/g,'').replace(/(광역시|특별시|특별자치시|특별자치도|특별자치|도|시)$/g,'').replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g,'').toLowerCase(); }
-        const markers = [];
-        const unmatched = [];
-        const total = entries.reduce((s,e)=> s + (Number(e[1]||0)), 0) || 0;
-        entries.forEach(e=>{
-          const name = String(e[0]||'').trim(); const cnt = Number(e[1]||0) || 0;
-          if(!name) return;
-          // try exact match first, then tolerant normalized match, then substring heuristics
-          let coord = REGION_COORDS[name] || null;
-          if(!coord){
-            const nname = normRegion(name);
-            // prefer the most specific (longest) matching key, so '김포시' wins over '경기도'
-            let bestKey = null, bestLen = 0;
-            for(const k in REGION_COORDS){
-              if(!Object.prototype.hasOwnProperty.call(REGION_COORDS,k)) continue;
-              try{
-                const nk = normRegion(k);
-                if(nk === nname){ bestKey = k; bestLen = nk.length; break; }
-                if(nname.indexOf(nk) !== -1 || nk.indexOf(nname) !== -1){
-                  if(nk.length > bestLen){ bestKey = k; bestLen = nk.length; }
-                }
-              }catch(_e){}
-            }
-            if(bestKey) coord = REGION_COORDS[bestKey];
-          }
-          if(coord){ markers.push({ name, cnt, latlng: coord }); }
-          else unmatched.push(name);
-        });
-
-        if(unmatched.length) try{ console.warn('renderRegionMap: unmatched regions (no coords):', Array.from(new Set(unmatched)).slice(0,30)); }catch(e){}
+        // diagnostic log
+        try{ console.log('renderRegionMap -> building school markers from visits and CSV', entries && entries.slice ? entries.slice(0,6) : entries); }catch(e){}
 
         // initialize or reuse map
         if(!window._regionMap){
           window._regionMap = L.map('regionMap', { preferCanvas: true, zoomControl: true, attributionControl: false });
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(window._regionMap);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(window._regionMap);
           window._regionLayerGroup = L.layerGroup().addTo(window._regionMap);
         } else {
           window._regionLayerGroup.clearLayers();
+          window._regionMap.invalidateSize();
         }
 
-        // small helper to create a normalized key for region labels (used for legend toggles)
-        function __normRegionKey(s){ return String(s||'').replace(/\s+/g,'').replace(/특별시|광역시|시|도/g,'').replace(/구|군|동/g,'').replace(/[^0-9a-zA-Zㄱ-ㅎㅏ-ㅣ가-힣]/g,'').toLowerCase(); }
+        // Aggregate visits by school code (prefer scode) then by normalized name
+        const schoolMap = new Map(); // key -> { scode, name, lat, lon, address, total, staffCounts: {name:cnt} }
 
-        // prepare per-region layer lookup so legend can toggle individual regions
-        window._regionLayersLookup = window._regionLayersLookup || {};
-
-        // compute bounds
-        const latlngs = markers.map(m=> m.latlng);
-        if(latlngs.length){
-          const bounds = L.latLngBounds(latlngs.map(([lat,lng])=> [lat,lng]));
-          window._regionMap.fitBounds(bounds.pad(0.45));
-        } else {
-          // default center to Korea
-          window._regionMap.setView([36.5, 127.8], 7);
-        }
-
-        // staff color palette (auto-generated from agg.establishmentsByStaff)
-        function generateStaffColors(staffNames){
-          const out = {};
-          const base = Array.isArray(palette) && palette.length ? palette.slice() : [];
-          for(let i=0;i<staffNames.length;i++){
-            const name = staffNames[i];
-            let color = base[i % base.length];
-            if(!color){ // fallback HSL generation for large counts
-              const hue = Math.round((i * 137.508) % 360); // golden angle
-              color = `hsl(${hue} 60% 45%)`;
-            }
-            out[name] = color;
+        function addVisitToSchool(key, visit){
+          if(!schoolMap.has(key)){
+            // NOTE: lat/lon 고정 매핑은 사용하지 않음 (주소 기반 지오코딩으로만 표시)
+            schoolMap.set(key, { scode: visit.scode||'', name: visit.school||'', lat: '', lon: '', address: visit.address||'', total:0, staffCounts: {} });
           }
-          return out;
+          const rec = schoolMap.get(key);
+          rec.total = (rec.total||0) + 1;
+          // update address if missing
+          if(!rec.address && visit.address) rec.address = visit.address;
+          const staff = visit.staffLabel || visit.staff || '미지정';
+          rec.staffCounts[staff] = (rec.staffCounts[staff]||0) + 1;
         }
 
-        const staffList = (agg && agg.establishmentsByStaff) ? ((agg.establishmentsByStaff instanceof Map) ? Array.from(agg.establishmentsByStaff.keys()) : Object.keys(agg.establishmentsByStaff || {})) : [];
-        const STAFF_COLORS = generateStaffColors(staffList);
-        // Helper: normalize keys for tolerant matching (remove spaces, lowercase)
-        function _normKey(s){ return String(s||'').replace(/\s+/g,'').replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g,'').toLowerCase(); }
-        // If CSV provided explicit staff color mapping, apply overrides tolerantly
-        try{
-          if(window.__staffColorMap){
-            Object.keys(window.__staffColorMap).forEach(k=>{
-              try{
-                const name = String(k||'').trim(); const col = String(window.__staffColorMap[k]||'').trim(); if(!name || !col) return;
-                const nk = _normKey(name);
-                // apply to any STAFF_COLORS key that matches or contains the provided name
-                Object.keys(STAFF_COLORS).forEach(sk => { try{ const sn = _normKey(sk); if(sn === nk || sn.indexOf(nk) !== -1 || nk.indexOf(sn) !== -1){ STAFF_COLORS[sk] = col; } }catch(_e){} });
-                // also set direct mapping for exact key name to be safe
-                STAFF_COLORS[name] = STAFF_COLORS[name] || col;
-              }catch(_e){}
-            });
-          }
-        }catch(_e){}
-        // Force '조영환' to light green; apply to any key that includes that Hangul name
-        try{
-          const target = '조영환'; const tnorm = _normKey(target);
-          Object.keys(STAFF_COLORS).forEach(sk => { try{ if(_normKey(sk).indexOf(tnorm) !== -1) STAFF_COLORS[sk] = '#689F38'; }catch(_e){} });
-          // also ensure direct key exists
-          STAFF_COLORS[target] = STAFF_COLORS[target] || '#689F38';
-        }catch(_e){}
-
-        // render staff legend (show color swatch + total count per staff)
-        try{
-          const staffCounts = staffList.map(n => {
-            try{ const entry = (agg.establishmentsByStaff && (agg.establishmentsByStaff instanceof Map)) ? (agg.establishmentsByStaff.get(n) || {}) : (agg.establishmentsByStaff && agg.establishmentsByStaff[n] ? agg.establishmentsByStaff[n] : {}); return entry && (entry.total || entry.count) ? Number(entry.total || entry.count) : 0; }catch(_e){ return 0; }
-          });
-          renderStaffLegend('#legend-staff', staffList, staffCounts, STAFF_COLORS);
-        }catch(_e){ }
-
-        // helper: find dominant staff for a given region name by scanning agg.establishmentsByStaff
-        function getDominantStaffForRegion(regionName){
-          try{
-            const norm = (typeof __normRegionKey === 'function') ? __normRegionKey(regionName) : String(regionName||'').replace(/\s+/g,'').toLowerCase();
-            const ebs = agg && agg.establishmentsByStaff ? agg.establishmentsByStaff : (window._fullAgg && window._fullAgg.establishmentsByStaff) || {};
-            const staffNames = (ebs instanceof Map) ? Array.from(ebs.keys()) : Object.keys(ebs || {});
-            let best = null; let bestCnt = 0;
-            staffNames.forEach(sName => {
-              try{
-                const rec = (ebs instanceof Map) ? ebs.get(sName) : ebs[sName];
-                if(!rec) return;
-                // try various region maps inside rec
-                let regMap = rec.regions || rec.regionCounts || rec.estByRegion || rec.estMap || rec.regionsMap || null;
-                if(!regMap && rec.estTypes && rec.estTypes instanceof Map) regMap = rec.estTypes;
-                if(!regMap && Array.isArray(rec)){
-                  rec.forEach(r => { try{ const k = (typeof __normRegionKey === 'function') ? __normRegionKey(r[0]) : String(r[0]||''); if(k === norm || String(k).indexOf(norm)!==-1 || String(norm).indexOf(k)!==-1){ const v = Number(r[1]||0); if(v>bestCnt){ bestCnt=v; best=sName; } } }catch(_e){} });
-                  return;
-                }
-                if(!regMap) return;
-                if(typeof regMap.forEach === 'function' && !(regMap instanceof Array)){
-                  try{ regMap.forEach((val, key)=>{ const k = (typeof __normRegionKey === 'function') ? __normRegionKey(key) : String(key||''); const v = Number(val||0); if(k === norm || String(k).indexOf(norm)!==-1 || String(norm).indexOf(k)!==-1){ if(v>bestCnt){ bestCnt=v; best=sName; } } }); }catch(_e){}
-                } else if(typeof regMap === 'object'){
-                  Object.keys(regMap).forEach(key => { try{ const val = regMap[key]; const k = (typeof __normRegionKey === 'function') ? __normRegionKey(key) : String(key||''); const v = Number(val||0); if(k === norm || String(k).indexOf(norm)!==-1 || String(norm).indexOf(k)!==-1){ if(v>bestCnt){ bestCnt=v; best=sName; } } }catch(_e){} });
-                }
-              }catch(_e){}
-            });
-            return best;
-          }catch(_e){ return null; }
-        }
-
-        // draw proportional circles (bounded, sqrt-normalized to avoid huge radii)
-        const maxCnt = markers.reduce((s,m)=> Math.max(s, m.cnt), 0) || 1;
-        const minRadius = 600; // meters (smallest circle)
-        const maxRadius = 9000; // meters (largest circle)
-        markers.forEach(m =>{
-          const [lat,lng] = m.latlng;
-          // normalize by sqrt to reduce skew: ratio between 0..1
-          const ratio = Math.sqrt(m.cnt || 0) / Math.sqrt(maxCnt);
-          const radius = Math.round(minRadius + ratio * (maxRadius - minRadius));
-          // choose main circle color by dominant staff for this region (fallback to blue)
-          const domStaff = getDominantStaffForRegion(m.name);
-          const mainColor = (domStaff && STAFF_COLORS[domStaff]) ? STAFF_COLORS[domStaff] : '#1976d2';
-          const circle = L.circle([lat,lng], {
-            radius: radius,
-            color: mainColor,
-            fillColor: mainColor,
-            fillOpacity: 0.35,
-            weight: 1
-          });
-          circle.bindPopup(`<b>${escapeHtml(m.name)}</b><br>${m.cnt}건`);
-          circle.on('click', ()=> { try{ setCrossFilter('region', m.name); }catch(e){} });
-          // register layer under normalized region key for legend toggling
-          try{ const __k = __normRegionKey(m.name); window._regionLayersLookup[__k] = window._regionLayersLookup[__k] || []; window._regionLayersLookup[__k].push(circle); }catch(_e){}
-          circle.addTo(window._regionLayerGroup);
-        });
-
-        // --- Per-staff small colored markers around each region (one dot per staff) ---
-        try{
-          // STAFF_COLORS uses the top-level palette defined earlier
-
-          // NOTE: using global __normRegionKey helper defined earlier
-
-          // Build a lookup of region -> {staffName: count}
-          const regionStaffCounts = {}; // normalizedRegion -> { staffName: cnt }
-          try{
-            const ebs = agg.establishmentsByStaff || {};
-            // ebs may be a Map-like or plain object. Iterate robustly.
-            const staffNames = (ebs instanceof Map) ? Array.from(ebs.keys()) : Object.keys(ebs || {});
-            staffNames.forEach(sName => {
-              const rec = (ebs instanceof Map) ? ebs.get(sName) : ebs[sName];
-              if(!rec) return;
-              // rec may contain a regions map/array under 'regions' or 'estMap' or similar
-              let regMap = rec.regions || rec.regionCounts || rec.estByRegion || rec.estMap || rec.regionsMap || null;
-              // If regMap is Map-like
-              if(!regMap && rec.estTypes && rec.estTypes instanceof Map){ regMap = rec.estTypes; }
-              if(!regMap && Array.isArray(rec)){
-                // array of [region, count]
-                rec.forEach(r => { try{ const k = __normRegionKey(r[0]); regionStaffCounts[k] = regionStaffCounts[k] || {}; regionStaffCounts[k][sName] = (regionStaffCounts[k][sName]||0) + Number(r[1]||0); }catch(_e){} });
-                return;
-              }
-              if(!regMap) return;
-              // iterate map or object
-              if(typeof regMap.forEach === 'function' && !(regMap instanceof Array)){
-                try{ regMap.forEach((val, key)=>{ const k = __normRegionKey(key); regionStaffCounts[k] = regionStaffCounts[k] || {}; regionStaffCounts[k][sName] = (regionStaffCounts[k][sName]||0) + Number(val||0); }); }
-                catch(_e){ /* ignore */ }
-              } else if(typeof regMap === 'object'){
-                Object.keys(regMap).forEach(key => { const val = regMap[key]; const k = __normRegionKey(key); regionStaffCounts[k] = regionStaffCounts[k] || {}; regionStaffCounts[k][sName] = (regionStaffCounts[k][sName]||0) + Number(val||0); });
-              }
-            });
-          }catch(_e){ console.warn('build regionStaffCounts failed', _e); }
-
-          // For each main marker, draw small colored dots for each staff present in that region
-          markers.forEach(m => {
-            const norm = __normRegionKey(m.name);
-            const staffMap = regionStaffCounts[norm] || {};
-            const staffKeys = Object.keys(staffMap);
-            if(!staffKeys.length) return;
-
-            // compute total for normalization and layout offsets
-            const staffMax = Math.max.apply(null, staffKeys.map(k=> Number(staffMap[k]||0))) || 1;
-            // layout angles around the main marker
-            const angleStep = (2*Math.PI) / Math.max(6, staffKeys.length);
-            let idx = 0;
-            staffKeys.forEach(stName => {
-              const cnt = Number(staffMap[stName]||0);
-              if(!cnt) { idx++; return; }
-              const ratio = Math.sqrt(cnt) / Math.sqrt(staffMax);
-              const dotRadius = Math.max(60, Math.round(200 + ratio * 300)); // meters for dot
-              const angle = idx * angleStep;
-              idx++;
-              // offset target point by small distance in meters (approx conversion: 0.001 deg ~ 111m at equator; use simple lat/lng offset)
-              const offsetMeters = 300 + (idx * 40);
-              const lat = m.latlng[0]; const lng = m.latlng[1];
-              // approximate offset in degrees (latitude ~111km per deg)
-              const dLat = (offsetMeters * Math.cos(angle)) / 111000.0;
-              const dLng = (offsetMeters * Math.sin(angle)) / (111000.0 * Math.cos(lat * Math.PI/180));
-              const dotCoord = [ lat + dLat, lng + dLng ];
-              const color = STAFF_COLORS[stName] || STAFF_COLORS['송훈재'] || '#1e3c72';
-              const dot = L.circle(dotCoord, { radius: dotRadius, color: color, fillColor: color, fillOpacity: 0.9, weight: 0.6 });
-              dot.bindPopup(`<b>${escapeHtml(m.name)}</b><br>${escapeHtml(stName)}: ${cnt}건`);
-              dot.on('click', ()=> { try{ setCrossFilter('staff', stName); }catch(e){} });
-              try{ window._regionLayersLookup[norm] = window._regionLayersLookup[norm] || []; window._regionLayersLookup[norm].push(dot); }catch(_e){}
-              dot.addTo(window._regionLayerGroup);
-            });
-          });
-        }catch(_e){ console.warn('per-staff overlay failed', _e); }
-
-        // NOTE: Removed aggregated 서울/경기/인천 overlay per user request.
-
-        // render legend using existing helper (chart3 legend will support toggling of individual regions)
-        const labels = entries.map(e=> e[0]); const data = entries.map(e=> e[1]);
-        try{
-          // prefer to color each region swatch by that region's dominant staff color (fall back to palette)
-          const colorsForLegend = labels.map((lab,i)=>{
+        // prefer scode grouping when available
+        if(Array.isArray(visits)){
+          visits.forEach(v => {
             try{
-              const dom = (typeof getDominantStaffForRegion === 'function') ? getDominantStaffForRegion(lab) : null;
-              if(dom && STAFF_COLORS && STAFF_COLORS[dom]) return STAFF_COLORS[dom];
+              const sc = (v.scode && String(v.scode).trim()) ? String(v.scode).trim() : null;
+              const nameKey = String((v.school||'').trim().toLowerCase());
+              if(sc){ addVisitToSchool('scode:'+sc, v); }
+              else if(nameKey){ addVisitToSchool('name:'+nameKey, v); }
             }catch(_e){}
-            return palette[i % palette.length];
           });
-          renderLegend('#legend-chart3', labels, data, colorsForLegend);
-        }catch(e){}
+        }
+
+        // Also include CSV rows (salesStaffMap) for schools without visits so they still show on map
+        try{
+          if(window.salesStaffLoaded && window.salesStaffMap){
+            const iter = (window.salesStaffMap instanceof Map) ? Array.from(window.salesStaffMap.values()) : Object.values(window.salesStaffMap||{});
+            iter.forEach(m => {
+              try{
+                const sc = (m && m.scode) ? String(m.scode).trim() : '';
+                const name = (m && m.school) ? String(m.school).trim() : '';
+                const key = sc ? 'scode:'+sc : (name? 'name:'+name.toLowerCase() : null);
+                if(!key) return;
+                // if no existing entry, add CSV meta as zero-count entry
+                if(!schoolMap.has(key)){
+                  // NOTE: lat/lon 고정 매핑은 사용하지 않음 (주소 기반 지오코딩)
+                  schoolMap.set(key, { scode: sc||'', name: name||'', lat: '', lon: '', address: m.address||m['도로명 주소']||m.raw && m.raw[window.__salesStaffIdx && window.__salesStaffIdx['도로명 주소'] ? window.__salesStaffIdx['도로명 주소'] : 0]||'', total: 0, staffCounts: {} });
+                } else {
+                  // fill missing address from CSV
+                  const rec = schoolMap.get(key);
+                  rec.address = rec.address || m.address || m['도로명 주소'] || '';
+                }
+              }catch(_e){}
+            });
+          }
+        }catch(_e){ console.warn('salesStaffMap augmentation failed', _e); }
+
+        // Diagnostic: sample school entries and detect missing/invalid coords
+        try{
+          const sample = [];
+          for (const [k,rec] of schoolMap.entries()){ sample.push({ key:k, scode: rec.scode, name: rec.name, lat: rec.lat, lon: rec.lon, total: rec.total||0 }); if(sample.length>=12) break; }
+          console.log('renderRegionMap: schoolMap sample', sample);
+          const bad = [];
+          let countHasCoords = 0;
+          for (const [k,rec] of schoolMap.entries()){
+            try{
+              const la = rec.lat, lo = rec.lon;
+              if(!la || !lo){ bad.push({ key:k, lat: la, lon: lo, total: rec.total||0 }); }
+              else { const nla = Number(la), nlo = Number(lo); if(isNaN(nla) || isNaN(nlo)) bad.push({ key:k, lat: la, lon: lo, total: rec.total||0 }); else countHasCoords++; }
+            }catch(_e){}
+            if(bad.length>=20) break;
+          }
+          console.log('renderRegionMap: schoolMap counts', { total: schoolMap.size, withCoords: countHasCoords, missingOrInvalid: bad.length });
+          if(bad.length) console.warn('renderRegionMap: schools with missing/invalid coords', bad.slice(0,20));
+        }catch(_e){}
+        // If many schools lack coords, attempt client-side geocoding (Nominatim) with caching and throttling.
+        try{
+          // build list of addresses needing geocode
+          const geocodeCacheKey = 'cmass_geocode_cache_v1';
+          let geocodeCache = {};
+          try{ geocodeCache = JSON.parse(localStorage.getItem(geocodeCacheKey) || '{}'); }catch(_e){ geocodeCache = {}; }
+          const toGeocode = [];
+          // If user toggles to force address geocoding, we will enqueue addresses even when lat/lon exist
+          const forceAddrGeocode = (function(){ try{ const el = document.getElementById('forceAddrGeocodeToggle'); return !!(el && el.checked); }catch(e){ return false; } })();
+          for (const [k, rec] of schoolMap.entries()){
+            try{
+              const hasLat = rec.lat !== undefined && rec.lat !== null && String(rec.lat).trim() !== '';
+              const hasLon = rec.lon !== undefined && rec.lon !== null && String(rec.lon).trim() !== '';
+              const addr = String(rec.address || '').trim();
+              // If forcing address geocode, always attempt geocode for this address (subject to cache/limits)
+              if((!hasLat || !hasLon) && addr){
+                const keyAddr = addr.replace(/\s+/g,' ').trim();
+                if(!geocodeCache[keyAddr]) toGeocode.push({ key:k, addr: keyAddr });
+              } else if(forceAddrGeocode && addr){
+                const keyAddr = addr.replace(/\s+/g,' ').trim();
+                // even if lat/lon exist, only enqueue when cache doesn't already have a positive lat/lon entry
+                const c = geocodeCache[keyAddr];
+                if(!c || !c.lat || !c.lon) toGeocode.push({ key:k, addr: keyAddr });
+              }
+            }catch(_e){}
+          }
+          // limit number of lookups per page load to avoid abuse; changeable
+          const MAX_GEOCODE = 50;
+          if(toGeocode.length > MAX_GEOCODE) toGeocode.length = MAX_GEOCODE;
+
+          // update UI status
+          try{
+            const statusEl = document.getElementById('geocodeStatus');
+            if(statusEl){ statusEl.textContent = `지오코딩: 대기(대상 ${toGeocode.length}건)`; }
+          }catch(_e){}
+
+          async function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+          // Nominatim policy recommends 1 request per second; use 1100ms delay
+          let geocodeProgress = 0;
+          for(let i=0;i<toGeocode.length;i++){
+            const item = toGeocode[i];
+            try{
+              // double-check cache before fetching
+              if(geocodeCache[item.addr]) continue;
+              const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(item.addr);
+              const res = await fetch(url, { cache: 'no-store' });
+              if(res && res.ok){
+                const j = await res.json();
+                if(Array.isArray(j) && j.length){
+                  const lat = j[0].lat; const lon = j[0].lon;
+                  geocodeCache[item.addr] = { lat: String(lat), lon: String(lon), ts: Date.now() };
+                  // persist incrementally
+                  try{ localStorage.setItem(geocodeCacheKey, JSON.stringify(geocodeCache)); }catch(_e){}
+                } else {
+                  // mark as failed to avoid re-querying too soon
+                  geocodeCache[item.addr] = { lat: null, lon: null, ts: Date.now() };
+                }
+              }
+            }catch(_e){ console.warn('geocode failed for', item.addr, _e); }
+            // wait to respect rate limit
+            try{ await sleep(1100); }catch(_e){}
+            // update progress UI
+            try{
+              geocodeProgress++;
+              const statusEl2 = document.getElementById('geocodeStatus');
+              if(statusEl2){ statusEl2.textContent = `지오코딩: ${geocodeProgress}/${toGeocode.length} 처리중`; }
+            }catch(_e){}
+          }
+
+          // apply cache back to schoolMap for those missing coords
+          for(const [k, rec] of schoolMap.entries()){
+            try{
+              const addr = String(rec.address || '').trim();
+              const keyAddr = addr.replace(/\s+/g,' ').trim();
+              if(keyAddr && geocodeCache[keyAddr] && geocodeCache[keyAddr].lat && geocodeCache[keyAddr].lon){
+                if(!rec.lat) rec.lat = geocodeCache[keyAddr].lat;
+                if(!rec.lon) rec.lon = geocodeCache[keyAddr].lon;
+              }
+            }catch(_e){}
+          }
+          // mark finished in UI
+          try{ const statusEl3 = document.getElementById('geocodeStatus'); if(statusEl3){ statusEl3.textContent = `지오코딩: 완료 (대상 ${toGeocode.length}건, 처리 ${geocodeProgress}건)`; } }catch(_e){}
+        }catch(_e){ console.warn('geocoding step failed', _e); }
+
+        // Expose schoolMap for debugging in console
+        try{ window.__lastSchoolMap = Array.from(schoolMap.entries()).map(([k,v])=>({ key:k, scode:v.scode, name:v.name, lat:v.lat, lon:v.lon, total:v.total })); }catch(_e){}
+        // Now render markers: color by dominant staff (use computed staff colors), radius by total meetings
+        const markersCoords = [];
+        const markersList = [];
+        schoolMap.forEach((rec,key)=>{
+          try{
+            let lat = Number(rec.lat);
+            let lon = Number(rec.lon);
+            if(isNaN(lat) || isNaN(lon)) return;
+            // Auto-correct swapped lat/lon: if lat is out of valid latitude range but lon looks like a valid latitude, swap them
+            try{
+              if((lat > 90 || lat < -90) && (lon <= 90 && lon >= -90)){
+                const _oldLat = lat; lat = lon; lon = _oldLat;
+                console.warn('renderRegionMap: swapped lat/lon detected and corrected for', key, rec.name, {origLat:_oldLat, newLat:lat, newLon:lon});
+              }
+            }catch(_e){}
+            // determine dominant staff
+            const staffCounts = rec.staffCounts || {};
+            const staffKeys = Object.keys(staffCounts);
+            let dominant = null; let domCnt = 0;
+            staffKeys.forEach(s=>{ const c = Number(staffCounts[s]||0); if(c>domCnt){ domCnt=c; dominant=s; } });
+            // if no staff in visits, try to find staff from CSV mapping by school name
+            if(!dominant && window.findSalesStaffMeta){
+              try{ const m = findSalesStaffMeta(rec.name || ''); if(m && m.staff) dominant = m.staff; }catch(_e){}
+            }
+            let color = '#3388ff';
+            try{ if(window._computedStaffColors && dominant && window._computedStaffColors[dominant]) color = window._computedStaffColors[dominant];
+                  else if(window.__staffColorMap && dominant && window.__staffColorMap[dominant]) color = window.__staffColorMap[dominant]; }catch(_e){}
+
+            const size = 6 + Math.round(Math.min(40, Math.sqrt(rec.total || 0) * 4));
+            const marker = L.circleMarker([lat, lon], { radius: size, color: '#fff', weight:1, fillColor: color, fillOpacity: 0.9 });
+            const staffSummary = staffKeys.length ? staffKeys.map(s=> `${escapeHtml(s)}:${staffCounts[s]}` ).join('<br/>') : '';
+            // show road-name address prominently in tooltip, and include details in popup
+            try{
+              const addrText = String(rec.address || rec.name || rec.scode || '');
+              if(addrText && addrText.trim()){
+                marker.bindTooltip(escapeHtml(addrText), { permanent: false, direction: 'top', className: 'cmass-address-tooltip', offset: [0, -Math.max(10, size)] });
+              }
+            }catch(_e){}
+            marker.bindPopup(`<div style="font-size:13px"><b>${escapeHtml(rec.name||rec.scode||'학교')}</b><br/><b>주소:</b> ${escapeHtml(rec.address||'주소 정보 없음')}<br/>미팅: ${rec.total||0}건<br/>${staffSummary}</div>`);
+            marker.on('click', ()=>{ try{ if(dominant) setCrossFilter('staff', dominant); if(rec.scode) setCrossFilter('scode', rec.scode); }catch(_e){} });
+            marker.addTo(window._regionLayerGroup);
+            markersCoords.push([lat, lon]);
+            try{ markersList.push({ key:key, lat: lat, lon: lon, name: rec.name, scode: rec.scode, total: rec.total }); }catch(_e){}
+          }catch(_e){}
+        });
+        try{ window._regionMarkers = markersList; console.log('renderRegionMap: markers created', markersList.slice(0,20)); }catch(_e){}
+
+        // Fit bounds or set default view
+        if(markersCoords.length > 0){
+          try{ const bounds = L.latLngBounds(markersCoords); window._regionMap.fitBounds(bounds.pad(0.12)); }catch(_e){ window._regionMap.setView([36.5,127.8],7); }
+        } else {
+          // no markers added — show a debug marker so user sees map center and we can show diagnostics
+          try{
+            window._regionMap.setView([36.5,127.8],7);
+            const dbg = L.circleMarker([36.5,127.8], { radius: 8, color:'#ff4444', weight:1, fillColor:'#ffcccc', fillOpacity:0.9 });
+            dbg.bindPopup('<div style="font-size:13px"><b>디버그:</b> 마커가 없습니다. 콘솔 로그를 확인하세요.</div>');
+            dbg.addTo(window._regionLayerGroup);
+          }catch(_e){ window._regionMap.setView([36.5,127.8],7); }
+        }
+
+        // hide chart canvas and ensure map container visible
+        try{ const elChart3 = document.getElementById('chart3'); if(elChart3) elChart3.style.display = 'none'; const mapContainer = document.getElementById('regionMap'); if(mapContainer){ mapContainer.style.display='block'; mapContainer.style.height='420px'; } }catch(_e){}
 
       }catch(err){ console.warn('renderRegionMap failed', err); }
     })(regEntries);
@@ -4879,8 +5029,17 @@
               const start = (document.getElementById('filterStart') && document.getElementById('filterStart').value) || '';
               const end = (document.getElementById('filterEnd') && document.getElementById('filterEnd').value) || '';
               const staff = (document.getElementById('filterUser') && document.getElementById('filterUser').value) || '';
-              const body = { startDate: start, endDate: end };
-              if(staff) body.staff = staff;
+                  const categories = [
+                    '총평 및 시장 동향',
+                    '주요 성과 및 우수 사례',
+                    '납품사항',
+                    '증정사항',
+                    '특이사항',
+                    'AIDT 관련사항',
+                    '향후 계획 및 요청사항 (Action Plan)'
+                  ];
+                  const body = { startDate: start, endDate: end, persist: true, categories };
+                  if(staff) body.staff = staff;
               const bodyJson = JSON.stringify(body);
               btn.disabled = true; btn.textContent = '요약 생성 중...';
               const resp = await fetch('/api/generateSummary', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: bodyJson });
@@ -4888,8 +5047,14 @@
               btn.disabled = false; btn.textContent = '요약보고서 생성하기';
               const modal = document.getElementById('summaryModal');
               const bodyEl = document.getElementById('summaryBody');
-              if(!modal || !bodyEl){ alert(j && j.summary ? j.summary : JSON.stringify(j)); return; }
-              if(j && j.ok && j.summary){ bodyEl.innerText = j.summary; } else if(j && j.summary){ bodyEl.innerText = j.summary; } else { bodyEl.innerText = JSON.stringify(j); }
+              if(!modal || !bodyEl){ const preview = (j && j.structured) ? renderStructuredHTML({ structured: j.structured, categories: categories }) : (j && j.summary ? ('요약: ' + j.summary) : JSON.stringify(j)); alert(preview); return; }
+              if(j && j.ok && (j.structured || j.summary)){
+                if(j.structured){ bodyEl.innerHTML = renderStructuredHTML({ structured: j.structured, categories: categories }); }
+                else { bodyEl.innerHTML = '<div style="white-space:pre-wrap;color:#374151">' + escapeHtml(j.summary || '') + '</div>'; }
+              } else if(j && j.summary){ bodyEl.innerHTML = '<div style="white-space:pre-wrap;color:#374151">' + escapeHtml(j.summary) + '</div>'; }
+              else { bodyEl.innerText = JSON.stringify(j); }
+              // show persistence/provider info when available
+              try{ const metaText = (j && (j.persisted ? '저장됨' : '미저장')) + (j && j.provider ? ' · ' + j.provider : ''); const metaEl = document.getElementById('gemini_yesterday_meta'); if(metaEl && metaText) metaEl.textContent = metaText; }catch(_e){}
               modal.style.display = 'flex';
             }catch(e){ btn.disabled = false; btn.textContent = '요약보고서 생성하기'; alert('요약 생성 중 오류: ' + (e && e.message)); }
           });
