@@ -1,16 +1,251 @@
 // NOTE: aggregateVisitEntries was migrated into the Express app routes below to avoid duplicate
 // top-level declarations. See the Express `app.get('/aggregateVisitEntries', ...)` route.
+
+// Load environment variables from .env file (for GEMINI_KEY, etc.)
+require('dotenv').config();
+
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const express = require('express');
 const cors = require('cors');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 
 admin.initializeApp();
 const db = admin.firestore();
 
+// Safe functions config accessor: firebase-functions v7 removed `functions.config()`
+// which may throw if accessed. Capture it once inside a try/catch and expose
+// as `FUNC_CONFIG` for guarded lookups across the file.
+const FUNC_CONFIG = (function(){
+  try {
+    // access may throw in newer firebase-functions; guard it
+    return (typeof functions.config === 'function') ? functions.config() : {};
+  } catch (e) {
+    return {};
+  }
+})();
+
+// Prevent accidental REST fallback calls to the Google Generative Language REST API
+// which previously caused repeated 400 errors due to mismatched payload shapes.
+// Set `ALLOW_GEMINI_REST=1` in the environment to bypass this guard (not recommended).
+try {
+  const _origFetch = global.fetch;
+  global.fetch = async function(url, ...args) {
+    try {
+      const s = typeof url === 'string' ? url : (url && url.url) || '';
+      if (s && s.indexOf('generativelanguage.googleapis.com') !== -1 && String(process.env.ALLOW_GEMINI_REST || '') !== '1') {
+        console.warn('Blocked REST call to Generative Language API (generativelanguage.googleapis.com) — REST fallback is disabled. Set ALLOW_GEMINI_REST=1 to override.');
+        throw new Error('Gemini REST fallback disabled by server configuration');
+      }
+    } catch (e) {
+      // fall through to original fetch for non-matching urls
+    }
+    if (typeof _origFetch === 'function') return _origFetch.apply(this, [url, ...args]);
+    // If no global fetch present, use node-fetch fallback if available
+    const nodeFetch = require('node-fetch');
+    return nodeFetch(url, ...args);
+  };
+} catch (e) {
+  console.warn('Could not install fetch guard for Gemini REST fallback:', e && e.message);
+}
+
 const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json({ limit: '1mb' }));
+
+// Default categories for summaries
+const DEFAULT_CATEGORIES = [
+  '총평 및 시장 동향',
+  '주요 성과 및 우수 사례',
+  '납품사항',
+  '증정사항',
+  '특이사항',
+  'AIDT 관련사항',
+  '향후 계획 및 요청사항 (Action Plan)'
+];
+
+// Core generator: fetch entries (date-range or recent-N), call LLMs, parse JSON, persist
+async function generateAndMaybePersist({ startDate, endDate, limit, categories = DEFAULT_CATEGORIES, persist = true, useRecent = false }) {
+  // Modes:
+  // - date range mode (default): selects visit_entries whose visitDate lies between startDate and endDate
+  // - recent-N mode (useRecent=true): selects the most recent `limit` visit_entries ordered by visitDate desc
+  let entries = [];
+  try {
+    if (useRecent) {
+      const fetchLimit = Math.max(1, Math.min(limit || 300, 5000));
+      const q = db.collection('visit_entries').orderBy('visitDate', 'desc').limit(fetchLimit);
+      const snap = await q.get();
+      entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } else {
+      const startStr = startDate.toISOString().slice(0,10);
+      const endStr = endDate.toISOString().slice(0,10);
+      const MAX_FETCH = Math.max(limit, 5000);
+      const q = db.collection('visit_entries').orderBy('visitDate', 'desc').limit(MAX_FETCH);
+      const snap = await q.get();
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      function normalizeDateFromEntry(e){
+        try{
+          if(!e) return null;
+          if (e.visitDate && typeof e.visitDate === 'string' && /^\d{4}-\d{2}-\d{2}/.test(e.visitDate)) return e.visitDate.substring(0,10);
+        }catch(_){ }
+        return null;
+      }
+
+      const filtered = all.filter(d => {
+        const dStr = normalizeDateFromEntry(d);
+        if (!dStr) return false;
+        return (dStr >= startStr && dStr <= endStr);
+      });
+      entries = filtered.slice(0, limit);
+    }
+  } catch (e) { console.error('generateAndMaybePersist: query error', e && e.message); }
+
+  const sysPrompt = `다음 방문 기록을 한국어로 요약하세요. 먼저 JSON 객체 하나를 출력하고, 그 다음 사람 읽기 좋은 섹션 텍스트를 출력하세요. JSON은 아래 카테고리 키를 모두 포함해야 합니다. 키는 그대로 사용하세요.\n카테고리: ${JSON.stringify(categories)}\n규칙:\n- JSON은 첫 줄부터 시작하며 코드블록 없이 순수 JSON으로 출력\n- 각 카테고리 값은 요약 문단 문자열\n- 그 다음에는 동일 카테고리를 제목으로 하는 섹션 텍스트를 한국어로 작성`;
+  
+  // Build comprehensive content from visit entries including all relevant fields
+  const content = entries.map((e, i) => {
+    const parts = [`#${i+1} 학교: ${e.school||'미기재'}, 선생님: ${e.teacher||'미기재'}`, `날짜: ${e.visitDate||''}`];
+    if (e.subject) parts.push(`과목: ${e.subject}`);
+    if (e.activities) parts.push(`수업활동: ${e.activities}`);
+    if (e.materials) parts.push(`교재: ${e.materials}`);
+    if (e.delivery || e.deliveries || e.delivery_note) parts.push(`납품사항: ${e.delivery || e.deliveries || e.delivery_note}`);
+    if (e.conversation) parts.push(`대화내용: ${e.conversation}`);
+    if (e.issue) parts.push(`이슈: ${e.issue}`);
+    if (e.favor) parts.push(`부탁사항: ${e.favor}`);
+    if (e.followUp) parts.push(`후속조치: ${e.followUp}`);
+    return parts.join('\n');
+  }).join('\n\n');
+
+  // header informs Gemini whether this is a recent-N query or a date-range query
+  const header = (typeof useRecent !== 'undefined' && useRecent) ? `백엔드 최근 ${entries.length}건` : `기간: ${startDate ? startDate.toISOString().slice(0,10) : ''} → ${endDate ? endDate.toISOString().slice(0,10) : ''}`;
+  const fullContent = `${header}\n\n${content}`;
+
+  // DEBUG: Log all environment variables related to GEMINI (updated for new key)
+  console.log('DEBUG: process.env.GEMINI_KEY exists?', !!process.env.GEMINI_KEY, 'length=', process.env.GEMINI_KEY ? process.env.GEMINI_KEY.length : 0);
+  console.log('DEBUG: process.env.GEMINI_MODEL=', process.env.GEMINI_MODEL);
+  console.log('DEBUG: GEMINI key first 10 chars=', process.env.GEMINI_KEY ? process.env.GEMINI_KEY.substring(0, 10) : 'none');
+
+  const GEMINI_KEY = (process.env.GEMINI_KEY || (FUNC_CONFIG && FUNC_CONFIG.gemini && FUNC_CONFIG.gemini.key));
+  const GEMINI_MODEL = (process.env.GEMINI_MODEL || (FUNC_CONFIG && FUNC_CONFIG.gemini && FUNC_CONFIG.gemini.model) || 'gemini-2.5-flash');
+
+  let text = '';
+  let provider = 'gemini';
+  let structured = null;
+
+  async function callGemini() {
+    try {
+      const { GoogleGenerativeAI } = require('@google/generative-ai');
+      // Log key source for diagnostics (do not print the full key)
+      const keySource = process.env.GEMINI_KEY ? 'process.env' : (FUNC_CONFIG && FUNC_CONFIG.gemini && FUNC_CONFIG.gemini.key ? 'functions.config' : 'none');
+      console.log('callGemini: GEMINI key source=', keySource, 'model=', GEMINI_MODEL, 'entries=', entries.length, 'GEMINI_KEY length=', GEMINI_KEY ? GEMINI_KEY.length : 0);
+      
+      if (!GEMINI_KEY || GEMINI_KEY.trim().length === 0) {
+        console.error('callGemini: GEMINI_KEY is empty or whitespace-only');
+        return '';
+      }
+
+      const genAI = new GoogleGenerativeAI(GEMINI_KEY);
+      const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+      console.log('callGemini: About to call generateContent with prompt length=', sysPrompt.length, 'content length=', fullContent.length);
+      const resp = await model.generateContent([sysPrompt, fullContent]);
+      console.log('callGemini: generateContent returned, processing response...');
+      
+      // Try to obtain text and also log a truncated raw response for debugging
+      let retval = '';
+      try{ retval = resp?.response?.text?.() || ''; }catch(e){ 
+        console.error('callGemini: Error extracting text from response:', e && e.message); 
+        retval = '';
+      }
+      try{
+        const raw = JSON.stringify(resp).slice(0, 2000);
+        console.log('callGemini: raw response (truncated 2000):', raw);
+      }catch(_){ /* ignore */ }
+      console.log('callGemini: generated text length=', retval ? retval.length : 0);
+      return retval;
+    } catch (e) { 
+      console.error('Gemini call failed:', e && e.message, 'stack:', e && e.stack); 
+      return ''; 
+    }
+  }
+
+  if (GEMINI_KEY) {
+    text = await callGemini();
+    if (!text || text.trim().length < 10) {
+      console.error('generateAndMaybePersist: Gemini returned empty or too-short response. Response length:', text ? text.length : 0, 'Model:', GEMINI_MODEL, 'Entry count:', entries.length);
+    } else {
+      console.info('generateAndMaybePersist: Gemini generated summary. Response length:', text.length, 'Entry count:', entries.length);
+    }
+  } else {
+    console.error('generateAndMaybePersist: GEMINI_KEY not configured. Cannot generate summary. Set GEMINI_KEY environment variable.');
+  }
+
+  // NOTE: structured JSON extraction disabled.
+  // Keep the raw generated text as the summary and do not attempt to parse
+  // a JSON block into `structured`. This avoids failures when the model
+  // emits slightly malformed JSON or includes markdown/code fences.
+  structured = null;
+
+  // Persist if: (1) persist flag is true, AND (2) we have either meaningful text OR structured data OR any entries were found
+  const shouldPersist = persist && (entries.length > 0 || (text && text.trim().length > 10) || structured);
+  let persisted = false;
+  
+  console.log('generateAndMaybePersist: shouldPersist=', shouldPersist, 'persist=', persist, 'entries.length=', entries.length, 'text.length=', text ? text.length : 0, 'structured=', !!structured);
+  
+  if (shouldPersist) {
+    // Determine dateRange for storage. If in useRecent mode, infer from entries; otherwise use provided startDate/endDate
+    let startStr = '';
+    let endStr = '';
+    let rangeDays = 1;
+    try {
+      if (useRecent && entries && entries.length) {
+        function extractIso(d){ try{ if(!d) return null; if (d.visitDate && typeof d.visitDate === 'string' && /^\d{4}-\d{2}-\d{2}/.test(d.visitDate)) return d.visitDate.substring(0,10); if (d.visitDate && d.visitDate._seconds) return new Date(d.visitDate._seconds*1000).toISOString().substring(0,10); if (d.visitDate && typeof d.visitDate.toDate === 'function') return d.visitDate.toDate().toISOString().substring(0,10); if (d.createdAt && d.createdAt._seconds) return new Date(d.createdAt._seconds*1000).toISOString().substring(0,10); }catch(_){ } return null; }
+        const dates = entries.map(extractIso).filter(Boolean).sort();
+        if (dates.length) {
+          startStr = dates[dates.length-1]; // entries sorted desc by visitDate earlier; take oldest as start
+          endStr = dates[0];
+          const s = new Date(startStr + 'T00:00:00Z');
+          const e = new Date(endStr + 'T00:00:00Z');
+          rangeDays = Math.max(1, Math.ceil((e - s) / (1000*60*60*24)) + 1);
+        }
+      } else if (startDate && endDate) {
+        startStr = startDate.toISOString().slice(0,10);
+        endStr = endDate.toISOString().slice(0,10);
+        rangeDays = Math.ceil((endDate - startDate) / (1000*60*60*24)) + 1;
+      }
+    } catch(e) { console.warn('generateAndMaybePersist: dateRange inference failed', e && e.message); }
+
+    const targetCol = rangeDays >= 7 ? 'generated_summaries_7day' : 'generated_summaries_daily';
+    const rec = { summary: text||'', structured: structured||null, provider, dateRange: { start: startStr, end: endStr }, categories, createdAt: admin.firestore.FieldValue.serverTimestamp(), meta: { limit, entryCount: entries.length } };
+    try { 
+      await db.collection(targetCol).add(rec); 
+      await db.collection('generated_summaries').add(Object.assign({}, rec)); 
+      persisted = true;
+      console.log('generateAndMaybePersist: Successfully persisted to', targetCol, 'and generated_summaries. Entry count:', entries.length);
+    } catch(e) { 
+      console.error('generateAndMaybePersist: Persist failed for', targetCol, '- Error:', e && e.message, 'Stack:', e && e.stack); 
+    }
+  } else {
+    console.warn('generateAndMaybePersist: Skipping persist. Reasons: persist=', persist, 'entries.length=', entries.length, 'text.length=', text ? text.length : 0, 'structured=', !!structured);
+  }
+  return { summary: text||'', structured, provider, persisted };
+}
+
+// Helpers for KST ranges
+function getYesterdayRangeKST(now=new Date()){
+  const tz = 9*60*60*1000; const kstNow = new Date(now.getTime()+tz);
+  const todayMid = Date.UTC(kstNow.getUTCFullYear(), kstNow.getUTCMonth(), kstNow.getUTCDate());
+  const startKst = new Date(todayMid - 24*60*60*1000);
+  const endKst = new Date(todayMid - 1000);
+  return { startUtc: new Date(startKst.getTime()-tz), endUtc: new Date(endKst.getTime()-tz) };
+}
+function getLast7DaysRangeKST(now=new Date()){
+  const tz = 9*60*60*1000; const kstNow = new Date(now.getTime()+tz);
+  const todayMid = Date.UTC(kstNow.getUTCFullYear(), kstNow.getUTCMonth(), kstNow.getUTCDate());
+  const startKst = new Date(todayMid - 7*24*60*60*1000);
+  const endKst = new Date(todayMid - 1000);
+  return { startUtc: new Date(startKst.getTime()-tz), endUtc: new Date(endKst.getTime()-tz) };
+}
 
 // Cached mapping of school name -> region loaded from the hosted CSV
 let schoolRegionMap = {};
@@ -1543,60 +1778,499 @@ app.post('/log-access', async (req, res) => {
 app.post('/generateSummary', async (req, res) => {
   try {
     const body = req.body || {};
-    const startDate = (body.startDate || '').toString().trim();
-    const endDate = (body.endDate || '').toString().trim();
-    const staff = (body.staff || '').toString().trim();
+    const useRecent = !!body.useRecent;
+    const startDateStr = (body.startDate || '').toString().trim();
+    const endDateStr = (body.endDate || '').toString().trim();
+    if (!useRecent && (!startDateStr || !endDateStr)) return res.status(400).json({ ok: false, msg: 'startDate and endDate required (or set useRecent=true)' });
 
-    if (!startDate || !endDate) return res.status(400).json({ ok: false, msg: 'startDate and endDate required' });
+    // parse YYYY-MM-DD strings into Date objects covering the full day (UTC bounds)
+    const parseIsoDayRange = (s, e) => {
+      const sdParts = s.split('-').map(x=>parseInt(x,10));
+      const edParts = e.split('-').map(x=>parseInt(x,10));
+      const sd = new Date(Date.UTC(sdParts[0], (sdParts[1]||1)-1, sdParts[2]||1, 0,0,0));
+      const ed = new Date(Date.UTC(edParts[0], (edParts[1]||1)-1, (edParts[2]||1), 23,59,59,999));
+      return { start: sd, end: ed };
+    };
 
-    const qBase = db.collection('visit_entries')
-      .where('visitDate', '>=', startDate)
-      .where('visitDate', '<=', endDate);
-    const q = staff ? qBase.where('staff', '==', staff) : qBase;
-    const snap = await q.get();
-    const docs = [];
-    snap.forEach(d => { docs.push(d.data() || {}); });
+    const { start, end } = parseIsoDayRange(startDateStr, endDateStr);
 
-    const lines = docs.map(d => {
-      const date = d.visitDate || '';
-      const school = d.school || d.schoolDisplay || '';
-      const teacher = d.teacher || d.teacherName || '';
-      const subjects = Array.isArray(d.subject) ? d.subject.join(', ') : (d.subjects || '');
-      const issue = d.issue || d.conversation || '';
-      return `- ${date} | ${school} | ${teacher} | ${subjects} | ${issue}`;
-    }).join('\n');
+    // choose default limits to match scheduled jobs: 1 day -> 50, >=7 days -> 300
+    const msPerDay = 24 * 60 * 60 * 1000;
+    let limit = 50;
+    if (useRecent) {
+      // allow caller to provide desired recent-N via body.limit, default to 50
+      limit = body.limit ? Math.max(1, Math.min(parseInt(body.limit,10)||50, 5000)) : 50;
+    } else {
+      const diffDays = Math.max(1, Math.round((end.getTime() - start.getTime()) / msPerDay) + 1);
+      if (diffDays === 1) limit = 50;
+      else if (diffDays >= 7) limit = 300;
+      else limit = Math.min(300, 50 * diffDays);
+    }
 
-    const prompt = `지난 주 방문기록을 요약해줘. 항목: 방문일, 학교, 담당선생님, 과목, 주요 이슈. 항목별로 요약하고 마지막에 추천 액션 3개를 제시해줘.\n\n데이터:\n${lines}`;
+    const categories = Array.isArray(body.categories) && body.categories.length ? body.categories : DEFAULT_CATEGORIES;
+    const persist = (typeof body.persist === 'undefined') ? true : !!body.persist;
 
-    const GEMINI_KEY = functions.config().gemini && functions.config().gemini.key;
-    if (!OPENAI_KEY) return res.status(500).json({ ok: false, msg: 'OpenAI key not configured in functions config' });
-
-    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini', // OpenAI model
-        messages: [
-          { role: 'system', content: '당신은 영업 요약 전문가입니다.' },
-          { role: 'user', content: prompt }
-        ],
-        max_tokens: 800
-      })
-    });
-    const j = await resp.json();
-    const summary = (j.candidates && j.candidates[0] && (j.candidates[0].output || j.candidates[0].content)) || (j.result || '');
-
-    return res.json({ ok: true, summary });
+    // Use the core generator for consistent behavior with scheduled runs
+    try {
+      const result = await generateAndMaybePersist({ startDate: start, endDate: end, limit, categories, persist, useRecent });
+      return res.json(Object.assign({ ok: true }, result));
+    } catch (genErr) {
+      console.warn('generateSummary: core generator failed, falling back to legacy path', genErr && genErr.message);
+      return res.status(500).json({ ok: false, msg: 'generator_failed', detail: String(genErr && genErr.message) });
+    }
   } catch (e) {
     console.error('generateSummary error', e);
     return res.status(500).json({ ok: false, msg: String(e) });
   }
 });
 
-exports.api = functions
-  .region('asia-northeast3')
-  .runWith({ memory: '512MB', timeoutSeconds: 540 })
-  .https.onRequest(app);
+// POST /generateRecentSummaries - admin helper: generate recent-N summaries for 50 and 300
+app.post('/generateRecentSummaries', async (req, res) => {
+  try {
+    // optional override in body: { limits: [50,300] }
+    const body = req.body || {};
+    const limits = Array.isArray(body.limits) && body.limits.length ? body.limits.map(x=>parseInt(x,10)||0) : [50,300];
+    const out = {};
+    for (const lim of limits) {
+      try {
+        console.log('generateRecentSummaries: generating recent', lim, 'entries');
+        const gen = await generateAndMaybePersist({ useRecent: true, limit: Math.max(1, Math.min(lim, 5000)), categories: DEFAULT_CATEGORIES, persist: true });
+        out[`recent_${lim}`] = gen;
+      } catch (e) {
+        console.error('generateRecentSummaries: generation failed for', lim, e && e.message);
+        out[`recent_${lim}`] = { ok: false, msg: String(e && e.message) };
+      }
+    }
+    return res.json({ ok: true, results: out });
+  } catch (e) {
+    console.error('generateRecentSummaries error', e && e.message);
+    return res.status(500).json({ ok: false, msg: String(e && e.message) });
+  }
+});
+
+// POST /saveGeneratedSummary - admin helper: persist a supplied summary document
+app.post('/saveGeneratedSummary', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const summary = (body.summary || body.text || '').toString();
+    const categories = Array.isArray(body.categories) && body.categories.length ? body.categories : DEFAULT_CATEGORIES;
+    // Build a structured object with category keys present. If caller provided structured, use it.
+    let structured = null;
+    if (body.structured && typeof body.structured === 'object') structured = body.structured;
+    else {
+      structured = Object.create(null);
+      for (const k of categories) structured[k] = '';
+      // preserve the original text for later manual edits / enrichment
+      structured.__originalText = summary;
+    }
+
+    const provider = (body.provider || 'manual').toString();
+    // dateRange: allow explicit start/end or single date string
+    let start = (body.startDate || body.date || '').toString();
+    let end = (body.endDate || body.date || '').toString();
+    if (!start && !end) {
+      // default to today (UTC) if not provided
+      const d = new Date(); start = d.toISOString().slice(0,10); end = start;
+    }
+
+    const rec = {
+      summary: summary || '',
+      structured: structured || null,
+      provider: provider || 'manual',
+      dateRange: { start: String(start), end: String(end) },
+      categories,
+      meta: Object.assign({ source: 'manual-save' }, (body.meta || {})),
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    // Persist to both daily and 7day collections as requested (and legacy copy)
+    const dailyRef = await db.collection('generated_summaries_daily').add(rec);
+    const weekRef = await db.collection('generated_summaries_7day').add(rec);
+    const legacyRef = await db.collection('generated_summaries').add(Object.assign({}, rec));
+
+    return res.json({ ok: true, ids: { daily: dailyRef.id, week: weekRef.id, legacy: legacyRef.id } });
+  } catch (err) {
+    console.error('saveGeneratedSummary error', err && err.message);
+    return res.status(500).json({ ok: false, error: err && err.message });
+  }
+});
+
+// POST /reparseGeneratedSummary - take an existing saved summary doc (by collection+id),
+// send its original text to Gemini with JSON-first instructions, and update the doc's
+// `structured` and `summary` fields when a JSON object is returned.
+app.post('/reparseGeneratedSummary', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const collection = (body.collection || 'generated_summaries_daily').toString();
+    const id = (body.id || '').toString();
+    if (!id) return res.status(400).json({ ok: false, msg: 'id required' });
+
+    const docRef = db.collection(collection).doc(id);
+    const snap = await docRef.get();
+    if (!snap.exists) return res.status(404).json({ ok: false, msg: 'document not found' });
+    const doc = snap.data() || {};
+
+    // Determine source text to parse: prefer structured.__originalText then summary
+    let originalText = '';
+    if (doc.structured && typeof doc.structured === 'object' && doc.structured.__originalText) originalText = String(doc.structured.__originalText || '');
+    else if (doc.summary) originalText = String(doc.summary || '');
+    if (!originalText || !originalText.trim()) return res.status(400).json({ ok: false, msg: 'no source text available to reparse' });
+
+    const categories = Array.isArray(doc.categories) && doc.categories.length ? doc.categories : DEFAULT_CATEGORIES;
+    const sysPrompt = `아래 원문을 한국어로 각 카테고리별로 요약해 주세요. 먼저 JSON 객체 하나를 출력하고, 그 다음 사람 읽기 좋은 섹션 텍스트를 출력하세요. JSON은 반드시 아래 카테고리 키를 모두 포함해야 합니다. 키는 그대로 사용하세요.\n카테고리: ${JSON.stringify(categories)}\n규칙:\n- JSON은 첫 줄부터 시작하며 코드블록 없이 순수 JSON으로 출력\n- 각 카테고리 값은 요약 문단 문자열\n- 그 다음에는 동일 카테고리를 제목으로 하는 섹션 텍스트를 한국어로 작성`;
+
+    const GEMINI_KEY = (process.env.GEMINI_KEY || (FUNC_CONFIG && FUNC_CONFIG.gemini && FUNC_CONFIG.gemini.key));
+    const GEMINI_MODEL = (process.env.GEMINI_MODEL || (FUNC_CONFIG && FUNC_CONFIG.gemini && FUNC_CONFIG.gemini.model) || 'gemini-2.5-flash');
+    if (!GEMINI_KEY) return res.status(500).json({ ok: false, msg: 'GEMINI_KEY not configured on the server' });
+
+    // call Gemini
+    async function callGeminiLocal(prompt, content){
+      try {
+        const { GoogleGenerativeAI } = require('@google/generative-ai');
+        const genAI = new GoogleGenerativeAI(GEMINI_KEY);
+        const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+        const resp = await model.generateContent([prompt, content]);
+        return resp?.response?.text?.() || '';
+      } catch (e) { console.warn('Gemini call failed (reparse)', e && e.message); return ''; }
+    }
+
+    const textOut = await callGeminiLocal(sysPrompt, originalText);
+
+    // extract first JSON object helper (local copy)
+    function extractFirstJsonLocal(str){ const s = String(str||''); const p = s.indexOf('{'); if (p<0) return null; let depth=0; for(let i=p;i<s.length;i++){ const ch=s[i]; if(ch==='{' ) depth++; else if(ch==='}'){ depth--; if(depth===0){ const cand=s.slice(p,i+1); try{ return JSON.parse(cand); }catch(_){ return null; } } } } return null; }
+
+    const structured = extractFirstJsonLocal(textOut);
+    if (!structured) return res.status(200).json({ ok: false, msg: 'Gemini did not return a JSON object', raw: textOut.slice(0,1000) });
+
+    // Build combined summary text from structured for quick display on frontend
+    const combined = categories.map(k => `■ ${k}\n${String(structured[k] || '').trim()}`).join('\n\n');
+
+    // Update the document
+    const updateRec = {
+      structured: Object.assign({}, structured, { __originalText: originalText }),
+      summary: combined,
+      meta: Object.assign({}, doc.meta || {}, { reparse: { updatedAt: admin.firestore.FieldValue.serverTimestamp(), by: 'reparseGeneratedSummary' } }),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+    await docRef.set(updateRec, { merge: true });
+    return res.json({ ok: true, id, updated: true });
+  } catch (err) {
+    console.error('reparseGeneratedSummary error', err && err.message);
+    return res.status(500).json({ ok: false, error: err && err.message });
+  }
+});
+
+// GET /fetchGeneratedSummary - read a saved generated_summary doc and return its fields
+app.get('/fetchGeneratedSummary', async (req, res) => {
+  try {
+    const collection = (req.query.collection || 'generated_summaries_daily').toString();
+    const id = (req.query.id || '').toString();
+    if (!id) return res.status(400).json({ ok: false, msg: 'id required' });
+    const snap = await db.collection(collection).doc(id).get();
+    if (!snap.exists) return res.status(404).json({ ok: false, msg: 'not found' });
+    const data = snap.data() || {};
+    return res.json({ ok: true, id, data });
+  } catch (e) {
+    console.error('fetchGeneratedSummary error', e && e.message);
+    return res.status(500).json({ ok: false, error: e && e.message });
+  }
+});
+
+// Support environments where `functions.region` may not be available (safe fallback).
+const _functionsExportRoot = (typeof functions.region === 'function' ? functions.region('asia-northeast3') : functions);
+exports.api = _functionsExportRoot
+  .runWith ? _functionsExportRoot.runWith({ memory: '512MB', timeoutSeconds: 540 }).https.onRequest(app) : functions.https.onRequest(app);
+
+// Daily scheduler: 00:00 KST (15:00 UTC)
+exports.scheduledDailySummariesKST = onSchedule({
+  schedule: '0 15 * * *',
+  timeZone: 'UTC',
+  region: 'asia-northeast3',
+  retryConfig: { retryCount: 0 }
+}, async () => {
+  try {
+    const { startUtc, endUtc } = getYesterdayRangeKST(new Date());
+    const res = await generateAndMaybePersist({ startDate: startUtc, endDate: endUtc, limit: 50, categories: DEFAULT_CATEGORIES, persist: true });
+    console.log('scheduledDailySummariesKST result', { persisted: res.persisted, provider: res.provider });
+  } catch (e) { console.error('scheduledDailySummariesKST error', e && e.message); }
+});
+
+// Weekly scheduler: Friday 00:00 KST (Thursday 15:00 UTC)
+exports.scheduledWeeklySummariesKST = onSchedule({
+  schedule: '0 15 * * 4',
+  timeZone: 'UTC',
+  region: 'asia-northeast3',
+  retryConfig: { retryCount: 0 }
+}, async () => {
+  try {
+    const { startUtc, endUtc } = getLast7DaysRangeKST(new Date());
+    const res = await generateAndMaybePersist({ startDate: startUtc, endDate: endUtc, limit: 300, categories: DEFAULT_CATEGORIES, persist: true });
+    console.log('scheduledWeeklySummariesKST result', { persisted: res.persisted, provider: res.provider });
+  } catch (e) { console.error('scheduledWeeklySummariesKST error', e && e.message); }
+});
+
+// Staff summary scheduler: every 3 days at 01:00 KST (16:00 UTC previous day)
+exports.scheduledStaffSummaries = onSchedule({
+  schedule: '0 16 */3 * *',
+  timeZone: 'UTC',
+  region: 'asia-northeast3',
+  retryConfig: { retryCount: 0 }
+}, async () => {
+  try {
+    console.log('scheduledStaffSummaries: Starting staff summary generation');
+    
+    // Get all unique staff members from visit_entries
+    const staffSnapshot = await db.collection('visit_entries')
+      .orderBy('visitDate', 'desc')
+      .limit(5000)
+      .get();
+    
+    const staffSet = new Set();
+    staffSnapshot.docs.forEach(doc => {
+      const staff = doc.data().staff;
+      if (staff && typeof staff === 'string' && staff.trim()) {
+        staffSet.add(staff.trim());
+      }
+    });
+    
+    const staffList = Array.from(staffSet);
+    console.log(`scheduledStaffSummaries: Found ${staffList.length} unique staff members`);
+    
+    // Generate summary for each staff member
+    for (const staff of staffList) {
+      try {
+        await generateStaffSummary(staff, 50);
+        console.log(`scheduledStaffSummaries: Generated summary for ${staff}`);
+      } catch (e) {
+        console.error(`scheduledStaffSummaries: Error for ${staff}:`, e && e.message);
+      }
+    }
+    
+    console.log('scheduledStaffSummaries: Completed');
+  } catch (e) {
+    console.error('scheduledStaffSummaries error', e && e.message);
+  }
+});
+
+// Helper function to generate staff summary
+async function generateStaffSummary(staff, limit = 50) {
+  if (!staff || typeof staff !== 'string') {
+    throw new Error('Invalid staff parameter');
+  }
+
+  // Fetch recent entries for this staff member.
+  // Try server-side ordered query first; if Firestore requires a composite index
+  // (FAILED_PRECONDITION), fall back to an equality-only query and sort client-side.
+  let entries = [];
+  try {
+    const entriesSnapshot = await db.collection('visit_entries')
+      .where('staff', '==', staff)
+      .orderBy('visitDate', 'desc')
+      .limit(limit)
+      .get();
+    entries = entriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (e) {
+    console.warn('generateStaffSummary: ordered query failed, falling back to client-side sort:', e && e.message);
+    // Fetch a reasonable batch and sort locally. Use a larger limit to improve chance
+    // of including the most recent `limit` items when no server ordering is available.
+    const fallbackLimit = Math.max(limit, 200);
+    const snap = await db.collection('visit_entries')
+      .where('staff', '==', staff)
+      .limit(fallbackLimit)
+      .get();
+    entries = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    entries.sort((a, b) => {
+      const aDate = a.visitDate ? String(a.visitDate) : '';
+      const bDate = b.visitDate ? String(b.visitDate) : '';
+      return (bDate || '').localeCompare(aDate || '');
+    });
+    entries = entries.slice(0, limit);
+  }
+  
+  if (entries.length === 0) {
+    console.log(`generateStaffSummary: No entries found for ${staff}`);
+    return { ok: false, message: 'No entries found' };
+  }
+
+  // Build content for Gemini
+  const content = entries.map((e, idx) => {
+    const parts = [];
+    parts.push(`[${idx + 1}] 방문일: ${e.visitDate || ''}`);
+    if (e.school) parts.push(`학교: ${e.school}`);
+    if (e.teacher) parts.push(`선생님: ${e.teacher}`);
+    if (e.subject) parts.push(`과목: ${e.subject}`);
+    if (e.activities) parts.push(`영업활동: ${e.activities}`);
+    if (e.materials) parts.push(`전달자료: ${e.materials}`);
+    if (e.delivery || e.deliveries || e.delivery_note) {
+      const d = e.delivery || e.deliveries || e.delivery_note;
+      parts.push(`납품사항: ${d}`);
+    }
+    if (e.conversation) parts.push(`대화내용: ${e.conversation}`);
+    if (e.issue) parts.push(`특이사항: ${e.issue}`);
+    if (e.favor) parts.push(`반응: ${e.favor}`);
+    if (e.followUp) parts.push(`후속조치: ${e.followUp}`);
+    return parts.join('\n');
+  }).join('\n\n');
+
+  const sysPrompt = `당신은 영업 활동 분석 전문가입니다. 제공된 방문 기록을 분석하여 담당자의 최근 영업 활동을 요약해주세요.
+
+다음 항목을 포함하여 JSON 형식과 텍스트 형식으로 작성해주세요:
+
+1. **활동 개요**: 전체 방문 건수, 주요 방문 학교, 활동 기간
+2. **주요 성과**: 긍정적인 반응, 성공적인 상담, 납품 실적
+3. **영업 활동 분석**: 주로 진행한 활동 유형, 자주 전달한 자료
+4. **고객 반응**: 반응좋음/보통/나쁨 비율, 특이사항
+5. **후속 조치**: 진행 중인 후속조치, 주목할 만한 기회
+6. **개선 제안**: 영업 전략 개선 방안, 집중 영역
+
+먼저 JSON 객체로 작성하고, 그 다음 각 섹션별로 읽기 쉬운 텍스트로 작성해주세요.`;
+
+  const fullContent = `담당자: ${staff}\n최근 ${entries.length}건\n\n${content}`;
+
+  // Call Gemini
+  const GEMINI_KEY = (process.env.GEMINI_KEY || (FUNC_CONFIG && FUNC_CONFIG.gemini && FUNC_CONFIG.gemini.key));
+  const GEMINI_MODEL = (process.env.GEMINI_MODEL || (FUNC_CONFIG && FUNC_CONFIG.gemini && FUNC_CONFIG.gemini.model) || 'gemini-2.0-flash-exp');
+
+  if (!GEMINI_KEY) {
+    console.error('generateStaffSummary: GEMINI_KEY not configured');
+    return { ok: false, message: 'GEMINI_KEY not configured' };
+  }
+
+  let text = '';
+  let structured = null;
+
+  try {
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(GEMINI_KEY);
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+    const resp = await model.generateContent([sysPrompt, fullContent]);
+    
+    try { text = resp?.response?.text?.() || ''; } catch (e) { text = ''; }
+    
+    // Extract JSON
+    function extractFirstJson(str) {
+      const s = String(str || '');
+      const p = s.indexOf('{');
+      if (p < 0) return null;
+      let depth = 0;
+      for (let i = p; i < s.length; i++) {
+        const ch = s[i];
+        if (ch === '{') depth++;
+        else if (ch === '}') {
+          depth--;
+          if (depth === 0) {
+            const cand = s.slice(p, i + 1);
+            try { return JSON.parse(cand); } catch (_) { return null; }
+          }
+        }
+      }
+      return null;
+    }
+    
+    structured = extractFirstJson(text);
+    console.log(`generateStaffSummary: Generated summary for ${staff}, text length=${text.length}`);
+  } catch (e) {
+    console.error('generateStaffSummary: Gemini call failed', e && e.message);
+    return { ok: false, message: e && e.message };
+  }
+
+  // Save to Firestore
+  const now = new Date();
+  const docData = {
+    staff: staff,
+    summary: text || '',
+    structured: structured || null,
+    entryCount: entries.length,
+    createdAt: now,
+    lastVisitDate: entries.length > 0 ? entries[0].visitDate : null,
+    provider: 'gemini',
+    model: GEMINI_MODEL
+  };
+
+  try {
+    await db.collection('generated_summaries_staff').add(docData);
+    console.log(`generateStaffSummary: Saved summary for ${staff} to Firestore`);
+    return { ok: true, staff: staff, entryCount: entries.length };
+  } catch (e) {
+    console.error('generateStaffSummary: Firestore save failed', e && e.message);
+    return { ok: false, message: e && e.message };
+  }
+}
+
+// API endpoint: GET /api/staff_summary?staff=ChoYounghwan
+app.get('/staff_summary', async (req, res) => {
+  try {
+    const staff = req.query.staff;
+    
+    if (!staff || typeof staff !== 'string' || !staff.trim()) {
+      return res.status(400).json({ ok: false, error: 'staff parameter required' });
+    }
+
+    // Get the most recent summary for this staff member. Try server-side ordering
+    // first, otherwise fall back to client-side sort to avoid requiring composite indexes.
+    let data = null;
+    try {
+      const summarySnapshot = await db.collection('generated_summaries_staff')
+        .where('staff', '==', staff.trim())
+        .orderBy('createdAt', 'desc')
+        .limit(1)
+        .get();
+
+      if (summarySnapshot.empty) {
+        return res.json({ ok: true, found: false, staff: staff.trim() });
+      }
+
+      data = summarySnapshot.docs[0].data();
+    } catch (err) {
+      console.warn('GET /staff_summary: ordered query failed, falling back to client-side sort:', err && err.message);
+      // Fetch a batch and sort locally by createdAt
+      const snap = await db.collection('generated_summaries_staff')
+        .where('staff', '==', staff.trim())
+        .limit(200)
+        .get();
+      if (!snap || snap.empty) return res.json({ ok: true, found: false, staff: staff.trim() });
+      const docs = snap.docs.map(d => ({ id: d.id, ...(d.data() || {}) }));
+      docs.sort((a, b) => {
+        const aTs = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate() : (a.createdAt ? new Date(a.createdAt) : new Date(0));
+        const bTs = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate() : (b.createdAt ? new Date(b.createdAt) : new Date(0));
+        return bTs - aTs;
+      });
+      data = docs[0] || null;
+    }
+    
+    return res.json({
+      ok: true,
+      found: true,
+      staff: staff.trim(),
+      summary: data ? (data.summary || '') : '',
+      structured: data ? (data.structured || null) : null,
+      entryCount: data ? (data.entryCount || 0) : 0,
+      createdAt: data ? (data.createdAt?.toDate?.() || data.createdAt) : null,
+      lastVisitDate: data ? (data.lastVisitDate || null) : null
+    });
+  } catch (e) {
+    console.error('GET /staff_summary error:', e);
+    return res.status(500).json({ ok: false, error: e && e.message });
+  }
+});
+
+// API endpoint: POST /api/generate_staff_summary
+app.post('/generate_staff_summary', async (req, res) => {
+  try {
+    const staff = req.body.staff;
+    const limit = Math.max(10, Math.min(500, parseInt(req.body.limit || '50', 10)));
+    
+    if (!staff || typeof staff !== 'string' || !staff.trim()) {
+      return res.status(400).json({ ok: false, error: 'staff parameter required' });
+    }
+
+    const result = await generateStaffSummary(staff.trim(), limit);
+    return res.json(result);
+  } catch (e) {
+    console.error('POST /generate_staff_summary error:', e);
+    return res.status(500).json({ ok: false, error: e && e.message });
+  }
+});
 
 // POST /visits/apply_mapping_full - full collection scan (paginated) to apply provided mapping (school->region)
 app.post('/visits/apply_mapping_full', async (req, res) => {
