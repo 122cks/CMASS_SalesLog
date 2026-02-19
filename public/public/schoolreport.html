@@ -135,9 +135,9 @@
     /* 채택현황 입력란 (구분 스타일) - 내용에 맞게 최소 너비만 */
     .excel-visit-table th.adopt-col{background:#fff8e1;color:#7c4700;border-left:3px solid #f59e0b}
     .excel-visit-table td.adopt-col{background:#fffdf5;border-left:3px solid #f59e0b}
-    .excel-visit-table th:nth-child(8),.excel-visit-table td:nth-child(8){width:80px}
-    .excel-visit-table th:nth-child(9),.excel-visit-table td:nth-child(9){width:70px;text-align:center}
-    .excel-visit-table th:nth-child(10),.excel-visit-table td:nth-child(10){width:80px}
+    .excel-visit-table th:nth-child(8),.excel-visit-table td:nth-child(8){}
+    .excel-visit-table th:nth-child(9),.excel-visit-table td:nth-child(9){text-align:center}
+    .excel-visit-table th:nth-child(10),.excel-visit-table td:nth-child(10){}
     /* 방문내용: 항상 펼침 */
     .visit-content-wrap{white-space:pre-wrap;line-height:1.55;font-size:20px}
     .visit-expand-btn{display:none}
@@ -1446,7 +1446,20 @@
             const visitTable=document.createElement('table');
             visitTable.className='excel-visit-table';
             // 그룹 헤더: 방문기록 vs 채택현황 입력란
-            visitTable.innerHTML=`<thead>
+            visitTable.innerHTML=`
+              <colgroup>
+                <col style="width:5%">
+                <col style="width:7%">
+                <col style="width:8%">
+                <col style="width:5%">
+                <col style="width:auto">
+                <col style="width:9%">
+                <col style="width:6%">
+                <col style="width:70px">
+                <col style="width:65px">
+                <col style="width:75px">
+              </colgroup>
+              <thead>
               <tr>
                 <th colspan="7" class="th-group th-group-visit">📋 방문 기록</th>
                 <th colspan="3" class="th-group th-group-input">✏️ 채택현황 입력란 (클릭하여 편집)</th>
