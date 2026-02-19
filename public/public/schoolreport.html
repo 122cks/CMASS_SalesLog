@@ -136,15 +136,12 @@
     .excel-visit-table th.adopt-col{background:#fff8e1;color:#7c4700;border-left:3px solid #f59e0b}
     .excel-visit-table td.adopt-col{background:#fffdf5;border-left:3px solid #f59e0b}
     .excel-visit-table tr:first-child td.adopt-col,.excel-visit-table tr:first-child th.adopt-col{border-left:3px solid #f59e0b}
-    .excel-visit-table th:nth-child(8),.excel-visit-table td:nth-child(8){width:12%}
-    .excel-visit-table th:nth-child(9),.excel-visit-table td:nth-child(9){width:7%;text-align:center}
-    .excel-visit-table th:nth-child(10),.excel-visit-table td:nth-child(10){width:12%}
-    /* 방문내용 접기/펼치기 */
-    .visit-content-wrap{max-height:4.5em;overflow:hidden;position:relative;cursor:pointer;white-space:pre-wrap;line-height:1.55;font-size:20px}
-    .visit-content-wrap::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1.8em;background:linear-gradient(transparent,#fff)}
-    .visit-content-wrap.expanded{max-height:none;cursor:default}
-    .visit-content-wrap.expanded::after{display:none}
-    .visit-expand-btn{font-size:17px;color:#0b63d6;background:none;border:none;cursor:pointer;padding:2px 0;display:block;margin-top:2px}
+    .excel-visit-table th:nth-child(8),.excel-visit-table td:nth-child(8){width:9%}
+    .excel-visit-table th:nth-child(9),.excel-visit-table td:nth-child(9){width:5%;text-align:center}
+    .excel-visit-table th:nth-child(10),.excel-visit-table td:nth-child(10){width:9%}
+    /* 방문내용: 항상 펼침 */
+    .visit-content-wrap{white-space:pre-wrap;line-height:1.55;font-size:20px}
+    .visit-expand-btn{display:none}
     /* 그룹 헤더 */
     .excel-visit-table .th-group{font-size:18px;padding:6px 12px;text-align:center}
     .excel-visit-table .th-group-visit{background:#dbeafe;color:#1e3a5f}
@@ -1127,7 +1124,11 @@
           snap.forEach(doc=>{
             const d = doc.to ? doc.toJSON() : doc.data();
             const name = d.school || doc.id;
-            ADOPTION_DATA[name] = d.subjects || {};
+            const subj = d.subjects || {};
+            // 진로와직업 → 진로 통합
+            if(subj['진로와직업'] && !subj['진로']){ subj['진로'] = subj['진로와직업']; }
+            delete subj['진로와직업'];
+            ADOPTION_DATA[name] = subj;
           });
           console.info('[adoption] loaded', Object.keys(ADOPTION_DATA).length, 'schools');
         }catch(e){ console.warn('loadAdoptionData failed', e); }
@@ -1150,7 +1151,7 @@
       }
 
       // ── 채택현황 섹션 렌더 ──
-      const ADOPTION_SUBJECTS = ['정보','진로와직업','미술','체육','보건'];
+      const ADOPTION_SUBJECTS = ['정보','진로','미술','체육','보건'];
       const ADOPTION_GRADES = ['-','A','B','C','채택','미선정'];
 
       function renderAdoptionSection(schoolName, card){
@@ -1463,10 +1464,11 @@
             const tbody=document.createElement('tbody');
             const sortedRows=allRows.slice().sort(compareVisitsBySubjectThenDate);
 
-            // 과목별 방문 행 그룹화
+            // 과목별 방문 행 그룹화 (진로와직업 → 진로 통합)
             const visitBySubj={};
             sortedRows.forEach(r=>{
-              const s=r.subject||'기타';
+              let s=r.subject||'기타';
+              if(s==='진로와직업') s='진로';
               if(!visitBySubj[s]) visitBySubj[s]=[];
               visitBySubj[s].push(r);
             });
@@ -1544,10 +1546,9 @@
                   const materials=(r.materials||'').split(',').map(m=>m.trim()).filter(Boolean).join('\n');
                   const publisher=String(r.publisher||r.textbook||'').trim();
 
-                  // 방문내용: 접기/펼치기
+                  // 방문내용: 항상 표시
                   const convoEsc=escapeHtml(convo)||'—';
-                  const convoCell=`<td><div class="visit-content-wrap">${convoEsc}</div>`+
-                    `<button class="visit-expand-btn" onclick="(function(el){var w=el.previousElementSibling;if(w.classList.contains('expanded')){w.classList.remove('expanded');el.textContent='▼ 더보기';}else{w.classList.add('expanded');el.textContent='▲ 접기';}})(this)">▼ 더보기</button></td>`;
+                  const convoCell=`<td><div class="visit-content-wrap">${convoEsc}</div></td>`;
 
                   tr.innerHTML=`<td style="font-weight:800;color:#0b63d6">${escapeHtml(r.subject||'')}</td>
                     <td><strong>${escapeHtml(r.teacher||'')}</strong></td>
