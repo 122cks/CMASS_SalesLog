@@ -263,6 +263,15 @@
         <!-- 연간 -->
         <button class="period-btn" data-period="year">1년</button>
         <div class="period-sep"></div>
+        <!-- 연도 선택 -->
+        <span class="period-group-label">연도</span>
+        <div class="period-group" id="yearBtnGroup">
+          <button class="period-btn" data-period="yearpick" data-year="2023">2023</button>
+          <button class="period-btn" data-period="yearpick" data-year="2024">2024</button>
+          <button class="period-btn" data-period="yearpick" data-year="2025">2025</button>
+          <button class="period-btn" data-period="yearpick" data-year="2026">2026</button>
+        </div>
+        <div class="period-sep"></div>
         <!-- 담당자 필터 (내부용) -->
         <div style="display:flex;gap:8px;align-items:center;margin-left:auto">
           <select id="staffSelect" class="px-3 py-2 rounded border border-slate-200" style="font-size:22px;padding:8px 12px">
@@ -1291,6 +1300,7 @@
 
         // 2) curYear 갱신 (월 버튼에서 사용)
         curYear = dataYear;
+        _syncYearBtn(curYear);
 
         // 3) 현재 필터 범위의 결과가 0이면 auto-switch
         const curStart = startDateInput ? startDateInput.value : '';
@@ -1319,17 +1329,32 @@
     let _activePeriodValue = null;
 
     function _setActivePeriodBtn(selector){
-      document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+      // yearpick 버튼은 별도 관리 - active 유지
+      document.querySelectorAll('.period-btn:not([data-period="yearpick"])').forEach(b=>b.classList.remove('active'));
       const btn = typeof selector === 'string'
         ? document.querySelector(selector)
         : selector;
-      if(btn) btn.classList.add('active');
+      if(btn && btn.dataset.period !== 'yearpick') btn.classList.add('active');
+    }
+
+    function _syncYearBtn(y){
+      document.querySelectorAll('[data-period="yearpick"]').forEach(b=>{
+        b.classList.toggle('active', Number(b.dataset.year) === y);
+      });
     }
 
     function _applyPeriod(start, end, btn){
       if(startDateInput) startDateInput.value = start;
       if(endDateInput)   endDateInput.value   = end;
-      _setActivePeriodBtn(btn);
+      // 활성 기간 상태 저장
+      if(btn){ const t=btn.dataset.period; const m=btn.dataset.month; const q=btn.dataset.quarter;
+        if(t==='thismonth'){ _activePeriodType='thismonth'; _activePeriodValue=null; }
+        else if(t==='month'){ _activePeriodType='month'; _activePeriodValue=Number(m); }
+        else if(t==='quarter'){ _activePeriodType='quarter'; _activePeriodValue=Number(q); }
+        else if(t==='year'){ _activePeriodType='year'; _activePeriodValue=null; }
+      }
+      // 연도 버튼 활성화 동기화 (yearpick 버튼은 건드리지 않음)
+      if(btn && btn.dataset.period !== 'yearpick') _setActivePeriodBtn(btn);
       // update Gemini period label text
       const lbl = document.getElementById('geminiPeriodLabel');
       if(lbl) lbl.textContent = `${start} ~ ${end} 기간의 미팅 내용을 AI가 분석합니다`;
@@ -1357,6 +1382,24 @@
         _applyPeriod(_firstOfMonth(y, startM), _lastOfMonth(y, endM), btn);
       } else if(type === 'year'){
         _applyPeriod(`${y}-01-01`, `${y}-12-31`, btn);
+      } else if(type === 'yearpick'){
+        curYear = Number(btn.dataset.year);
+        // 연도 버튼 활성화 표시
+        document.querySelectorAll('[data-period="yearpick"]').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        // 현재 활성 기간 타입을 그대로 새 연도로 재적용
+        if(_activePeriodType === 'thismonth'){
+          _applyPeriod(_firstOfMonth(curYear, curMonth), _lastOfMonth(curYear, curMonth), null);
+        } else if(_activePeriodType === 'month' && _activePeriodValue){
+          _applyPeriod(_firstOfMonth(curYear, _activePeriodValue), _lastOfMonth(curYear, _activePeriodValue), null);
+        } else if(_activePeriodType === 'quarter' && _activePeriodValue){
+          const sm=((_activePeriodValue-1)*3+1); const em=sm+2;
+          _applyPeriod(_firstOfMonth(curYear, sm), _lastOfMonth(curYear, em), null);
+        } else if(_activePeriodType === 'year'){
+          _applyPeriod(`${curYear}-01-01`, `${curYear}-12-31`, null);
+        } else {
+          _applyPeriod(`${curYear}-01-01`, `${curYear}-12-31`, null);
+        }
       }
     });
 
