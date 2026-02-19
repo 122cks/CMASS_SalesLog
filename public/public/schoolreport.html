@@ -130,9 +130,12 @@
     .excel-visit-table th:nth-child(8),.excel-visit-table td:nth-child(8){}
     .excel-visit-table th:nth-child(9),.excel-visit-table td:nth-child(9){text-align:center}
     .excel-visit-table th:nth-child(10),.excel-visit-table td:nth-child(10){}
-    /* 방문내용: 항상 펼침 */
-    .visit-content-wrap{white-space:pre-wrap;line-height:1.55;font-size:20px}
-    .visit-expand-btn{display:none}
+    /* 방문내용 열 너비 제한 */
+    .excel-visit-table td.convo-col{max-width:340px}
+    .visit-convo-section{white-space:pre-wrap;line-height:1.5;font-size:19px}
+    .visit-convo-label{font-size:16px;font-weight:700;color:#6b7280;margin-bottom:3px;margin-top:8px}
+    .visit-convo-label:first-child{margin-top:0}
+    .visit-convo-divider{border:none;border-top:1px dashed #cbd5e1;margin:7px 0}
     /* 그룹 헤더 */
     .excel-visit-table .th-group{font-size:18px;padding:6px 12px;text-align:center}
     .excel-visit-table .th-group-visit{background:#dbeafe;color:#1e3a5f}
@@ -157,9 +160,8 @@
       body { font-size: 11pt !important; }
       .excel-school-name { font-size: 16pt !important; }
       .excel-visit-table th, .excel-visit-table td { font-size: 10pt !important; padding: 6px 8px !important; }
-      .visit-content-wrap { max-height: none !important; }
-      .visit-content-wrap::after { display:none !important; }
-      .visit-expand-btn { display:none !important; }
+      .visit-convo-label { font-size: 9pt !important; }
+      .visit-convo-section { font-size: 10pt !important; }
       .adoption-table th, .adoption-table td { font-size: 10pt !important; }
       .orders-table-print th, .orders-table-print td { font-size: 10pt !important; }
     }
@@ -1446,7 +1448,7 @@
               </tr>
               <tr>
                 <th>과목</th><th>교사명</th><th>채택 교과서</th><th>반응</th>
-                <th>방문내용 / 요청사항</th><th>전달자료</th><th>납품사항</th>
+                <th>대화내용 / 특이사항·요청사항</th><th>전달자료</th><th>납품사항</th>
                 <th class="adopt-col">씨마스 영업결과</th>
                 <th class="adopt-col">등급</th>
                 <th class="adopt-col">특이사항</th>
@@ -1518,7 +1520,7 @@
                 tr.dataset.subj=subj;
                 tr.innerHTML=`<td style="font-weight:800;color:#0b63d6">${escapeHtml(subj)}</td>
                   <td>—</td><td>—</td><td></td>
-                  <td><span class="visit-content-wrap expanded">—</span></td>
+                  <td class="convo-col">—</td>
                   <td>—</td><td>—</td>`;
                 if(isAdoptSubj) appendAdoptCells(tr);
                 else { tr.innerHTML+=`<td class="adopt-col"></td><td class="adopt-col"></td><td class="adopt-col"></td>`; }
@@ -1538,9 +1540,17 @@
                   const materials=(r.materials||'').split(',').map(m=>m.trim()).filter(Boolean).join('\n');
                   const publisher=String(r.publisher||r.textbook||'').trim();
 
-                  // 방문내용: 항상 표시
-                  const convoEsc=escapeHtml(convo)||'—';
-                  const convoCell=`<td><div class="visit-content-wrap">${convoEsc}</div></td>`;
+                  // 대화내용 / 특이사항 분리
+                  const mainContent=escapeHtml(String(r.content||'').trim()||'—');
+                  const subParts=[];
+                  if(String(r.request||'').trim()) subParts.push(escapeHtml(r.request.trim()));
+                  if(String(r.issue||'').trim()) subParts.push(escapeHtml(r.issue.trim()));
+                  if(String(r.gift||'').trim()) subParts.push('증정: '+escapeHtml(r.gift.trim()));
+                  const subContent=subParts.join(' / ')||'—';
+                  const convoCell=`<td class="convo-col">`+
+                    `<div class="visit-convo-label">💬 대화내용</div><div class="visit-convo-section">${mainContent}</div>`+
+                    (subParts.length?`<hr class="visit-convo-divider"><div class="visit-convo-label">📌 특이사항·요청사항</div><div class="visit-convo-section">${subContent}</div>`:'')+
+                    `</td>`;
 
                   tr.innerHTML=`<td style="font-weight:800;color:#0b63d6">${escapeHtml(r.subject||'')}</td>
                     <td><strong>${escapeHtml(r.teacher||'')}</strong></td>
