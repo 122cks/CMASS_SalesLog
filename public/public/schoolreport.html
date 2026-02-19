@@ -132,6 +132,9 @@
     .excel-visit-table th:nth-child(5),.excel-visit-table td:nth-child(5){width:auto} /* 방문내용 */
     .excel-visit-table th:nth-child(6),.excel-visit-table td:nth-child(6){width:14%} /* 전달자료 */
     .excel-visit-table th:nth-child(7),.excel-visit-table td:nth-child(7){width:9%} /* 납품 */
+    .excel-visit-table th:nth-child(8),.excel-visit-table td:nth-child(8){width:11%} /* 씨마스 결과 */
+    .excel-visit-table th:nth-child(9),.excel-visit-table td:nth-child(9){width:6%;text-align:center} /* 등급 */
+    .excel-visit-table th:nth-child(10),.excel-visit-table td:nth-child(10){min-width:80px} /* 특이사항 */
     .excel-orders-wrap{padding:16px 20px;border-top:3px solid #0b63d6;background:#eef4ff}
     .excel-section-label{font-size:26px;font-weight:800;color:#0b3d91;margin-bottom:10px;letter-spacing:0.2px}
     /* Reaction badge override for bigger font */
@@ -1422,7 +1425,7 @@
               card.appendChild(ordersWrap);
             }
 
-            // ── Visit table (one row per teacher/subject) ──
+            // ── Visit + 채택현황 Merged table ──
             const visitTable=document.createElement('table');
             visitTable.className='excel-visit-table';
             visitTable.innerHTML=`<thead><tr>
@@ -1433,42 +1436,136 @@
               <th>방문내용 &nbsp;/&nbsp; 요청사항</th>
               <th>전달자료</th>
               <th>납품사항</th>
+              <th>씨마스 영업결과</th>
+              <th>등급</th>
+              <th>특이사항</th>
             </tr></thead>`;
 
             const tbody=document.createElement('tbody');
             const sortedRows=allRows.slice().sort(compareVisitsBySubjectThenDate);
 
-            if(sortedRows.length===0){
-              tbody.innerHTML=`<tr><td colspan="7" class="muted" style="text-align:center;padding:18px;font-size:24px">방문 기록 없음</td></tr>`;
+            // 과목별 방문 행 그룹화
+            const visitBySubj={};
+            sortedRows.forEach(r=>{
+              const s=r.subject||'기타';
+              if(!visitBySubj[s]) visitBySubj[s]=[];
+              visitBySubj[s].push(r);
+            });
+
+            const savedAdopt=ADOPTION_DATA[schoolName]||{};
+
+            // 순서: ADOPTION_SUBJECTS 먼저, 나머지 뒤
+            const allSubjSet=new Set([...ADOPTION_SUBJECTS,...Object.keys(visitBySubj)]);
+            const orderedSubjs=[...ADOPTION_SUBJECTS.filter(s=>allSubjSet.has(s)),...[...allSubjSet].filter(s=>!ADOPTION_SUBJECTS.includes(s))];
+
+            if(orderedSubjs.length===0){
+              tbody.innerHTML=`<tr><td colspan="10" class="muted" style="text-align:center;padding:18px;font-size:24px">방문 기록 없음</td></tr>`;
             }
 
-            sortedRows.forEach(r=>{
-              const tr=document.createElement('tr');
-              const isMatchStaff=staffFilter&&(()=>{
-                const a=String(r.staff||'').replace(/님|선생님|부장|부장님/g,'').trim();
-                const b=String(staffFilter||'').replace(/님|선생님|부장|부장님/g,'').trim();
-                return a.indexOf(b)!==-1||b.indexOf(a)!==-1;
-              })();
-              if(isMatchStaff) tr.className='excel-row-highlight';
+            orderedSubjs.forEach(subj=>{
+              const vrows=visitBySubj[subj]||[];
+              const rowCount=Math.max(vrows.length,1);
+              const sData=savedAdopt[subj]||{};
+              const isAdoptSubj=ADOPTION_SUBJECTS.includes(subj);
 
-              const convo=buildConvoText(r);
-              const materials=(r.materials||'').split(',').map(m=>m.trim()).filter(Boolean).join('\n');
-              const publisher=String(r.publisher||r.textbook||'').trim();
+              function appendAdoptCells(tr){
+                const tdCmass=document.createElement('td');
+                tdCmass.rowSpan=rowCount;
+                const spCmass=document.createElement('span');
+                spCmass.className='adoption-cell';
+                spCmass.style.cssText='font-weight:700;color:#0b63d6;display:block;min-width:70px';
+                spCmass.textContent=sData.cmass||'—';
+                spCmass.addEventListener('click',()=>makeEditable(spCmass,'cmass',subj,schoolName,tbody));
+                tdCmass.appendChild(spCmass); tr.appendChild(tdCmass);
 
-              tr.innerHTML=`<td style="font-weight:800;font-size:26px;color:#0b63d6">${escapeHtml(r.subject||'')}</td>
-                <td><strong style="font-size:26px">${escapeHtml(r.teacher||'')}</strong></td>
-                <td style="font-size:26px">${escapeHtml(publisher||'—')}</td>
-                <td style="text-align:center">${getReactionHtml(r.reaction)}</td>
-                <td><div style="white-space:pre-wrap;font-size:26px;line-height:1.7">${escapeHtml(convo)||'—'}</div></td>
-                <td style="font-size:24px;white-space:pre-wrap">${escapeHtml(materials||'—')}</td>
-                <td style="font-size:24px">${escapeHtml(r.delivery||r.followUp||'—')}</td>`;
-              tbody.appendChild(tr);
+                const tdGrade=document.createElement('td');
+                tdGrade.rowSpan=rowCount;
+                const sel=document.createElement('select');
+                sel.className='adoption-grade-select';
+                ADOPTION_GRADES.forEach(g=>{
+                  const opt=document.createElement('option');
+                  opt.value=g; opt.textContent=g;
+                  if(g===(sData.grade||'-')) opt.selected=true;
+                  sel.appendChild(opt);
+                });
+                tdGrade.appendChild(sel); tr.appendChild(tdGrade);
+
+                const tdNote=document.createElement('td');
+                tdNote.rowSpan=rowCount;
+                const spNote=document.createElement('span');
+                spNote.className='adoption-cell';
+                spNote.style.cssText='display:block;min-width:70px';
+                spNote.textContent=sData.note||'—';
+                spNote.addEventListener('click',()=>makeEditable(spNote,'note',subj,schoolName,tbody));
+                tdNote.appendChild(spNote); tr.appendChild(tdNote);
+              }
+
+              if(vrows.length===0){
+                const tr=document.createElement('tr');
+                tr.dataset.subj=subj;
+                tr.innerHTML=`<td style="font-weight:800;font-size:26px;color:#0b63d6">${escapeHtml(subj)}</td>
+                  <td>—</td><td>—</td><td></td>
+                  <td><div style="white-space:pre-wrap;font-size:26px;line-height:1.7">—</div></td>
+                  <td>—</td><td>—</td>`;
+                if(isAdoptSubj) appendAdoptCells(tr);
+                tbody.appendChild(tr);
+              } else {
+                vrows.forEach((r,idx)=>{
+                  const tr=document.createElement('tr');
+                  tr.dataset.subj=subj;
+                  const isMatchStaff=staffFilter&&(()=>{
+                    const a=String(r.staff||'').replace(/님|선생님|부장|부장님/g,'').trim();
+                    const b=String(staffFilter||'').replace(/님|선생님|부장|부장님/g,'').trim();
+                    return a.indexOf(b)!==-1||b.indexOf(a)!==-1;
+                  })();
+                  if(isMatchStaff) tr.className='excel-row-highlight';
+
+                  const convo=buildConvoText(r);
+                  const materials=(r.materials||'').split(',').map(m=>m.trim()).filter(Boolean).join('\n');
+                  const publisher=String(r.publisher||r.textbook||'').trim();
+
+                  tr.innerHTML=`<td style="font-weight:800;font-size:26px;color:#0b63d6">${escapeHtml(r.subject||'')}</td>
+                    <td><strong style="font-size:26px">${escapeHtml(r.teacher||'')}</strong></td>
+                    <td style="font-size:26px">${escapeHtml(publisher||'—')}</td>
+                    <td style="text-align:center">${getReactionHtml(r.reaction)}</td>
+                    <td><div style="white-space:pre-wrap;font-size:26px;line-height:1.7">${escapeHtml(convo)||'—'}</div></td>
+                    <td style="font-size:24px;white-space:pre-wrap">${escapeHtml(materials||'—')}</td>
+                    <td style="font-size:24px">${escapeHtml(r.delivery||r.followUp||'—')}</td>`;
+                  if(idx===0 && isAdoptSubj) appendAdoptCells(tr);
+                  tbody.appendChild(tr);
+                });
+              }
             });
 
             visitTable.appendChild(tbody);
             card.appendChild(visitTable);
-            // 채택현황 섹션
-            try{ renderAdoptionSection(schoolName, card); }catch(e){ console.warn('renderAdoptionSection failed', e); }
+
+            // 채택현황 저장 버튼
+            const saveBar=document.createElement('div');
+            saveBar.style.cssText='padding:8px 16px;border-top:1px solid #e2eaf8;text-align:right;background:#f0f5ff';
+            const saveBtn=document.createElement('button');
+            saveBtn.textContent='💾 채택현황 저장';
+            saveBtn.style.cssText='font-size:20px;padding:8px 20px;background:#0b63d6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700';
+            saveBtn.addEventListener('click',async()=>{
+              saveBtn.textContent='저장 중...'; saveBtn.disabled=true;
+              const subjects={};
+              ADOPTION_SUBJECTS.forEach(subj=>{
+                const firstTr=Array.from(tbody.querySelectorAll('tr')).find(tr=>tr.dataset.subj===subj);
+                if(!firstTr) return;
+                const tds=firstTr.querySelectorAll('td');
+                subjects[subj]={
+                  current:'',
+                  cmass:tds[7]?.querySelector('span')?.textContent?.replace('—','').trim()||'',
+                  grade:tds[8]?.querySelector('select')?.value||'-',
+                  note:tds[9]?.querySelector('span')?.textContent?.replace('—','').trim()||''
+                };
+              });
+              const ok=await saveAdoptionStatus(schoolName,subjects);
+              if(ok){ saveBtn.textContent='✅ 저장됨'; setTimeout(()=>{ saveBtn.textContent='💾 채택현황 저장'; saveBtn.disabled=false; },2000); }
+              else { saveBtn.textContent='💾 채택현황 저장'; saveBtn.disabled=false; }
+            });
+            saveBar.appendChild(saveBtn);
+            card.appendChild(saveBar);
             dateBlock.appendChild(card);
           });
 
