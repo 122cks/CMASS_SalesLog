@@ -355,6 +355,18 @@
       }catch(e){ console.warn('sw cleanup failed', e); }
     })();
   </script>
+  <script>
+    // staff 코드 파라미터가 있으면 즉시 schoolreport로 리다이렉트
+    (function(){
+      try{
+        var p = new URLSearchParams(window.location.search);
+        var sc = p.get('staff');
+        if(sc && /^\d{8}$/.test(sc.trim())){
+          window.location.replace('/schoolreport.html?staff=' + encodeURIComponent(sc.trim()));
+        }
+      }catch(e){}
+    })();
+  </script>
   <div class="container">
     <h1>CMASS 영업일지</h1>
     <div class="hero">

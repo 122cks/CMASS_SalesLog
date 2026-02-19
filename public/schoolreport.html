@@ -1261,14 +1261,58 @@
     function _firstOfMonth(y,m){ return `${y}-${_pad(m)}-01`; }
     function _lastOfMonth(y,m){ const d=new Date(y,m,0); return `${y}-${_pad(m)}-${_pad(d.getDate())}`; }
 
-    // Current month default
-    const curYear = today.getFullYear();
+    // Current month default — curYear is mutable so _autoApplyDataYear() can update it
+    let curYear = today.getFullYear();
     const curMonth = today.getMonth()+1; // 1-based
     let startDefault = _firstOfMonth(curYear, curMonth);
     let endDefault   = _lastOfMonth(curYear, curMonth);
 
     if(startDateInput) startDateInput.value = startDefault;
     if(endDateInput)   endDateInput.value   = endDefault;
+
+    // ── 데이터 연도 자동 감지 및 기간 자동 적용 ──
+    // RAW_DATA 로드 완료 후 호출: 현재 필터 결과가 0이면 가장 최근 데이터 월로 자동 전환
+    function _autoApplyDataYear(){
+      try{
+        if(!Array.isArray(RAW_DATA) || RAW_DATA.length === 0) return;
+
+        // 1) RAW_DATA 중 가장 최근 날짜 찾기
+        let latestDate = null;
+        for(const r of RAW_DATA){
+          const d = r.date ? new Date(r.date+'T12:00:00') : null;
+          if(d && !isNaN(d)) {
+            if(!latestDate || d > latestDate) latestDate = d;
+          }
+        }
+        if(!latestDate) return;
+
+        const dataYear  = latestDate.getFullYear();
+        const dataMonth = latestDate.getMonth()+1; // 1-based
+
+        // 2) curYear 갱신 (월 버튼에서 사용)
+        curYear = dataYear;
+
+        // 3) 현재 필터 범위의 결과가 0이면 auto-switch
+        const curStart = startDateInput ? startDateInput.value : '';
+        const curEnd   = endDateInput   ? endDateInput.value   : '';
+        const visibleNow = RAW_DATA.filter(item=>{
+          if(curStart){ const d=new Date(item.date); if(d < new Date(curStart+'T00:00:00')) return false; }
+          if(curEnd){   const d=new Date(item.date); if(d > new Date(curEnd  +'T23:59:59')) return false; }
+          return true;
+        });
+
+        if(visibleNow.length === 0){
+          // 결과 없음 → 가장 최근 데이터가 있는 달로 자동 전환
+          const newStart = _firstOfMonth(dataYear, dataMonth);
+          const newEnd   = _lastOfMonth(dataYear, dataMonth);
+          // 해당 월 버튼 찾기
+          const targetBtn = document.querySelector(`.period-btn[data-period="month"][data-month="${dataMonth}"]`);
+          _applyPeriod(newStart, newEnd, targetBtn || document.getElementById('periodThisMonth'));
+          startDefault = newStart;
+          endDefault   = newEnd;
+        }
+      }catch(e){ console.warn('_autoApplyDataYear failed', e); }
+    }
 
     // ── Active period state ──
     let _activePeriodType = 'thismonth';
@@ -2450,6 +2494,9 @@ ${dataText}
       }catch(e){ console.warn(e); }
       // refresh staff list (may have changed with new data)
       populateStaffs();
+      currentVisible = renderVisits({ search: searchInput ? searchInput.value : '', staff: staffSelect ? staffSelect.value : '', startDate: startDateInput ? startDateInput.value : '', endDate: endDateInput ? endDateInput.value : '' });
+      // 데이터 연도 자동 감지 → 현재 필터 결과가 0이면 최신 데이터 월로 전환
+      try{ _autoApplyDataYear(); }catch(e){ console.warn('autoApply failed', e); }
       currentVisible = renderVisits({ search: searchInput ? searchInput.value : '', staff: staffSelect ? staffSelect.value : '', startDate: startDateInput ? startDateInput.value : '', endDate: endDateInput ? endDateInput.value : '' });
       renderSchoolSummary();
       updateMetrics();
