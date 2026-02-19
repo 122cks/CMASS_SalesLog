@@ -362,26 +362,8 @@
         <div class="btn-row">
           <button id="goInput" class="big-btn" onclick="try{ if(typeof front_goInput==='function'){ front_goInput(); } else { alert('입력 페이지 이동이 비활성화되어 있습니다.'); } }catch(e){}">영업일지 입력</button>
           <button class="alt-btn" onclick="try{ const qs = window.location.search || ''; window.location.href = '/schoolinfo.html' + qs; }catch(e){ window.location.href = '/schoolinfo.html'; }">🏫 학교정보조회</button>
-          <!-- 방문현황 리포트 버튼 -->
-          <div style="position:relative;display:inline-block" id="reportMenuWrap">
-            <button class="alt-btn" id="reportMenuBtn" onclick="(function(){ var d=document.getElementById('reportDropdown'); d.style.display=(d.style.display==='none'||!d.style.display)?'block':'none'; })()">📊 방문현황리포트 ▾</button>
-            <div id="reportDropdown" style="display:none;position:absolute;left:0;top:calc(100% + 4px);background:#fff;border:1.5px solid #c7d9f8;border-radius:12px;box-shadow:0 8px 24px rgba(11,99,214,0.12);z-index:300;min-width:220px;padding:8px 0">
-              <a href="/schoolreport.html" style="display:block;padding:12px 20px;font-size:22px;font-weight:700;color:#0b1220;text-decoration:none;border-bottom:1px solid #f0f6ff">📋 전체 리포트</a>
-              <a href="/schoolreport.html?staff=99781203" style="display:block;padding:12px 20px;font-size:22px;color:#0b63d6;text-decoration:none;border-bottom:1px solid #f0f6ff">👤 임준호</a>
-              <a href="/schoolreport.html?staff=89250686" style="display:block;padding:12px 20px;font-size:22px;color:#0b63d6;text-decoration:none;border-bottom:1px solid #f0f6ff">👤 조영환</a>
-              <a href="/schoolreport.html?staff=51322012" style="display:block;padding:12px 20px;font-size:22px;color:#0b63d6;text-decoration:none">👤 이경일</a>
-            </div>
-          </div>
-          <script>
-            // Close dropdown when clicking outside
-            document.addEventListener('click', function(e){
-              var wrap = document.getElementById('reportMenuWrap');
-              if(wrap && !wrap.contains(e.target)){
-                var d = document.getElementById('reportDropdown');
-                if(d) d.style.display = 'none';
-              }
-            });
-          </script>
+          <!-- 방문현황 리포트 버튼: 현재 staff 슬러그로 바로 이동 -->
+          <button class="alt-btn" onclick="(function(){ var sc = new URLSearchParams(window.location.search).get('staff'); window.location.href = '/schoolreport.html' + (sc ? '?staff=' + encodeURIComponent(sc) : ''); })()">📊 방문현황리포트</button>
           <button id="btnForceRefresh" class="alt-btn" title="서비스워커 강제 업데이트 / 페이지 새로고침" onclick="try{ if(typeof front_forceRefresh==='function'){ front_forceRefresh(); } else if(typeof forceServiceWorkerUpdate==='function'){ forceServiceWorkerUpdate(); } else { alert('새로고침 기능을 사용할 수 없습니다.'); } }catch(e){}">새로고침(최신)</button>
           
         </div>
