@@ -119,22 +119,14 @@
     .excel-grade-summary{font-size:26px;font-weight:600;color:#374151;background:#fff;border:1px solid rgba(11,99,214,0.12);border-radius:8px;padding:8px 16px;display:inline-block}
 
     /* Visit table (Excel-style) */
-    .excel-visit-table{width:100%;border-collapse:collapse;font-size:20px !important;table-layout:fixed}
+    .excel-visit-table{width:100%;border-collapse:collapse;font-size:20px !important;table-layout:auto}
     .excel-visit-table th{background:#e8f0fe;color:#1e3a5f;padding:10px 12px;text-align:left;font-size:20px !important;font-weight:700;border-bottom:2px solid #c7d9f8;white-space:nowrap}
     .excel-visit-table td{padding:10px 12px;border-bottom:1px solid #e2eaf8;vertical-align:top;font-size:20px !important;line-height:1.55;word-break:break-word;overflow-wrap:anywhere}
     .excel-visit-table tbody tr:hover{background:#f7faff}
     .excel-visit-table .excel-row-highlight{background:#fffbe6}
-    /* 각 컬럼 너비: 방문내용(5번)이 남은 공간 전부 차지 */
-    .excel-visit-table th:nth-child(1),.excel-visit-table td:nth-child(1){width:5%;font-weight:800;color:#0b63d6}
-    .excel-visit-table th:nth-child(2),.excel-visit-table td:nth-child(2){width:7%}
-    .excel-visit-table th:nth-child(3),.excel-visit-table td:nth-child(3){width:8%}
-    .excel-visit-table th:nth-child(4),.excel-visit-table td:nth-child(4){width:5%;text-align:center}
-    .excel-visit-table th:nth-child(5),.excel-visit-table td:nth-child(5){width:auto}
-    .excel-visit-table th:nth-child(6),.excel-visit-table td:nth-child(6){width:9%}
-    .excel-visit-table th:nth-child(7),.excel-visit-table td:nth-child(7){width:6%}
-    /* 채택현황 입력란 (구분 스타일) - 내용에 맞게 최소 너비만 */
-    .excel-visit-table th.adopt-col{background:#fff8e1;color:#7c4700;border-left:3px solid #f59e0b}
-    .excel-visit-table td.adopt-col{background:#fffdf5;border-left:3px solid #f59e0b}
+    /* 채택현황 입력란 (구분 스타일) - max-width 강제로 좁게 */
+    .excel-visit-table th.adopt-col{background:#fff8e1;color:#7c4700;border-left:3px solid #f59e0b;max-width:80px;width:80px}
+    .excel-visit-table td.adopt-col{background:#fffdf5;border-left:3px solid #f59e0b;max-width:80px;width:80px;word-break:break-word}
     .excel-visit-table th:nth-child(8),.excel-visit-table td:nth-child(8){}
     .excel-visit-table th:nth-child(9),.excel-visit-table td:nth-child(9){text-align:center}
     .excel-visit-table th:nth-child(10),.excel-visit-table td:nth-child(10){}
@@ -1447,18 +1439,6 @@
             visitTable.className='excel-visit-table';
             // 그룹 헤더: 방문기록 vs 채택현황 입력란
             visitTable.innerHTML=`
-              <colgroup>
-                <col style="width:5%">
-                <col style="width:7%">
-                <col style="width:8%">
-                <col style="width:5%">
-                <col style="width:auto">
-                <col style="width:9%">
-                <col style="width:6%">
-                <col style="width:70px">
-                <col style="width:65px">
-                <col style="width:75px">
-              </colgroup>
               <thead>
               <tr>
                 <th colspan="7" class="th-group th-group-visit">📋 방문 기록</th>
