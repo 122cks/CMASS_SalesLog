@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script>
+    // Early diagnostics: capture parsing/runtime errors (includes resource/script errors)
+    // so we can surface filenames/lines for live debugging (logged to console).
+    try{
+      window.__cmass_errors = window.__cmass_errors || [];
+      window.addEventListener('error', function(ev){
+        try{
+          const info = {
+            message: ev.message || null,
+            filename: ev.filename || (ev.target && ev.target.src) || null,
+            lineno: ev.lineno || 0,
+            colno: ev.colno || 0,
+            stack: ev.error && ev.error.stack ? ev.error.stack : null,
+            targetTag: ev.target && ev.target.tagName ? ev.target.tagName : null
+          };
+          window.__cmass_errors.push(info);
+          console.error('__cmass_error__', info);
+        }catch(e){}
+      }, true);
+      window.addEventListener('unhandledrejection', function(ev){
+        try{
+          const info = { reason: ev.reason && (ev.reason.stack || ev.reason.message || String(ev.reason)), type: 'unhandledrejection' };
+          window.__cmass_errors.push(info);
+          console.error('__cmass_unhandledrej__', info);
+        }catch(e){}
+      });
+    }catch(e){}
+  </script>
+  <title>CMASS - 시작</title>
+  <!-- Version: 2025-11-01-v2 Clean URLs -->
+  <style>
+    :root{ --bg:#f5f6fa; --card-bg:#fff; --muted:#556; --brand-1:#12325a; --brand-2:#1e3c72; --accent:#6b8bff }
+    body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:#071a2e;margin:0;padding:20px 16px}
+    .container{max-width:1100px;margin:0 auto}
+    h1{text-align:center;color:var(--brand-1);margin:6px 0 14px 0;font-size:28px}
+    .hero{background:var(--card-bg);border-radius:14px;padding:18px 20px;box-shadow:0 12px 40px rgba(10,20,60,0.06);margin-bottom:14px}
+    .btn-row{display:flex;gap:12px;align-items:center;justify-content:center;margin:14px 0}
+    .big-btn{padding:12px 18px;border-radius:12px;border:none;background:linear-gradient(90deg,var(--brand-1),var(--brand-2));color:#fff;font-weight:800;font-size:15px;cursor:pointer}
+    .alt-btn{padding:10px 14px;border-radius:12px;border:1px solid #e1e7f6;background:var(--card-bg);color:var(--brand-1);font-weight:800;cursor:pointer}
+    .card{background:var(--card-bg);border-radius:12px;padding:14px;margin-top:12px;box-shadow:0 10px 30px rgba(10,20,60,0.04)}
+    /* stats grid: responsive auto-fit */
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:12px}
+    .stat{background:#f7fbff;border-radius:10px;padding:12px;border:1px solid #e6eefc;display:flex;flex-direction:column;justify-content:center}
+    .stat div { line-height:1 }
+    .stat .small{margin-top:6px;color:var(--muted);font-size:13px}
+  table{width:100%;border-collapse:collapse;margin-top:8px;background:transparent}
+  th,td{padding:.5rem .6rem;border:1px solid #eef2ff;text-align:left;font-size:13px}
+  /* notes table: fixed layout, wrap long text and sticky header for better UX */
+  .notes-table{table-layout:fixed;width:100%;border-collapse:collapse}
+  .notes-table th{position:sticky;top:0;background:var(--card-bg);z-index:3}
+  /* make the table denser: smaller padding and font-size for compactness */
+  .notes-table th, .notes-table td{padding:.28rem .4rem;border:1px solid #eef2ff;text-align:left;font-size:12px;vertical-align:top}
+  /* allow long notes to wrap and preserve line breaks; make notes column the most flexible */
+  .notes-table td{word-break:break-word;white-space:normal}
+  /* column width suggestions:
+    1) 방문일 - short
+    2) 방문시간 - short
+    3) 선생님명 - medium-short
+    4) 과목명 - short
+    5) 영업활동 - slightly wider
+    6) 특이사항 - flexible / remaining space (wide)
+  */
+  /* Make first columns compact and give more room to activity/note columns */
+  /* 방문일 (shrink and use stacked year / mm-dd display) */
+  .notes-table th:nth-child(1), .notes-table td:nth-child(1){width:52px}   /* 방문일 */
+  .notes-table th:nth-child(2), .notes-table td:nth-child(2){width:140px}  /* 학교 */
+  .notes-table th:nth-child(3), .notes-table td:nth-child(3){width:70px}   /* 방문시간 */
+  .notes-table th:nth-child(4), .notes-table td:nth-child(4){width:90px}   /* 선생님명 */
+  .notes-table th:nth-child(6), .notes-table td:nth-child(6){width:90px}   /* 과목명 */
+  .notes-table th:nth-child(6), .notes-table td:nth-child(6){width:220px}  /* 영업활동 - wider */
+  .notes-table th:nth-child(7), .notes-table td:nth-child(7){width:auto}    /* 특이사항 - flexible */
+    .small{font-size:13px;color:var(--muted)}
+  /* charts responsive height */
+  canvas{width:100% !important; height:220px !important}
+    /* card sections */
+    #dashboardArea > div { margin-top:8px }
+    /* top teachers list styling */
+    #topTeachers div{padding:6px 8px;border-bottom:1px solid #f1f5ff;font-size:14px}
+    /* follow-up badges grid */
+    #followUpSummary div{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+
+    /* mobile tweaks */
+    @media (max-width:720px){
+      body{padding:12px}
+      h1{font-size:20px}
+      .hero{padding:12px}
+      .big-btn{padding:10px 12px;font-size:14px}
+      canvas{height:180px !important}
+      .card{padding:12px}
+    }
+
+    /* Mobile-specific dashboard tweaks: compact buttons, horizontal scroll for button bars,
+       denser table cells, and responsive chart sizes for small screens */
+    @media (max-width:720px){
+      /* make school/subject button rows scrollable horizontally */
+      #schoolButtons, #subjectButtons { overflow-x:auto; -webkit-overflow-scrolling:touch; gap:8px; flex-wrap:nowrap; white-space:nowrap; padding-bottom:6px }
+      #schoolButtons .alt-btn, #subjectButtons .alt-btn { padding:6px 8px; font-size:13px; white-space:nowrap; border-radius:8px }
+
+      /* reduce stats card density */
+      .stat { padding:10px 8px }
+
+      /* table tweaks: denser and mobile-friendly */
+        .notes-table th, .notes-table td { font-size:11px; padding:.25rem .35rem }
+      .notes-table th { position:sticky; top:0; z-index:4; background:var(--card-bg) }
+      #schoolVisitsTableContainer { max-height:320px }
+
+      /* charts: give more vertical room on mobile but keep them compact */
+      #subjectsChart, #actionsPieChart { height:90px !important }
+    /* make action and monthly charts larger for readability */
+    #actionsChart { height:200px !important }
+    #monthlyChart { height:240px !important }
+
+      /* reduce margins for compactness */
+      .hero, .card { padding:10px }
+    }
+
+    /* NPS gauge / breakdown styles (match nps_preview) */
+    .gauge-wrap{display:flex;flex-direction:column;align-items:center;margin:20px 0}
+    canvas#gauge{max-width:100%;height:220px;display:block;box-sizing:border-box}
+    .nps-score{margin-top:8px;text-align:center}
+    .nps-score .val{font-size:34px;font-weight:800;color:var(--brand-1)}
+    .nps-sub{color:#607489;font-size:13px;margin-top:6px}
+
+    .breakdown{margin-top:18px}
+    .list-item{display:flex;align-items:center;gap:16px;padding:14px;border-radius:10px;background:#fff;margin-bottom:12px;border:1px solid rgba(10,60,100,0.06)}
+    .swatch{width:56px;height:56px;border-radius:28px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:15px}
+    .break-main{flex:1}
+    .break-title{font-weight:800;font-size:16px;color:var(--brand-1)}
+    .break-sub{color:var(--muted);font-size:13px;margin-top:4px}
+    .break-right{text-align:right;min-width:72px}
+    .break-count{font-weight:800;font-size:18px}
+    .break-pct{color:var(--muted);font-size:13px;margin-top:6px}
+
+    /* additional mobile tweaks for visit tables: avoid extreme wrapping by
+       making the table horizontally scrollable when needed. Use a fixed
+       table-layout with a reasonable min-width so columns keep their shape. */
+    @media (max-width:720px){
+      /* container is the scroll viewport for sticky header to work */
+      #schoolVisitsTableContainer { overflow:auto; -webkit-overflow-scrolling:touch; padding:4px }
+      /* give the table a min-width so columns don't collapse into a thin vertical strip */
+      .notes-table { table-layout:fixed !important; min-width:720px; width:100% }
+      .notes-table th, .notes-table td { padding:.2rem .35rem; font-size:11px }
+      .notes-table td { white-space:normal; word-break:break-word }
+      /* reduce header height impact */
+      .notes-table thead th { font-size:12px }
+      /* keep last column flexible for long notes */
+  .notes-table th:nth-child(1), .notes-table td:nth-child(1){width:56px}
+  .notes-table th:nth-child(2), .notes-table td:nth-child(2){width:140px}
+  .notes-table th:nth-child(3), .notes-table td:nth-child(3){width:70px}
+  .notes-table th:nth-child(4), .notes-table td:nth-child(4){width:100px}
+  .notes-table th:nth-child(6), .notes-table td:nth-child(6){width:80px}
+  .notes-table th:nth-child(6), .notes-table td:nth-child(6){width:120px}
+  .notes-table th:nth-child(7), .notes-table td:nth-child(7){width:auto}
+    }
+  /* personal map styling */
+  #personalMap{width:100%;height:420px;border-radius:8px;border:1px solid #eef2ff;margin-top:8px}
+  /* Visit date (방문일) stacked formatting: year on first line, MM-DD on second line */
+  .visit-date-cell{ text-align:center; line-height:1; }
+  .visit-date-cell .visit-date-year{ display:block; font-weight:700; font-size:11px; color:var(--brand-1); }
+  .visit-date-cell .visit-date-md{ display:block; font-size:12px; color:#071a2e }
+  /* Ensure date cell can wrap to two lines even when other cells are set nowrap on desktop */
+  .notes-table td.visit-date-cell{ white-space:normal; }
+  /* Chart title above each chart */
+  .chart-title{ text-align:center; font-weight:700; margin-bottom:6px; font-size:14px; color:var(--brand-2) }
+  /* Chart list typography and spacing */
+  .chart-list{ font-size:13px; color:#26343f }
+  /* Modal for note viewing */
+  .cmass-modal-overlay{position:fixed;inset:0;background:rgba(2,8,24,0.5);display:none;align-items:center;justify-content:center;z-index:9999}
+  .cmass-modal{background:var(--card-bg);max-width:860px;width:92%;max-height:80vh;overflow:auto;border-radius:10px;padding:14px;box-shadow:0 18px 60px rgba(10,20,60,0.3);}
+  .cmass-modal header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #eef2ff;padding-bottom:8px;margin-bottom:8px}
+  .cmass-modal .modal-title{font-weight:800}
+  .cmass-modal .modal-close{background:#f1f5ff;border:1px solid #e6eefc;padding:6px 10px;border-radius:8px;cursor:pointer}
+  .cmass-modal .modal-body{white-space:normal;line-height:1.5;color:#071a2e}
+  /* Extra-small screens: optimize notes table columns for narrow viewports (<=520px) */
+  @media (max-width:520px){
+    /* Fit to small screens: avoid forcing min-width and lock '지역' and '과목' to
+       small fixed widths with ellipsis to avoid long content pushing layout. */
+    .notes-table { table-layout:fixed !important; min-width:0; width:100% }
+  .notes-table th, .notes-table td { font-size:10px; padding:.14rem .2rem }
+
+    /* Let most cells wrap where appropriate, but keep 지역/과목 readable
+       by using a single-line ellipsis on very small screens. Increase their
+       max-width so entries don't appear as awkward fragments. */
+    .notes-table td { white-space:normal; word-break:break-word }
+    .notes-table th:nth-child(2), .notes-table td:nth-child(2),
+    .notes-table th:nth-child(6), .notes-table td:nth-child(6){
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; font-size:11px; line-height:1.1;
+    }
+
+    /* Column width hints (balanced for small screens) */
+  .notes-table th:nth-child(1), .notes-table td:nth-child(1){width:10%} /* 방문일 (reduced) */
+    .notes-table th:nth-child(2), .notes-table td:nth-child(2){width:15%}  /* 지역 */
+  .notes-table th:nth-child(3), .notes-table td:nth-child(3){width:28%} /* 학교 */
+  .notes-table th:nth-child(4), .notes-table td:nth-child(4){width:12%} /* 시간 */
+    .notes-table th:nth-child(5), .notes-table td:nth-child(5){width:7%} /* 소요 */
+    .notes-table th:nth-child(6), .notes-table td:nth-child(6){width:8%}  /* 과목 */
+  .notes-table th:nth-child(7), .notes-table td:nth-child(7){width:auto} /* remaining (특이사항 등) */
+
+  /* 선생님(7번째 컬럼 기준): 줄바꿈 없음, 말줄임 없음 — 가능한 한 그대로 표시 (overflow may extend) */
+  .notes-table th:nth-child(7), .notes-table td:nth-child(7){ white-space:nowrap; overflow:visible; text-overflow:clip; max-width:none }
+
+    /* Container: prefer vertical scroll only so header sticks and horizontal scroll is avoided */
+    #schoolVisitsTableContainer { overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; padding:4px }
+    .cmass-modal .modal-body{ font-size:13px }
+  }
+
+  /* Desktop/table compaction: keep the visits table from growing the page
+     vertically by limiting the container height and clamping long cell text.
+     This makes the table itself scroll internally instead of extending page length. */
+  @media (min-width:721px){
+    /* Limit vertical height of the table viewport on desktop */
+    #schoolVisitsTableContainer { max-height:560px; overflow:auto; -webkit-overflow-scrolling:touch; }
+
+    /* Prevent excessive wrapping in cells; show ellipsis and keep rows compact */
+    .notes-table { table-layout:fixed; }
+    .notes-table th, .notes-table td { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    /* Slightly reduce cell padding on desktop to improve density */
+    .notes-table th, .notes-table td { padding:.4rem .45rem; }
+
+    /* Ensure modal body still shows full content when user clicks '보기' */
+    .cmass-modal .modal-body { white-space:normal; }
+  }
+  /* Force-clamp the 과목 (subject) column which is the 6th column in the current table markup.
+    Apply a targeted rule so the subject column doesn't expand the table. */
+  .notes-table th:nth-child(6), .notes-table td:nth-child(6){
+    max-width:160px;
+    width:160px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  @media (max-width:520px){
+    /* On very small screens keep subject compact but readable (single-line ellipsis) */
+    .notes-table th:nth-child(6), .notes-table td:nth-child(6){ width:8%; max-width:120px; font-size:11px }
+  }
+    /* Override: make columns custom-width and allow wrapping only (no ellipsis) */
+    /* Adjust specific columns: slightly increase 지역(2) and 학교(3), reduce 시간(4) and 소요(5). */
+    .notes-table { table-layout:fixed !important; }
+    .notes-table thead, .notes-table tbody { display:table-header-group }
+    .notes-table th, .notes-table td {
+      min-width: 0 !important;
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+      word-break:break-word !important;
+    }
+    /* Column width distribution (9 columns total) */
+    .notes-table th:nth-child(1), .notes-table td:nth-child(1){ width:8% !important; min-width:48px !important; }   /* 방문일 */
+    .notes-table th:nth-child(2), .notes-table td:nth-child(2){ width:14% !important; }  /* 지역 (slightly larger) */
+  .notes-table th:nth-child(3), .notes-table td:nth-child(3){ width:20% !important; }  /* 학교 (slightly reduced) */
+  .notes-table th:nth-child(4), .notes-table td:nth-child(4){ width:10% !important; }   /* 시간 (slightly increased) */
+    .notes-table th:nth-child(5), .notes-table td:nth-child(5){ width:6% !important; }   /* 소요 (slightly smaller) */
+    .notes-table th:nth-child(6), .notes-table td:nth-child(6){ width:10% !important; max-width:none !important; }  /* 과목 */
+    .notes-table th:nth-child(7), .notes-table td:nth-child(7){ width:12% !important; }  /* 선생님 */
+  .notes-table th:nth-child(8), .notes-table td:nth-child(8){ width:6% !important; min-width:48px !important; }  /* 반응 (smaller) */
+    .notes-table th:nth-child(9), .notes-table td:nth-child(9){ width:10% !important; }  /* 상세 */
+  /* Ensure visit date stacked cell still allows two lines and make font consistent */
+    .notes-table td.visit-date-cell{ white-space:normal !important; font-size:10px !important }
+    .visit-date-cell .visit-date-year{ font-weight:normal !important; color:inherit !important; font-size:10px !important }
+    .visit-date-cell .visit-date-md{ font-size:10px !important }
+
+  /* Reaction (반응) column: show only the value (no repeated '반응' label) */
+  .reaction-cell{ text-align:center; line-height:1.1; }
+  .reaction-cell .reaction-value{ display:block; font-size:12px; font-weight:normal; color:inherit; }
+  /* Reduce 지역 column font-size by additional ~30% (relative to previous) for compact display */
+  .notes-table th:nth-child(2), .notes-table td:nth-child(2){ font-size:0.49em !important; }
+  </style>
+  <style>
+    /* Normalize all notes-table header font-sizes: reduce by 20% and make uniform across breakpoints */
+    .notes-table thead th, .notes-table th {
+      font-size: 0.8em !important;
+      line-height: 1.1 !important;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <!-- Leaflet map for per-user geocode distribution -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="" crossorigin="" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <!-- Firebase client (compat) so front can read visit_entries directly -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script>
+    (function(){
+      try{
+        if (window.firebaseDb) return;
+        const firebaseConfig = {
+          apiKey: "AIzaSyARdXNfFCUShNeFXV8cTDzFbKa4GId5EvU",
+          authDomain: "cmass-sales.firebaseapp.com",
+          projectId: "cmass-sales",
+          storageBucket: "cmass-sales.firebasestorage.app",
+          messagingSenderId: "918981476485",
+          appId: "1:918981476485:web:7939150e23500e2703a9ec",
+          measurementId: "G-9188JJXRWX"
+        };
+        try{ const app = firebase.initializeApp(firebaseConfig); const db = firebase.firestore(); window.firebaseDb = db; }catch(e){ /* ignore if already init */ }
+      }catch(e){ /* tolerate */ }
+
+      window.waitForFirebase = function(){
+        return new Promise((resolve,reject)=>{
+          if (window.firebaseDb) { resolve(); return; }
+          let attempts = 0; const t = setInterval(()=>{ attempts++; if (window.firebaseDb){ clearInterval(t); resolve(); } else if (attempts>50){ clearInterval(t); reject(new Error('firebase init timeout')); } }, 100);
+        });
+      };
+
+      window.ensureAnonymousAuth = async function(){
+        try{
+          if (!window.firebase || !firebase.auth) return null;
+          const auth = firebase.auth();
+          if (auth.currentUser) return auth.currentUser;
+          const cred = await auth.signInAnonymously();
+          return (cred && cred.user) ? cred.user : auth.currentUser;
+        }catch(e){
+          console.warn('front anonymous auth failed', e);
+          return null;
+        }
+      };
+    })();
+  </script>
+</head>
+<body>
+  <script>
+    // One-time automatic service-worker & cache cleanup to ensure clients load the
+    // newest JS/CSS. This runs only once per-browser (flagged in localStorage)
+    // and reloads the page with `sw_cleared=1` to avoid loops.
+    (function(){
+      try{
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('sw_cleared') === '1') { try{ localStorage.setItem('_cmass_sw_cleared','1'); }catch(e){} return; }
+        if (localStorage.getItem('_cmass_sw_cleared') === '1') return;
+        (async function(){
+          try{
+            if ('serviceWorker' in navigator){
+              try{ const regs = await navigator.serviceWorker.getRegistrations().catch(()=>[]); await Promise.all((regs||[]).map(r=>r.unregister().catch(()=>{}))); }catch(e){}
+            }
+            if (window.caches && caches.keys){
+              try{ const keys = await caches.keys().catch(()=>[]); await Promise.all((keys||[]).map(k=>caches.delete(k).catch(()=>{}))); }catch(e){}
+            }
+          }catch(e){ console.warn('sw cleanup inner failed', e); }
+          try{ localStorage.setItem('_cmass_sw_cleared','1'); }catch(e){}
+          try{
+            const u = new URL(window.location.href);
+            u.searchParams.set('sw_cleared','1');
+            window.location.replace(u.toString());
+          }catch(e){ try{ window.location.reload(true); }catch(_){} }
+        })();
+      }catch(e){ console.warn('sw cleanup failed', e); }
+    })();
+  </script>
+  <div class="container">
+    <h1>CMASS 영업일지</h1>
+    <div class="hero">
+      <div style="text-align:center">
+        <div class="btn-row">
+          <button id="goInput" class="big-btn" onclick="try{ if(typeof front_goInput==='function'){ front_goInput(); } else { alert('입력 페이지 이동이 비활성화되어 있습니다.'); } }catch(e){}">영업일지 입력</button>
+          <button class="alt-btn" onclick="try{ const qs = window.location.search || ''; window.location.href = '/schoolinfo.html' + qs; }catch(e){ window.location.href = '/schoolinfo.html'; }">🏫 학교정보조회</button>
+          <!-- 방문현황 리포트 버튼 -->
+          <div style="position:relative;display:inline-block" id="reportMenuWrap">
+            <button class="alt-btn" id="reportMenuBtn" onclick="(function(){ var d=document.getElementById('reportDropdown'); d.style.display=(d.style.display==='none'||!d.style.display)?'block':'none'; })()">📊 방문현황리포트 ▾</button>
+            <div id="reportDropdown" style="display:none;position:absolute;left:0;top:calc(100% + 4px);background:#fff;border:1.5px solid #c7d9f8;border-radius:12px;box-shadow:0 8px 24px rgba(11,99,214,0.12);z-index:300;min-width:220px;padding:8px 0">
+              <a href="/schoolreport.html" style="display:block;padding:12px 20px;font-size:22px;font-weight:700;color:#0b1220;text-decoration:none;border-bottom:1px solid #f0f6ff">📋 전체 리포트</a>
+              <a href="/schoolreport.html?staff=99781203" style="display:block;padding:12px 20px;font-size:22px;color:#0b63d6;text-decoration:none;border-bottom:1px solid #f0f6ff">👤 임준호</a>
+              <a href="/schoolreport.html?staff=89250686" style="display:block;padding:12px 20px;font-size:22px;color:#0b63d6;text-decoration:none;border-bottom:1px solid #f0f6ff">👤 조영환</a>
+              <a href="/schoolreport.html?staff=51322012" style="display:block;padding:12px 20px;font-size:22px;color:#0b63d6;text-decoration:none">👤 이경일</a>
+            </div>
+          </div>
+          <script>
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e){
+              var wrap = document.getElementById('reportMenuWrap');
+              if(wrap && !wrap.contains(e.target)){
+                var d = document.getElementById('reportDropdown');
+                if(d) d.style.display = 'none';
+              }
+            });
+          </script>
+          <button id="btnForceRefresh" class="alt-btn" title="서비스워커 강제 업데이트 / 페이지 새로고침" onclick="try{ if(typeof front_forceRefresh==='function'){ front_forceRefresh(); } else if(typeof forceServiceWorkerUpdate==='function'){ forceServiceWorkerUpdate(); } else { alert('새로고침 기능을 사용할 수 없습니다.'); } }catch(e){}">새로고침(최신)</button>
+          
+        </div>
+        <script>
+          // Lightweight, always-available wrappers used by inline onclick attributes.
+          function front_goInput(){
+            try{
+              console.log('front_goInput called');
+              // Preserve existing query string (staff token / staff selection)
+              const qs = window.location.search || '';
+              const origin = (location && location.origin) ? location.origin : (location.protocol + '//' + location.host);
+              const target = origin + '/input' + qs;
+              try{ console.log('front_goInput -> navigating to', target); }catch(e){}
+
+              // Try multiple navigation strategies for webviews and browsers
+              try{ window.location.assign(target); }catch(e){}
+              try{ window.location.href = target; }catch(e){}
+              try{
+                let a = document.getElementById('__goInputAnchor');
+                if (!a){ a = document.createElement('a'); a.id='__goInputAnchor'; a.style.display='none'; document.body.appendChild(a); }
+                a.href = target; a.target = '_self'; a.click();
+              }catch(e){}
+              try{ window.open(target, '_self'); }catch(e){}
+
+              // If navigation is swallowed by a webview, show a visible fallback link
+              try{
+                setTimeout(()=>{
+                  const msgId = '__goInputFallbackMsg';
+                  if (!document.getElementById(msgId)){
+                    const div = document.createElement('div'); div.id = msgId; div.style.marginTop='8px'; div.style.textAlign='center';
+                    div.innerHTML = '자동 이동이 되지 않았습니다. <a href="'+ target +'" onclick="return true;">여기</a>를 누르면 이동합니다.';
+                    const hero = document.querySelector('.hero') || document.body;
+                    hero.parentNode.insertBefore(div, hero.nextSibling);
+                  }
+                }, 300);
+              }catch(e){}
+            }catch(e){ console.warn('front_goInput failed', e); }
+          }
+          function front_forceRefresh(){ try{ console.log('front_forceRefresh called'); if (typeof forceServiceWorkerUpdate === 'function'){ forceServiceWorkerUpdate(); } else { alert('새로고침 기능을 사용할 수 없습니다.'); } }catch(e){ console.warn(e); } }
+          function front_clearLocal(){ try{ console.log('front_clearLocal called'); if (typeof clearCmassLocalDataAndGo === 'function'){ clearCmassLocalDataAndGo(); } else { alert('임시본 삭제 기능을 사용할 수 없습니다.'); } }catch(e){ console.warn(e); } }
+
+          // Robust implementation to force service-worker update and reload page
+          async function forceServiceWorkerUpdate(){
+            try{
+              console.log('forceServiceWorkerUpdate: unregistering service workers and clearing caches');
+              if ('serviceWorker' in navigator){
+                try{ const regs = await navigator.serviceWorker.getRegistrations().catch(()=>[]); await Promise.all((regs||[]).map(r=>r.unregister().catch(()=>{}))); }catch(e){ console.warn('sw unregister failed', e); }
+              }
+              if (window.caches && caches.keys){
+                try{ const keys = await caches.keys().catch(()=>[]); await Promise.all((keys||[]).map(k=>caches.delete(k).catch(()=>{}))); }catch(e){ console.warn('cache clear failed', e); }
+              }
+              try{ localStorage.setItem('_cmass_sw_cleared','1'); }catch(e){}
+              try{ const u = new URL(window.location.href); u.searchParams.set('sw_cleared','1'); window.location.replace(u.toString()); return; }catch(e){}
+              try{ window.location.reload(true); }catch(e){}
+            }catch(e){ console.warn('forceServiceWorkerUpdate failed', e); alert('새로고침 시도 중 오류가 발생했습니다. 콘솔을 확인하세요.'); }
+          }
+
+          // Clear local CMASS-related localStorage/sessionStorage keys and reload
+          function clearCmassLocalDataAndGo(){
+            try{
+              console.log('clearCmassLocalDataAndGo: clearing localStorage keys (cmass, _cmass, draft)');
+              try{
+                const keys = Object.keys(localStorage || {});
+                keys.forEach(k=>{ try{ if (/^(cmass|_cmass)|draft/i.test(k) || k.indexOf('geocode')!==-1){ localStorage.removeItem(k); } }catch(e){} });
+              }catch(e){ console.warn('localStorage clear step failed', e); }
+              try{
+                const sKeys = Object.keys(sessionStorage || {});
+                sKeys.forEach(k=>{ try{ if (/^(cmass|_cmass)|draft/i.test(k) || k.indexOf('geocode')!==-1){ sessionStorage.removeItem(k); } }catch(e){} });
+              }catch(e){ console.warn('sessionStorage clear step failed', e); }
+              // Also attempt to clear caches and service workers to be safe
+              try{ if (window.caches && caches.keys) { caches.keys().then(keys=> Promise.all(keys.map(k=>caches.delete(k).catch(()=>{})))).catch(()=>{}); } }catch(e){}
+              try{ if ('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r=>r.unregister().catch(()=>{}))).catch(()=>{}); } }catch(e){}
+              // reload to apply cleared state
+              try{ const u = new URL(window.location.href); u.searchParams.set('cleared_local','1'); window.location.replace(u.toString()); return; }catch(e){}
+              try{ window.location.reload(true); }catch(e){}
+            }catch(e){ console.warn('clearCmassLocalDataAndGo failed', e); alert('임시본 삭제 중 오류가 발생했습니다. 콘솔을 확인하세요.'); }
+          }
+
+          // Ensure buttons are interactable and add lightweight diagnostics in case clicks are swallowed
+          (function ensureButtonsClickable(){
+            try{
+              const sel = '.big-btn, .alt-btn, button';
+              const btns = Array.from(document.querySelectorAll(sel));
+              btns.forEach(b=>{ try{ b.style.pointerEvents = 'auto'; b.style.touchAction = 'auto'; if (!b.hasAttribute('tabindex')) b.setAttribute('tabindex','0'); }catch(e){} });
+              document.addEventListener('click', function(ev){ try{ const t = ev.target && (ev.target.id || ev.target.className || ev.target.tagName) || 'unknown'; console.debug('document click:', t); }catch(e){} }, true);
+            }catch(e){ console.warn('ensureButtonsClickable failed', e); }
+          })();
+        </script>
+
+        <!-- map moved into the visit-summary section (rendered below) -->
+        <div id="staffLabel" class="small" style="margin-top:6px;font-weight:800"></div>
+        <div class="small" id="heroNote">아래는 본인의 저장된 방문기록 요약입니다.</div>
+      </div>
+    </div>
+
+    <div id="personalCard" class="card">
+      <h3>내 방문 기록 요약</h3>
+  <div id="noAuth" class="small" style="display:none;color:#a33;margin-bottom:.6rem;">사용자 정보가 URL에 없습니다. 예: <code>?staff=99781203</code></div>
+  <div id="loading" class="small">데이터를 불러오는 중...</div>
+  <div id="loadingSpinner" style="display:none;margin-top:6px" class="small">🔄 처리중...</div>
+
+      <!-- AI 요약 섹션 -->
+      <div id="aiSummarySection" class="card" style="margin-top:16px;display:none;background:#f0f7ff;border:1px solid #d0e4ff">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="margin:0;color:var(--brand-1);font-size:18px">🤖 AI 영업 활동 분석 (Gemini Pro)</h3>
+          <button id="toggleAiSummary" class="alt-btn" style="padding:4px 10px;font-size:12px" onclick="toggleAiSummaryExpand()">접기/펼치기</button>
+        </div>
+        <div id="aiSummaryLoading" style="display:none" class="small">AI 분석을 불러오는 중...</div>
+        <div id="aiSummaryError" style="display:none;color:#c33" class="small"></div>
+        <div id="aiSummaryContent" style="display:none">
+          <div style="background:#fff;padding:12px;border-radius:8px;margin-bottom:12px">
+            <div class="small" style="color:var(--muted);margin-bottom:8px">
+              분석 건수: <strong id="aiEntryCount">-</strong>건 | 
+              마지막 방문: <strong id="aiLastVisit">-</strong> | 
+              생성일: <strong id="aiCreatedAt">-</strong>
+            </div>
+          </div>
+          <div id="aiSummaryText" style="background:#fff;padding:14px;border-radius:8px;line-height:1.6;white-space:pre-wrap;font-size:14px;max-height:400px;overflow-y:auto;transition:max-height 0.3s ease" data-collapsed="true"></div>
+        </div>
+        <button id="generateAiSummaryBtn" class="alt-btn" style="margin-top:12px" onclick="generateStaffSummaryManual()">새 AI 분석 생성</button>
+      </div>
+      <div id="dashboardArea" style="display:none">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <label class="small" style="font-weight:700">기간:</label>
+            <input type="date" id="filterStart" style="padding:.4rem;border-radius:.5rem;border:1px solid #e6eefc">
+            <span class="small">~</span>
+            <input type="date" id="filterEnd" style="padding:.4rem;border-radius:.5rem;border:1px solid #e6eefc">
+            <!-- Quick range buttons -->
+            <div id="quickRanges" style="display:flex;gap:6px;align-items:center;margin-left:8px;flex-wrap:wrap">
+              <button id="btnYesterday" class="alt-btn" title="어제">어제</button>
+              <button id="btnToday" class="alt-btn" title="오늘">오늘</button>
+              <button id="btnLastWeek" class="alt-btn" title="지난주 (월~일)">지난주</button>
+              <button id="btnThisWeek" class="alt-btn" title="이번주 (월~일)">이번주</button>
+              <button id="btnLastMonth" class="alt-btn" title="지난달 (1일~말일)">지난달</button>
+              <button id="btnThisMonth" class="alt-btn" title="이번달 (1일~말일)">이번달</button>
+            </div>
+            <button id="filterApply" class="alt-btn">적용</button>
+            <button id="filterClear" class="alt-btn">초기화</button>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <label class="small" style="font-weight:700">과목 필터:</label>
+            <select id="subjectFilter" style="padding:.4rem;border-radius:.5rem;border:1px solid #e6eefc;background:#fff">
+              <option value="">전체</option>
+            </select>
+            <button id="loadMoreBtn" class="alt-btn" style="margin-left:8px;display:none">더 불러오기</button>
+            <button id="exportCsvBtn" class="alt-btn" style="margin-left:6px;display:none">CSV 내보내기</button>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="totalVisits">-</div><div class="small">총 저장 미팅 수</div></div>
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="uniqueSchools">-</div><div class="small">방문한 학교 수</div></div>
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="totalTime">-</div><div class="small">학교에 있었던 총 방문 시간(분)</div></div>
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="avgDuration">-</div><div class="small">평균 방문 시간(분) (학교당)</div></div>
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="contactsCount">-</div><div class="small">수집된 연락처</div></div>
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="followUpsCount">-</div><div class="small">후속 조치 항목 수</div></div>
+          <div class="stat"><div style="font-size:18px;font-weight:800" id="recentDate">-</div><div class="small">최근 방문일</div></div>
+        </div>
+        <!-- Conditional filter panel: allow ad-hoc querying of visit_entries -->
+        <div class="card" style="margin-top:8px;padding:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <label class="small" style="font-weight:700;margin-right:6px">조건 필터:</label>
+          <input id="filterStaffInput" placeholder="staff token (예: 42238747 or 99781203)" style="padding:.4rem;border:1px solid #e6eefc;border-radius:6px;min-width:220px" />
+          <input id="filterSchoolInput" placeholder="학교명 (예: 고양고등학교)" style="padding:.4rem;border:1px solid #e6eefc;border-radius:6px;min-width:180px" />
+          <input id="filterRegionInput" placeholder="지역 (예: 경기도고양시덕양구)" style="padding:.4rem;border:1px solid #e6eefc;border-radius:6px;min-width:180px" />
+          <input id="filterStartDate" type="date" style="padding:.4rem;border:1px solid #e6eefc;border-radius:6px" />
+          <input id="filterEndDate" type="date" style="padding:.4rem;border:1px solid #e6eefc;border-radius:6px" />
+          <button id="applyCondFilterBtn" class="alt-btn">적용</button>
+          <button id="clearCondFilterBtn" class="alt-btn">초기화</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="width:100%">
+            <div style="font-weight:800;margin-bottom:.4rem">방문한 학교별 기록</div>
+            <!-- 방문일 필터 버튼 (전체 / YYYY-MM-DD / ...) -->
+            <div id="dateButtons" style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px"></div>
+            <div id="schoolButtons" style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px"></div>
+            <!-- subject buttons appear under the school buttons for quick filtering -->
+            <div id="subjectButtons" style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"></div>
+            <div id="schoolVisitsTableContainer" style="max-height:420px;overflow:auto;border:1px solid #eef2ff;padding:6px;border-radius:6px;background:#fff"></div>
+          </div>
+
+          <div style="width:100%">
+            <div style="display:flex;flex-direction:column;gap:12px">
+                  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start">
+                    <div style="flex:1 1 320px;min-width:220px">
+                      <div style="font-weight:800;margin-bottom:.4rem">분석 차트</div>
+                      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;">
+                        <div style="flex:1 1 460px;min-width:320px;display:flex;gap:10px">
+                          <div style="flex:0 1 468px;max-width:468px;width:100%;box-sizing:border-box;border:1px solid #eef2ff;border-radius:8px;padding:8px;background:#fff;display:flex;flex-direction:column;align-items:stretch;justify-content:center">
+                            <div class="chart-title">반응 NPS</div>
+                            <div style="display:flex;align-items:center;gap:12px;">
+                              <div style="flex:1 1 320px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px">
+                                <div style="height:140px;display:flex;align-items:center;justify-content:center;width:100%">
+                                  <canvas id="gauge" aria-label="반응 NPS 차트" style="max-height:100%;max-width:100%"></canvas>
+                                </div>
+                                <div class="nps-score" style="text-align:center;margin-top:8px">
+                                  <div id="npsScore" class="val" style="font-size:34px;font-weight:800;color:#07243a">-</div>
+                                  <div class="nps-sub" style="color:#607489;font-size:13px;margin-top:6px">NPS = Promoters% - Detractors%</div>
+                                </div>
+                              </div>
+                              <div id="breakdownList" class="breakdown" style="flex:0 0 180px;max-width:180px;padding-left:8px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box;overflow:visible"></div>
+                            </div>
+                          </div>
+
+                          <!-- 반응 분포 카드 제거됨 -->
+                        </div>
+
+                        <div style="flex:1 1 220px;min-width:180px;border:1px solid #eef2ff;border-radius:8px;padding:8px;background:#fff">
+                          <div class="chart-title">시간대별 방문 분포</div>
+                            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                            <div style="flex:1 1 300px;min-width:240px;display:flex;align-items:center;justify-content:center">
+                              <canvas id="timeDistChart" aria-label="시간대별 방문 분포 차트" style="max-height:100%;max-width:100%"></canvas>
+                            </div>
+                            <div id="timeLegend" style="flex:0 0 160px;max-height:220px;overflow:auto;padding-left:8px;border-left:1px solid #f6f9ff;font-size:13px"></div>
+                          </div>
+                        </div>
+
+                      </div>
+                      
+                      <!-- 학교별 방문 TOP 10 -->
+                      <div style="margin-top:10px;border:1px solid #eef2ff;border-radius:8px;padding:8px;background:#fff">
+                        <div class="chart-title">학교별 방문 TOP 10</div>
+                        <div style="height:280px;display:flex;align-items:center;justify-content:center">
+                          <canvas id="topSchoolsChart" aria-label="학교별 방문 TOP 10 차트" style="width:100%;height:100%"></canvas>
+                        </div>
+                      </div>
+					  
+                      <!-- 선생님별 방문 TOP 10 -->
+                      <div style="margin-top:10px;border:1px solid #eef2ff;border-radius:8px;padding:8px;background:#fff">
+                        <div class="chart-title">선생님별 방문 현황 TOP 10</div>
+                        <div style="height:280px;display:flex;align-items:center;justify-content:center">
+                          <canvas id="topTeachersChart" aria-label="선생님별 방문 TOP 10 차트" style="width:100%;height:100%"></canvas>
+                        </div>
+                      </div>
+
+                      <!-- 주간 방문 패턴 (요일별) -->
+                      <div style="margin-top:10px;border:1px solid #eef2ff;border-radius:8px;padding:8px;background:#fff">
+                        <div class="chart-title">주간 방문 패턴 (요일별)</div>
+                        <div style="height:220px;display:flex;align-items:center;justify-content:center">
+                          <canvas id="weekdayChart" aria-label="요일별 방문 패턴 차트" style="width:100%;height:100%"></canvas>
+                        </div>
+                      </div>
+
+                      <!-- 과목별 반응 분석 -->
+                      <div style="margin-top:10px;border:1px solid #eef2ff;border-radius:8px;padding:8px;background:#fff">
+                        <div class="chart-title">과목별 반응 분석</div>
+                        <div style="height:280px;display:flex;align-items:center;justify-content:center">
+                          <canvas id="subjectReactionChart" aria-label="과목별 반응 분석 차트" style="width:100%;height:100%"></canvas>
+                        </div>
+                      </div>
+
+                      <!-- Monthly trend line chart -->
+                      <div style="margin-top:10px;border:1px solid #eef2ff;border-radius:8px;padding:8px;background:#fff">
+                        <div class="chart-title">월별 방문 추이</div>
+                        <div style="height:240px;display:flex;align-items:center;justify-content:center">
+                          <canvas id="monthlyTrendChart" aria-label="월별 방문추이 차트" style="width:100%;height:100%"></canvas>
+                        </div>
+                      </div>
+                      <div id="__backend_status" class="small" style="margin-top:6px;color:#a33"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+  <!-- Inserted renderer from backup to restore dashboard rendering -->
+  <script>// Minimal renderer body (no surrounding <script> tags)
+function getStaffFromQuery(){
+  try{
+    const p = new URLSearchParams(window.location.search||'');
+    const raw = (p.get('staff') || p.get('user') || '').toString().trim();
+    if(!raw) return '';
+
+    const normalizeKey = (s) => String(s||'')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g,'')
+      .replace(/(부장|차장|과장|대리|사원|팀장|님|선생님|선생)/g,'');
+
+    const map = {
+      '99781203':'99781203',
+      '89250686':'89250686',
+      '51322012':'51322012',
+      '임준호':'99781203',
+      '조영환':'89250686',
+      '이경일':'51322012'
+    };
+
+    if (/^\d{8}$/.test(raw)) return map[raw] || raw;
+    const k = normalizeKey(raw);
+    if (map[k]) return map[k];
+    const m = raw.match(/(\d{8})/);
+    if (m && m[1]) return m[1];
+    return raw;
+  }catch(e){ return ''; }
+}
+
+function getStaffDisplayName(staffCode){
+  const displayMap = {
+    '99781203': '임준호',
+    '89250686': '조영환',
+    '51322012': '이경일'
+  };
+  return displayMap[String(staffCode || '').trim()] || String(staffCode || '').trim();
+}
+
+function getStaffQueryVariants(staffCode){
+  const code = String(staffCode || '').trim();
+  const out = new Set();
+  if (code) {
+    out.add(code);
+    if (/^\d+$/.test(code)) out.add(Number(code));
+  }
+  return Array.from(out);
+}
+
+async function loadPersonalVisits(){
+  // Primary: staff from query + optional override from filter input
+  let staff = getStaffFromQuery();
+  console.log('[DEBUG] getStaffFromQuery() returned:', staff);
+  try{ const f = document.getElementById('filterStaffInput'); if (f && f.value.trim()) staff = f.value.trim(); }catch(e){}
+  const staffCode = String(staff || '').trim();
+  console.log('[DEBUG] staffCode:', staffCode);
+  const staffName = getStaffDisplayName(staffCode);
+  console.log('[DEBUG] staffName:', staffName);
+  try{ const lbl = document.getElementById('staffLabel'); if (lbl) lbl.textContent = staffCode ? ('담당자: ' + staffName + ' (' + staffCode + ')') : ''; }catch(e){}
+
+  if (!staffCode){ 
+    console.log('[DEBUG] No staffCode - showing noAuth');
+    try{ document.getElementById('noAuth').style.display='block'; document.getElementById('loading').style.display='none'; }catch(e){} return; 
+  }
+
+  const loadingEl = document.getElementById('loading'); try{ if (loadingEl) loadingEl.textContent = '데이터를 불러오는 중...'; }catch(e){}
+
+  try{
+    // Build query params from UI filters
+    const qs = new URLSearchParams(); qs.set('useEntries','true'); qs.set('pageSize','1000'); qs.set('staff', staffCode);
+    try{ const sEl = document.getElementById('filterStart'); if (sEl && sEl.value) qs.set('start', sEl.value); }catch(_){}
+    try{ const eEl = document.getElementById('filterEnd'); if (eEl && eEl.value) qs.set('end', eEl.value); }catch(_){}
+    try{ const schoolEl = document.getElementById('filterSchoolInput'); if (schoolEl && schoolEl.value) qs.set('school', schoolEl.value); }catch(_){}
+    try{ const regionEl = document.getElementById('filterRegionInput'); if (regionEl && regionEl.value) qs.set('region', regionEl.value); }catch(_){}
+    try{ const subjEl = document.getElementById('subjectFilter'); if (subjEl && subjEl.value) qs.set('subject', subjEl.value); }catch(_){}
+
+  // Try the preferred endpoint `/api/visit_entries` only when Firestore isn't available.
+  async function fetchVisitsWithFallback(qs){
+    // Only attempt the API-backed `visit_entries` endpoint as a fallback when
+    // client-side Firestore isn't available. If this fails, report failure.
+    const candidates = ['/api/visit_entries'];
+    const statusEl = document.getElementById('__backend_status');
+    for (const base of candidates){
+      try{
+        const url = base + '?' + qs.toString();
+        const r = await fetch(url, { method: 'GET' });
+        // prefer JSON responses; if we get HTML (starts with '<') treat as failure
+        if (!r.ok){ console.warn(base + ' returned status ' + r.status); continue; }
+        const ct = (r.headers.get('content-type')||'').toLowerCase();
+        if (ct.indexOf('application/json') === -1){
+          // attempt to read text and detect HTML
+          const txt = await r.text().catch(()=>null);
+          if (!txt){ console.warn(base + ' returned empty response'); continue; }
+          if (txt.trim().startsWith('<')){ console.warn(base + ' returned HTML (not JSON)'); continue; }
+          try{ const parsed = JSON.parse(txt); if (statusEl) statusEl.textContent = '데이터: ' + base; return parsed; }catch(e){ console.warn('JSON parse failed for ' + base, e); continue; }
+        }
+        // content-type is JSON: parse and return
+        const parsed = await r.json().catch(e=>{ console.warn('json parse error for ' + base, e); return null; });
+        if (parsed){ if (statusEl) statusEl.textContent = '데이터: ' + base; return parsed; }
+      }catch(e){ console.warn('fetch to ' + base + ' failed', e); continue; }
+    }
+    if (statusEl) statusEl.textContent = '데이터 불러오기를 실패하였습니다';
+    return { ok:false, rows: [] };
+  }
+
+  
+
+  // Attempt to read directly from Firestore 'visit_entries' first (preferred).
+  let j = null;
+  try{
+    // Wait for firebase client initialization if helper exists
+    if (typeof window.waitForFirebase === 'function'){
+      try{ await window.waitForFirebase(); }catch(e){}
+    }
+    if (typeof window.ensureAnonymousAuth === 'function'){
+      try{ await window.ensureAnonymousAuth(); }catch(e){}
+    }
+    if (window.firebaseDb){
+      try{
+        const statusEl = document.getElementById('__backend_status');
+        const col = window.firebaseDb.collection('visit_entries');
+        const staffVariants = getStaffQueryVariants(staffCode);
+
+        async function fetchByField(fieldName){
+          let q;
+          if (staffVariants.length > 1) q = col.where(fieldName,'in', staffVariants.slice(0,10));
+          else q = col.where(fieldName,'==', staffVariants[0] ?? staffCode);
+          return await q.limit(Number(qs.get('pageSize') || 1000) || 1000).get();
+        }
+
+        const pageSize = Number(qs.get('pageSize') || 1000) || 1000;
+        const [snapStaff, snapStaffKey] = await Promise.all([
+          fetchByField('staff').catch(()=>null),
+          fetchByField('staff_key').catch(()=>null)
+        ]);
+
+        const mergedDocs = [];
+        const seen = new Set();
+        [snapStaff, snapStaffKey].forEach(snap => {
+          (snap && snap.docs ? snap.docs : []).forEach(d => {
+            if (!d || !d.id || seen.has(d.id)) return;
+            seen.add(d.id);
+            mergedDocs.push(d);
+          });
+        });
+
+        const docs = mergedDocs.map(d => {
+          try{ const data = d.data(); data.id = d.id; return data; }catch(e){ return null; }
+        }).filter(Boolean).slice(0, pageSize);
+        // Client-side date filter: normalize to YYYY-MM-DD and filter by start/end if provided
+        const start = qs.get('start'); const end = qs.get('end');
+        const normalizeDate = (r) => {
+          if (r.visitDate && typeof r.visitDate === 'string' && /^\d{4}-\d{2}-\d{2}/.test(r.visitDate)) return r.visitDate.substring(0,10);
+          if (r.visitDate && typeof r.visitDate === 'string') return (new Date(r.visitDate)).toISOString().substring(0,10);
+          if (r.visitDate_ts && r.visitDate_ts._seconds) return (new Date(Number(r.visitDate_ts._seconds)*1000)).toISOString().substring(0,10);
+          if (r.createdAt && r.createdAt._seconds) return (new Date(Number(r.createdAt._seconds)*1000)).toISOString().substring(0,10);
+          return '';
+        };
+        const rows = docs.map(d => { try{ d._dateNorm = normalizeDate(d); return d; }catch(e){ return d; } });
+        const filtered = rows.filter(r => {
+          if (!start && !end) return true;
+          const d = r._dateNorm || '';
+          if (start && d && d < start) return false;
+          if (end && d && d > end) return false;
+          return true;
+        }).sort((a,b)=> (b._dateNorm||'').localeCompare(a._dateNorm||''));
+        j = { ok:true, rows: filtered };
+        if (statusEl) statusEl.textContent = '데이터: visit_entries (Firestore)';
+      }catch(e){ console.warn('visit_entries Firestore read failed', e); }
+    }
+  }catch(e){ console.warn('firestore attempt failed', e); }
+
+  if (!j) j = await fetchVisitsWithFallback(qs);
+
+  const cont = document.getElementById('schoolVisitsTableContainer');
+  const rows = Array.isArray(j.rows) ? j.rows : [];
+
+  // If both Firestore and the API fallback failed, show a clear error message
+  // instead of rendering an empty table.
+  if (j && j.ok === false){
+    if (cont) cont.innerHTML = '<div class="small" style="color:#a33">데이터 불러오기를 실패하였습니다</div>';
+    try{ document.getElementById('dashboardArea').style.display='block'; document.getElementById('loading').style.display='none'; }catch(e){}
+    return;
+  }
+
+    // Normalize visitDate to YYYY-MM-DD for sorting/display
+    const normalizeDate = (r) => {
+      if (r.visitDate && typeof r.visitDate === 'string' && /^\d{4}-\d{2}-\d{2}/.test(r.visitDate)) return r.visitDate.substring(0,10);
+      if (r.visitDate && typeof r.visitDate === 'string') return (new Date(r.visitDate)).toISOString().substring(0,10);
+      if (r.visitDate_ts && r.visitDate_ts._seconds) return (new Date(Number(r.visitDate_ts._seconds)*1000)).toISOString().substring(0,10);
+      if (r.createdAt && r.createdAt._seconds) return (new Date(Number(r.createdAt._seconds)*1000)).toISOString().substring(0,10);
+      return '';
+    };
+
+    const visits = rows.map(r => { try{ r._dateNorm = normalizeDate(r); return r; }catch(e){ return r; } }).sort((a,b)=> (b._dateNorm||'').localeCompare(a._dateNorm||''));
+
+
+    // KPI 1, 2: 학교+방문일별로 duration 1번만 집계
+    function getSchoolDayDurations(visits) {
+      const map = {};
+      visits.forEach(v => {
+        const school = v.school || '';
+        const date = v._dateNorm || v._date || v.visitDate || '';
+        if (!school || !date) return;
+        const key = `${school}|${date}`;
+        if (map[key] === undefined) map[key] = Number(v.duration) || 0;
+      });
+      return map;
+    }
+    const schoolDayDurations = getSchoolDayDurations(visits);
+    const schoolDayDurArr = Object.values(schoolDayDurations);
+    // 총 방문 시간(분): 학교+방문일별 duration 합계
+    document.getElementById('totalTime').textContent = schoolDayDurArr.reduce((sum, d) => sum + d, 0);
+    // 평균 방문 시간(분) (학교당): 학교+방문일별 duration 평균
+    document.getElementById('avgDuration').textContent = schoolDayDurArr.length ? Math.round(schoolDayDurArr.reduce((sum, d) => sum + d, 0) / schoolDayDurArr.length) : 0;
+
+    // KPI 3: 수집된 연락처
+    document.getElementById('contactsCount').textContent = visits.filter(v => (v.phone || v.email || '').toString().trim()).length;
+    // KPI 4: 후속 조치 항목 수
+    document.getElementById('followUpsCount').textContent = visits.filter(v => v.followUp || v.follow_up || v.followup || v['후속조치']).length;
+
+    document.getElementById('totalVisits').textContent = visits.length;
+    const uniq = Array.from(new Set(visits.map(v => (v.school||'').toString().trim()).filter(Boolean)));
+    document.getElementById('uniqueSchools').textContent = uniq.length;
+    document.getElementById('recentDate').textContent = visits.length ? (visits[0]._dateNorm || '-') : '-';
+
+    // Populate subject filter options dynamically
+    try{
+      const subjEl = document.getElementById('subjectFilter'); if (subjEl){
+  const subs = Array.from(new Set(visits.flatMap(v => Array.isArray(v.subject) ? v.subject : (Array.isArray(v.subjects) ? v.subjects : (v.subject ? [v.subject] : (v.subjects ? [v.subjects] : []))))));
+        // preserve current selection
+        const cur = subjEl.value || '';
+        subjEl.innerHTML = '<option value="">전체</option>' + subs.map(s=> `<option value="${escapeHtml(String(s))}">${escapeHtml(String(s))}</option>`).join('');
+        if (cur) subjEl.value = cur;
+      }
+    }catch(e){}
+
+    // Build charts: subjects, region, reaction distribution
+    try{
+      buildCharts(visits);
+    }catch(e){ console.warn('buildCharts failed', e); }
+
+  if (!visits.length){ if (cont) cont.innerHTML = '<div class="small">데이터가 없습니다.</div>'; }
+    else {
+      // Add requests/deliveries columns and collect hidden note data blocks
+      let html = '<table class="notes-table"><thead><tr>' +
+        '<th>방문일</th><th>지역</th><th>학교</th><th>시간</th><th>소요</th><th>과목</th><th>선생님</th><th>반응</th><th>상세</th>' +
+        '</tr></thead><tbody>';
+
+      // will append hidden blocks here to preserve full texts for modal
+      let noteDataCollect = '';
+
+      visits.slice(0,1000).forEach(e => {
+        const date = e._dateNorm || '';
+        // split date for stacked display: "YYYY-" on first line and "MM-DD" on second
+        const dateYear = date ? escapeHtml(String(date).substring(0,4) + '-') : '';
+        const dateMd = date ? escapeHtml(String(date).substring(5)) : '';
+        const school = escapeHtml(e.school || '');
+        const region = escapeHtml(e.region || '');
+        const time = (e.visitStart||'') + (e.visitEnd ? (' ~ ' + e.visitEnd) : '');
+        const staffLabel = escapeHtml(e.staffLabel || e.staff || '');
+  const subjects = Array.isArray(e.subject) ? e.subject.join(', ') : (Array.isArray(e.subjects) ? e.subjects.join(', ') : (e.subject || e.subjects || ''));
+  const activities = Array.isArray(e.activities) ? e.activities.join(', ') : (e.activities || '');
+        const teacher = escapeHtml(e.teacher || '');
+        const duration = (typeof e.duration === 'number' && !isNaN(e.duration)) ? String(e.duration) : (e.duration_label||'');
+  const favor = escapeHtml(e.favor || '');
+  // Remove a possible leading literal '반응' so we don't display it twice
+  const favorValue = String(favor || '').replace(/^\s*반응\s*/,'');
+        const followUp = escapeHtml(e.followUp || e.followup || '');
+        const contact = escapeHtml((e.phone||e.contact||e.email||'').toString());
+
+          // canonicalize possible fields from various doc shapes
+          const rawRequests = (e.request||e.requests||e.requestText||e.askText||'').toString();
+          const rawMaterials = (e.materials||e.material||e.deliveryMaterials||e.delivery_materials||'').toString();
+          const rawDeliveries = (e.deliveries||e.delivery||e.delivery_note||e.deliveryItems||e.delivered||'').toString();
+          const rawConversation = (e.conversation||e.convo||e.note||e.notes||'').toString();
+          const rawIssue = (e.issue||e.issues||e.specialNotes||e.remark||e.remarks||'').toString();
+          const rawGift = (e.gift||e.gifts||e.present||'').toString();
+
+        // Build full HTML used in modal (ordered per user request)
+        let parts = [];
+        if (activities && String(activities).trim()) parts.push('<div><strong>영업활동:</strong> ' + escapeHtml(String(activities)).replace(/\n/g,'<br>') + '</div>');
+        if (rawMaterials && String(rawMaterials).trim()) parts.push('<div style="margin-top:6px"><strong>전달자료:</strong> ' + escapeHtml(String(rawMaterials)).replace(/\n/g,'<br>') + '</div>');
+        if (rawRequests && String(rawRequests).trim()) parts.push('<div style="margin-top:6px"><strong>고객요청사항:</strong> ' + escapeHtml(String(rawRequests)).replace(/\n/g,'<br>') + '</div>');
+        if (rawConversation && String(rawConversation).trim()) parts.push('<div style="margin-top:6px"><strong>대화내용:</strong> ' + escapeHtml(String(rawConversation)).replace(/\n/g,'<br>') + '</div>');
+        if (rawIssue && String(rawIssue).trim()) parts.push('<div style="margin-top:6px"><strong>특이사항:</strong> ' + escapeHtml(String(rawIssue)).replace(/\n/g,'<br>') + '</div>');
+        if (rawDeliveries && String(rawDeliveries).trim()) parts.push('<div style="margin-top:6px"><strong>납품사항:</strong> ' + escapeHtml(String(rawDeliveries)).replace(/\n/g,'<br>') + '</div>');
+        if (rawGift && String(rawGift).trim()) parts.push('<div style="margin-top:6px"><strong>증정사항:</strong> ' + escapeHtml(String(rawGift)).replace(/\n/g,'<br>') + '</div>');
+        if (followUp && String(followUp).trim()) parts.push('<div style="margin-top:6px"><strong>후속조치:</strong> ' + escapeHtml(String(followUp)).replace(/\n/g,'<br>') + '</div>');
+        if (contact && String(contact).trim()) parts.push('<div style="margin-top:6px"><strong>연락처:</strong> ' + contact + '</div>');
+        const fullNoteHtml = parts.length ? parts.join('') : '<div class="small">내용이 없습니다.</div>';
+
+    // safe id using server_id or doc id; fallback to a short random token
+    const idToken = String(e.server_id || e.id || ('r' + Math.random().toString(36).slice(2))).replace(/[^a-zA-Z0-9_\-]/g,'_');
+
+  // Render only a '보기' button in the merged 상세 column. The full text is shown in a modal when clicked.
+  // Reduce vertical padding for the '보기' button (half the previous vertical size)
+  const noteCellHtml = `<div id="${idToken}_wrap">` +
+    `<div style="text-align:center"><button class="alt-btn" style="padding:2px 8px;font-size:12px;line-height:1" onclick="openNoteModal('${idToken}')">보기</button></div>` +
+    `</div>`;
+
+    // hidden data element to store full note HTML for modal consumption (append to collector)
+  const noteDataHtml = `<div id="${idToken}_data" style="display:none">${fullNoteHtml}</div>`;
+  noteDataCollect += noteDataHtml;
+
+        html += '<tr>' +
+          `<td class="visit-date-cell"><span class="visit-date-year">${dateYear}</span><span class="visit-date-md">${dateMd}</span></td>` +
+          `<td>${region}</td>` +
+          `<td>${school}</td>` +
+          `<td>${time}</td>` +
+          `<td>${duration}</td>` +
+          `<td>${escapeHtml(subjects)}</td>` +
+  `<td>${teacher}</td>` +
+  `<td><div class="reaction-cell"><span class="reaction-value">${favorValue || '-'}</span></div></td>` +
+      `<td>${noteCellHtml}</td>` +
+          '</tr>';
+      });
+
+      html += '</tbody></table>' + noteDataCollect;
+      if (cont) cont.innerHTML = html;
+    }
+
+  }catch(e){ console.warn('loadPersonalVisits failed', e); try{ if (loadingEl) loadingEl.textContent = '불러오기 중 오류'; }catch(_){} }
+  finally{ try{ document.getElementById('dashboardArea').style.display='block'; document.getElementById('loading').style.display='none'; }catch(e){} }
+}
+
+// Helper: escape HTML for simple cell rendering
+function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+// Toggle long note text: show preview by default, expand/collapse on button click
+// openNoteModal(id) will display the full note text in a modal. The modal element is
+// created on-demand and reused. Note contents are stored in a hidden dataset to avoid
+// embedding large text directly into onclick attributes.
+function openNoteModal(id){
+  try{
+    // Find the row data by matching the idToken to a row's server_id or id
+    // We stored the full note text in an element with id `${id}_data` when rendering
+    let dataEl = document.getElementById(id + '_data');
+    let noteHtml = '';
+    if (dataEl){ noteHtml = dataEl.innerHTML || ''; }
+    // If data element not found (older rows), attempt to recover from attributes
+    // Fallback: show a simple message
+    if (!noteHtml){ noteHtml = '<div class="small">내용을 불러올 수 없습니다.</div>'; }
+
+    // Create modal overlay if not present
+    let overlay = document.getElementById('__cmass_note_modal_overlay');
+    if (!overlay){
+      overlay = document.createElement('div'); overlay.id='__cmass_note_modal_overlay'; overlay.className='cmass-modal-overlay';
+      overlay.innerHTML = `<div class="cmass-modal" role="dialog" aria-modal="true" aria-labelledby="__cmass_note_modal_title">` +
+                          `<header><div id="__cmass_note_modal_title" class="modal-title">상세 내용 보기</div><div><button id="__cmass_note_modal_close_btn" class="modal-close">닫기</button></div></header>` +
+                          `<div class="modal-body" id="__cmass_note_modal_body"></div>` +
+                          `</div>`;
+      document.body.appendChild(overlay);
+      // wire close handler
+      document.getElementById('__cmass_note_modal_close_btn').addEventListener('click', closeNoteModal);
+      // close on overlay click outside modal
+      overlay.addEventListener('click', function(ev){ if (ev.target === overlay) closeNoteModal(); });
+      // close on escape
+      window.addEventListener('keydown', function(ev){ if (ev.key === 'Escape') closeNoteModal(); });
+    }
+
+    // Ensure modal title indicates this is the detailed view
+    const titleEl = document.getElementById('__cmass_note_modal_title');
+    if (titleEl) titleEl.textContent = '상세 내용 보기';
+    const body = document.getElementById('__cmass_note_modal_body');
+    if (body) body.innerHTML = noteHtml;
+    overlay.style.display = 'flex';
+  }catch(e){ console.warn('openNoteModal failed', e); }
+}
+
+// Chart helpers: aggregate visits and render/update charts
+let __timeDistChart = null, __topSchoolsChart = null, __topTeachersChart = null, __weekdayChart = null, __subjectReactionChart = null, __monthlyTrendChart = null;
+function buildCharts(visits){
+  try{
+    const palette = ['#4e79a7','#f28e2b','#e15759','#76b7b2','#59a14f','#edc949','#af7aa1','#ff9da7','#9c755f','#bab0ac'];
+
+    // Helper for tooltip label: show count and percent
+    function labelWithCountAndPercent(ctx){
+      try{
+        const label = ctx.label || '';
+        const value = (ctx.parsed !== undefined) ? ctx.parsed : (ctx.raw || 0);
+        const dataArr = (ctx.dataset && ctx.dataset.data) ? ctx.dataset.data : [];
+        const total = dataArr.reduce((s,v)=> s + (Number(v)||0), 0) || 0;
+        const pct = total ? ((Number(value)/total)*100).toFixed(1) : '0.0';
+        return `${label}: ${value}건 (${pct}%)`;
+      }catch(e){ return (ctx.label || '') + ': ' + (ctx.raw||ctx.parsed||0); }
+    }
+
+    // 1. 시간대별 방문 분포
+    const timeDistMap = new Map([['오전 (06-12시)', 0], ['오후 (12-18시)', 0], ['저녁 (18-24시)', 0], ['새벽 (00-06시)', 0]]);
+    visits.forEach(v => {
+      const time = (v.visitTime || '').toString().trim();
+      if (!time) return;
+      const hour = parseInt(time.split(':')[0]) || 0;
+      if (hour >= 6 && hour < 12) timeDistMap.set('오전 (06-12시)', (timeDistMap.get('오전 (06-12시)') || 0) + 1);
+      else if (hour >= 12 && hour < 18) timeDistMap.set('오후 (12-18시)', (timeDistMap.get('오후 (12-18시)') || 0) + 1);
+      else if (hour >= 18 && hour < 24) timeDistMap.set('저녁 (18-24시)', (timeDistMap.get('저녁 (18-24시)') || 0) + 1);
+      else timeDistMap.set('새벽 (00-06시)', (timeDistMap.get('새벽 (00-06시)') || 0) + 1);
+    });
+    const timeLabels = Array.from(timeDistMap.keys());
+    const timeData = Array.from(timeDistMap.values());
+    
+    const tdCtx = document.getElementById('timeDistChart');
+    if (tdCtx) {
+      const tdOpts = {
+        plugins: { legend: { display: false }, tooltip: { enabled: true, callbacks: { label: labelWithCountAndPercent } } },
+        maintainAspectRatio: false,
+        aspectRatio: 1.6
+      };
+      if (__timeDistChart) {
+        __timeDistChart.data.labels = timeLabels;
+        __timeDistChart.data.datasets[0].data = timeData;
+        __timeDistChart.update();
+      } else {
+        __timeDistChart = new Chart(tdCtx, {
+          type: 'doughnut',
+          data: { labels: timeLabels, datasets: [{ data: timeData, backgroundColor: palette }] },
+          options: tdOpts
+        });
+      }
+      // 범례 렌더링
+      const timeLegend = document.getElementById('timeLegend');
+      if (timeLegend) {
+        const total = timeData.reduce((s, v) => s + v, 0);
+        timeLegend.innerHTML = timeLabels.map((label, i) => {
+          const count = timeData[i];
+          const pct = total ? ((count / total) * 100).toFixed(1) : '0.0';
+          return `<div style="padding:4px 0;border-bottom:1px solid #f6f9ff"><span style="display:inline-block;width:12px;height:12px;background:${palette[i]};margin-right:6px;border-radius:2px"></span>${label}: ${count}건 (${pct}%)</div>`;
+        }).join('');
+      }
+    }
+
+    // 2. 학교별 방문 TOP 10
+    const schoolCounts = new Map();
+    visits.forEach(v => {
+      const school = (v.schoolName || v.school || '').toString().trim();
+      if (!school) return;
+      schoolCounts.set(school, (schoolCounts.get(school) || 0) + 1);
+    });
+    const topSchools = Array.from(schoolCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    const schoolLabels = topSchools.map(e => e[0]);
+    const schoolData = topSchools.map(e => e[1]);
+
+    const tsCtx = document.getElementById('topSchoolsChart');
+    if (tsCtx) {
+      const tsOpts = {
+        indexAxis: 'y',
+        plugins: { legend: { display: false }, tooltip: { enabled: true } },
+        maintainAspectRatio: false,
+        scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+      };
+      if (__topSchoolsChart) {
+        __topSchoolsChart.data.labels = schoolLabels;
+        __topSchoolsChart.data.datasets[0].data = schoolData;
+        __topSchoolsChart.update();
+      } else {
+        __topSchoolsChart = new Chart(tsCtx, {
+          type: 'bar',
+          data: { labels: schoolLabels, datasets: [{ label: '방문횟수', data: schoolData, backgroundColor: '#4e79a7' }] },
+          options: tsOpts
+        });
+      }
+    }
+
+    // 3. 선생님별 방문 TOP 10
+    const teacherCounts = new Map();
+    visits.forEach(v => {
+      const teacher = (v.teacherName || v.teacher || '').toString().trim();
+      if (!teacher) return;
+      teacherCounts.set(teacher, (teacherCounts.get(teacher) || 0) + 1);
+    });
+    const topTeachers = Array.from(teacherCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    const teacherLabels = topTeachers.map(e => e[0]);
+    const teacherData = topTeachers.map(e => e[1]);
+
+    const ttCtx = document.getElementById('topTeachersChart');
+    if (ttCtx) {
+      const ttOpts = {
+        indexAxis: 'y',
+        plugins: { legend: { display: false }, tooltip: { enabled: true } },
+        maintainAspectRatio: false,
+        scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+      };
+      if (__topTeachersChart) {
+        __topTeachersChart.data.labels = teacherLabels;
+        __topTeachersChart.data.datasets[0].data = teacherData;
+        __topTeachersChart.update();
+      } else {
+        __topTeachersChart = new Chart(ttCtx, {
+          type: 'bar',
+          data: { labels: teacherLabels, datasets: [{ label: '방문횟수', data: teacherData, backgroundColor: '#f28e2b' }] },
+          options: ttOpts
+        });
+      }
+    }
+
+    // 4. 요일별 방문 패턴
+    const weekdayMap = new Map([['월', 0], ['화', 0], ['수', 0], ['목', 0], ['금', 0], ['토', 0], ['일', 0]]);
+    visits.forEach(v => {
+      const date = v._dateNorm || v.visitDate || '';
+      if (!date) return;
+      const d = new Date(date);
+      const weekday = ['일', '월', '화', '수', '목', '금', '토'][d.getDay()];
+      weekdayMap.set(weekday, (weekdayMap.get(weekday) || 0) + 1);
+    });
+    const weekdayLabels = ['월', '화', '수', '목', '금', '토', '일'];
+    const weekdayData = weekdayLabels.map(day => weekdayMap.get(day) || 0);
+
+    const wdCtx = document.getElementById('weekdayChart');
+    if (wdCtx) {
+      const wdOpts = {
+        plugins: { legend: { display: false }, tooltip: { enabled: true } },
+        maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+      };
+      if (__weekdayChart) {
+        __weekdayChart.data.labels = weekdayLabels;
+        __weekdayChart.data.datasets[0].data = weekdayData;
+        __weekdayChart.update();
+      } else {
+        __weekdayChart = new Chart(wdCtx, {
+          type: 'bar',
+          data: { labels: weekdayLabels, datasets: [{ label: '방문횟수', data: weekdayData, backgroundColor: palette }] },
+          options: wdOpts
+        });
+      }
+    }
+
+    // 5. 과목별 반응 분석
+    const subjectReactionMap = new Map();
+    visits.forEach(v => {
+      const subjects = Array.isArray(v.subject) ? v.subject : (v.subject ? [v.subject] : []);
+      const reaction = String(v.favor || '').replace(/^\s*반응\s*/, '').trim() || '알수없음';
+      subjects.forEach(subj => {
+        const s = String(subj).trim();
+        if (!s) return;
+        if (!subjectReactionMap.has(s)) subjectReactionMap.set(s, { good: 0, normal: 0, bad: 0 });
+        const counts = subjectReactionMap.get(s);
+        if (reaction.includes('좋음')) counts.good++;
+        else if (reaction.includes('나쁨')) counts.bad++;
+        else counts.normal++;
+      });
+    });
+    const topSubjects = Array.from(subjectReactionMap.entries()).sort((a, b) => {
+      const totalA = a[1].good + a[1].normal + a[1].bad;
+      const totalB = b[1].good + b[1].normal + b[1].bad;
+      return totalB - totalA;
+    }).slice(0, 8);
+    const srLabels = topSubjects.map(e => e[0]);
+    const srGood = topSubjects.map(e => e[1].good);
+    const srNormal = topSubjects.map(e => e[1].normal);
+    const srBad = topSubjects.map(e => e[1].bad);
+
+    const srCtx = document.getElementById('subjectReactionChart');
+    if (srCtx) {
+      const srOpts = {
+        indexAxis: 'y',
+        plugins: { legend: { display: true, position: 'top' }, tooltip: { enabled: true } },
+        maintainAspectRatio: false,
+        scales: { x: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }, y: { stacked: true } }
+      };
+      if (__subjectReactionChart) {
+        __subjectReactionChart.data.labels = srLabels;
+        __subjectReactionChart.data.datasets[0].data = srGood;
+        __subjectReactionChart.data.datasets[1].data = srNormal;
+        __subjectReactionChart.data.datasets[2].data = srBad;
+        __subjectReactionChart.update();
+      } else {
+        __subjectReactionChart = new Chart(srCtx, {
+          type: 'bar',
+          data: {
+            labels: srLabels,
+            datasets: [
+              { label: '반응좋음', data: srGood, backgroundColor: '#59a14f' },
+              { label: '반응보통', data: srNormal, backgroundColor: '#edc949' },
+              { label: '반응나쁨', data: srBad, backgroundColor: '#e15759' }
+            ]
+          },
+          options: srOpts
+        });
+      }
+    }
+
+    // Monthly visits (월별) - aggregate by YYYY-MM and render line chart
+    try{
+      const monthMap = new Map();
+      visits.forEach(v => {
+        const dNorm = (v._dateNorm || '').toString().trim();
+        if (!dNorm) return;
+        const month = dNorm.substring(0,7); // YYYY-MM
+        monthMap.set(month, (monthMap.get(month)||0) + 1);
+      });
+      const monthEntries = Array.from(monthMap.entries()).sort((a,b)=> a[0].localeCompare(b[0]));
+      const monthLabels = monthEntries.map(e=> e[0]);
+      const monthCounts = monthEntries.map(e=> e[1]);
+      const mCtx = document.getElementById('monthlyTrendChart');
+      if (mCtx){
+        const mOpts = { plugins:{ legend:{ display:false }, tooltip:{ enabled:true } }, maintainAspectRatio:false };
+        if (__monthlyTrendChart){
+          __monthlyTrendChart.data.labels = monthLabels;
+          __monthlyTrendChart.data.datasets[0].data = monthCounts;
+          __monthlyTrendChart.update();
+        } else {
+          __monthlyTrendChart = new Chart(mCtx, {
+            type: 'line',
+            data: { labels: monthLabels, datasets: [{ label: '월별 미팅건수', data: monthCounts, borderColor: '#59a14f', backgroundColor: 'rgba(89,161,79,0.08)', tension: 0.2, fill: true, pointRadius:3 }] },
+            options: Object.assign({}, mOpts, { scales: { x: { type: 'category', ticks: { autoSkip: true, maxRotation: 0 } }, y: { beginAtZero:true, ticks:{ precision:0 } } } })
+          });
+        }
+      }
+    }catch(e){ console.warn('monthly visits chart render failed', e); }
+
+    // 기존 과목/지역 보조 리스트는 제거하고, 의미 있는 핵심 차트만 유지
+
+  }catch(e){ console.warn('buildCharts error', e); }
+}
+
+
+
+function closeNoteModal(){ try{ const o = document.getElementById('__cmass_note_modal_overlay'); if (o) o.style.display='none'; }catch(e){} }
+
+window.addEventListener('DOMContentLoaded', function(){ try{ if (typeof loadPersonalVisits === 'function') loadPersonalVisits(); }catch(e){};
+  // wire filter buttons
+  try{ const btn = document.getElementById('filterApply'); if (btn) btn.addEventListener('click', ()=>{ try{ loadPersonalVisits(); }catch(e){} }); }catch(e){}
+  try{ const clearBtn = document.getElementById('filterClear'); if (clearBtn) clearBtn.addEventListener('click', ()=>{ try{ ['filterStart','filterEnd','filterStaffInput','filterSchoolInput','filterRegionInput','subjectFilter'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; }); loadPersonalVisits(); }catch(e){} }); }catch(e){}
+});
+</script>
+
+<script>
+// --- NPS gauge from nps_preview.html (embedded into front) ---
+const NPS_MOCK = [
+  { favor: '반응좋음' },{ favor: '반응좋음' },{ favor: '반응좋음' },
+  { favor: '반응보통' },{ favor: '반응보통' },{ favor: '반응나쁨' }
+];
+const NPS_TEST_DATA = [
+  { favor: '반응보통' }, { favor: '반응보통' }, { favor: '반응보통' }, { favor: '반응보통' },
+  { favor: '반응보통' }, { favor: '반응보통' }, { favor: '반응보통' }, { favor: '반응보통' },
+  { favor: '반응좋음' }, { favor: '반응좋음' }, { favor: '반응좋음' }, { favor: '반응좋음' }, { favor: '반응좋음' }
+];
+
+function computeNps_local(visits){
+  let promoters=0, passives=0, detractors=0;
+  (visits||[]).forEach(v=>{
+    const raw = String(v.favor || v.favorValue || v.favor_raw || v.reaction || v.반응 || '').trim();
+    if(raw === '반응좋음') promoters++;
+    else if(raw === '반응보통') passives++;
+    else if(raw === '반응나쁨') detractors++;
+  });
+  const total = promoters+passives+detractors;
+  const pPct = total? Math.round(promoters/total*100):0;
+  const paPct = total? Math.round(passives/total*100):0;
+  const dPct = total? Math.round(detractors/total*100):0;
+  const nps = Math.round(pPct - dPct);
+  return {promoters,passives,detractors,total,pPct,paPct,dPct,nps};
+}
+
+function ensureGaugeCanvasSize(){
+  const cnv = document.getElementById('gauge'); if(!cnv) return;
+  const w = Math.round(480 * 0.7); const h = Math.round(240 * 0.7); const dpr = window.devicePixelRatio || 1;
+  try{ cnv.style.setProperty('width', w + 'px', 'important'); }catch(e){ cnv.style.width = w + 'px'; }
+  try{ cnv.style.setProperty('height', h + 'px', 'important'); }catch(e){ cnv.style.height = h + 'px'; }
+  cnv.width = Math.round(w * dpr); cnv.height = Math.round(h * dpr);
+}
+
+function drawGauge_local(b){
+  ensureGaugeCanvasSize();
+  const cnv = document.getElementById('gauge'); if(!cnv) return;
+  const ctx = cnv.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  ctx.clearRect(0,0,cnv.width,cnv.height);
+  const cssW = parseInt(getComputedStyle(cnv).width,10) || 480;
+  const cssH = parseInt(getComputedStyle(cnv).height,10) || 240;
+  const centerX = cssW/2; const centerY = cssH; const radius = Math.min(cssW, cssH*2)*0.4;
+  const cols = ['#2ecc71','#f1c40f','#e74c3c'];
+  const angles = [ { start: Math.PI, end: Math.PI + Math.PI/3 }, { start: Math.PI + Math.PI/3, end: Math.PI + 2*Math.PI/3 }, { start: Math.PI + 2*Math.PI/3, end: Math.PI*2 } ];
+  for(let i=0;i<3;i++){ ctx.beginPath(); ctx.arc(centerX*dpr, centerY*dpr, radius*dpr, angles[i].start, angles[i].end); ctx.lineWidth = Math.round(radius*0.2*dpr); ctx.strokeStyle = cols[i]; ctx.stroke(); }
+  const v = Math.max(-100, Math.min(100, Number(b.nps)||0));
+  const angle = (v/100)*Math.PI/2 + Math.PI;
+  const needleLen = radius*0.8*dpr;
+  const tipX = centerX*dpr + Math.cos(angle)*needleLen;
+  const tipY = centerY*dpr + Math.sin(angle)*needleLen;
+  ctx.beginPath(); ctx.moveTo(centerX*dpr, centerY*dpr); ctx.lineTo(tipX, tipY); ctx.lineWidth = Math.round(radius*0.05*dpr); ctx.strokeStyle = '#07243a'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(centerX*dpr, centerY*dpr, Math.round(radius*0.1*dpr),0,Math.PI*2); ctx.fillStyle='#07243a'; ctx.fill(); ctx.beginPath(); ctx.arc(centerX*dpr, centerY*dpr, Math.round(radius*0.05*dpr),0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
+}
+
+function renderNpsBreakdown_local(b){
+  // Render the styled breakdown cards (Promoters / Passives / Detractors) under the gauge
+  const bd = document.getElementById('breakdownList');
+  if(!bd) return;
+  const rows = [];
+  // Show percent + count together inside the swatch; remove right-side count per request
+  rows.push(`<div class="list-item"><div class="swatch" style="background:#2ecc71;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;line-height:1"><div style="font-weight:800;font-size:15px">${b.pPct}%</div><div style="font-weight:700;font-size:12px;margin-top:4px">${b.promoters}건</div></div><div class="break-main"><div class="break-title">Promoters</div><div class="break-sub">반응좋음</div></div></div>`);
+  rows.push(`<div class="list-item"><div class="swatch" style="background:#f1c40f;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;line-height:1"><div style="font-weight:800;font-size:15px">${b.paPct}%</div><div style="font-weight:700;font-size:12px;margin-top:4px">${b.passives}건</div></div><div class="break-main"><div class="break-title">Passives</div><div class="break-sub">반응보통</div></div></div>`);
+  rows.push(`<div class="list-item"><div class="swatch" style="background:#e74c3c;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;line-height:1"><div style="font-weight:800;font-size:15px">${b.dPct}%</div><div style="font-weight:700;font-size:12px;margin-top:4px">${b.detractors}건</div></div><div class="break-main"><div class="break-title">Detractors</div><div class="break-sub">반응나쁨</div></div></div>`);
+  bd.innerHTML = rows.join('');
+}
+
+async function fetchVisits_local(staff){
+  try{
+    if(window.firebaseDb){
+      try{ if (typeof window.ensureAnonymousAuth === 'function') await window.ensureAnonymousAuth(); }catch(e){}
+      const db = window.firebaseDb;
+      const col = db.collection('visit_entries');
+      const variants = getStaffQueryVariants(String(staff || '').trim());
+      async function fetchByField(fieldName){
+        let q = col;
+        if (variants.length > 1) q = q.where(fieldName,'in', variants.slice(0,10));
+        else if (variants.length === 1) q = q.where(fieldName,'==', variants[0]);
+        return await q.limit(5000).get();
+      }
+      const [snapStaff, snapStaffKey] = await Promise.all([
+        fetchByField('staff').catch(()=>null),
+        fetchByField('staff_key').catch(()=>null)
+      ]);
+      const rows = [];
+      const seen = new Set();
+      [snapStaff, snapStaffKey].forEach(snap => {
+        (snap && snap.docs ? snap.docs : []).forEach(d => {
+          if (!d || !d.id || seen.has(d.id)) return;
+          seen.add(d.id);
+          try{ const o = d.data(); o.id = d.id; rows.push(o); }catch(e){}
+        });
+      });
+      const docs = rows;
+      return docs;
+    }
+  }catch(e){ console.warn('firestore failed', e); }
+  return null;
+}
+
+async function refreshNps_onFront(useMock=false, mockData=null){
+  let visits = null;
+  // determine staff from query string (or other helper) so NPS shows staff-specific data
+  let staff = '';
+  try{ if (typeof getStaffFromQuery === 'function') staff = getStaffFromQuery() || ''; }catch(e){}
+  if(!useMock) visits = await fetchVisits_local(staff);
+  if(!visits) visits = mockData || NPS_MOCK;
+  const b = computeNps_local(visits);
+  drawGauge_local(b);
+  renderNpsBreakdown_local(b);
+  const npsEl = document.getElementById('npsScore'); if(npsEl) npsEl.textContent = (b.nps>0? '+'+b.nps: b.nps);
+}
+
+// ========================================
+// AI Staff Summary Functions
+// ========================================
+
+async function loadStaffSummary(){
+  const staffCode = getStaffFromQuery();
+  if (!staffCode) {
+    // Hide AI summary section if no staff parameter
+    try{ document.getElementById('aiSummarySection').style.display = 'none'; }catch(e){}
+    return;
+  }
+
+  const section = document.getElementById('aiSummarySection');
+  const loadingEl = document.getElementById('aiSummaryLoading');
+  const errorEl = document.getElementById('aiSummaryError');
+  const contentEl = document.getElementById('aiSummaryContent');
+
+  try {
+    // Show section and loading state
+    section.style.display = 'block';
+    loadingEl.style.display = 'block';
+    errorEl.style.display = 'none';
+    contentEl.style.display = 'none';
+
+    // Fetch staff summary from backend (Cloud Run)
+    const backendUrl = 'https://cmass-sales-backend-918981476485.asia-northeast3.run.app';
+    const url = `${backendUrl}/api/staff_summary?staff=${encodeURIComponent(staffCode)}`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`서버 응답 오류: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Hide loading
+    loadingEl.style.display = 'none';
+
+    if (!data.ok || !data.found) {
+      // No summary available yet
+      errorEl.textContent = '아직 생성된 AI 분석이 없습니다. 아래 버튼을 눌러 새로 생성하세요.';
+      errorEl.style.display = 'block';
+      // Ensure generate button is visible so user can request one
+      try{ const g = document.getElementById('generateAiSummaryBtn'); if (g) g.style.display = 'inline-block'; }catch(e){}
+      return;
+    }
+
+    // Build a normalized summary object expected by displayStaffSummary
+    const summaryObj = {
+      entryCount: data.entryCount || 0,
+      lastVisitDate: data.lastVisitDate || null,
+      createdAt: data.createdAt || null,
+      summary: data.summary || '',
+      structured: data.structured || null
+    };
+
+    // Ensure generate button is visible for regeneration
+    try{ const g = document.getElementById('generateAiSummaryBtn'); if (g) g.style.display = 'inline-block'; }catch(e){}
+
+    // Display the summary
+    displayStaffSummary(summaryObj);
+
+  } catch (error) {
+    console.error('Failed to load staff summary:', error);
+    loadingEl.style.display = 'none';
+    errorEl.textContent = 'AI 분석을 불러오는 중 오류가 발생했습니다: ' + error.message;
+    errorEl.style.display = 'block';
+  }
+}
+
+function displayStaffSummary(summary){
+  const contentEl = document.getElementById('aiSummaryContent');
+  const entryCountEl = document.getElementById('aiEntryCount');
+  const lastVisitEl = document.getElementById('aiLastVisit');
+  const createdAtEl = document.getElementById('aiCreatedAt');
+  const summaryTextEl = document.getElementById('aiSummaryText');
+
+  try {
+    // Populate fields
+    if (entryCountEl) entryCountEl.textContent = summary.entryCount || '0';
+    if (lastVisitEl) lastVisitEl.textContent = summary.lastVisitDate || '-';
+    
+    // Format createdAt timestamp
+    if (createdAtEl && summary.createdAt) {
+      let dateStr = '-';
+      try {
+        if (summary.createdAt._seconds) {
+          const date = new Date(summary.createdAt._seconds * 1000);
+          dateStr = date.toLocaleDateString('ko-KR') + ' ' + date.toLocaleTimeString('ko-KR');
+        } else if (typeof summary.createdAt === 'string') {
+          const date = new Date(summary.createdAt);
+          dateStr = date.toLocaleDateString('ko-KR') + ' ' + date.toLocaleTimeString('ko-KR');
+        }
+      } catch (e) {
+        console.warn('Failed to parse createdAt:', e);
+      }
+      createdAtEl.textContent = dateStr;
+    }
+
+    // Display summary text with preserved line breaks
+    if (summaryTextEl && summary.summary) {
+      // Convert newlines to <br> tags for display
+      const formattedText = escapeHtml(summary.summary).replace(/\n/g, '<br>');
+      summaryTextEl.innerHTML = formattedText;
+    }
+
+    // Show content, hide error
+    contentEl.style.display = 'block';
+    try{ document.getElementById('aiSummaryError').style.display = 'none'; }catch(e){}
+
+  } catch (error) {
+    console.error('Failed to display summary:', error);
+  }
+}
+
+async function generateStaffSummaryManual(){
+  const staffCode = getStaffFromQuery();
+  if (!staffCode) {
+    alert('담당자 정보가 없습니다.');
+    return;
+  }
+
+  const btn = document.getElementById('generateAiSummaryBtn');
+  const loadingEl = document.getElementById('aiSummaryLoading');
+  const errorEl = document.getElementById('aiSummaryError');
+
+  try {
+    // Disable button and show loading
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '생성 중...';
+    }
+    loadingEl.style.display = 'block';
+    errorEl.style.display = 'none';
+
+    // Call backend to generate new summary (Cloud Run)
+    const backendUrl = 'https://cmass-sales-backend-918981476485.asia-northeast3.run.app';
+    const url = `${backendUrl}/api/generate_staff_summary`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ staff: staffCode, limit: 200 })
+    });
+
+    if (!response.ok) {
+      let detail = '';
+      try {
+        const errData = await response.json();
+        detail = errData?.error || '';
+      } catch (e) {}
+      throw new Error(detail || `서버 응답 오류: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Hide loading
+    loadingEl.style.display = 'none';
+
+    if (!data.ok) {
+      throw new Error(data.error || '알 수 없는 오류');
+    }
+
+    // After successful generation, reload the latest summary from backend
+    try{
+      await loadStaffSummary();
+      alert('새로운 AI 분석이 생성되어 불러왔습니다.');
+    }catch(e){
+      alert('요약 생성에 성공했으나 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도하세요.');
+    }
+
+  } catch (error) {
+    console.error('Failed to generate summary:', error);
+    loadingEl.style.display = 'none';
+    errorEl.textContent = 'AI 분석 생성 중 오류가 발생했습니다: ' + error.message;
+    errorEl.style.display = 'block';
+  } finally {
+    // Re-enable button
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '새 AI 분석 생성';
+    }
+  }
+}
+
+function toggleAiSummaryExpand(){
+  try{
+    const textEl = document.getElementById('aiSummaryText');
+    if (!textEl) return;
+    const isCollapsed = textEl.getAttribute('data-collapsed') === 'true';
+    if (isCollapsed) {
+      // Expand: remove max-height constraint
+      textEl.style.maxHeight = 'none';
+      textEl.setAttribute('data-collapsed', 'false');
+    } else {
+      // Collapse: restore max-height
+      textEl.style.maxHeight = '400px';
+      textEl.setAttribute('data-collapsed', 'true');
+      // Scroll to top of summary section for better UX
+      try{ document.getElementById('aiSummarySection').scrollIntoView({ behavior: 'smooth', block: 'start' }); }catch(e){}
+    }
+  }catch(e){ console.warn('toggleAiSummaryExpand failed', e); }
+}
+
+// init on front
+try{ preventFocusScroll && preventFocusScroll(); }catch(e){}
+ensureGaugeCanvasSize();
+// Try to use real data; fallback to test data for visualization
+refreshNps_onFront(false, NPS_TEST_DATA);
+// Load AI summary if staff parameter present
+try{ loadStaffSummary(); }catch(e){ console.warn('AI summary load failed', e); }
+
+</script>
+
+</body>
+</html>

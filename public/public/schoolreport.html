@@ -140,6 +140,29 @@
     /* Loading overlay while CSV/Firestore loads */
     #loadingOverlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(11,18,28,0.6);color:#fff;font-size:22px;font-weight:700;z-index:1200}
     #loadingOverlay .box{background:rgba(255,255,255,0.06);padding:18px 22px;border-radius:10px}
+
+    /* ===== Period selector buttons ===== */
+    .period-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:16px;padding:14px 18px;background:#fff;border-radius:12px;border:1.5px solid #e2eaf8;box-shadow:0 4px 12px rgba(11,99,214,0.05)}
+    .period-group{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+    .period-group-label{font-size:22px;font-weight:700;color:#6b7280;margin-right:4px;min-width:50px}
+    .period-btn{padding:8px 18px;border-radius:999px;border:2px solid #c7d9f8;background:#f7faff;color:#374151;font-size:22px;font-weight:600;cursor:pointer;transition:all .15s}
+    .period-btn:hover{background:#e8f0fe;border-color:#0b63d6;color:#0b63d6}
+    .period-btn.active{background:#0b63d6;border-color:#0b63d6;color:#fff;font-weight:800}
+    .period-sep{width:1px;height:28px;background:#e2eaf8;margin:0 6px;align-self:center}
+
+    /* ===== Gemini AI summary panel ===== */
+    .gemini-panel{background:linear-gradient(135deg,#f0f6ff 0%,#fafcff 100%);border:2px solid #c7d9f8;border-radius:14px;padding:20px 24px;margin-top:18px;position:relative}
+    .gemini-header{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+    .gemini-logo{font-size:28px}
+    .gemini-title{font-size:28px;font-weight:800;color:#0b1220}
+    .gemini-sub{font-size:22px;color:#6b7280}
+    .gemini-key-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+    .gemini-key-input{flex:1;min-width:220px;max-width:420px;padding:10px 14px;border:1.5px solid #c7d9f8;border-radius:8px;font-size:22px;background:#fff}
+    .gemini-run-btn{padding:10px 24px;border-radius:999px;border:none;background:#0b63d6;color:#fff;font-size:22px;font-weight:700;cursor:pointer}
+    .gemini-run-btn:disabled{opacity:.5;cursor:default}
+    .gemini-result{background:#fff;border-radius:10px;padding:16px 20px;font-size:24px;line-height:1.75;color:#1e293b;white-space:pre-wrap;min-height:60px;border:1px solid #e2eaf8;margin-top:10px}
+    .gemini-result.loading{color:#6b7280;font-style:italic}
+    .gemini-result.error{color:#b91c1c;background:#fee2e2}
      /* Ensure summary tables use a fixed layout so column widths remain consistent
        between default and staff-filtered views. Use a dedicated class so both
        statically-declared and dynamically-created tables share identical rules. */
@@ -190,35 +213,86 @@
   <div id="mappingDebug" style="position:fixed;right:12px;bottom:12px;z-index:1300;max-width:420px;min-width:300px;font-size:13px"></div>
   <div class="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
     <div class="max-w-7xl mx-auto mb-6">
-      <div class="flex items-center" style="justify-content:space-between;gap:12px;flex-wrap:wrap">
-        <div style="min-width:220px;flex:1">
-          <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">학교별 방문현황 리포트</h1>
-          <p class="text-slate-500 mt-1">학교 기본 정보 및 교과서 주문 현황 포함</p>
+      <!-- 페이지 헤더 -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-800">📋 학교별 방문현황 리포트<span id="staffTitleBadge" style="display:none;margin-left:14px;padding:6px 18px;background:#0b63d6;color:#fff;border-radius:999px;font-size:24px;vertical-align:middle"></span></h1>
+          <p class="text-slate-500 mt-1" style="font-size:24px">학교 기본 정보 및 교과서 주문 현황 포함</p>
         </div>
-        <div class="flex items-center" style="gap:8px;flex-wrap:wrap">
-          <div style="display:flex;gap:8px;align-items:center">
-            <label class="muted" style="font-size:13px;align-self:center">기간</label>
-              <input id="startDate" type="date" class="px-3 py-2 rounded border border-slate-200" />
-              <span class="muted" style="align-self:center">~</span>
-              <input id="endDate" type="date" class="px-3 py-2 rounded border border-slate-200" />
-              <label class="muted" style="font-size:13px;align-self:center;margin-left:8px">월</label>
-              <input id="monthPicker" type="month" class="px-3 py-2 rounded border border-slate-200" />
-          </div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <label class="muted" style="font-size:13px;align-self:center">담당자</label>
-            <select id="staffSelect" class="px-3 py-2 rounded border border-slate-200">
-              <option value="">전체</option>
-            </select>
-          </div>
-          <input id="searchInput" type="search" placeholder="선생님, 과목, 내용 검색..." class="px-4 py-2 rounded border border-slate-200 w-64" />
-          <button id="applyFilters" class="btn" style="background:#2563eb">적용</button>
-          <button id="downloadCsv" class="btn">활동 CSV 다운로드</button>
-          <button id="expandAllBtn" class="btn" style="background:#10b981;display:none">전체 펼치기</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <!-- 담당자 슬러그 바로가기 -->
+          <a href="/schoolreport.html" style="padding:8px 18px;border-radius:999px;border:2px solid #c7d9f8;background:#f7faff;color:#374151;font-size:22px;font-weight:600;text-decoration:none" id="staffLinkAll">전체</a>
+          <a href="/schoolreport.html?staff=99781203" style="padding:8px 18px;border-radius:999px;border:2px solid #c7d9f8;background:#f7faff;color:#0b63d6;font-size:22px;font-weight:600;text-decoration:none" id="staffLink1">임준호</a>
+          <a href="/schoolreport.html?staff=89250686" style="padding:8px 18px;border-radius:999px;border:2px solid #c7d9f8;background:#f7faff;color:#0b63d6;font-size:22px;font-weight:600;text-decoration:none" id="staffLink2">조영환</a>
+          <a href="/schoolreport.html?staff=51322012" style="padding:8px 18px;border-radius:999px;border:2px solid #c7d9f8;background:#f7faff;color:#0b63d6;font-size:22px;font-weight:600;text-decoration:none" id="staffLink3">이경일</a>
+          <button id="downloadCsv" class="btn" style="font-size:22px;padding:8px 18px">CSV</button>
         </div>
       </div>
 
-      <!-- KPI metrics moved to top -->
-      <div class="metrics" style="margin-top:12px; display:flex; gap:12px; align-items:stretch">
+      <!-- 기간 선택 버튼 바 -->
+      <div class="period-bar" id="periodBar">
+        <!-- 이번달 -->
+        <button class="period-btn active" data-period="thismonth" id="periodThisMonth">이번 달</button>
+        <div class="period-sep"></div>
+        <!-- 월별 -->
+        <span class="period-group-label">월</span>
+        <div class="period-group" id="monthBtnGroup">
+          <button class="period-btn" data-period="month" data-month="1">1월</button>
+          <button class="period-btn" data-period="month" data-month="2">2월</button>
+          <button class="period-btn" data-period="month" data-month="3">3월</button>
+          <button class="period-btn" data-period="month" data-month="4">4월</button>
+          <button class="period-btn" data-period="month" data-month="5">5월</button>
+          <button class="period-btn" data-period="month" data-month="6">6월</button>
+          <button class="period-btn" data-period="month" data-month="7">7월</button>
+          <button class="period-btn" data-period="month" data-month="8">8월</button>
+          <button class="period-btn" data-period="month" data-month="9">9월</button>
+          <button class="period-btn" data-period="month" data-month="10">10월</button>
+          <button class="period-btn" data-period="month" data-month="11">11월</button>
+          <button class="period-btn" data-period="month" data-month="12">12월</button>
+        </div>
+        <div class="period-sep"></div>
+        <!-- 분기별 -->
+        <span class="period-group-label">분기</span>
+        <div class="period-group">
+          <button class="period-btn" data-period="quarter" data-quarter="1">1분기</button>
+          <button class="period-btn" data-period="quarter" data-quarter="2">2분기</button>
+          <button class="period-btn" data-period="quarter" data-quarter="3">3분기</button>
+          <button class="period-btn" data-period="quarter" data-quarter="4">4분기</button>
+        </div>
+        <div class="period-sep"></div>
+        <!-- 연간 -->
+        <button class="period-btn" data-period="year">1년</button>
+        <div class="period-sep"></div>
+        <!-- 담당자 필터 (내부용) -->
+        <div style="display:flex;gap:8px;align-items:center;margin-left:auto">
+          <select id="staffSelect" class="px-3 py-2 rounded border border-slate-200" style="font-size:22px;padding:8px 12px">
+            <option value="">전체</option>
+          </select>
+          <input id="searchInput" type="search" placeholder="검색..." class="px-4 py-2 rounded border border-slate-200" style="font-size:22px;width:180px" />
+        </div>
+      </div>
+
+      <!-- 숨김 date inputs (내부 필터용) -->
+      <input id="startDate" type="hidden" />
+      <input id="endDate" type="hidden" />
+      <input id="monthPicker" type="hidden" />
+
+      <!-- Gemini AI 요약 패널 -->
+      <div class="gemini-panel" id="geminiPanel">
+        <div class="gemini-header">
+          <span class="gemini-logo">✨</span>
+          <span class="gemini-title">Gemini AI 미팅 요약</span>
+          <span class="gemini-sub" id="geminiPeriodLabel">선택한 기간의 미팅 내용을 AI가 분석합니다</span>
+        </div>
+        <div class="gemini-key-row">
+          <input type="password" id="geminiApiKey" class="gemini-key-input" placeholder="Gemini API Key 입력 (로컬 저장됨)" autocomplete="off" />
+          <button class="gemini-run-btn" id="geminiRunBtn" onclick="runGeminiSummary()">🔍 분석하기</button>
+        </div>
+        <div class="gemini-result" id="geminiResult" style="display:none"></div>
+      </div>
+
+      <!-- KPI metrics -->
+      <div class="metrics" style="margin-top:18px; display:flex; gap:12px; align-items:stretch">
         <div class="metric-card" style="flex:1 1 220px; background:#fff; border-radius:10px; padding:12px; border:1px solid rgba(15,23,42,0.04); box-shadow:0 6px 18px rgba(17,24,39,0.06)">
           <div class="kpi-title" style="font-size:13px;color:var(--slate-500)">이번 달 영업일수</div>
           <div class="kpi-number" id="metric1" style="font-size:26px;font-weight:800;color:var(--slate-900)">0</div>
@@ -235,7 +309,8 @@
           <div class="kpi-date" id="metric3_date" style="font-size:11px;color:#9ca3af;margin-top:6px">기준일: -</div>
         </div>
       </div>
-      <div id="dataStatus" style="margin-top:8px;font-size:13px;color:var(--slate-500)"></div>
+      <div id="dataStatus" style="margin-top:8px;font-size:22px;color:var(--slate-500)"></div>
+
       <!-- Schools summary (aggregated by school; expand to see detailed 영업활동일지 per school) -->
       <!-- Make this wrapper full-width and allow a 2400px-wide inner section with horizontal scroll on desktop -->
       <div class="w-full mx-auto mb-4" style="overflow-x:hidden; max-width:none;">
@@ -926,7 +1001,7 @@
     const staffSelect = document.getElementById('staffSelect');
     const startDateInput = document.getElementById('startDate');
     const endDateInput = document.getElementById('endDate');
-    const applyFiltersBtn = document.getElementById('applyFilters');
+    // applyFiltersBtn removed (period bar handles filtering)
 
     // new renderVisits supports filtering by search, staff and date range and sorts ascending by date
     function renderVisits({ search='', staff='', startDate='', endDate='' } = {}){
@@ -1179,29 +1254,101 @@
         });
       }
     // initial render
-    // setup default date range = last 30 days
+    // ── 기간 헬퍼 ──
     const today = new Date();
-    const endDefault = today.toISOString().slice(0,10);
-    const start = new Date(today.getTime() - (30*24*60*60*1000));
-    const startDefault = start.toISOString().slice(0,10);
+    const _pad = n => String(n).padStart(2,'0');
+    function _yyyy(d){ return d.getFullYear(); }
+    function _firstOfMonth(y,m){ return `${y}-${_pad(m)}-01`; }
+    function _lastOfMonth(y,m){ const d=new Date(y,m,0); return `${y}-${_pad(m)}-${_pad(d.getDate())}`; }
+
+    // Current month default
+    const curYear = today.getFullYear();
+    const curMonth = today.getMonth()+1; // 1-based
+    let startDefault = _firstOfMonth(curYear, curMonth);
+    let endDefault   = _lastOfMonth(curYear, curMonth);
+
     if(startDateInput) startDateInput.value = startDefault;
-    if(endDateInput) endDateInput.value = endDefault;
-    const monthPicker = document.getElementById('monthPicker');
-    if(monthPicker){
-      // default to current month
-      monthPicker.value = endDefault.slice(0,7);
-      monthPicker.addEventListener('change', function(){
-        const v = this.value; // yyyy-mm
-        if(!v) return;
-        const [y,m] = v.split('-').map(Number);
-        const first = new Date(y, m-1, 1);
-        const last = new Date(y, m, 0);
-        if(startDateInput) startDateInput.value = first.toISOString().slice(0,10);
-        if(endDateInput) endDateInput.value = last.toISOString().slice(0,10);
-        currentVisible = renderVisits({ search: searchInput ? searchInput.value : '', staff: staffSelect ? staffSelect.value : '', startDate: startDateInput.value, endDate: endDateInput.value });
-        renderSchoolSummary();
-      });
+    if(endDateInput)   endDateInput.value   = endDefault;
+
+    // ── Active period state ──
+    let _activePeriodType = 'thismonth';
+    let _activePeriodValue = null;
+
+    function _setActivePeriodBtn(selector){
+      document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+      const btn = typeof selector === 'string'
+        ? document.querySelector(selector)
+        : selector;
+      if(btn) btn.classList.add('active');
     }
+
+    function _applyPeriod(start, end, btn){
+      if(startDateInput) startDateInput.value = start;
+      if(endDateInput)   endDateInput.value   = end;
+      _setActivePeriodBtn(btn);
+      // update Gemini period label text
+      const lbl = document.getElementById('geminiPeriodLabel');
+      if(lbl) lbl.textContent = `${start} ~ ${end} 기간의 미팅 내용을 AI가 분석합니다`;
+      currentVisible = renderVisits({ search: searchInput?searchInput.value:'', staff: staffSelect?staffSelect.value:'', startDate: start, endDate: end });
+      renderSchoolSummary();
+      updateMetrics();
+    }
+
+    // ── Period button event delegation ──
+    document.getElementById('periodBar').addEventListener('click', function(e){
+      const btn = e.target.closest('.period-btn');
+      if(!btn) return;
+      const type = btn.dataset.period;
+      const y = curYear;
+
+      if(type === 'thismonth'){
+        _applyPeriod(_firstOfMonth(y, curMonth), _lastOfMonth(y, curMonth), btn);
+      } else if(type === 'month'){
+        const m = Number(btn.dataset.month);
+        _applyPeriod(_firstOfMonth(y, m), _lastOfMonth(y, m), btn);
+      } else if(type === 'quarter'){
+        const q = Number(btn.dataset.quarter);
+        const startM = (q-1)*3+1;
+        const endM   = startM+2;
+        _applyPeriod(_firstOfMonth(y, startM), _lastOfMonth(y, endM), btn);
+      } else if(type === 'year'){
+        _applyPeriod(`${y}-01-01`, `${y}-12-31`, btn);
+      }
+    });
+
+    // ── Staff title badge ──
+    function _updateStaffBadge(){
+      const badge = document.getElementById('staffTitleBadge');
+      if(!badge) return;
+      const sel = staffSelect ? staffSelect.value : '';
+      if(sel && STAFF_CODE_MAP[sel]){
+        badge.textContent = STAFF_CODE_MAP[sel];
+        badge.style.display = 'inline-block';
+        // highlight current staff quick-link
+        ['staffLinkAll','staffLink1','staffLink2','staffLink3'].forEach(id=>{
+          const el=document.getElementById(id);
+          if(el){ el.style.background='#f7faff'; el.style.borderColor='#c7d9f8'; el.style.color='#0b63d6'; }
+        });
+        // find the link matching selected code
+        const linkMap = {'99781203':'staffLink1','89250686':'staffLink2','51322012':'staffLink3'};
+        const activeId = linkMap[sel];
+        if(activeId){
+          const activeEl=document.getElementById(activeId);
+          if(activeEl){ activeEl.style.background='#0b63d6'; activeEl.style.borderColor='#0b63d6'; activeEl.style.color='#fff'; }
+        }
+      } else {
+        badge.textContent=''; badge.style.display='none';
+        // reset "전체" link style
+        const allEl=document.getElementById('staffLinkAll');
+        if(allEl){ allEl.style.background='#0b63d6'; allEl.style.borderColor='#0b63d6'; allEl.style.color='#fff'; }
+        ['staffLink1','staffLink2','staffLink3'].forEach(id=>{
+          const el=document.getElementById(id);
+          if(el){ el.style.background='#f7faff'; el.style.borderColor='#c7d9f8'; el.style.color='#0b63d6'; }
+        });
+      }
+    }
+
+    const monthPicker = document.getElementById('monthPicker'); // still referenced elsewhere (no-op)
 
     // fixed staff mapping: numeric staff code -> display name (Korean)
     const STAFF_CODE_MAP = {
@@ -1287,19 +1434,25 @@
         }
         if (!code || !STAFF_CODE_MAP[code]) return;
         if (staffSelect) staffSelect.value = code;
+        // update title badge immediately
+        try{ _updateStaffBadge(); }catch(e){}
       }catch(e){ console.warn('staff param parse failed', e); }
     })();
 
     let currentVisible = renderVisits({ search: '', staff: (staffSelect?staffSelect.value:''), startDate: startDefault, endDate: endDefault });
+    _updateStaffBadge();
 
     // wire up search and filters
-    if(searchInput){ searchInput.addEventListener('input', function(e){ currentVisible = renderVisits({ search: e.target.value, staff: staffSelect ? staffSelect.value : '', startDate: startDateInput ? startDateInput.value : '', endDate: endDateInput ? endDateInput.value : '' }); }); }
-    if(applyFiltersBtn){ applyFiltersBtn.addEventListener('click', function(){ currentVisible = renderVisits({ search: searchInput ? searchInput.value : '', staff: staffSelect ? staffSelect.value : '', startDate: startDateInput ? startDateInput.value : '', endDate: endDateInput ? endDateInput.value : '' }); renderSchoolSummary(); }); }
-    if(staffSelect){ staffSelect.addEventListener('change', function(){ currentVisible = renderVisits({ search: searchInput ? searchInput.value : '', staff: staffSelect.value, startDate: startDateInput ? startDateInput.value : '', endDate: endDateInput ? endDateInput.value : '' }); renderSchoolSummary(); }); }
-    const expandAllBtn = document.getElementById('expandAllBtn');
-    if(expandAllBtn){ expandAllBtn.addEventListener('click', function(){ const toggles = Array.from(document.querySelectorAll('.toggle-pill')); if(!toggles.length) return; const anyClosed = toggles.some(t=> (t.textContent||'').trim() !== '접기'); if(anyClosed){ toggles.forEach(t=>{ if((t.textContent||'').trim() !== '접기') t.click(); }); expandAllBtn.textContent = '전체 접기'; } else { toggles.forEach(t=>{ if((t.textContent||'').trim() === '접기') t.click(); }); expandAllBtn.textContent = '전체 펼치기'; } }); }
-    if(startDateInput){ startDateInput.addEventListener('change', function(){ /* no-op until apply */ }); }
-    if(endDateInput){ endDateInput.addEventListener('change', function(){ /* no-op until apply */ }); }
+    if(searchInput){ searchInput.addEventListener('input', function(e){
+      currentVisible = renderVisits({ search: e.target.value, staff: staffSelect?staffSelect.value:'', startDate: startDateInput?startDateInput.value:'', endDate: endDateInput?endDateInput.value:'' });
+      renderSchoolSummary();
+    }); }
+    // applyFiltersBtn is null (period buttons handle filtering)
+    if(staffSelect){ staffSelect.addEventListener('change', function(){
+      _updateStaffBadge();
+      currentVisible = renderVisits({ search: searchInput?searchInput.value:'', staff: staffSelect.value, startDate: startDateInput?startDateInput.value:'', endDate: endDateInput?endDateInput.value:'' });
+      renderSchoolSummary();
+    }); }
 
     // ensure metrics update when filters change
     const refreshMetricsAfter = () => { updateMetrics(); };
@@ -1316,6 +1469,114 @@
       rows.forEach(row=>{ csv += row.map(f=>`"${String(f||'').replace(/"/g,'""')}"`).join(',') + "\r\n"; });
       const link = document.createElement('a'); link.href = encodeURI(csv); link.download = `학교별_방문현황_${new Date().toISOString().slice(0,10)}.csv`; document.body.appendChild(link); link.click(); document.body.removeChild(link);
     });
+
+    // ── Gemini AI 요약 ──
+    // API Key는 localStorage에 저장하여 재사용
+    (function _restoreGeminiKey(){
+      try{
+        const saved = localStorage.getItem('cmass_gemini_key');
+        const inp = document.getElementById('geminiApiKey');
+        if(saved && inp) inp.value = saved;
+      }catch(e){}
+    })();
+    document.getElementById('geminiApiKey').addEventListener('change', function(){
+      try{ if(this.value) localStorage.setItem('cmass_gemini_key', this.value); }catch(e){}
+    });
+
+    async function runGeminiSummary(){
+      const inp = document.getElementById('geminiApiKey');
+      const resultEl = document.getElementById('geminiResult');
+      const runBtn = document.getElementById('geminiRunBtn');
+      const apiKey = (inp ? inp.value : '').trim();
+      if(!apiKey){
+        if(resultEl){ resultEl.style.display='block'; resultEl.className='gemini-result error'; resultEl.textContent='⚠️ Gemini API Key를 먼저 입력해주세요.'; }
+        return;
+      }
+      try{ localStorage.setItem('cmass_gemini_key', apiKey); }catch(e){}
+
+      // Collect current visible data (filtered by period + staff)
+      const s = startDateInput ? startDateInput.value : '';
+      const e = endDateInput ? endDateInput.value : '';
+      const staff = staffSelect ? staffSelect.value : '';
+      const staffLabel = (staff && STAFF_CODE_MAP[staff]) ? STAFF_CODE_MAP[staff] : '전체';
+      const rows = RAW_DATA.filter(item=>{
+        if(s){ const d=new Date(item.date); if(d < new Date(s+'T00:00:00')) return false; }
+        if(e){ const d=new Date(item.date); if(d > new Date(e+'T23:59:59')) return false; }
+        if(staff){ const selNorm=resolveStaffDisplay(staff); const itemStaff=resolveStaffDisplay(item.staff||''); if(!itemStaff||itemStaff.indexOf(selNorm)===-1) return false; }
+        return true;
+      });
+
+      if(rows.length === 0){
+        if(resultEl){ resultEl.style.display='block'; resultEl.className='gemini-result error'; resultEl.textContent='⚠️ 선택한 기간에 방문 기록이 없습니다.'; }
+        return;
+      }
+
+      // Build a compact summary of visit data for the prompt
+      const bySchool = new Map();
+      rows.forEach(r=>{
+        const k = (r.school||'미상')+'|'+(r.date||'');
+        if(!bySchool.has(k)) bySchool.set(k,{school:r.school,date:r.date,visits:[]});
+        bySchool.get(k).visits.push(r);
+      });
+      let dataText = '';
+      Array.from(bySchool.values()).slice(0,80).forEach(({school,date,visits})=>{
+        dataText += `\n[${date} ${school}]\n`;
+        visits.forEach(v=>{
+          const teacher = v.teacher||'';
+          const subject = v.subject||'';
+          const content = v.content||'';
+          const reaction = v.reaction||'';
+          const materials = v.materials||'';
+          const request = v.request||'';
+          const issue = v.issue||'';
+          if(teacher||subject||content) dataText += `  · ${subject} ${teacher}: ${content}${reaction?' ['+reaction+']':''}${request?' 요청:'+request:''}${issue?' 특이:'+issue:''}\n`;
+        });
+      });
+
+      const prompt = `당신은 교과서 영업팀의 영업 분석 전문가입니다.
+아래는 ${s} ~ ${e} 기간 동안 담당자 [${staffLabel}]의 학교 방문 미팅 기록입니다.
+총 ${rows.length}건, ${new Set(rows.map(r=>r.school)).size}개 학교입니다.
+
+${dataText}
+
+다음 항목을 한국어로 **명확하고 큰 글씨로 읽기 쉽게** 분석해주세요:
+
+1. **전체 요약** (2~3문장)
+2. **주요 긍정적 반응 학교/교사** (채택 가능성 높은 곳)
+3. **주의가 필요한 학교/상황** (부정적 반응, 특이사항)
+4. **전달한 주요 자료** (빈도 높은 것)
+5. **다음 액션 추천** (follow-up 제안)
+
+보기 쉽게 섹션별로 구분해서 정리해주세요.`;
+
+      // Show loading
+      if(resultEl){ resultEl.style.display='block'; resultEl.className='gemini-result loading'; resultEl.textContent='✨ Gemini가 분석 중입니다...'; }
+      if(runBtn) runBtn.disabled = true;
+
+      try{
+        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.4, maxOutputTokens: 2048 }
+          })
+        });
+        if(!resp.ok){
+          const errText = await resp.text();
+          throw new Error(`HTTP ${resp.status}: ${errText.slice(0,200)}`);
+        }
+        const data = await resp.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        if(!text) throw new Error('응답이 비어있습니다.');
+        if(resultEl){ resultEl.className='gemini-result'; resultEl.textContent = text; }
+      }catch(err){
+        if(resultEl){ resultEl.className='gemini-result error'; resultEl.textContent = '⚠️ 분석 실패: '+String(err.message||err); }
+      } finally {
+        if(runBtn) runBtn.disabled = false;
+      }
+    }
+    window.runGeminiSummary = runGeminiSummary;
 
     // Update KPI metric cards based on current date range / staff / search
     function updateMetrics(){
