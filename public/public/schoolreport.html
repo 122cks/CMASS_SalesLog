@@ -132,10 +132,29 @@
     .excel-visit-table th:nth-child(5),.excel-visit-table td:nth-child(5){width:auto} /* 방문내용 */
     .excel-visit-table th:nth-child(6),.excel-visit-table td:nth-child(6){width:14%} /* 전달자료 */
     .excel-visit-table th:nth-child(7),.excel-visit-table td:nth-child(7){width:9%} /* 납품 */
-    .excel-orders-wrap{padding:14px 20px;border-top:1px dashed #c7d9f8;background:#fafcff}
-    .excel-section-label{font-size:24px;font-weight:700;color:#374151;margin-bottom:8px}
+    .excel-orders-wrap{padding:16px 20px;border-top:3px solid #0b63d6;background:#eef4ff}
+    .excel-section-label{font-size:26px;font-weight:800;color:#0b3d91;margin-bottom:10px;letter-spacing:0.2px}
     /* Reaction badge override for bigger font */
     .excel-visit-table .react-badge{font-size:22px !important;padding:5px 12px !important}
+
+    /* ===== 인쇄 레이아웃 ===== */
+    @media print {
+      body { background: #fff !important; }
+      #periodBar, .gemini-panel, #loadingOverlay, #kpiSection,
+      .period-bar, button, select, input { display: none !important; }
+      .excel-school-card { box-shadow: none !important; border: 1.5px solid #ccc !important; }
+      /* print-break 클래스가 붙은 카드 뒤에서 페이지 나눔 */
+      .print-break-after { page-break-after: always !important; break-after: page !important; }
+      /* 카드가 페이지 중간에 잘리지 않도록 */
+      .excel-school-card { page-break-inside: avoid !important; break-inside: avoid !important; }
+      .excel-date-block { page-break-inside: avoid !important; break-inside: avoid !important; }
+      /* 인쇄용 폰트 크기 축소 */
+      body { font-size: 11pt !important; }
+      .excel-school-name { font-size: 16pt !important; }
+      .excel-visit-table th, .excel-visit-table td { font-size: 10pt !important; padding: 6px 8px !important; }
+      .adoption-table th, .adoption-table td { font-size: 10pt !important; }
+      .orders-table-print th, .orders-table-print td { font-size: 10pt !important; }
+    }
 
     /* Loading overlay while CSV/Firestore loads */
     #loadingOverlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(11,18,28,0.6);color:#fff;font-size:22px;font-weight:700;z-index:1200}
@@ -2439,25 +2458,27 @@ ${dataText}
         const totalCols = 2 + years.length + 1;
         const colWidth = (100 / totalCols).toFixed(4);
 
-        let html = '<h3 style="font-size:16px;font-weight:800;margin:0 0 8px 0">교과서 주문 현황</h3>';
-        html += '<div class="orders-narrow" style="overflow-x:hidden">';
-        html += `<table style="width:100%;min-width:0;font-size:13px;border-collapse:collapse;table-layout:fixed">`;
+        let html = '<div class="excel-section-label">📚 교과서 주문 현황</div>';
+        html += '<div style="overflow-x:auto">';
+        html += `<table class="orders-table-print" style="width:100%;min-width:0;font-size:22px;border-collapse:collapse;table-layout:fixed;border:2px solid #c7d9f8;border-radius:8px;overflow:hidden">`;
         html += '<colgroup>';
         for(let i=0;i<totalCols;i++) html += `<col style="width:${colWidth}%">`;
         html += '</colgroup>';
-        html += '<thead><tr class="bg-slate-50">';
-        html += '<th style="padding:8px;text-align:left;white-space:normal;overflow-wrap:anywhere">교과군</th>';
-        html += '<th style="padding:8px;text-align:left;white-space:normal;overflow-wrap:anywhere">과목명</th>';
-        years.forEach(y=> html += `<th style="padding:8px;text-align:right;white-space:normal">${y}<br>년</th>`);
-        html += '<th style="padding:8px;text-align:right;white-space:normal">합<br>계</th>';
+        html += '<thead><tr style="background:#e8f0fe">';
+        html += '<th style="padding:10px 12px;text-align:left;font-weight:800;color:#0b3d91;border-bottom:2px solid #c7d9f8">교과군</th>';
+        html += '<th style="padding:10px 12px;text-align:left;font-weight:800;color:#0b3d91;border-bottom:2px solid #c7d9f8">과목명</th>';
+        years.forEach(y=> html += `<th style="padding:10px 12px;text-align:right;font-weight:800;color:#0b3d91;border-bottom:2px solid #c7d9f8">${y}년</th>`);
+        html += '<th style="padding:10px 12px;text-align:right;font-weight:800;color:#0b3d91;border-bottom:2px solid #c7d9f8">합계</th>';
         html += '</tr></thead><tbody>';
+        let rowIdx = 0;
         for(const [k, entry] of map){
-          html += `<tr><td style="padding:8px;white-space:normal;overflow-wrap:anywhere">${escapeHtml(entry.group)}</td><td style="padding:8px;font-weight:700;white-space:normal;overflow-wrap:anywhere">${escapeHtml(entry.subject)}</td>`;
+          const bg = rowIdx++ % 2 === 0 ? 'background:#f7faff' : 'background:#fff';
+          html += `<tr style="${bg}"><td style="padding:10px 12px;white-space:normal;overflow-wrap:anywhere;font-weight:700">${escapeHtml(entry.group)}</td><td style="padding:10px 12px;font-weight:800;color:#0b63d6;white-space:normal;overflow-wrap:anywhere">${escapeHtml(entry.subject)}</td>`;
           years.forEach(y=>{
             const v = entry.counts[y] || 0;
-            html += `<td style="padding:8px;text-align:right;font-weight:700;color:#0b63d6;white-space:normal">${v? Number(v).toLocaleString() : ''}</td>`;
+            html += `<td style="padding:10px 12px;text-align:right;font-size:24px;font-weight:800;color:${v?'#1a56db':'#9ca3af'}">${v? Number(v).toLocaleString() : '—'}</td>`;
           });
-          html += `<td style="padding:8px;text-align:right;font-weight:700;color:#0b63d6;white-space:normal">${entry.total? Number(entry.total).toLocaleString() : ''}</td></tr>`;
+          html += `<td style="padding:10px 12px;text-align:right;font-size:24px;font-weight:900;color:#0b63d6;border-left:2px solid #e2eaf8">${entry.total? Number(entry.total).toLocaleString() : '—'}</td></tr>`;
         }
         html += '</tbody></table></div>';
         return html;
@@ -2678,6 +2699,22 @@ ${dataText}
         }
       }catch(e){ console.warn('renderOrders failed', e); }
     }
+
+    // ── 인쇄 레이아웃: 1페이지=학교1개, 2페이지부터=2개씩 ──
+    window.addEventListener('beforeprint', function(){
+      // 기존 print-break 클래스 초기화
+      document.querySelectorAll('.print-break-after').forEach(el=>el.classList.remove('print-break-after'));
+      const cards = Array.from(document.querySelectorAll('#schoolsSummary .excel-school-card'));
+      cards.forEach((card, i)=>{
+        // index 0 (1번째 학교): 페이지 나눔
+        // index 2, 4, 6... (짝수, 2 이상): 페이지 나눔
+        if(i === 0 || (i >= 2 && i % 2 === 0)) card.classList.add('print-break-after');
+      });
+    });
+    window.addEventListener('afterprint', function(){
+      document.querySelectorAll('.print-break-after').forEach(el=>el.classList.remove('print-break-after'));
+    });
+
     (async function initData(){
       // ensure sales staff CSV is loaded before other CSV-dependent rendering
       try{ await loadSalesStaffCsv(); }catch(e){ console.warn('loadSalesStaffCsv (await) failed', e); }
