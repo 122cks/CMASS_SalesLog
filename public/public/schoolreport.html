@@ -1418,7 +1418,7 @@
             if(Array.isArray(ordersForThisSchool)&&ordersForThisSchool.length){
               const ordersWrap=document.createElement('div');
               ordersWrap.className='excel-orders-wrap';
-              ordersWrap.innerHTML='<div class="excel-section-label">📚 교과서 주문 현황</div>'+buildAggregatedOrdersHtml(ordersForThisSchool,2021,2026);
+              ordersWrap.innerHTML=buildAggregatedOrdersHtml(ordersForThisSchool,2021,2026);
               card.appendChild(ordersWrap);
             }
 
