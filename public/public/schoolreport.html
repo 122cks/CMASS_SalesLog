@@ -187,6 +187,26 @@
         table (8th col). */
       .fixed-report-table th:nth-child(4), .fixed-report-table td:nth-child(4),
       .fixed-report-table th:nth-child(8), .fixed-report-table td:nth-child(8) { white-space: pre-wrap; }
+
+    /* ── 채택현황 섹션 ── */
+    .adoption-section{margin:0;padding:14px 18px 18px;background:#f8fbff;border-top:2px solid #e2eaf8}
+    .adoption-section-title{font-size:22px;font-weight:800;color:#0b3d91;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+    .adoption-section-title .adoption-save-all-btn{font-size:18px;padding:4px 14px;background:#0b63d6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700}
+    .adoption-section-title .adoption-save-all-btn:hover{background:#0848a8}
+    .adoption-table{width:100%;border-collapse:collapse;font-size:22px}
+    .adoption-table th{background:#e8f0fe;color:#0b3d91;font-weight:800;padding:8px 12px;border:1px solid #c7d9f8;text-align:center;white-space:nowrap}
+    .adoption-table td{padding:8px 12px;border:1px solid #e2eaf8;vertical-align:middle}
+    .adoption-table td.subj-col{font-weight:800;color:#1a56db;background:#f0f6ff;white-space:nowrap}
+    .adoption-cell[contenteditable=true]{background:#fffde7;outline:2px solid #f59e0b;border-radius:4px;min-width:60px;padding:2px 6px;cursor:text}
+    .adoption-cell{cursor:pointer;min-height:28px;display:inline-block;width:100%;box-sizing:border-box;border-radius:4px;padding:2px 4px}
+    .adoption-cell:hover{background:#e8f0fe}
+    .adoption-grade-select{font-size:22px;padding:4px 8px;border:1px solid #c7d9f8;border-radius:6px;background:#fff;cursor:pointer;width:100%}
+    .adoption-row-saved td{background:#e6fbf0 !important;transition:background 1s}
+    .adoption-status-badge{display:inline-block;font-size:16px;padding:2px 8px;border-radius:6px;font-weight:700;margin-left:8px}
+    .badge-a{background:#dcfce7;color:#166534}
+    .badge-b{background:#fef9c3;color:#854d0e}
+    .badge-c{background:#fee2e2;color:#991b1b}
+    .badge-adopted{background:#bfdbfe;color:#1e40af}
   </style>
   <!-- Firebase (compat) for optional Firestore integration -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
@@ -426,6 +446,9 @@
     // `RAW_DATA` doesn't throw when the page loads before Firestore/CSV fills it.
     const RAW_DATA = [];
     window.RAW_DATA = RAW_DATA;
+    // 채택현황 데이터 (Firestore adoption_status 컬렉션)
+    const ADOPTION_DATA = {}; // key: schoolName, value: {subjects:{과목:{current,cmass,grade,note}}}
+    window.ADOPTION_DATA = ADOPTION_DATA;
 
     // Optional manual overrides for school name matching.
     // Use when order CSV uses a different canonical name than visit logs.
@@ -1055,6 +1078,173 @@
       }
 
       // render school summary grouped by date -> school (Excel-style layout, always expanded)
+      // ── 채택현황 Firestore 로드 ──
+      async function loadAdoptionData(){
+        try{
+          if(!window.__db) return;
+          const snap = await window.__db.collection('adoption_status').get();
+          snap.forEach(doc=>{
+            const d = doc.to ? doc.toJSON() : doc.data();
+            const name = d.school || doc.id;
+            ADOPTION_DATA[name] = d.subjects || {};
+          });
+          console.info('[adoption] loaded', Object.keys(ADOPTION_DATA).length, 'schools');
+        }catch(e){ console.warn('loadAdoptionData failed', e); }
+      }
+
+      // ── 채택현황 Firestore 저장 ──
+      async function saveAdoptionStatus(schoolName, subjects){
+        try{
+          if(!window.__db){ alert('Firestore가 초기화되지 않았습니다. 새로고침 후 다시 시도하세요.'); return false; }
+          const docId = schoolName.replace(/[^가-힣a-zA-Z0-9]/g,'_').slice(0,80);
+          await window.__db.collection('adoption_status').doc(docId).set({
+            school: schoolName,
+            subjects: subjects,
+            updatedAt: new Date().toISOString(),
+            updatedBy: (staffSelect ? staffSelect.value : '') || 'unknown'
+          }, { merge: true });
+          ADOPTION_DATA[schoolName] = subjects;
+          return true;
+        }catch(e){ console.error('saveAdoptionStatus failed', e); alert('저장 실패: ' + e.message); return false; }
+      }
+
+      // ── 채택현황 섹션 렌더 ──
+      const ADOPTION_SUBJECTS = ['정보','진로와직업','미술','체육','보건'];
+      const ADOPTION_GRADES = ['-','A','B','C','채택','미선정'];
+
+      function renderAdoptionSection(schoolName, card){
+        const existing = card.querySelector('.adoption-section');
+        if(existing) existing.remove();
+
+        const saved = ADOPTION_DATA[schoolName] || {};
+        const section = document.createElement('div');
+        section.className = 'adoption-section';
+
+        // 제목 + 전체저장 버튼
+        const titleRow = document.createElement('div');
+        titleRow.className = 'adoption-section-title';
+        titleRow.innerHTML = `📋 채택현황 <span style="font-size:18px;color:#6b7280;font-weight:400">(셀 클릭하여 편집)</span>`;
+        const saveAllBtn = document.createElement('button');
+        saveAllBtn.className = 'adoption-save-all-btn';
+        saveAllBtn.textContent = '💾 저장';
+        titleRow.appendChild(saveAllBtn);
+        section.appendChild(titleRow);
+
+        // 테이블
+        const table = document.createElement('table');
+        table.className = 'adoption-table';
+        table.innerHTML = `<thead><tr>
+          <th style="width:100px">과목</th>
+          <th>현재 선정 교과서</th>
+          <th>씨마스 영업결과</th>
+          <th style="width:110px">등급</th>
+          <th>특이사항 / 담당교사</th>
+        </tr></thead>`;
+        const tbody = document.createElement('tbody');
+
+        // 과목별 행 생성
+        ADOPTION_SUBJECTS.forEach(subj=>{
+          const sData = (saved[subj] || {});
+          const tr = document.createElement('tr');
+          tr.dataset.subj = subj;
+
+          // 1. 과목명
+          const tdSubj = document.createElement('td');
+          tdSubj.className = 'subj-col';
+          tdSubj.textContent = subj;
+
+          // 2. 현재 선정 (방문 데이터에서 자동)
+          const tdCurrent = document.createElement('td');
+          const publisherFromVisit = (() => {
+            const rows = (RAW_DATA || []).filter(r => r.school === schoolName && (r.subject||'').includes(subj.replace('와직업','').replace('1','')));
+            if(rows.length) return [...new Set(rows.map(r=>r.publisher||r.textbook||'').filter(Boolean))].join(', ');
+            return '';
+          })();
+          tdCurrent.innerHTML = `<span class="adoption-cell" style="color:#374151">${escapeHtml(sData.current || publisherFromVisit || '—')}</span>`;
+          tdCurrent.querySelector('span').addEventListener('click', () => makeEditable(tdCurrent.querySelector('span'), 'current', subj, schoolName, tbody));
+
+          // 3. 씨마스 영업결과
+          const tdCmass = document.createElement('td');
+          tdCmass.innerHTML = `<span class="adoption-cell" style="font-weight:700;color:#0b63d6">${escapeHtml(sData.cmass || '—')}</span>`;
+          tdCmass.querySelector('span').addEventListener('click', () => makeEditable(tdCmass.querySelector('span'), 'cmass', subj, schoolName, tbody));
+
+          // 4. 등급 (A/B/C select)
+          const tdGrade = document.createElement('td');
+          const sel = document.createElement('select');
+          sel.className = 'adoption-grade-select';
+          ADOPTION_GRADES.forEach(g=>{
+            const opt = document.createElement('option');
+            opt.value = g; opt.textContent = g;
+            if(g === (sData.grade||'-')) opt.selected = true;
+            sel.appendChild(opt);
+          });
+          tdGrade.appendChild(sel);
+
+          // 5. 특이사항
+          const tdNote = document.createElement('td');
+          tdNote.innerHTML = `<span class="adoption-cell">${escapeHtml(sData.note || '—')}</span>`;
+          tdNote.querySelector('span').addEventListener('click', () => makeEditable(tdNote.querySelector('span'), 'note', subj, schoolName, tbody));
+
+          tr.appendChild(tdSubj);
+          tr.appendChild(tdCurrent);
+          tr.appendChild(tdCmass);
+          tr.appendChild(tdGrade);
+          tr.appendChild(tdNote);
+          tbody.appendChild(tr);
+        });
+
+        table.appendChild(tbody);
+        section.appendChild(table);
+
+        // 저장 버튼 동작
+        saveAllBtn.addEventListener('click', async () => {
+          saveAllBtn.textContent = '저장 중...';
+          saveAllBtn.disabled = true;
+          const subjects = {};
+          Array.from(tbody.querySelectorAll('tr')).forEach(tr=>{
+            const subj = tr.dataset.subj;
+            if(!subj) return;
+            const cells = tr.querySelectorAll('td');
+            subjects[subj] = {
+              current: cells[1]?.querySelector('span')?.textContent?.replace('—','').trim() || '',
+              cmass:   cells[2]?.querySelector('span')?.textContent?.replace('—','').trim() || '',
+              grade:   cells[3]?.querySelector('select')?.value || '-',
+              note:    cells[4]?.querySelector('span')?.textContent?.replace('—','').trim() || ''
+            };
+          });
+          const ok = await saveAdoptionStatus(schoolName, subjects);
+          if(ok){
+            saveAllBtn.textContent = '✅ 저장됨';
+            Array.from(tbody.querySelectorAll('tr')).forEach(tr=>{ tr.className='adoption-row-saved'; setTimeout(()=>{tr.className='';},1500); });
+            setTimeout(()=>{ saveAllBtn.textContent='💾 저장'; saveAllBtn.disabled=false; }, 2000);
+          } else {
+            saveAllBtn.textContent = '💾 저장';
+            saveAllBtn.disabled = false;
+          }
+        });
+
+        card.appendChild(section);
+      }
+
+      // contenteditable 편집기 활성화 헬퍼
+      function makeEditable(span, field, subj, schoolName, tbody){
+        if(span.contentEditable === 'true') return;
+        const original = span.textContent === '—' ? '' : span.textContent;
+        span.contentEditable = 'true';
+        span.textContent = original;
+        span.focus();
+        // 커서 끝으로
+        try{ const r=document.createRange(); r.selectNodeContents(span); r.collapse(false); const s=window.getSelection(); s.removeAllRanges(); s.addRange(r); }catch(e){}
+        span.addEventListener('blur', ()=>{
+          span.contentEditable = 'false';
+          if(!span.textContent.trim()) span.textContent = '—';
+        }, {once:true});
+        span.addEventListener('keydown', (e)=>{
+          if(e.key==='Enter'){ e.preventDefault(); span.blur(); }
+          if(e.key==='Escape'){ span.textContent = original||'—'; span.blur(); }
+        }, {once:true});
+      }
+
       function renderSchoolSummary(){
         const container = document.getElementById('schoolsSummary');
         if(!container) return;
@@ -1256,6 +1446,8 @@
 
             visitTable.appendChild(tbody);
             card.appendChild(visitTable);
+            // 채택현황 섹션
+            try{ renderAdoptionSection(schoolName, card); }catch(e){ console.warn('renderAdoptionSection failed', e); }
             dateBlock.appendChild(card);
           });
 
@@ -2495,6 +2687,8 @@ ${dataText}
       // try backend school metadata first (merge into SCHOOLS_CSV_MAP)
       try{ await tryLoadSchoolMetadataFromFirestore(); }catch(e){}
       await tryLoadFirestoreVisits();
+      // 채택현황 로드
+      try{ await loadAdoptionData(); }catch(e){ console.warn('loadAdoptionData failed', e); }
       // If the page did not provide `SCHOOL_INFO.name`, try to derive a sensible
       // default from the first loaded visit row so the top card isn't empty.
       // This only provides a visible fallback for single-school pages; CSV/Firestore
