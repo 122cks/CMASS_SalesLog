@@ -124,21 +124,20 @@
     .excel-visit-table td{padding:10px 12px;border-bottom:1px solid #e2eaf8;vertical-align:top;font-size:20px !important;line-height:1.55;word-break:break-word;overflow-wrap:anywhere}
     .excel-visit-table tbody tr:hover{background:#f7faff}
     .excel-visit-table .excel-row-highlight{background:#fffbe6}
-    /* 각 컴럼 너비 */
-    .excel-visit-table th:nth-child(1),.excel-visit-table td:nth-child(1){width:7%;font-weight:800;color:#0b63d6}
-    .excel-visit-table th:nth-child(2),.excel-visit-table td:nth-child(2){width:9%}
-    .excel-visit-table th:nth-child(3),.excel-visit-table td:nth-child(3){width:10%}
-    .excel-visit-table th:nth-child(4),.excel-visit-table td:nth-child(4){width:6%;text-align:center}
+    /* 각 컬럼 너비: 방문내용(5번)이 남은 공간 전부 차지 */
+    .excel-visit-table th:nth-child(1),.excel-visit-table td:nth-child(1){width:5%;font-weight:800;color:#0b63d6}
+    .excel-visit-table th:nth-child(2),.excel-visit-table td:nth-child(2){width:7%}
+    .excel-visit-table th:nth-child(3),.excel-visit-table td:nth-child(3){width:8%}
+    .excel-visit-table th:nth-child(4),.excel-visit-table td:nth-child(4){width:5%;text-align:center}
     .excel-visit-table th:nth-child(5),.excel-visit-table td:nth-child(5){width:auto}
-    .excel-visit-table th:nth-child(6),.excel-visit-table td:nth-child(6){width:12%}
-    .excel-visit-table th:nth-child(7),.excel-visit-table td:nth-child(7){width:8%}
-    /* 채택현황 입력란 (구분 스타일) */
+    .excel-visit-table th:nth-child(6),.excel-visit-table td:nth-child(6){width:9%}
+    .excel-visit-table th:nth-child(7),.excel-visit-table td:nth-child(7){width:6%}
+    /* 채택현황 입력란 (구분 스타일) - 내용에 맞게 최소 너비만 */
     .excel-visit-table th.adopt-col{background:#fff8e1;color:#7c4700;border-left:3px solid #f59e0b}
     .excel-visit-table td.adopt-col{background:#fffdf5;border-left:3px solid #f59e0b}
-    .excel-visit-table tr:first-child td.adopt-col,.excel-visit-table tr:first-child th.adopt-col{border-left:3px solid #f59e0b}
-    .excel-visit-table th:nth-child(8),.excel-visit-table td:nth-child(8){width:9%}
-    .excel-visit-table th:nth-child(9),.excel-visit-table td:nth-child(9){width:5%;text-align:center}
-    .excel-visit-table th:nth-child(10),.excel-visit-table td:nth-child(10){width:9%}
+    .excel-visit-table th:nth-child(8),.excel-visit-table td:nth-child(8){width:80px}
+    .excel-visit-table th:nth-child(9),.excel-visit-table td:nth-child(9){width:70px;text-align:center}
+    .excel-visit-table th:nth-child(10),.excel-visit-table td:nth-child(10){width:80px}
     /* 방문내용: 항상 펼침 */
     .visit-content-wrap{white-space:pre-wrap;line-height:1.55;font-size:20px}
     .visit-expand-btn{display:none}
@@ -236,7 +235,7 @@
     .adoption-cell[contenteditable=true]{background:#fffde7;outline:2px solid #f59e0b;border-radius:4px;min-width:60px;padding:2px 6px;cursor:text}
     .adoption-cell{cursor:pointer;min-height:28px;display:inline-block;width:100%;box-sizing:border-box;border-radius:4px;padding:2px 4px}
     .adoption-cell:hover{background:#e8f0fe}
-    .adoption-grade-select{font-size:22px;padding:4px 8px;border:1px solid #c7d9f8;border-radius:6px;background:#fff;cursor:pointer;width:100%}
+    .adoption-grade-select{font-size:18px;padding:3px 4px;border:1px solid #c7d9f8;border-radius:6px;background:#fff;cursor:pointer;width:100%}
     .adoption-row-saved td{background:#e6fbf0 !important;transition:background 1s}
     .adoption-status-badge{display:inline-block;font-size:16px;padding:2px 8px;border-radius:6px;font-weight:700;margin-left:8px}
     .badge-a{background:#dcfce7;color:#166534}
@@ -1494,7 +1493,7 @@
                 tdCmass.rowSpan=rowCount; tdCmass.className='adopt-col';
                 const spCmass=document.createElement('span');
                 spCmass.className='adoption-cell';
-                spCmass.style.cssText='font-weight:700;color:#7c4700;display:block;min-width:60px;cursor:pointer';
+                spCmass.style.cssText='font-weight:700;color:#7c4700;display:block;cursor:pointer;font-size:18px';
                 spCmass.textContent=sData.cmass||'—'; spCmass.title='클릭하여 편집';
                 spCmass.addEventListener('click',()=>makeEditable(spCmass,'cmass',subj,schoolName,tbody));
                 tdCmass.appendChild(spCmass); tr.appendChild(tdCmass);
@@ -1515,7 +1514,7 @@
                 tdNote.rowSpan=rowCount; tdNote.className='adopt-col';
                 const spNote=document.createElement('span');
                 spNote.className='adoption-cell';
-                spNote.style.cssText='display:block;min-width:60px;cursor:pointer;color:#374151';
+                spNote.style.cssText='display:block;cursor:pointer;color:#374151;font-size:18px';
                 spNote.textContent=sData.note||'—'; spNote.title='클릭하여 편집';
                 spNote.addEventListener('click',()=>makeEditable(spNote,'note',subj,schoolName,tbody));
                 tdNote.appendChild(spNote); tr.appendChild(tdNote);
