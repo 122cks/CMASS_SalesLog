@@ -334,8 +334,10 @@
         </div>
         <div class="gemini-key-row">
           <input type="password" id="geminiApiKey" class="gemini-key-input" placeholder="Gemini API Key 입력 (로컬 저장됨)" autocomplete="off" />
+          <button class="gemini-run-btn" style="background:#6b7280;font-size:20px;padding:10px 16px" onclick="(function(){ try{ localStorage.removeItem('cmass_gemini_key'); document.getElementById('geminiApiKey').value=''; document.getElementById('geminiKeyStatus').textContent='키 초기화됨 - 새 키를 입력하세요'; document.getElementById('geminiKeyStatus').style.color='#b45309'; }catch(e){} })()">🗑️ 키 초기화</button>
           <button class="gemini-run-btn" id="geminiRunBtn" onclick="runGeminiSummary()">🔍 분석하기</button>
         </div>
+        <div id="geminiKeyStatus" style="font-size:20px;color:#6b7280;margin-bottom:6px"></div>
         <div class="gemini-result" id="geminiResult" style="display:none"></div>
       </div>
 
@@ -1774,11 +1776,24 @@
       try{
         const saved = localStorage.getItem('cmass_gemini_key');
         const inp = document.getElementById('geminiApiKey');
-        if(saved && inp) inp.value = saved;
+        const status = document.getElementById('geminiKeyStatus');
+        if(saved && inp){
+          inp.value = saved;
+          if(status) status.textContent = '✅ 저장된 키 사용 중 (앞 8자: ' + saved.slice(0,8) + '...)';
+        } else {
+          if(status) status.textContent = '⚠️ API 키가 없습니다. 키를 입력하세요.';
+          if(status) status.style.color = '#b45309';
+        }
       }catch(e){}
     })();
     document.getElementById('geminiApiKey').addEventListener('change', function(){
-      try{ if(this.value) localStorage.setItem('cmass_gemini_key', this.value); }catch(e){}
+      const status = document.getElementById('geminiKeyStatus');
+      try{
+        if(this.value){
+          localStorage.setItem('cmass_gemini_key', this.value);
+          if(status){ status.textContent = '✅ 키 저장됨 (앞 8자: ' + this.value.slice(0,8) + '...)'; status.style.color='#166534'; }
+        }
+      }catch(e){}
     });
 
     async function runGeminiSummary(){
