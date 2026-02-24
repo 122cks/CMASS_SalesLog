@@ -842,8 +842,12 @@ function renderStaffInsights(){
 // 영업 우선순위 탭 함수들
 // ══════════════════════════════════════════════════════════════
 
-const SP_WEIGHT={'정보':5,'진로와 직업':4,'미술':2,'체육 1':2,'체육 2':2};
+// 고등 전략 과목 (고등 정보군 집중)
+const SP_WEIGHT={'정보':5,'인공지능 기초':4,'데이터 과학':3,'소프트웨어와 생활':2,'정보과학':2};
 const SP_TARGETS=Object.keys(SP_WEIGHT);
+// 중학교 전략 과목 (정보군 + 진로/보건/체육)
+const MS_WEIGHT={'정보':5,'데이터 분석과 인공지능':4,'앱과 코딩':3,'디지털 리터러시':3,'슬기로운 디지털 생활':2,'슬기로운 인공지능 윤리생활':2,'진로와 직업':4,'보건':2,'체육 ①':2,'체육 ②':2};
+const MS_TARGETS=Object.keys(MS_WEIGHT);
 const GRADE_WEIGHT={S:3,A:2,B:1,C:0.5};
 const GRADE_COLOR={S:'grade-S',A:'grade-A',B:'grade-B',C:'grade-C'};
 
@@ -854,11 +858,11 @@ function spMyRegions(){
     : Object.keys(G.region_detail);
 }
 
-// 담당 구 합산 과목 pct 계산
+// 담당 구 합산 고등 과목 pct 계산
 function spMyPctMap(){
   const myR=spMyRegions();
   const rs=G.region_shares||[];
-  const qtys={},cohort_total={};
+  const qtys={};
   SP_TARGETS.forEach(s=>{qtys[s]=0;});
   let totalCohort=0;
   myR.forEach(region=>{
@@ -874,52 +878,113 @@ function spMyPctMap(){
   return{myPct,totalCohort,myR};
 }
 
-// ── Section 1: 전국/수도권/지방 vs 내담당구 비교표 ──
-function renderSpCompareTable(){
-  // region_shares 집계 → 담당구와 동일한 분모(coverage cohort) 기준으로 통일
-  // region 필드 예: "서울특별시 강남구", "경기도 수원시" → startsWith로 sido 분류
-  const SU_PREFIX=['서울특별시','인천광역시','경기도'];
-  const nwQty={};let nwC=0;
-  const suQty={};let suC=0;
-  const jbQty={};let jbC=0;
-  (G.region_shares||[]).forEach(r=>{
-    const isSu=SU_PREFIX.some(p=>(r.region||'').startsWith(p));
-    nwC+=r.cohort_students||0;
-    if(isSu)suC+=r.cohort_students||0;else jbC+=r.cohort_students||0;
-    (r.subjects||[]).forEach(s=>{
-      nwQty[s.subject]=(nwQty[s.subject]||0)+(s.qty||0);
-      if(isSu)suQty[s.subject]=(suQty[s.subject]||0)+(s.qty||0);
-      else    jbQty[s.subject]=(jbQty[s.subject]||0)+(s.qty||0);
+// 담당 구 합산 중학교 과목 pct 계산
+function spMyMsPctMap(){
+  const myR=spMyRegions();
+  const rs=(G.ms&&G.ms.region_shares)||[];
+  const qtys={};
+  MS_TARGETS.forEach(s=>{qtys[s]=0;});
+  let totalCohort=0;
+  myR.forEach(region=>{
+    const rd=rs.find(x=>x.region===region);
+    if(!rd)return;
+    totalCohort+=rd.cohort_students||0;
+    rd.subjects.forEach(s=>{
+      if(qtys[s.subject]!==undefined) qtys[s.subject]+=s.qty||0;
     });
   });
-  const nwMap={},suMap={},jbMap={};
-  for(const[k,v]of Object.entries(nwQty))nwMap[k]=v/(nwC||1)*100;
-  for(const[k,v]of Object.entries(suQty))suMap[k]=v/(suC||1)*100;
-  for(const[k,v]of Object.entries(jbQty))jbMap[k]=v/(jbC||1)*100;
+  const myPct={};
+  MS_TARGETS.forEach(s=>{ myPct[s]=totalCohort>0?qtys[s]/totalCohort*100:0; });
+  return{myPct,totalCohort};
+}
+
+// ── Section 1: 고등/중학 과목 점유율 비교표 ──
+function renderSpCompareTable(){
+  const SU_PREFIX=['서울특별시','인천광역시','경기도'];
+  // 고등 집계 (region_shares 기준)
+  const hs={nw:{},su:{},jb:{},nwC:0,suC:0,jbC:0};
+  (G.region_shares||[]).forEach(r=>{
+    const isSu=SU_PREFIX.some(p=>(r.region||'').startsWith(p));
+    hs.nwC+=r.cohort_students||0;
+    if(isSu)hs.suC+=r.cohort_students||0;else hs.jbC+=r.cohort_students||0;
+    (r.subjects||[]).forEach(s=>{
+      hs.nw[s.subject]=(hs.nw[s.subject]||0)+(s.qty||0);
+      if(isSu)hs.su[s.subject]=(hs.su[s.subject]||0)+(s.qty||0);
+      else    hs.jb[s.subject]=(hs.jb[s.subject]||0)+(s.qty||0);
+    });
+  });
+  const hsNwMap={},hsSuMap={},hsJbMap={};
+  for(const[k,v]of Object.entries(hs.nw))hsNwMap[k]=v/(hs.nwC||1)*100;
+  for(const[k,v]of Object.entries(hs.su))hsSuMap[k]=v/(hs.suC||1)*100;
+  for(const[k,v]of Object.entries(hs.jb))hsJbMap[k]=v/(hs.jbC||1)*100;
+
+  // 중학교 집계 (ms.region_shares 기준)
+  const ms={nw:{},su:{},jb:{},nwC:0,suC:0,jbC:0};
+  ((G.ms&&G.ms.region_shares)||[]).forEach(r=>{
+    const isSu=SU_PREFIX.some(p=>(r.region||'').startsWith(p));
+    ms.nwC+=r.cohort_students||0;
+    if(isSu)ms.suC+=r.cohort_students||0;else ms.jbC+=r.cohort_students||0;
+    (r.subjects||[]).forEach(s=>{
+      ms.nw[s.subject]=(ms.nw[s.subject]||0)+(s.qty||0);
+      if(isSu)ms.su[s.subject]=(ms.su[s.subject]||0)+(s.qty||0);
+      else    ms.jb[s.subject]=(ms.jb[s.subject]||0)+(s.qty||0);
+    });
+  });
+  const msNwMap={},msSuMap={},msJbMap={};
+  for(const[k,v]of Object.entries(ms.nw))msNwMap[k]=v/(ms.nwC||1)*100;
+  for(const[k,v]of Object.entries(ms.su))msSuMap[k]=v/(ms.suC||1)*100;
+  for(const[k,v]of Object.entries(ms.jb))msJbMap[k]=v/(ms.jbC||1)*100;
+
   const{myPct,myR}=spMyPctMap();
+  const{myPct:myMsPct}=spMyMsPctMap();
   const myLabel=myR.length?`담당 ${myR.length}개 구`:'전국';
 
   document.getElementById('spCompareBadge').textContent=myLabel+' vs 전체평균/수도권/지방';
-  const thead=`<thead><tr style="background:#f8fafc">
-    <th style="text-align:left">과목</th>
-    <th title="관내 coverage 학교 기준 전체평균">전체평균</th><th>수도권</th><th>지방</th><th style="background:#eff6ff;border-radius:4px">${myLabel}</th>
-  </tr></thead>\n<caption style="caption-side:bottom;font-size:10px;color:#888;text-align:right;padding-top:4px">※ 모든 % = coverage 학교 cohort 기준 (분모 통일)</caption>`;
-  const rows=SP_TARGETS.map(sub=>{
-    const nw=nwMap[sub]||0, su=suMap[sub]||0, jb=jbMap[sub]||0, my=myPct[sub]||0;
-    const myBg=my>=nw?'#dcfce7':'#fee2e2';
-    const myColor=my>=nw?'#166534':'#dc2626';
-    function cell(v,bg,color){return`<td style="text-align:center;background:${bg};color:${color};font-weight:700">${v.toFixed(2)}%</td>`;}
-    function stdCell(v,ref){
-      const bg=v>=ref?'#f0fdf4':'#fff7ed'; const color=v>=ref?'#166534':'#9a3412';
-      return`<td style="text-align:center;color:${color}">${v.toFixed(2)}%</td>`;
-    }
-    return`<tr>
-      <td style="font-weight:600"><span class="pill" style="background:#eff6ff;color:#1d4ed8;font-size:10px">${sub}</span></td>
-      ${stdCell(nw,nw)}${stdCell(su,nw)}${stdCell(jb,nw)}
-      ${cell(my,myBg,myColor)}
-    </tr>`;
-  }).join('');
-  document.getElementById('spCompareTable').innerHTML=thead+`<tbody>${rows}</tbody>`;
+
+  function makeTable(targets,nwMap,suMap,jbMap,myPctMap,label,color){
+    const thead=`<thead><tr style="background:#f8fafc">
+      <th colspan="5" style="text-align:left;padding:6px 8px;font-size:11.5px;font-weight:800;color:${color};border-bottom:2px solid ${color}30">${label}</th>
+    </tr><tr style="background:#f8fafc">
+      <th style="text-align:left">과목</th>
+      <th title="coverage 학교 cohort 기준 전체평균">전체평균</th><th>수도권</th><th>지방</th>
+      <th style="background:#eff6ff;border-radius:4px">${myLabel}</th>
+    </tr></thead>`;
+    const rows=targets.map(sub=>{
+      const nw=nwMap[sub]||0, su=suMap[sub]||0, jb=jbMap[sub]||0, my=myPctMap[sub]||0;
+      const myBg=my>=nw?'#dcfce7':'#fee2e2';
+      const myColor=my>=nw?'#166534':'#dc2626';
+      function cell(v,bg,c){return`<td style="text-align:center;background:${bg};color:${c};font-weight:700">${v.toFixed(2)}%</td>`;}
+      function stdCell(v,ref){
+        const bg=v>=ref?'#f0fdf4':'#fff7ed';const c=v>=ref?'#166534':'#9a3412';
+        return`<td style="text-align:center;color:${c}">${v.toFixed(2)}%</td>`;
+      }
+      return`<tr>
+        <td style="font-weight:600"><span class="pill" style="background:${color}15;color:${color};font-size:10px">${sub}</span></td>
+        ${stdCell(nw,nw)}${stdCell(su,nw)}${stdCell(jb,nw)}
+        ${cell(my,myBg,myColor)}
+      </tr>`;
+    }).join('');
+    return`<table style="width:100%;border-collapse:collapse;font-size:12px">${thead}<tbody>${rows}</tbody>
+      <caption style="caption-side:bottom;font-size:10px;color:#888;text-align:right;padding-top:4px">※ % = coverage cohort 기준</caption></table>`;
+  }
+
+  const hsTable=makeTable(
+    SP_TARGETS,hsNwMap,hsSuMap,hsJbMap,myPct,
+    '💻 고등학교 정보군','#1d4ed8'
+  );
+  const msInfoTargets=['\uc815\ubcf4','\ub370\uc774\ud130 \ubd84\uc11d\uacfc \uc778\uacf5\uc9c0\ub2a5','\uc571\uacfc \ucf54\ub529','\ub514\uc9c0\ud138 \ub9ac\ud130\ub7ec\uc2dc','\uc2ac\uae30\ub85c\uc6b4 \ub514\uc9c0\ud138 \uc0dd\ud65c','\uc2ac\uae30\ub85c\uc6b4 \uc778\uacf5\uc9c0\ub2a5 \uc724\ub9ac\uc0dd\ud65c'];
+  const msEtcTargets=['\uc9c4\ub85c\uc640 \uc9c1\uc5c5','\ubcf4\uac74','\uccb4\uc721 \u2460','\uccb4\uc721 \u2461'];
+  const msInfoTable=makeTable(
+    msInfoTargets,msNwMap,msSuMap,msJbMap,myMsPct,
+    '📱 중학교 정보군','#7c3aed'
+  );
+  const msEtcTable=makeTable(
+    msEtcTargets,msNwMap,msSuMap,msJbMap,myMsPct,
+    '📚 중학교 진로/보건/체육','#0891b2'
+  );
+
+  document.getElementById('spCompareTable').innerHTML=
+    `<div style="display:flex;flex-direction:column;gap:20px">${hsTable}${msInfoTable}${msEtcTable}</div>`;
 }
 
 // ── Section 2: 구별 영업 우선지수 카드 ──
