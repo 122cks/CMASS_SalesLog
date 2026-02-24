@@ -842,7 +842,7 @@ function renderStaffInsights(){
 // 영업 우선순위 탭 함수들
 // ══════════════════════════════════════════════════════════════
 
-const SP_WEIGHT={'정보':5,'진로와 직업':4,'운동과 건강':4,'미술':2,'체육 1':2,'체육 2':2};
+const SP_WEIGHT={'정보':5,'진로와 직업':4,'미술':2,'체육 1':2,'체육 2':2};
 const SP_TARGETS=Object.keys(SP_WEIGHT);
 const GRADE_WEIGHT={S:3,A:2,B:1,C:0.5};
 const GRADE_COLOR={S:'grade-S',A:'grade-A',B:'grade-B',C:'grade-C'};
@@ -877,12 +877,13 @@ function spMyPctMap(){
 // ── Section 1: 전국/수도권/지방 vs 내담당구 비교표 ──
 function renderSpCompareTable(){
   // region_shares 집계 → 담당구와 동일한 분모(coverage cohort) 기준으로 통일
-  const SUDOGWON=new Set(['서울특별시','인천광역시','경기도']);
+  // region 필드 예: "서울특별시 강남구", "경기도 수원시" → startsWith로 sido 분류
+  const SU_PREFIX=['서울특별시','인천광역시','경기도'];
   const nwQty={};let nwC=0;
   const suQty={};let suC=0;
   const jbQty={};let jbC=0;
   (G.region_shares||[]).forEach(r=>{
-    const isSu=SUDOGWON.has(r.sido||'');
+    const isSu=SU_PREFIX.some(p=>(r.region||'').startsWith(p));
     nwC+=r.cohort_students||0;
     if(isSu)suC+=r.cohort_students||0;else jbC+=r.cohort_students||0;
     (r.subjects||[]).forEach(s=>{
