@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>씨마스 학교정보통합조회시스템</title>
+  <style>
+    :root{--bg:#f5f6fa;--card:#fff;--muted:#556;--brand:#12325a;--brand2:#1e3c72;--line:#e6eefc;--chip:#f3f6ff;--chipBorder:#d6def0}
+    *{box-sizing:border-box}
+    body{margin:0;padding:20px 16px;background:var(--bg);font-family:'Segoe UI',Arial,sans-serif;color:#071a2e}
+    .container{max-width:1200px;margin:0 auto}
+    .back-btn{display:inline-flex;gap:6px;align-items:center;padding:10px 16px;border:1px solid #d7dfef;border-radius:10px;background:#fff;color:var(--brand);cursor:pointer;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,0.04);transition:all .2s}
+    .back-btn:hover{background:#f8f9fb;transform:translateY(-1px);box-shadow:0 4px 10px rgba(0,0,0,0.08)}
+    h1{text-align:center;margin:14px 0 10px;color:var(--brand);font-size:32px;font-weight:800}
+    .subtitle{text-align:center;color:var(--muted);margin-bottom:24px;font-size:15px}
+    .staff-info{text-align:center;margin-bottom:16px;padding:12px;background:#f0f4ff;border-radius:10px;color:var(--brand);font-weight:700;font-size:15px}
+    .search-section,.orders-section,.info-card,.stat-card,.meeting-history{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+    .search-section{padding:22px;margin-bottom:18px}
+    .search-box{display:flex;gap:10px;margin-bottom:14px}
+    .search-input{flex:1;padding:13px 14px;border:1px solid #d8e0f1;border-radius:11px;font-size:16px;transition:border-color .2s}
+    .search-input:focus{outline:none;border-color:#6b8bff}
+    .search-btn{padding:13px 22px;border:none;border-radius:11px;background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;font-weight:800;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(30,60,114,0.2)}
+    .search-btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(30,60,114,0.35)}
+    .label{font-size:13px;font-weight:700;color:var(--brand);margin:8px 0}
+    .filter-chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:16px}
+    .chip{padding:12px 10px;border:1px solid #e2e8f0;background:#fff;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 1px 2px rgba(0,0,0,0.03);text-align:center;min-height:46px;display:flex;align-items:center;justify-content:center}
+    .chip:hover{background:#f1f5f9;border-color:#cbd5e1;transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,0.06)}
+    .chip.active{background:#2563eb;color:#fff;border-color:#2563eb;box-shadow:0 4px 12px rgba(37,99,235,0.35);font-weight:700;transform:translateY(-1px)}
+    .quick-wrap{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+    .quick-search-btn{padding:8px 14px;border-radius:10px;border:1px solid #d8e0f1;background:#fff;color:var(--brand);cursor:pointer;font-weight:700;transition:all .2s}
+    .quick-search-btn:hover{background:#f8f9fb;border-color:#6b8bff}
+    #searchResults{display:none;margin-top:12px}
+    .result-section{display:none}
+    .result-section.show{display:block}
+    .school-header{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 4px 12px rgba(30,60,114,0.2)}
+    .school-name{font-size:28px;font-weight:800;margin-bottom:4px}
+    .school-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:12px}
+    .meta-item{background:rgba(255,255,255,.14);padding:10px 12px;border-radius:9px;backdrop-filter:blur(10px)}
+    .meta-label{font-size:12px;opacity:.86}
+    .meta-value{font-size:15px;font-weight:800}
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+    .stat-card{padding:16px;text-align:center}
+    .stat-number{font-size:28px;font-weight:800;color:var(--brand)}
+    .stat-label{font-size:13px;color:var(--muted)}
+    .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-bottom:14px}
+    .info-card{padding:18px}
+    .card-title{font-size:17px;font-weight:800;color:var(--brand);padding-bottom:10px;border-bottom:2px solid var(--line);margin-bottom:8px}
+    .info-row{display:flex;padding:8px 0;border-bottom:1px solid #f1f5f9}
+    .info-row:last-child{border-bottom:none}
+    .info-label{min-width:95px;font-size:14px;color:var(--muted);font-weight:700}
+    .info-value{font-size:14px}
+    .orders-section,.meeting-history{padding:18px;margin-bottom:16px}
+    .meeting-history{background:linear-gradient(180deg,#ffffff 0%,#f7f9ff 100%)}
+    .meeting-item{padding:14px;margin-bottom:10px;background:#fff;border:1px solid #e6eefc;border-radius:10px;transition:all .2s;cursor:pointer}
+    .meeting-item:hover{box-shadow:0 2px 8px rgba(0,0,0,0.06);border-color:#6b8bff;transform:translateY(-1px)}
+    .meeting-date{font-weight:800;color:var(--brand);margin-bottom:4px;font-size:15px}
+    .meeting-detail{font-size:13px;color:#556;padding:6px 0;line-height:1.6}
+    .meeting-contact{font-size:12px;color:#888;margin-top:6px}
+    .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;overflow:auto;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px)}
+    .modal.show{display:flex;align-items:center;justify-content:center}
+    .modal-content{background:#fff;margin:auto;padding:0;border-radius:16px;max-width:700px;width:90%;max-height:85vh;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.3);animation:modalSlideIn .3s ease-out}
+    @keyframes modalSlideIn{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+    .modal-header{padding:20px 24px;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border-radius:16px 16px 0 0}
+    .modal-title{font-size:20px;font-weight:800;margin:0}
+    .modal-close{float:right;font-size:28px;font-weight:700;line-height:20px;cursor:pointer;opacity:.8;transition:opacity .2s}
+    .modal-close:hover{opacity:1}
+    .modal-body{padding:24px;overflow-y:auto;max-height:calc(85vh - 80px)}
+    .modal-section{margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #e6eefc}
+    .modal-section:last-child{border-bottom:none}
+    .modal-label{font-size:13px;font-weight:700;color:var(--brand);margin-bottom:6px}
+    .modal-value{font-size:14px;color:#333;line-height:1.6;white-space:pre-wrap}
+    .table-wrapper{overflow:auto;max-height:340px;scrollbar-width:thin;scrollbar-gutter:stable both-edges}
+    .table-wrapper::-webkit-scrollbar{width:8px;height:8px}
+    .table-wrapper::-webkit-scrollbar-thumb{background:#b7c0d4;border-radius:8px}
+    .table-wrapper::-webkit-scrollbar-track{background:#eef2fb}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid #edf2fb;font-size:14px;text-align:left;white-space:nowrap}
+    th{background:#f5f8ff;color:var(--brand);font-weight:700}
+    .badge{padding:3px 9px;border-radius:12px;background:#e6f7ed;color:#059669;font-size:12px;font-weight:700}
+    .loading{color:var(--muted);padding:12px 0;text-align:center}
+    .error{background:#fee;color:#c33;border:1px solid #fcc;padding:12px;border-radius:10px;margin-top:12px}
+    .export-btn{float:right;padding:8px 13px;border-radius:9px;border:1px solid #d8e0f1;background:#fff;color:var(--brand);cursor:pointer;font-weight:700;transition:all .2s}
+    .export-btn:hover{background:#f0f4ff;border-color:#6b8bff}
+    #searchResultsList{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;max-height:400px;overflow:auto;padding:4px}
+    .search-result-item{padding:14px;border:1px solid #e2e8f0;border-radius:12px;cursor:pointer;transition:all .2s;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.03)}
+    .search-result-item:hover{border-color:#2563eb;box-shadow:0 4px 12px rgba(37,99,235,0.2);transform:translateY(-2px)}
+    .search-result-name{font-weight:700;color:#12325a;font-size:15px;margin-bottom:6px}
+    .search-result-meta{font-size:13px;color:#64748b;line-height:1.6}
+    @media (max-width:768px){.search-box{flex-direction:column} .search-btn{width:100%} h1{font-size:24px} #searchResultsList{grid-template-columns:1fr} .filter-chips{grid-template-columns:repeat(auto-fill,minmax(100px,1fr))}}
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <div class="container">
+    <button class="back-btn" onclick="goBack()">← 뒤로가기</button>
+    <h1>🏫 씨마스 학교정보통합조회시스템</h1>
+    <div class="subtitle">학교명 또는 학교코드로 검색하여 총판, 담당자, 주문이력 정보를 확인하세요</div>
+    <div class="staff-info" id="staffInfo" style="display:none">담당자: <span id="staffName">-</span></div>
+
+    <div class="search-section">
+      <div class="search-box">
+        <input id="searchInput" class="search-input" placeholder="학교명 또는 학교코드를 입력하세요" onkeypress="if(event.key==='Enter') searchSchool()">
+        <button class="search-btn" onclick="searchSchool()">🔍 검색</button>
+      </div>
+
+      <div class="label">📚 학교급</div>
+      <div class="filter-chips" id="levelFilter">
+        <div class="chip active" data-type="level" data-filter="all">전체</div>
+        <div class="chip" data-type="level" data-filter="elementary">초등학교</div>
+        <div class="chip" data-type="level" data-filter="middle">중학교</div>
+        <div class="chip" data-type="level" data-filter="high">고등학교</div>
+      </div>
+
+      <div class="label">🏢 시도교육청</div>
+      <div class="filter-chips" id="eduOfficeFilter">
+        <div class="chip active" data-type="eduoffice" data-filter="all">전체</div>
+      </div>
+
+      <div class="label">📍 지역 (시/군/구)</div>
+      <div class="filter-chips" id="regionFilter">
+        <div class="chip active" data-type="region" data-filter="all">전체</div>
+      </div>
+
+      <div class="label">🏛️ 설립구분</div>
+      <div class="filter-chips" id="establFilter">
+        <div class="chip active" data-type="establ" data-filter="all">전체</div>
+        <div class="chip" data-type="establ" data-filter="공립">🏫 공립</div>
+        <div class="chip" data-type="establ" data-filter="사립">🏢 사립</div>
+        <div class="chip" data-type="establ" data-filter="국립">🏛️ 국립</div>
+      </div>
+
+      <div class="label" id="gradeLabelRow" style="display:none">🏆 학교 등급</div>
+      <div class="filter-chips" id="gradeFilter" style="display:none">
+        <div class="chip active" data-type="grade" data-filter="all">전체</div>
+        <div class="chip" data-type="grade" data-filter="S" style="border-color:#5b21b6;color:#5b21b6">⭐ S</div>
+        <div class="chip" data-type="grade" data-filter="A" style="border-color:#1d4ed8;color:#1d4ed8">🔵 A</div>
+        <div class="chip" data-type="grade" data-filter="B" style="border-color:#059669;color:#059669">🟢 B</div>
+        <div class="chip" data-type="grade" data-filter="C" style="border-color:#d97706;color:#d97706">🟡 C</div>
+      </div>
+
+      <div class="label">🤖 2026 AI·디지털 선정학교</div>
+      <div class="filter-chips" id="digitalFilter">
+        <div class="chip active" data-type="digital" data-filter="all">전체</div>
+        <div class="chip" data-type="digital" data-filter="AI중점학교" style="border-color:#7c3aed;color:#7c3aed">🟣 AI중점</div>
+        <div class="chip" data-type="digital" data-filter="AI디지털선도학교" style="border-color:#0284c7;color:#0284c7">📗 선도</div>
+        <div class="chip" data-type="digital" data-filter="AI디지털연구학교" style="border-color:#059669;color:#059669">📘 연구</div>
+      </div>
+
+      <div class="quick-wrap">
+        <div class="label">🔍 빠른 검색</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="quick-search-btn" onclick="quickSearch()">현재 필터로 조회</button>
+          <button class="quick-search-btn" onclick="resetFilters()">필터 초기화</button>
+        </div>
+      </div>
+
+      <div id="searchResults">
+        <div style="font-size:14px;color:#556;margin-bottom:12px;font-weight:600">검색 결과: <b id="resultCount" style="color:#2563eb">0</b>개</div>
+        <div id="searchResultsList"></div>
+      </div>
+    </div>
+
+    <div class="result-section" id="resultSection">
+      <div class="school-header">
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">
+          <div class="school-name" id="schoolName">-</div>
+          <span id="schoolGradeBadge" style="display:none"></span>
+          <span id="schoolDigitalBadge" style="display:none"></span>
+          <span id="schoolAdoptBadge" style="display:none"></span>
+          <a id="schoolHomepageBtn" href="#" target="_blank" rel="noopener" style="display:none;align-items:center;gap:5px;padding:5px 14px;background:#1d4ed8;color:#fff;border-radius:999px;font-size:13px;font-weight:700;text-decoration:none;cursor:pointer">🏠 홈페이지</a>
+        </div>
+        <div id="schoolCode">학교코드: -</div>
+        <div class="school-meta">
+          <div class="meta-item"><div class="meta-label">시도교육청</div><div class="meta-value" id="schoolEduOffice">-</div></div>
+          <div class="meta-item"><div class="meta-label">교육지원청</div><div class="meta-value" id="schoolSupportOffice">-</div></div>
+          <div class="meta-item"><div class="meta-label">지역</div><div class="meta-value" id="schoolRegion">-</div></div>
+          <div class="meta-item"><div class="meta-label">학교급</div><div class="meta-value" id="schoolLevel">-</div></div>
+          <div class="meta-item"><div class="meta-label">설립구분</div><div class="meta-value" id="schoolEstablishment">-</div></div>
+          <div class="meta-item"><div class="meta-label">전체 학급 수</div><div class="meta-value" id="totalClasses">-</div></div>
+          <div class="meta-item"><div class="meta-label">전체 학생 수</div><div class="meta-value" id="totalStudents">-</div></div>
+          <div class="meta-item"><div class="meta-label">방문횟수</div><div class="meta-value" id="metaVisitCount" style="color:#0369a1;font-weight:700">0회</div></div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-number" id="totalOrders">0</div><div class="stat-label">총 주문 수</div></div>
+        <div class="stat-card"><div class="stat-number" id="recentYear">-</div><div class="stat-label">최근 주문 연도</div></div>
+        <div class="stat-card"><div class="stat-number" id="totalSubjects">0</div><div class="stat-label">주문 과목 수</div></div>
+        <div class="stat-card"><div class="stat-number" id="totalCopies">0</div><div class="stat-label">총 부수</div></div>
+        <div class="stat-card"><div class="stat-number" id="totalMeetings">0</div><div class="stat-label">방문횟수</div></div>
+      </div>
+
+      <div class="meeting-history" id="meetingHistory">
+        <div class="card-title">📅 미팅 히스토리 <button class="export-btn" onclick="exportMeetings()">📥 엑셀 다운로드</button></div>
+        <div id="meetingList" style="max-height:400px;overflow:auto;margin-top:12px">
+          <div class="loading">미팅 히스토리를 불러오는 중...</div>
+        </div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-card">
+          <div class="card-title">🏫 학교 상세 정보</div>
+          <div class="info-row"><div class="info-label">주소</div><div class="info-value" id="schoolAddress">-</div></div>
+          <div class="info-row"><div class="info-label">학교 전화</div><div class="info-value" id="schoolPhone">-</div></div>
+          <div class="info-row"><div class="info-label">팩스</div><div class="info-value" id="schoolFax">-</div></div>
+          <div class="info-row"><div class="info-label">학교 홈페이지</div><div class="info-value" id="schoolHomepage">-</div></div>
+          <div class="info-row"><div class="info-label">학교특성</div><div class="info-value" id="schoolCharacter">-</div></div>
+          <div class="info-row"><div class="info-label">남녀공학</div><div class="info-value" id="schoolCoed">-</div></div>
+          <div class="info-row"><div class="info-label">개교기념일</div><div class="info-value" id="schoolFoundDate">-</div></div>
+          <div class="info-row"><div class="info-label">위치 지도</div><div class="info-value" id="schoolMapLink">-</div></div>
+          <div class="info-row"><div class="info-label">1학년</div><div class="info-value" id="grade1Info">-</div></div>
+          <div class="info-row"><div class="info-label">2학년</div><div class="info-value" id="grade2Info">-</div></div>
+          <div class="info-row"><div class="info-label">3학년</div><div class="info-value" id="grade3Info">-</div></div>
+          <div class="info-row"><div class="info-label">공공 API</div><div class="info-value" id="publicApiStatus">조회 대기</div></div>
+        </div>
+
+        <div class="info-card">
+          <div class="card-title">📋 담당 총판 정보</div>
+          <div class="info-row"><div class="info-label">총판명</div><div class="info-value" id="distributorName">-</div></div>
+          <div class="info-row"><div class="info-label">대표자</div><div class="info-value" id="distributorCEO">-</div></div>
+          <div class="info-row"><div class="info-label">연락처</div><div class="info-value" id="distributorPhone">-</div></div>
+          <div class="info-row"><div class="info-label">주소</div><div class="info-value" id="distributorAddress">-</div></div>
+          <div class="info-row"><div class="info-label">이메일</div><div class="info-value" id="distributorEmail">-</div></div>
+        </div>
+
+        <div class="info-card">
+          <div class="card-title">👤 본사 담당자 정보</div>
+          <div class="info-row"><div class="info-label">담당자명</div><div class="info-value" id="managerName">-</div></div>
+          <div class="info-row"><div class="info-label">부서</div><div class="info-value" id="managerDept">-</div></div>
+          <div class="info-row"><div class="info-label">직급</div><div class="info-value" id="managerPosition">-</div></div>
+          <div class="info-row"><div class="info-label">연락처</div><div class="info-value" id="managerPhone">-</div></div>
+          <div class="info-row"><div class="info-label">이메일</div><div class="info-value" id="managerEmail">-</div></div>
+        </div>
+      </div>
+
+      <div class="orders-section">
+        <div class="card-title" style="border:none;margin-bottom:10px">📊 주문 이력 <button class="export-btn" onclick="exportOrders()">📥 엑셀 다운로드</button></div>
+        <div class="table-wrapper">
+          <div style="text-align:center;color:#556;padding:20px">학교를 검색해 주세요</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="meetingModal" class="modal" onclick="if(event.target===this) closeMeetingModal()">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-close" onclick="closeMeetingModal()">&times;</span>
+        <h2 class="modal-title">📅 미팅 상세 내용</h2>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    // Firebase 초기화
+    const firebaseConfig = {
+      apiKey: "AIzaSyARdXNfFCUShNeFXV8cTDzFbKa4GId5EvU",
+      authDomain: "cmass-sales.firebaseapp.com",
+      projectId: "cmass-sales",
+      storageBucket: "cmass-sales.appspot.com",
+      messagingSenderId: "979517207512",
+      appId: "1:979517207512:web:1c6dba97e5f0e5f5d69c5e"
+    };
+    
+    let db = null;
+    try {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      db = firebase.firestore();
+      console.log('[schoolinfo] Firebase initialized successfully');
+    } catch(e) {
+      console.warn('[schoolinfo] Firebase initialization failed:', e);
+    }
+
+    const NEIS_API_KEY = '94bb8b0dc511401387d36eb3f6d10905';
+    const SCHOOLINFO_API_KEY = '1a032400448e4e729db4f87b0bce0ba6';
+
+    let schoolsData = [];
+    let distributorsData = [];
+    let ordersData = [];
+    let mappingData = [];
+    let salesLogsData = [];
+    let currentOrders = [];
+    let currentMeetings = [];
+    let currentStaff = '';
+    let visitEntriesCache = {}; // 학교별 미팅 데이터 캠시
+    let basicInfoMap = {};     // 학교기본정보 CSV 맵 (code/name 키)
+
+    const normalize = v => String(v || '').toLowerCase().replace(/\s+/g, '').trim();
+    const num = v => Number(String(v || '').replace(/,/g, '')) || 0;
+    function esc(v){ return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+    // 숫자 코드 -> 담당자 이름 매핑
+    function getStaffDisplayName(staffCode) {
+      const codeMap = {
+        '99781203': '임준호',
+        '89250686': '조영환',
+        '51322012': '이경일'
+      };
+      return codeMap[String(staffCode || '').trim()] || '';
+    }
+
+    // 담당자 이름 -> 숫자 코드 매핑 (역방향)
+    function getStaffCodeFromName(staffName) {
+      const nameMap = {
+        '임준호': '99781203',
+        '조영환': '89250686',
+        '이경일': '51322012'
+      };
+      const normalized = String(staffName || '').replace(/\s*(부장|차장|과장|대리|사원|팀장)/g, '').trim();
+      return nameMap[normalized] || '';
+    }
+
+    function getStaffFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('staff') || '';
+    }
+
+    const HQ_MANAGER_2026 = {
+      '99781203': { name: '임준호', position: '부장' },
+      '89250686': { name: '조영환', position: '부장' },
+      '51322012': { name: '이경일', position: '차장' }
+    };
+
+    function parseCsv(text){
+      const rows=[]; let row=[]; let field=''; let q=false;
+      const src=String(text||'').replace(/^\uFEFF/, '');
+      for(let i=0;i<src.length;i++){
+        const ch=src[i];
+        if(q){ if(ch==='"'){ if(src[i+1]==='"'){ field+='"'; i++; } else q=false; } else field+=ch; continue; }
+        if(ch==='"'){ q=true; continue; }
+        if(ch===','){ row.push(field); field=''; continue; }
+        if(ch==='\r') continue;
+        if(ch==='\n'){ row.push(field); rows.push(row); row=[]; field=''; continue; }
+        field+=ch;
+      }
+      if(field!==''||row.length){ row.push(field); rows.push(row); }
+      return rows;
+    }
+
+    function csvToObjects(text){
+      const rows=parseCsv(text); if(rows.length<2) return [];
+      const headers=rows[0].map(h=>String(h||'').trim());
+      return rows.slice(1).map(cols=>{ const o={}; headers.forEach((h,i)=>o[h]=String(cols[i]||'').trim()); return o; });
+    }
+
+    async function fetchCsv(path, required=true){
+      try{ const r=await fetch(path,{cache:'no-store'}); if(!r.ok) throw new Error(`${r.status} ${r.statusText}`); return await r.text(); }
+      catch(e){ if(!required) return ''; throw e; }
+    }
+
+    function pick(row, keys){ for(const k of keys){ if(row[k]!==undefined && String(row[k]).trim()!=='') return String(row[k]).trim(); } return ''; }
+    function levelFrom(code, text){ if(text) return text; if(code==='2') return '초등학교'; if(code==='3') return '중학교'; if(code==='4') return '고등학교'; return '-'; }
+
+    // Firestore 읽기 최소화: 특정 학교의 visit_entries만 조회
+    async function loadVisitEntriesForSchool(schoolCode, schoolName='') {
+      if (!schoolCode) return [];
+      
+      // 캐시 확인
+      const cacheKey = `${schoolCode}::${schoolName || ''}`;
+      if (visitEntriesCache[cacheKey]) {
+        console.log('[schoolinfo] Using cached visit entries for', cacheKey);
+        return visitEntriesCache[cacheKey];
+      }
+      
+      try {
+        console.log('[schoolinfo] Fetching visit entries for school:', schoolCode);
+        const backendUrl = 'https://cmass-sales-backend-918981476485.asia-northeast3.run.app';
+        const query = new URLSearchParams({ schoolCode: String(schoolCode || '') });
+        if (schoolName) query.set('schoolName', String(schoolName));
+        const response = await fetch(`${backendUrl}/api/visit_entries?${query.toString()}`);
+        
+        if (!response.ok) {
+          throw new Error(`Backend error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        if (data.ok && data.entries) {
+          const entries = data.entries.map(entry => ({
+            id: entry.id,
+            ...entry,
+            visitDate: entry.visitDate || '',
+            staff: entry.staff || entry.staff_key || '',
+            region: entry.region || '',
+            schoolName: entry.school || entry.schoolName || '',
+            contacts: entry.contacts || [],
+            summary: entry.summary || entry.conversation || ''
+          }));
+          
+          // 캐시 저장
+          visitEntriesCache[cacheKey] = entries;
+          console.log('[schoolinfo] Loaded', entries.length, 'visit entries for', schoolCode);
+          return entries;
+        }
+        return [];
+      } catch (error) {
+        console.error('[schoolinfo] Failed to load visit entries:', error);
+        return [];
+      }
+    }
+
+    async function loadData(){
+      const staffCode = getStaffFromQuery();
+      const staffName = getStaffDisplayName(staffCode);
+      
+      console.log('[schoolinfo] staffCode:', staffCode, 'staffName:', staffName);
+      
+      if(staffCode && staffName) {
+        document.getElementById('staffInfo').style.display = 'block';
+        document.getElementById('staffName').textContent = `${staffName} (${staffCode})`;
+      }
+
+      const staffRows = csvToObjects(await fetchCsv('/sales_staff.csv', true));
+      let allSchools = staffRows.map(r=>({
+        code: pick(r,['정보공시 학교코드','정보공시학교코드','s-code','scode']),
+        name: pick(r,['학교명','school']),
+        region: pick(r,['지역','region']),
+        eduOffice: pick(r,['시도교육청','ATPT_OFCDC_SC_NM']),
+        supportOffice: pick(r,['교육지원청','JU_ORG_NM']),
+        level: levelFrom(pick(r,['학교급코드']), pick(r,['학교급'])),
+        address: pick(r,['도로명 주소','주소','ORG_RDNMA']),
+        phone: pick(r,['전화번호','ORG_TELNO']),
+        grade1Classes: num(pick(r,['1학년 학급수','1학년학급수'])),
+        grade1Students: num(pick(r,['1학년 학생수','1학년학생수'])),
+        grade2Classes: num(pick(r,['2학년 학급수','2학년학급수'])),
+        grade2Students: num(pick(r,['2학년 학생수','2학년학생수'])),
+        grade3Classes: num(pick(r,['3학년 학급수','3학년학급수'])),
+        grade3Students: num(pick(r,['3학년 학생수','3학년학생수'])),
+        distributorCode: pick(r,['담당총판코드']),
+        distributorName: pick(r,['담당총판']),
+        managerName: pick(r,['본사담당자(2026.01)','본사담당자(2025.09)','본사담당자']),
+        managerCode: pick(r,['본사담당자코드','staff']),
+        establishment: pick(r,['설립구분']),
+        totalStudents: num(pick(r,['학생수(계)']))
+      })).filter(x=>x.code&&x.name);
+
+      console.log('[schoolinfo] Total schools loaded:', allSchools.length);
+      
+      // 담당자별 필터링 (코드로 직접 비교)
+      if(staffCode) {
+        schoolsData = allSchools.filter(s => {
+          return s.managerCode === staffCode;
+        });
+        console.log('[schoolinfo] Filtered schools for staffCode', staffCode, ':', schoolsData.length);
+        console.log('[schoolinfo] Sample schools:', schoolsData.slice(0, 5).map(s => ({name: s.name, code: s.managerCode})));
+      } else {
+        schoolsData = allSchools;
+        console.log('[schoolinfo] No staff filter - showing all schools');
+      }
+
+      const distText = await fetchCsv('/distributors.csv', false);
+      distributorsData = distText ? csvToObjects(distText).map(r=>(
+        { code: pick(r,['총판코드','총판ID','id']), name: pick(r,['총판명','name']), ceo: pick(r,['대표자','ceo']), phone: pick(r,['연락처','전화번호']), address: pick(r,['주소']), email: pick(r,['이메일']) }
+      )) : [];
+
+      const mapText = await fetchCsv('/school_mapping.csv', false);
+      mappingData = mapText ? csvToObjects(mapText).map(r=>(
+        { schoolCode: pick(r,['학교코드','정보공시학교코드','정보공시 학교코드']), distributorCode: pick(r,['총판코드']), distributorName: pick(r,['총판명']), managerName: pick(r,['본사담당자']), managerDept: pick(r,['담당부서']), managerPosition: pick(r,['담당직급']), managerPhone: pick(r,['담당연락처']), managerEmail: pick(r,['담당이메일']) }
+      )) : [];
+
+      const orderText = await fetchCsv('/orderv2.csv', false);
+      ordersData = orderText ? csvToObjects(orderText).map(r=>(
+        { schoolCode: pick(r,['정보공시학교코드','정보공시 학교코드','학교코드']), year: pick(r,['학년도','연도']), grade: pick(r,['학년']), subjectGroup: pick(r,['교과군']), subject: pick(r,['과목명']), bookName: pick(r,['교지명','교재명']), copies: num(pick(r,['부수'])), status: '완료' }
+      )).filter(x=>x.schoolCode) : [];
+
+      // 학교기본정보 CSV 로드 (주소/전화/홈페이지/위도경도 등)
+      try{
+        const biText = await fetchCsv('/assets/학교기본정보(초중고)_전체.csv', false);
+        if(biText){
+          basicInfoMap = {};
+          csvToObjects(biText).forEach(r=>{
+            const code = (r['정보공시 학교코드']||r['정보공시학교코드']||'').trim();
+            const name = (r['학교명']||'').trim();
+            if(!code && !name) return;
+            const entry = {
+              address: (r['학교도로명 주소']||r['주소내역']||'').trim(),
+              addressDetail: (r['학교도로명 상세주소']||'').trim(),
+              phone: (r['전화번호']||'').trim(),
+              fax: (r['팩스번호']||'').trim(),
+              homepage: (r['홈페이지 주소']||'').trim(),
+              lat: (r['위도']||'').trim(),
+              lng: (r['경도']||'').trim(),
+              coed: (r['남녀공학 구분']||'').trim(),
+              character: (r['학교특성']||'').trim(),
+              foundDate: (r['개교기념일']||'').trim(),
+              establishment: (r['설립구분']||'').trim(),
+            };
+            if(code) basicInfoMap[code] = entry;
+            if(name) basicInfoMap['n:'+name] = entry;
+          });
+          console.log('[schoolinfo] basicInfoMap loaded:', Object.keys(basicInfoMap).length/2|0, '개 학교');
+        }
+      }catch(e){ console.warn('[schoolinfo] basicInfoMap load failed', e); }
+
+      // Firestore 읽기 최적화: visit_entries는 학교 검색 시에만 필요한 데이터만 로드
+      // await loadSalesLogs(); // 제거 - 필요할 때만 백엔드 API를 통해 조회
+    }
+
+    function buildFilters(){
+      const eduWrap=document.getElementById('eduOfficeFilter');
+      const regionWrap=document.getElementById('regionFilter');
+      const offices=[...new Set(schoolsData.map(s=>s.eduOffice).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+      const regions=[...new Set(schoolsData.map(s=>s.region).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+      console.log('[schoolinfo] Building filters - offices:', offices.length, 'regions:', regions.length);
+      console.log('[schoolinfo] Offices:', offices);
+      console.log('[schoolinfo] Regions:', regions);
+      // 시도교육청별 학교 수
+      const officeCnt = {};
+      schoolsData.forEach(s=>{ if(s.eduOffice) officeCnt[s.eduOffice]=(officeCnt[s.eduOffice]||0)+1; });
+      // 지역별 학교 수
+      const regionCnt = {};
+      schoolsData.forEach(s=>{ if(s.region) regionCnt[s.region]=(regionCnt[s.region]||0)+1; });
+      const totalCnt = schoolsData.length;
+      eduWrap.innerHTML=`<div class="chip active" data-type="eduoffice" data-filter="all">전체(${totalCnt})</div>`;
+      offices.forEach(v=>{ const d=document.createElement('div'); d.className='chip'; d.dataset.type='eduoffice'; d.dataset.filter=v; d.textContent=`${v}(${officeCnt[v]||0})`; eduWrap.appendChild(d); });
+      regionWrap.innerHTML='<div class="chip active" data-type="region" data-filter="all">전체</div>';
+      regions.forEach(v=>{ const d=document.createElement('div'); d.className='chip'; d.dataset.type='region'; d.dataset.filter=v; d.textContent=`${v}(${regionCnt[v]||0})`; regionWrap.appendChild(d); });
+
+      // ── 학교급 카운트 ─────────────────────────────────────────────────────────
+      const elemCnt = schoolsData.filter(s=>s.level&&s.level.includes('초등')).length;
+      const midCnt  = schoolsData.filter(s=>s.level&&(s.level.includes('중학교')||s.level.includes('중등')||s.level.includes('중학'))).length;
+      const highCnt = schoolsData.filter(s=>s.level&&s.level.includes('고등')).length;
+      const levelTotalEl = document.querySelector('.chip[data-type="level"][data-filter="all"]');
+      if(levelTotalEl) levelTotalEl.textContent=`전체(${totalCnt})`;
+      const elemEl = document.querySelector('.chip[data-type="level"][data-filter="elementary"]');
+      if(elemEl) elemEl.textContent=`초등학교(${elemCnt})`;
+      const midEl = document.querySelector('.chip[data-type="level"][data-filter="middle"]');
+      if(midEl) midEl.textContent=`중학교(${midCnt})`;
+      const highEl = document.querySelector('.chip[data-type="level"][data-filter="high"]');
+      if(highEl) highEl.textContent=`고등학교(${highCnt})`;
+
+      // ── 설립구분 카운트 ────────────────────────────────────────────────────────
+      const establCnt={'공립':0,'사립':0,'국립':0};
+      schoolsData.forEach(s=>{ const e=(s.establishment||'').trim(); if(establCnt[e]!==undefined) establCnt[e]++; });
+      const establTotalEl = document.querySelector('.chip[data-type="establ"][data-filter="all"]');
+      if(establTotalEl) establTotalEl.textContent=`전체(${totalCnt})`;
+      [['공립','🏫 '],['사립','🏢 '],['국립','🏛️ ']].forEach(([v,ic])=>{
+        const el=document.querySelector(`.chip[data-type="establ"][data-filter="${v}"]`);
+        if(el) el.textContent=`${ic}${v}(${establCnt[v]})`;
+      });
+
+      // ── AI 디지털 카운트 ───────────────────────────────────────────────────────
+      updateDigitalChipCounts();
+    }
+
+    function updateDigitalChipCounts(){
+      const dm = window.__digitalMap||{};
+      const aiCnt={'AI중점학교':0,'AI디지털선도학교':0,'AI디지털연구학교':0};
+      schoolsData.forEach(s=>{ const di=getDigitalInfo(s); if(di&&di.tags) di.tags.forEach(tag=>{ if(aiCnt[tag]!==undefined) aiCnt[tag]++; }); });
+      const aiTotalEl = document.querySelector('.chip[data-type="digital"][data-filter="all"]');
+      const aiTotal = Object.values(aiCnt).reduce((a,b)=>a+b,0);
+      if(aiTotalEl) aiTotalEl.textContent=`전체`;
+      const aiMap=[['AI중점학교','🟣 AI중점'],['AI디지털선도학교','📗 선도'],['AI디지털연구학교','📘 연구']];
+      aiMap.forEach(([key,label])=>{
+        const el=document.querySelector(`.chip[data-type="digital"][data-filter="${key}"]`);
+        if(el) el.textContent=`${label}(${aiCnt[key]})`;
+      });
+    }
+
+    function getFilters(){
+      return {
+        level: document.querySelector('.chip[data-type="level"].active')?.dataset.filter || 'all',
+        eduOffice: document.querySelector('.chip[data-type="eduoffice"].active')?.dataset.filter || 'all',
+        region: document.querySelector('.chip[data-type="region"].active')?.dataset.filter || 'all',
+        establ: document.querySelector('.chip[data-type="establ"].active')?.dataset.filter || 'all',
+        grade: document.querySelector('.chip[data-type="grade"].active')?.dataset.filter || 'all',
+        digital: document.querySelector('.chip[data-type="digital"].active')?.dataset.filter || 'all'
+      };
+    }
+
+    function applyFilters(list, f){
+      return list.filter(s=>{
+        if(f.level!=='all'){ if(f.level==='elementary' && !s.level.includes('초등')) return false; if(f.level==='middle' && !(s.level.includes('중학교')||s.level.includes('중등')||s.level.includes('중학'))) return false; if(f.level==='high' && !s.level.includes('고등')) return false; }
+        if(f.eduOffice!=='all' && s.eduOffice!==f.eduOffice) return false;
+        if(f.region!=='all' && !s.region.includes(f.region)) return false;
+        if(f.establ && f.establ!=='all' && (s.establishment||'')!==f.establ) return false;
+        if(f.grade && f.grade!=='all'){
+          const g=(window.__gradeMap||{})[s.name];
+          if(g!==f.grade) return false;
+        }
+        if(f.digital && f.digital!=='all'){
+          const di=getDigitalInfo(s);
+          if(!di || !(di.tags||[]).includes(f.digital)) return false;
+        }
+        return true;
+      });
+    }
+
+    function renderResults(results){
+      const wrap=document.getElementById('searchResults');
+      const list=document.getElementById('searchResultsList');
+      document.getElementById('resultCount').textContent=String(results.length);
+      window._searchResults=results;
+      list.innerHTML=results.slice(0,100).map((s,i)=>{
+        const g = (window.__gradeMap||{})[s.name];
+        const gc={S:'#5b21b6',A:'#1d4ed8',B:'#059669',C:'#d97706'};
+        const gbg={S:'#f5f3ff',A:'#eff6ff',B:'#ecfdf5',C:'#fffbeb'};
+        const gradeBadge=g?` <span style="font-size:11px;font-weight:800;background:${gbg[g]};color:${gc[g]};border:1px solid ${gc[g]}30;border-radius:10px;padding:1px 7px;vertical-align:middle">${g}</span>`:''
+        // 디지털 선정 배지
+        const di = getDigitalInfo(s);
+        const diColors={'AI중점학교':'#7c3aed','AI디지털선도학교':'#0284c7','AI디지털연구학교':'#059669'};
+        const diLabels={'AI중점학교':'🟣 AI중점','AI디지털선도학교':'💡 선도','AI디지털연구학교':'🔬 연구'};
+        const digitalBadge=di?(di.tags||[]).map(t=>{
+          const c=diColors[t]||'#6b7280'; const lb=diLabels[t]||t;
+          return ` <span style="font-size:11px;font-weight:800;background:${c}18;color:${c};border:1px solid ${c}50;border-radius:10px;padding:1px 7px;vertical-align:middle">${lb}</span>`;
+        }).join(''):'';
+        return `<div class="search-result-item" onclick="displaySchoolInfo(window._searchResults[${i}])"><div class="search-result-name">${esc(s.name)}${gradeBadge}${digitalBadge}</div><div class="search-result-meta">${esc(s.code)} | ${esc(s.eduOffice||s.region)} | ${esc(s.level)}${s.establishment?' | '+esc(s.establishment):''}</div></div>`;
+      }).join('');
+      wrap.style.display='block';
+    }
+
+    async function searchSchool(){
+      const q=(document.getElementById('searchInput').value||'').trim();
+      if(!q){ alert('검색어를 입력하세요.'); return; }
+      let results=schoolsData.filter(s=> normalize(s.name).includes(normalize(q)) || String(s.code||'').includes(q));
+      results=applyFilters(results,getFilters());
+      if(!results.length){ alert('검색 결과가 없습니다.'); return; }
+      if(results.length===1) await displaySchoolInfo(results[0]);
+      else renderResults(results);
+    }
+
+    function quickSearch(){
+      const f=getFilters();
+      if(f.level==='all'&&f.eduOffice==='all'&&f.region==='all'&&(f.establ||'all')==='all'&&(f.grade||'all')==='all'&&(f.digital||'all')==='all'){ alert('최소 1개 필터를 선택해 주세요.'); return; }
+      const results=applyFilters(schoolsData,f);
+      if(!results.length){ alert('필터 조건에 맞는 학교가 없습니다.'); return; }
+      renderResults(results);
+    }
+
+    // 칩 클릭 시 자동 필터 (검색어 반영 버전)
+    function autoSearch(){
+      const f=getFilters();
+      const q=(document.getElementById('searchInput').value||'').trim();
+      const allDefault=f.level==='all'&&f.eduOffice==='all'&&f.region==='all'&&(f.establ||'all')==='all'&&(f.grade||'all')==='all'&&(f.digital||'all')==='all'&&!q;
+      if(!schoolsData||!schoolsData.length) return;
+      if(allDefault){
+        // 모든 필터 해제 + 검색어 없으면 결과 패널 숨김
+        const wrap=document.getElementById('searchResults');
+        if(wrap && wrap.style.display!=='none') wrap.style.display='none';
+        return;
+      }
+      let results = q
+        ? schoolsData.filter(s=> normalize(s.name).includes(normalize(q)) || String(s.code||'').includes(q))
+        : schoolsData.slice();
+      results=applyFilters(results,f);
+      if(!results.length){ alert('필터 조건에 맞는 학교가 없습니다.'); return; }
+      renderResults(results);
+    }
+
+    function resetFilters(){
+      document.querySelectorAll('.chip[data-type]').forEach(c=>c.classList.remove('active'));
+      document.querySelectorAll('.chip[data-filter="all"]').forEach(c=>c.classList.add('active'));
+      document.getElementById('searchInput').value='';
+      document.getElementById('searchResults').style.display='none';
+    }
+
+    function fillDistributorAndManager(s){
+      const map = mappingData.find(m=>m.schoolCode===s.code) || null;
+      const dist = distributorsData.find(d=>d.code===(map?.distributorCode||s.distributorCode) || d.name===(map?.distributorName||s.distributorName)) || null;
+      document.getElementById('distributorName').textContent = dist?.name || map?.distributorName || s.distributorName || '-';
+      document.getElementById('distributorCEO').textContent = dist?.ceo || '-';
+      document.getElementById('distributorPhone').textContent = dist?.phone || '-';
+      document.getElementById('distributorAddress').textContent = dist?.address || '-';
+      document.getElementById('distributorEmail').textContent = dist?.email || '-';
+      const queryStaffCode = getStaffFromQuery();
+      const schoolManagerCode = String(s.managerCode || '').trim();
+      const mappedManagerCode = String(getStaffCodeFromName(map?.managerName || s.managerName || '') || '').trim();
+      const managerCode = queryStaffCode || schoolManagerCode || mappedManagerCode;
+      const manager2026 = HQ_MANAGER_2026[managerCode] || null;
+
+      document.getElementById('managerName').textContent = manager2026?.name || map?.managerName || s.managerName || '-';
+      document.getElementById('managerDept').textContent = map?.managerDept || '-';
+      document.getElementById('managerPosition').textContent = manager2026?.position || map?.managerPosition || '-';
+      document.getElementById('managerPhone').textContent = map?.managerPhone || '-';
+      document.getElementById('managerEmail').textContent = map?.managerEmail || '-';
+    }
+
+    function renderMeetings(meetings){
+      const list = document.getElementById('meetingList');
+      currentMeetings = meetings.sort((a,b)=> (b.visitDate||'').localeCompare(a.visitDate||''));
+      document.getElementById('totalMeetings').textContent = String(currentMeetings.length);
+      const _mvc = document.getElementById('metaVisitCount');
+      if(_mvc) _mvc.textContent = currentMeetings.length + '회';
+      
+      if(!currentMeetings.length) {
+        list.innerHTML = '<div style="text-align:center;color:#556;padding:20px">미팅 히스토리가 없습니다.</div>';
+        return;
+      }
+
+      list.innerHTML = currentMeetings.map((m, idx) => {
+        const contacts = m.contacts || [];
+        const contactInfo = contacts.length ? contacts.map(c => {
+          const phone = c.phone || '';
+          const name = c.name || '';
+          return `${name}${phone ? ' ('+phone+')' : ''}`;
+        }).join(', ') : '';
+        
+        // 담당자 한글 이름 표시 (staffLabel 우선, 없으면 숫자코드->이름 변환, 최후 폴백은 숫자코드)
+        const staffDisplay = m.staffLabel || getStaffDisplayName(m.staff) || m.staff || '-';
+        
+        // 과목명과 선생님 이름 추가
+        const teacher = m.teacher || m.teacherName || '';
+        const subject = m.subject || m.subjectName || m.과목 || '';
+        const teacherSubject = [teacher, subject].filter(x => x).join(' / ');
+        
+        return `<div class="meeting-item" onclick="window.showMeetingDetail(${idx}); event.stopPropagation();">
+          <div class="meeting-date">📅 ${esc(m.visitDate || '-')} | 담당: ${esc(staffDisplay)}</div>
+          ${teacherSubject ? `<div style="font-size:13px;color:#1e40af;font-weight:700;margin:4px 0;background:#eff6ff;display:inline-block;padding:2px 8px;border-radius:6px;border:1px solid #bfdbfe">🧑‍🏫 ${esc(teacherSubject)}</div>` : ''}
+          <div class="meeting-detail">${esc((m.summary || '').substring(0, 200))}${(m.summary||'').length > 200 ? '...' : ''}</div>
+          ${contactInfo ? `<div class="meeting-contact">👤 연락처: ${esc(contactInfo)}</div>` : ''}
+          <div style="font-size:11px;color:#999;margin-top:4px">📍 DB 학교명: ${esc(m.schoolName || '-')} <span style="color:#2563eb;font-weight:700">👆 클릭하여 전체 내용 보기 →</span></div>
+        </div>`;
+      }).join('');
+    }
+
+    function showMeetingDetail(index) {
+      console.log('[schoolinfo] showMeetingDetail called with index:', index);
+      const m = currentMeetings[index];
+      if (!m) {
+        console.warn('[schoolinfo] No meeting found at index:', index);
+        return;
+      }
+      
+      console.log('[schoolinfo] Meeting data:', m);
+      const staffDisplay = m.staffLabel || getStaffDisplayName(m.staff) || m.staff || '-';
+      const toStr = v => Array.isArray(v) ? v.join(', ') : (v || '');
+      const activities = toStr(m.activities) || '-';
+      const materials = toStr(m.materials) || '-';
+      const subjects = toStr(m.subject) || '-';
+      
+      let html = `
+        <div class="modal-section">
+          <div class="modal-label">📅 방문 일시</div>
+          <div class="modal-value">${esc(m.visitDate || '-')} ${esc(m.visitStart || '')}-${esc(m.visitEnd || '')} (${m.duration || 0}분)</div>
+        </div>
+        <div class="modal-section">
+          <div class="modal-label">👤 담당자</div>
+          <div class="modal-value">${esc(staffDisplay)}</div>
+        </div>
+        <div class="modal-section">
+          <div class="modal-label">🏫 학교 정보</div>
+          <div class="modal-value">${esc(m.schoolName || '-')} (${esc(m.region || '-')})</div>
+        </div>
+      `;
+      
+      if (m.teacherName || m.teacher) {
+        html += `
+          <div class="modal-section">
+            <div class="modal-label">🧑‍🏫 만난 선생님</div>
+            <div class="modal-value">${esc(m.teacherName || m.teacher || '-')}</div>
+          </div>
+        `;
+      }
+      
+      if (m.contacts && m.contacts.length > 0) {
+        const contactsList = m.contacts.map(c => 
+          `${esc(c.name || '-')}${c.phone ? ' (' + esc(c.phone) + ')' : ''}${c.email ? ' [' + esc(c.email) + ']' : ''}`
+        ).join(', ');
+        html += `
+          <div class="modal-section">
+            <div class="modal-label">📞 연락처</div>
+            <div class="modal-value">${contactsList}</div>
+          </div>
+        `;
+      }
+      
+      // 1. 영업활동
+      if (activities !== '-') {
+        html += `
+          <div class="modal-section">
+            <div class="modal-label">🎯 영업활동</div>
+            <div class="modal-value">${esc(activities)}</div>
+          </div>
+        `;
+      }
+      
+      // 2. 전달자료
+      if (materials !== '-') {
+        html += `
+          <div class="modal-section">
+            <div class="modal-label">📚 전달자료</div>
+            <div class="modal-value">${esc(materials)}</div>
+          </div>
+        `;
+      }
+      
+      // 3. 대화내용
+      if (m.conversation) {
+        html += `
+          <div class="modal-section">
+            <div class="modal-label">💬 대화내용</div>
+            <div class="modal-value">${esc(m.conversation)}</div>
+          </div>
+        `;
+      }
+      
+      // 4. 특이사항
+      if (m.issue) {
+        html += `
+          <div class="modal-section">
+            <div class="modal-label">⚠️ 특이사항</div>
+            <div class="modal-value">${esc(m.issue)}</div>
+          </div>
+        `;
+      }
+      
+      // 5. 납품내용
+      if (m.delivery) {
+        html += `
+          <div class="modal-section">
+            <div class="modal-label">📦 납품내용</div>
+            <div class="modal-value">${esc(m.delivery)}</div>
+          </div>
+        `;
+      }
+      
+      // 추가 정보들
+      if (subjects !== '-') {
+        html += `
+          <div class="modal-section">
+            <div class="modal-label">📖 과목/교과</div>
+            <div class="modal-value">${esc(subjects)}</div>
+          </div>
+        `;
+      }
+      
+      if (m.favor) {
+        html += `
+          <div class="modal-section">
+            <div class="modal-label">😊 반응</div>
+            <div class="modal-value">${esc(m.favor)}</div>
+          </div>
+        `;
+      }
+      
+      console.log('[schoolinfo] Showing modal...');
+      document.getElementById('modalBody').innerHTML = html;
+      document.getElementById('meetingModal').classList.add('show');
+    }
+
+    function closeMeetingModal() {
+      document.getElementById('meetingModal').classList.remove('show');
+    }
+
+    function renderOrders(orders){
+      const table=document.querySelector('.orders-section .table-wrapper');
+      currentOrders=orders.slice();
+      if(!currentOrders.length){ table.innerHTML='<div style="text-align:center;color:#556;padding:20px">주문 이력이 없습니다.</div>'; return; }
+      
+      // 연도 추출 및 정렬
+      const years = [...new Set(currentOrders.map(o=>Number(o.year||0)).filter(y=>y>0))].sort((a,b)=>b-a);
+      if(!years.length){ table.innerHTML='<div style="text-align:center;color:#556;padding:20px">주문 이력이 없습니다.</div>'; return; }
+      
+      // 교과군 > 과목 > 교재 계층 구조로 데이터 구성
+      const dataMap = {};
+      currentOrders.forEach(o => {
+        const group = o.subjectGroup || '기타';
+        const subject = o.subject || '-';
+        const book = o.bookName || '-';
+        const key = `${group}|||${subject}|||${book}`;
+        if (!dataMap[key]) dataMap[key] = {group, subject, book, years: {}};
+        const y = Number(o.year || 0);
+        if (y > 0) {
+          if (!dataMap[key].years[y]) dataMap[key].years[y] = 0;
+          dataMap[key].years[y] += Number(o.copies || 0);
+        }
+      });
+      
+      // 교과군별로 그룹화
+      const grouped = {};
+      Object.values(dataMap).forEach(item => {
+        if (!grouped[item.group]) grouped[item.group] = [];
+        grouped[item.group].push(item);
+      });
+      
+      // 테이블 HTML 생성 (피벗 형태)
+      const headerCols = years.map(y=>`<th style="text-align:right;min-width:80px">${y}년</th>`).join('');
+      let html = `<table><thead><tr><th style="min-width:100px">교과군</th><th style="min-width:120px">과목</th><th style="min-width:200px">교재명</th>${headerCols}</tr></thead><tbody>`;
+      
+      Object.keys(grouped).sort().forEach(group => {
+        const items = grouped[group];
+        // 교과군 헤더 행
+        html += `<tr style="background:#f5f8ff;font-weight:700"><td colspan="${3+years.length}" style="padding:10px;color:#2563eb">📚 ${esc(group)}</td></tr>`;
+        // 각 과목/교재별 연도별 부수
+        items.forEach(item => {
+          const yearCells = years.map(y => {
+            const copies = item.years[y] || 0;
+            return `<td style="text-align:right">${copies > 0 ? copies.toLocaleString() : '-'}</td>`;
+          }).join('');
+          html += `<tr><td style="color:#888;font-size:12px">${esc(item.group)}</td><td>${esc(item.subject)}</td><td>${esc(item.book)}</td>${yearCells}</tr>`;
+        });
+      });
+      
+      html += '</tbody></table>';
+      table.innerHTML = html;
+    }
+
+    function renderStats(orders){
+      document.getElementById('totalOrders').textContent=String(orders.length);
+      const years=orders.map(o=>Number(o.year||0)).filter(n=>n>0); document.getElementById('recentYear').textContent=years.length?String(Math.max(...years)):'-';
+      document.getElementById('totalSubjects').textContent=String(new Set(orders.map(o=>o.subject).filter(Boolean)).size);
+      document.getElementById('totalCopies').textContent=orders.reduce((s,o)=>s+Number(o.copies||0),0).toLocaleString();
+    }
+
+    async function fetchNeisSchoolInfo(s){
+      const BACKEND = 'https://cmass-sales-backend-918981476485.asia-northeast3.run.app';
+      const params = new URLSearchParams();
+      if(s.code) params.set('code', s.code);
+      if(s.name) params.set('name', s.name);
+      const r = await fetch(`${BACKEND}/api/neis-school?${params.toString()}`, {cache:'no-store'});
+      if(!r.ok) throw new Error('NEIS proxy ' + r.status);
+      const d = await r.json();
+      if(!d.ok) throw new Error(d.error || 'NEIS 데이터 없음');
+      return d.school;
+    }
+
+    async function fetchSchoolInfoPortal(s){
+      const p=new URLSearchParams({apiKey:SCHOOLINFO_API_KEY,apiType:'JSON',pIndex:'1',pSize:'1'});
+      if(s.code) p.set('schulCode', s.code);
+      if(s.name) p.set('schulNm', s.name);
+      const r=await fetch(`https://www.schoolinfo.go.kr/openApi.do?${p.toString()}`,{cache:'no-store'});
+      if(!r.ok) throw new Error('SchoolInfo '+r.status);
+      await r.text();
+      return true;
+    }
+
+    async function enrichPublicApi(s){
+      // basicInfoMap에서 이미 채워진 필드는 NEIS로 덮어쓰지 않음
+      const _hasCsvAddr = !!(basicInfoMap[s.code] || basicInfoMap['n:'+s.name] || {}).address;
+      let neis='실패';
+      let schoolinfo='실패';
+      try{
+        const row=await fetchNeisSchoolInfo(s);
+        if(row){
+          neis='성공';
+          document.getElementById('schoolEduOffice').textContent = row.eduOfficeName || s.eduOffice || '-';
+          document.getElementById('schoolSupportOffice').textContent = row.supportOfficeName || s.supportOffice || '-';
+          document.getElementById('schoolRegion').textContent = row.region || s.region || '-';
+          document.getElementById('schoolLevel').textContent = row.level || s.level || '-';
+          // CSV 데이터 없을 때만 NEIS로 보완
+          if(!_hasCsvAddr){
+            document.getElementById('schoolAddress').textContent = row.address || s.address || '-';
+            const _ph2 = row.phone || s.phone || '';
+            const _pe2 = document.getElementById('schoolPhone');
+            if(_ph2) _pe2.innerHTML=`<a href="tel:${_ph2}" style="color:#1d4ed8;text-decoration:none;font-weight:600">${_ph2} 📞</a>`;
+            else _pe2.textContent='-';
+            // 홈페이지도 CSV 없을 때만
+            const hpEl = document.getElementById('schoolHomepage');
+            const hpBtn = document.getElementById('schoolHomepageBtn');
+            const hp = row.homepage || '';
+            if(hp){
+              const hpUrl = /^https?:\/\//i.test(hp) ? hp : 'http://'+hp;
+              if(hpEl) hpEl.innerHTML=`<a href="${hpUrl}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:underline">${hp} 🔗</a>`;
+              if(hpBtn){ hpBtn.href=hpUrl; hpBtn.style.display='inline-flex'; }
+            } else {
+              if(hpEl) hpEl.textContent='-';
+              if(hpBtn) hpBtn.style.display='none';
+            }
+          }
+        }
+      }catch(e){ console.warn('NEIS proxy error:', e); }
+      try{ await fetchSchoolInfoPortal(s); schoolinfo='응답'; }catch(e){}
+      document.getElementById('publicApiStatus').textContent=`CSV: ${_hasCsvAddr?'✅':'없음'} / NEIS: ${neis} / 학교알리미: ${schoolinfo}`;
+    }
+
+    async function displaySchoolInfo(s){
+      document.getElementById('resultSection').classList.add('show');
+      document.getElementById('schoolName').textContent=s.name||'-';
+      // 홈페이지 버튼 초기화 (NEIS 응답 전 숨김)
+      const _hpBtn = document.getElementById('schoolHomepageBtn');
+      if(_hpBtn){ _hpBtn.style.display='none'; _hpBtn.href='#'; }
+      const _hpEl = document.getElementById('schoolHomepage');
+      if(_hpEl) _hpEl.textContent='-';
+      // 등급 뱃지 업데이트
+      const __gb = document.getElementById('schoolGradeBadge');
+      if(__gb){
+        const __g = (window.__gradeMap||{})[s.name];
+        if(__g){
+          const __gc={S:'#5b21b6',A:'#1d4ed8',B:'#059669',C:'#d97706'};
+          const __gbg={S:'#f5f3ff',A:'#eff6ff',B:'#ecfdf5',C:'#fffbeb'};
+          const __icon={S:'⭐',A:'🔵',B:'🟢',C:'🟡'};
+          __gb.innerHTML=`<span style="display:inline-block;font-weight:900;font-size:16px;background:${__gbg[__g]};color:${__gc[__g]};border:2px solid ${__gc[__g]};border-radius:14px;padding:3px 14px">${__icon[__g]} ${__g}등급</span>`;
+          __gb.style.display='inline-block';
+        }else{ __gb.style.display='none'; }
+      }
+      // AI·디지털 선정학교 뱃지
+      const __db = document.getElementById('schoolDigitalBadge');
+      if(__db){
+        const __di = getDigitalInfo(s);
+        if(__di && (__di.tags||[]).length){
+          const __dc={'AI중점학교':'#7c3aed','AI디지털선도학교':'#0284c7','AI디지털연구학교':'#059669'};
+          const __dl={'AI중점학교':'🟣 2026 AI중점학교','AI디지털선도학교':'💡 2026 AI·디지털 선도학교','AI디지털연구학교':'🔬 2026 AI·디지털 연구학교'};
+          __db.innerHTML=(__di.tags||[]).map(t=>{
+            const c=__dc[t]||'#6b7280'; const lb=__dl[t]||t;
+            return `<span style="display:inline-block;font-weight:800;font-size:14px;background:${c}18;color:${c};border:2px solid ${c}80;border-radius:14px;padding:3px 12px">${lb}</span>`;
+          }).join(' ');
+          __db.style.display='inline-flex'; __db.style.gap='6px'; __db.style.flexWrap='wrap';
+        }else{ __db.style.display='none'; }
+      }
+      // 채택 등급 (schoolreport adoption_status 연동)
+      const __ab = document.getElementById('schoolAdoptBadge');
+      if(__ab){
+        __ab.style.display='none'; __ab.innerHTML='';
+        try{
+          if(db){
+            const __docId = s.name.replace(/[^가-힣a-zA-Z0-9]/g,'_').slice(0,80);
+            const __adoptDoc = await db.collection('adoption_status').doc(__docId).get();
+            if(!__adoptDoc.exists){ // docId 불일치 시 이름으로 쿼리
+              const __q = await db.collection('adoption_status').where('school','==',s.name).limit(1).get();
+              if(!__q.empty){
+                const __d = __q.docs[0].data();
+                const __subjs = __d.subjects||{};
+                const __grades = Object.values(__subjs).map(v=>v.grade||'').filter(g=>g&&g!=='-'&&g!=='미선정');
+                const __best = ['채택','A','B','C'].find(g=>__grades.includes(g));
+                if(__best){
+                  const __as={'채택':'background:#eff6ff;color:#1d4ed8;border:2px solid #93c5fd','A':'background:#f0fdf4;color:#166534;border:2px solid #86efac','B':'background:#fefce8;color:#854d0e;border:2px solid #fde047','C':'background:#fff7ed;color:#c2410c;border:2px solid #fca5a1'};
+                  const __allSubjs = Object.entries(__subjs).filter(([,v])=>v.grade&&v.grade!=='-'&&v.grade!=='미선정').map(([k,v])=>`${k}: ${v.grade}`).join(' / ');
+                  __ab.innerHTML=`<span style="display:inline-block;font-weight:800;font-size:13px;border-radius:14px;padding:3px 12px;${__as[__best]||''}">📋 채택현황: ${__best}${__allSubjs?` (${__allSubjs})`:''}</span>`;
+                  __ab.style.display='inline-block';
+                }
+              }
+            } else {
+              const __d = __adoptDoc.data()||{};
+              const __subjs = __d.subjects||{};
+              const __grades = Object.values(__subjs).map(v=>v.grade||'').filter(g=>g&&g!=='-'&&g!=='미선정');
+              const __best = ['채택','A','B','C'].find(g=>__grades.includes(g));
+              if(__best){
+                const __as={'채택':'background:#eff6ff;color:#1d4ed8;border:2px solid #93c5fd','A':'background:#f0fdf4;color:#166534;border:2px solid #86efac','B':'background:#fefce8;color:#854d0e;border:2px solid #fde047','C':'background:#fff7ed;color:#c2410c;border:2px solid #fca5a1'};
+                const __allSubjs = Object.entries(__subjs).filter(([,v])=>v.grade&&v.grade!=='-'&&v.grade!=='미선정').map(([k,v])=>`${k}: ${v.grade}`).join(' / ');
+                __ab.innerHTML=`<span style="display:inline-block;font-weight:800;font-size:13px;border-radius:14px;padding:3px 12px;${__as[__best]||''}">📋 채택현황: ${__best}${__allSubjs?` (${__allSubjs})`:''}</span>`;
+                __ab.style.display='inline-block';
+              }
+            }
+          }
+        }catch(e){ console.warn('[schoolinfo] adoption fetch failed', e); }
+      }
+      document.getElementById('schoolCode').textContent='학교코드: '+(s.code||'-');
+      document.getElementById('schoolEduOffice').textContent=s.eduOffice||'-';
+      document.getElementById('schoolSupportOffice').textContent=s.supportOffice||'-';
+      document.getElementById('schoolRegion').textContent=s.region||'-';
+      document.getElementById('schoolLevel').textContent=s.level||'-';
+      const establEl=document.getElementById('schoolEstablishment');
+      if(establEl) establEl.textContent=s.establishment||'-';
+
+      // ── 학교기본정보 CSV에서 즉시 채우기 (NEIS API 대기 없이) ──
+      const _bi = basicInfoMap[s.code] || basicInfoMap['n:'+s.name] || {};
+      // 주소
+      const _addrFull = [_bi.address, _bi.addressDetail].filter(Boolean).join(' ');
+      document.getElementById('schoolAddress').textContent = _addrFull || s.address || '정보 없음';
+      // 전화
+      const _ph = _bi.phone || s.phone || '';
+      const _phoneEl = document.getElementById('schoolPhone');
+      if(_ph){ _phoneEl.innerHTML=`<a href="tel:${_ph}" style="color:#1d4ed8;text-decoration:none;font-weight:600">${_ph} 📞</a>`; }
+      else { _phoneEl.textContent='-'; }
+      // 팩스
+      const _faxEl = document.getElementById('schoolFax');
+      if(_faxEl) _faxEl.textContent = _bi.fax || '-';
+      // 홈페이지
+      const _hpElInit = document.getElementById('schoolHomepage');
+      const _hp = _bi.homepage || '';
+      if(_hp){
+        const _hpUrl = /^https?:\/\//i.test(_hp) ? _hp : 'http://'+_hp;
+        if(_hpElInit) _hpElInit.innerHTML=`<a href="${_hpUrl}" target="_blank" rel="noopener" style="color:#1d4ed8;font-weight:600">${_hp} 🔗</a>`;
+        if(_hpBtn){ _hpBtn.href=_hpUrl; _hpBtn.style.display='inline-flex'; }
+      } else {
+        if(_hpElInit) _hpElInit.textContent='조회 중...';
+      }
+      // 학교특성
+      const _charEl = document.getElementById('schoolCharacter');
+      if(_charEl) _charEl.textContent = _bi.character || '-';
+      // 남녀공학
+      const _coedEl = document.getElementById('schoolCoed');
+      if(_coedEl) _coedEl.textContent = _bi.coed || '-';
+      // 개교기념일 (YYYYMMDD → YYYY.MM.DD)
+      const _fdEl = document.getElementById('schoolFoundDate');
+      if(_fdEl){
+        const fd = _bi.foundDate||'';
+        _fdEl.textContent = (fd && fd.length===8) ? `${fd.slice(0,4)}.${fd.slice(4,6)}.${fd.slice(6,8)}` : (fd||'-');
+      }
+      // 위치 지도 링크
+      const _mapEl = document.getElementById('schoolMapLink');
+      if(_mapEl){
+        if(_bi.lat && _bi.lng){
+          const _nm = encodeURIComponent(s.name);
+          _mapEl.innerHTML=`<a href="https://map.kakao.com/link/map/${_nm},${_bi.lat},${_bi.lng}" target="_blank" rel="noopener" style="margin-right:10px;color:#f59e0b;font-weight:700;text-decoration:none">🗺️ 카카오맵</a>`+
+            `<a href="https://map.naver.com/v5/search/${_nm}" target="_blank" rel="noopener" style="color:#00c73c;font-weight:700;text-decoration:none">🗺️ 네이버지도</a>`;
+        } else { _mapEl.textContent='-'; }
+      }
+      const tc=(s.grade1Classes||0)+(s.grade2Classes||0)+(s.grade3Classes||0);
+      const ts=(s.grade1Students||0)+(s.grade2Students||0)+(s.grade3Students||0);
+      document.getElementById('totalClasses').textContent=tc?`${tc.toLocaleString()}개`:'-';
+      document.getElementById('totalStudents').textContent=ts?`${ts.toLocaleString()}명`:'-';
+      document.getElementById('grade1Info').textContent=s.grade1Classes?`${s.grade1Classes}학급 / ${s.grade1Students.toLocaleString()}명`:'-';
+      document.getElementById('grade2Info').textContent=s.grade2Classes?`${s.grade2Classes}학급 / ${s.grade2Students.toLocaleString()}명`:'-';
+      document.getElementById('grade3Info').textContent=s.grade3Classes?`${s.grade3Classes}학급 / ${s.grade3Students.toLocaleString()}명`:'-';
+      fillDistributorAndManager(s);
+      
+      const orders=ordersData.filter(o=>o.schoolCode===s.code);
+      renderOrders(orders); renderStats(orders);
+
+      // 미팅 히스토리 필터링 (학교코드 기반 정확 매칭) - 최적화된 조회
+      console.log('[schoolinfo] ===== MEETING FILTER START =====');
+      console.log('[schoolinfo] Target school - code:', s.code, '/ name:', s.name);
+      
+      // 특정 학교의 visit_entries만 로드
+      const schoolVisitEntries = await loadVisitEntriesForSchool(s.code, s.name);
+      console.log('[schoolinfo] Loaded', schoolVisitEntries.length, 'visit entries for this school');
+      
+      renderMeetings(schoolVisitEntries);
+
+      document.getElementById('publicApiStatus').textContent='조회 중...';
+      await enrichPublicApi(s);
+      document.getElementById('resultSection').scrollIntoView({behavior:'smooth',block:'start'});
+    }
+
+    function exportOrders(){
+      if(!currentOrders.length){ alert('다운로드할 주문 이력이 없습니다.'); return; }
+      const name=(document.getElementById('schoolName').textContent||'학교').replace(/[\\/:*?"<>|]/g,'_');
+      const headers=['주문연도','학년','교과군','과목명','교재명','부수','상태'];
+      const lines=[headers.join(',')];
+      currentOrders.forEach(o=>{ lines.push([o.year,o.grade||'-',o.subjectGroup,o.subject,`"${String(o.bookName||'').replace(/"/g,'""')}"`,o.copies,o.status].join(',')); });
+      const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+      const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`${name}_주문이력_${new Date().toISOString().slice(0,10)}.csv`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    }
+
+    function exportMeetings(){
+      if(!currentMeetings.length){ alert('다운로드할 미팅 이력이 없습니다.'); return; }
+      const name=(document.getElementById('schoolName').textContent||'학교').replace(/[\\/:*?"<>|]/g,'_');
+      const headers=['방문일','담당자','지역','학교','요약'];
+      const lines=[headers.join(',')];
+      currentMeetings.forEach(m=>{ lines.push([m.visitDate||'-',m.staff||'-',m.region||'-',m.schoolName||'-',`"${String(m.summary||'').replace(/"/g,'""')}"`].join(',')); });
+      const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+      const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`${name}_미팅이력_${new Date().toISOString().slice(0,10)}.csv`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    }
+
+    function goBack(){ const staff=getStaffFromQuery(); window.location.href=staff?`/front?staff=${encodeURIComponent(staff)}`:'/front'; }
+
+    function setupEvents(){
+      document.addEventListener('click', e=>{ 
+        const t=e.target; 
+        if(!(t instanceof HTMLElement) || !t.classList.contains('chip')) return; 
+        const type=t.dataset.type; 
+        if(!type) return; 
+        document.querySelectorAll(`.chip[data-type="${type}"]`).forEach(c=>c.classList.remove('active')); 
+        t.classList.add('active');
+        
+        // 모든 필터 칩 → 즉시 자동 검색
+        setTimeout(() => { autoSearch(); }, 50);
+      });
+      window.searchSchool=searchSchool;
+      window.quickSearch=quickSearch;
+      window.resetFilters=resetFilters;
+      window.displaySchoolInfo=displaySchoolInfo;
+      window.exportOrders=exportOrders;
+      window.exportMeetings=exportMeetings;
+      window.goBack=goBack;
+      window.showMeetingDetail=showMeetingDetail;
+      window.closeMeetingModal=closeMeetingModal;
+    }
+
+    // ── 학교 등급 계산 (방문횟수40% + 과목가중점60%) ──────────────────────────
+    window.__gradeMap = {};
+    window.__digitalMap = {};
+    async function loadDigitalSchools(){
+      try{
+        const r = await fetch('/digital_schools.json', {cache:'no-store'});
+        if(r.ok){
+          const data = await r.json();
+          window.__digitalMap = data;
+          window.__digitalCodeMap = {};
+          Object.entries(data).forEach(([, v]) => {
+            if(v && v['s-code']) window.__digitalCodeMap[String(v['s-code']).trim()] = v;
+          });
+          console.log('[schoolinfo] Digital map loaded:', Object.keys(data).length, 'schools,', Object.keys(window.__digitalCodeMap).length, 'with s-code');
+        }
+      }catch(e){ console.warn('[schoolinfo] loadDigitalSchools failed', e); }
+    }
+    // s-code 우선, 동명이교 구분
+    function getDigitalInfo(s){
+      const code = String(s&&s.code||'').trim();
+      const cd = window.__digitalCodeMap;
+      if(code && cd && cd[code]) return cd[code];
+      const di = (window.__digitalMap||{})[String(s&&s.name||'').trim()];
+      if(!di) return null;
+      const diCode = String(di['s-code']||'').trim();
+      if(diCode && code && diCode !== code) return null; // 동명이교 방지
+      return di;
+    }
+
+    async function loadGrades(staffCode){
+      // ordersData + schoolsData 이미 로드됨 → Firestore 쿼리 불필요
+      try{
+        const SUBJ_W = {'정보':5,'진로':4,'보건':3,'미술':2,'체육':1};
+        const TEXTBOOK_BONUS = 0.30; // 교과서 주문 시 +30%
+
+        // 지역 → 지구(district) 추출
+        function getDistrict(region){
+          if(!region) return '기타';
+          if(region.includes('서울')){ const m=region.match(/([가-힣]+구)/); return '서울 '+(m?m[1]:'기타'); }
+          if(region.includes('인천')){ const m=region.match(/([가-힣]+구)/); return '인천 '+(m?m[1]:'기타'); }
+          if(region.includes('경기')){ const m=region.match(/([가-힣]+(시|군))/); return '경기 '+(m?m[1]:'기타'); }
+          const m=region.match(/([가-힣]+(시|도|군))/);
+          return m ? m[1] : (region||'기타');
+        }
+
+        // 담당자 소속 학교 코드 Set
+        const codeSet = new Set(schoolsData.map(s=>s.code).filter(Boolean));
+
+        // 학교코드 → 주문 점수 계산 (2026 주문현황만 반영)
+        const scoreMap = {};
+        ordersData.filter(o => !o.year || String(o.year).trim() === '2026').forEach(o => {
+          if(!codeSet.has(o.schoolCode)) return;
+          const w = SUBJ_W[o.subject] || 0;
+          if(!w) return;
+          const bonus = (o.bookName||'').includes('교과서') ? 1 + TEXTBOOK_BONUS : 1.0;
+          const pts = w * (Number(o.copies)||1) * bonus;
+          scoreMap[o.schoolCode] = (scoreMap[o.schoolCode]||0) + pts;
+        });
+
+        // 지역별 그룹핑 (모든 학교 포함)
+        const districtGroups = {};
+        schoolsData.forEach(s => {
+          const d = getDistrict(s.region||'');
+          if(!districtGroups[d]) districtGroups[d] = [];
+          districtGroups[d].push({
+            name: s.name,
+            ordScore: scoreMap[s.code]||0,
+            stuScore: Number(s.totalStudents)||0
+          });
+        });
+
+        // 지역 내 상대 등급 부여 (주문가중점 60% + 학생수 40%)
+        window.__gradeMap = {};
+        Object.values(districtGroups).forEach(list => {
+          const maxOrd = Math.max(...list.map(s=>s.ordScore), 1);
+          const maxStu = Math.max(...list.map(s=>s.stuScore), 1);
+          list.forEach(s => {
+            s.score = (s.ordScore/maxOrd)*0.6 + (s.stuScore/maxStu)*0.4;
+          });
+          list.sort((a,b) => b.score - a.score);
+          const n = list.length;
+          list.forEach((s,i) => {
+            const pct = i / n;
+            window.__gradeMap[s.name] = pct<0.10?'S':pct<0.30?'A':pct<0.65?'B':'C';
+          });
+        });
+
+        console.log('[schoolinfo] Grades computed (order-based):', Object.keys(window.__gradeMap).length, 'schools');
+        // 등급 필터 칩 표시 + 각 등급 학교 수 업데이트
+        const gradeFilterEl = document.getElementById('gradeFilter');
+        const gradeLabelEl = document.getElementById('gradeLabelRow');
+        if(gradeFilterEl && gradeLabelEl){
+          const cnt={S:0,A:0,B:0,C:0};
+          Object.values(window.__gradeMap).forEach(g=>{ if(cnt[g]!==undefined) cnt[g]++; });
+          gradeFilterEl.querySelectorAll('.chip[data-filter]').forEach(c=>{
+            const gv=c.dataset.filter;
+            if(cnt[gv]!==undefined) c.textContent = {S:'⭐',A:'🔵',B:'🟢',C:'🟡'}[gv]+' '+gv+' ('+cnt[gv]+')';
+          });
+          gradeLabelEl.style.display='block';
+          gradeFilterEl.style.display='flex';
+        }
+        // 결과 목록이 이미 렌더된 경우 재렌더
+        if(window._searchResults && window._searchResults.length) renderResults(window._searchResults);
+      }catch(e){ console.warn('[schoolinfo] loadGrades failed', e); }
+    }
+
+    async function init(){
+      try{
+        const loading=document.createElement('div'); loading.id='loadingIndicator'; loading.className='loading'; loading.textContent='데이터를 불러오는 중입니다...'; document.querySelector('.search-section').appendChild(loading);
+        await loadData();
+        buildFilters();
+        setupEvents();
+        const li=document.getElementById('loadingIndicator'); if(li) li.remove();
+        
+        const staffCode = getStaffFromQuery();
+        // AI·디지털 선정학교 비동기 로딩 (non-blocking)
+        loadDigitalSchools().then(()=>{
+          updateDigitalChipCounts(); // 디지털 칩 카운트 갱신
+          if(window._searchResults && window._searchResults.length) renderResults(window._searchResults);
+        });
+        // 등급 비동기 로딩 (주문 기반, 모든 학교)
+        loadGrades(staffCode);
+
+        // staff 파라미터가 있으면 자동으로 학교 목록 표시
+        if(staffCode && schoolsData.length > 0) {
+          console.log('[schoolinfo] Auto-displaying schools for staff:', staffCode, 'count:', schoolsData.length);
+          renderResults(schoolsData);
+        }
+
+        // ?school= / ?code= 파라미터가 있으면 해당 학교 자동 표시
+        const schoolParam=(new URLSearchParams(window.location.search).get('school')||'').trim();
+        const codeParam=(new URLSearchParams(window.location.search).get('code')||'').trim();
+        if(codeParam || schoolParam){
+          // 1. 코드 기반 정확 조회 (우선순위 높음)
+          if(codeParam){
+            const byCode = schoolsData.find(s=>s.code===codeParam)
+              || schoolsData.find(s=>s.name===schoolParam); // code 없을 때 name 보완
+            if(byCode){ await displaySchoolInfo(byCode); }
+            else{
+              try{
+                const rows2 = await fetch('/sales_staff.csv',{cache:'no-store'}).then(r=>r.text()).then(t=>csvToObjects(t));
+                const f2 = rows2.map(r=>({code:pick(r,['정보공시 학교코드','정보공시학교코드']),name:pick(r,['학교명']),region:pick(r,['지역']),eduOffice:pick(r,['시도교육청']),supportOffice:pick(r,['교육지원청']),level:levelFrom(pick(r,['학교급코드']),pick(r,['학교급'])),address:pick(r,['도로명 주소']),phone:pick(r,['전화번호']),grade1Classes:num(pick(r,['1학년 학급수'])),grade1Students:num(pick(r,['1학년 학생수'])),grade2Classes:num(pick(r,['2학년 학급수'])),grade2Students:num(pick(r,['2학년 학생수'])),grade3Classes:num(pick(r,['3학년 학급수'])),grade3Students:num(pick(r,['3학년 학생수'])),distributorCode:pick(r,['담당총판코드']),distributorName:pick(r,['담당총판']),managerName:pick(r,['본사담당자(2026.01)','본사담당자']),managerCode:pick(r,['본사담당자코드']),establishment:pick(r,['설립구분']),totalStudents:num(pick(r,['학생수(계)']))})).filter(x=>x.code&&x.name);
+                const foundByCode = f2.find(s=>s.code===codeParam);
+                if(foundByCode) await displaySchoolInfo(foundByCode);
+                else if(schoolParam){
+                  const nm = f2.filter(s=>s.name===schoolParam);
+                  if(nm.length) await displaySchoolInfo(nm[0]);
+                }
+              }catch(e){}
+            }
+          } else if(schoolParam){
+            // 2. 이름 기반 조회 (동명이교 disambiguation 적용)
+            const allForSearch = schoolsData.length ? schoolsData : [];
+            // 스탭 데이터에서 매칭 (이미 staff 필터링됨)
+            const staffMatches = allForSearch.filter(s=>s.name===schoolParam);
+            let found = staffMatches.length === 1 ? staffMatches[0]
+              : staffMatches.length > 1 ? staffMatches[0] : null;
+            if(found){ await displaySchoolInfo(found); }
+            else{
+              // 전체 CSV 검색 + 동명이교는 eduOffice/region 기반 disambiguation
+              try{
+                const rows2 = await fetch('/sales_staff.csv',{cache:'no-store'}).then(r=>r.text()).then(t=>csvToObjects(t));
+                const f2 = rows2.map(r=>({code:pick(r,['정보공시 학교코드','정보공시학교코드']),name:pick(r,['학교명']),region:pick(r,['지역']),eduOffice:pick(r,['시도교육청']),supportOffice:pick(r,['교육지원청']),level:levelFrom(pick(r,['학교급코드']),pick(r,['학교급'])),address:pick(r,['도로명 주소']),phone:pick(r,['전화번호']),grade1Classes:num(pick(r,['1학년 학급수'])),grade1Students:num(pick(r,['1학년 학생수'])),grade2Classes:num(pick(r,['2학년 학급수'])),grade2Students:num(pick(r,['2학년 학생수'])),grade3Classes:num(pick(r,['3학년 학급수'])),grade3Students:num(pick(r,['3학년 학생수'])),distributorCode:pick(r,['담당총판코드']),distributorName:pick(r,['담당총판']),managerName:pick(r,['본사담당자(2026.01)','본사담당자']),managerCode:pick(r,['본사담당자코드']),establishment:pick(r,['설립구분']),totalStudents:num(pick(r,['학생수(계)']))})).filter(x=>x.code&&x.name);
+                const nameMatches = f2.filter(s=>s.name===schoolParam);
+                let found2 = null;
+                if(nameMatches.length === 1){
+                  found2 = nameMatches[0];
+                } else if(nameMatches.length > 1){
+                  // 담당자 staffCode로 해당 담당자가 관리하는 학교 우선
+                  const staffCode2 = getStaffFromQuery();
+                  if(staffCode2){
+                    const staffRowMatch = nameMatches.find(m => (m.managerCode||'') === staffCode2);
+                    if(staffRowMatch) found2 = staffRowMatch;
+                  }
+                  if(!found2) found2 = nameMatches[0];
+                }
+                if(found2) await displaySchoolInfo(found2);
+              }catch(e){}
+            }
+          }
+        }
+      }catch(e){
+        const li=document.getElementById('loadingIndicator'); if(li) li.remove();
+        const err=document.createElement('div'); err.className='error'; err.textContent='데이터를 불러오는데 실패했습니다: '+(e?.message||e); document.querySelector('.search-section').appendChild(err);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

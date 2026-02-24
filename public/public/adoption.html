@@ -1032,12 +1032,15 @@ function renderSpPriorityCards(){
     const cls=pct>66?'high':pct>33?'mid':'low';
     const dist=d.region;
     const infoColor=d.infoPct<d.nwInfoPct?'#dc2626':'#16a34a';
+    const visitCnt=(window.__regionVisitMap||{})[d.region]||0;
+    const visitBadge=visitCnt?`<span style="background:#e0f2fe;color:#0369a1;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:700">방문 ${visitCnt}회</span>`:'';
     return`<div class="priority-card ${cls}" style="cursor:pointer" onclick="openSchoolModal('${d.region}')">
       <div style="font-weight:700;font-size:13px;margin-bottom:4px">${dist}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
         <span style="background:#fef2f2;color:#dc2626;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:700">미채택 ${d.noOrderCount}/${d.totalHS}교</span>
         <span style="font-size:11px;color:${infoColor};font-weight:700">정보 ${fP(d.infoPct)}</span>
         <span style="font-size:10px;color:var(--muted)">전체평균 ${fP(d.nwInfoPct)}</span>
+        ${visitBadge}
       </div>
       <div style="height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden">
         <div style="height:100%;width:${pct}%;background:${cls==='high'?'#ef4444':cls==='mid'?'#f59e0b':'#22c55e'};border-radius:3px"></div>
@@ -1253,6 +1256,22 @@ async function init(){
       renderRegChart(); renderRegionGrid();
       switchTab('salepriority');
       renderStaffInsights();
+
+      // ── 지역별 방문횟수 비동기 로딩 ──
+      (async()=>{
+        try{
+          const _vr = await fetch(`/api/visit_entries?useEntries=true&pageSize=2000&staff=${encodeURIComponent(STAFF_CODE)}`);
+          if(_vr.ok){
+            const _vj = await _vr.json();
+            const _rows = Array.isArray(_vj.rows)?_vj.rows:[];
+            const _rvm={};
+            _rows.forEach(v=>{ const r=(v.region||'').trim(); if(r) _rvm[r]=(_rvm[r]||0)+1; });
+            window.__regionVisitMap = _rvm;
+            // 로드 완료 후 카드 재렌더
+            renderSpPriorityCards();
+          }
+        }catch(e){ console.warn('[adoption] visit load failed',e); }
+      })();
     }
   }catch(e){
     document.getElementById('loadingOverlay').innerHTML=

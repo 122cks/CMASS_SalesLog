@@ -947,6 +947,31 @@ async function loadPersonalVisits(){
         if (rawGift && String(rawGift).trim()) parts.push('<div style="margin-top:6px"><strong>증정사항:</strong> ' + escapeHtml(String(rawGift)).replace(/\n/g,'<br>') + '</div>');
         if (followUp && String(followUp).trim()) parts.push('<div style="margin-top:6px"><strong>후속조치:</strong> ' + escapeHtml(String(followUp)).replace(/\n/g,'<br>') + '</div>');
         if (contact && String(contact).trim()) parts.push('<div style="margin-top:6px"><strong>연락처:</strong> ' + contact + '</div>');
+        // ── 나머지 미지정 필드 전체 덤프 ──
+        const _SHOWN = new Set(['_dateNorm','visitDate','visitStart','visitEnd','duration','duration_label',
+          'school','region','teacher','favor','staffLabel','staff','subjects','subject',
+          'activities','materials','material','deliveryMaterials','delivery_materials',
+          'requests','request','requestText','askText',
+          'conversation','convo','note','notes',
+          'issue','issues','specialNotes','remark','remarks',
+          'deliveries','delivery','delivery_note','deliveryItems','delivered',
+          'gift','gifts','present',
+          'followUp','followup','phone','contact','email',
+          'server_id','id','_id','__id']);
+        const _extras = Object.entries(e).filter(([k,v]) => {
+          if(_SHOWN.has(k)) return false;
+          if(v===null||v===undefined||v==='') return false;
+          if(typeof v==='object' && !Array.isArray(v) && Object.keys(v).length===0) return false;
+          return true;
+        });
+        if(_extras.length){
+          parts.push('<div style="margin-top:10px;padding-top:8px;border-top:1px dashed #d1d5db"><span style="font-size:11px;color:#9ca3af;font-weight:700">📋 추가 필드</span></div>');
+          _extras.forEach(([k,v]) => {
+            const _val = typeof v==='object' ? JSON.stringify(v,null,2) : String(v);
+            if(!_val.trim()) return;
+            parts.push('<div style="margin-top:4px;font-size:12px"><strong style="color:#6b7280">' + escapeHtml(k) + ':</strong> <span style="color:#374151">' + escapeHtml(_val).replace(/\n/g,'<br>') + '</span></div>');
+          });
+        }
         const fullNoteHtml = parts.length ? parts.join('') : '<div class="small">내용이 없습니다.</div>';
 
     // safe id using server_id or doc id; fallback to a short random token
@@ -1463,6 +1488,13 @@ function buildSchoolGradePanel(visits){
   const codeToName  = window.__codeToNameMap || {};
   const staffCode   = new URLSearchParams(window.location.search).get('staff') || '';
 
+  // ── 학교별 방문횟수 집계
+  const visitCountMap = {};
+  (visits||[]).forEach(v => {
+    const sn = (v.school||'').toString().trim();
+    if(sn) visitCountMap[sn] = (visitCountMap[sn]||0)+1;
+  });
+
   // ── 가중치
   const SUBJ_W = {'정보':5,'진로':4,'보건':3,'미술':2,'체육':1};
   const TEXTBOOK_BONUS = 0.3; // 교과서 주문 시 +30%
@@ -1556,6 +1588,7 @@ function buildSchoolGradePanel(visits){
           <th style="padding:4px 8px;text-align:left;color:#556;font-weight:600;border-bottom:1px solid #e5e7eb">학교명</th>
           <th style="padding:4px 6px;text-align:center;color:#556;font-weight:600;border-bottom:1px solid #e5e7eb">등급</th>
           <th style="padding:4px 6px;text-align:right;color:#556;font-weight:600;border-bottom:1px solid #e5e7eb">주문부수</th>
+          <th style="padding:4px 6px;text-align:right;color:#556;font-weight:600;border-bottom:1px solid #e5e7eb">방문</th>
           <th style="padding:4px 6px;text-align:left;color:#556;font-weight:600;border-bottom:1px solid #e5e7eb">주요과목</th>
         </tr></thead>
         <tbody>`;
@@ -1574,6 +1607,7 @@ function buildSchoolGradePanel(visits){
         <td style="padding:4px 8px"><a href="${schoolLink}" style="color:#1d4ed8;text-decoration:none;font-weight:600">${s.name}</a>${getAiDigitalBadge(s.name)}</td>
         <td style="padding:4px 6px;text-align:center"><span style="font-weight:800;color:${fc};font-size:13px">${ic}${grade}</span></td>
         <td style="padding:4px 6px;text-align:right;color:#445">${copies}</td>
+        <td style="padding:4px 6px;text-align:right;color:#445;font-size:11px">${visitCountMap[s.name]>0?'<span style=\'background:#e0f2fe;color:#0369a1;padding:1px 5px;border-radius:6px;font-weight:700\'>'+visitCountMap[s.name]+'회</span>':'-'}</td>
         <td style="padding:4px 6px;color:#445;font-size:11px">${subjLabel}</td>
       </tr>`;
     });

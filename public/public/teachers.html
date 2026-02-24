@@ -224,6 +224,24 @@
       /* 아주 작은 화면에서 통계 카드 2열 유지 */
       .stats-row{grid-template-columns:1fr 1fr;gap:8px}
     }
+    /* ── 스마트폰 (560px 이하): 비핵심 컬럼 숨김으로 가로 스크롤 최소화 ── */
+    @media(max-width:560px){
+      /* 설립(5), 교육청(6), 담당자(11), 연락처(12) 컬럼 숨김 */
+      #teachersTbl th:nth-child(5),
+      #teachersTbl tbody tr.data-row td:nth-child(5),
+      #teachersTbl th:nth-child(6),
+      #teachersTbl tbody tr.data-row td:nth-child(6),
+      #teachersTbl th:nth-child(11),
+      #teachersTbl tbody tr.data-row td:nth-child(11),
+      #teachersTbl th:nth-child(12),
+      #teachersTbl tbody tr.data-row td:nth-child(12){ display:none !important }
+      /* 최소 너비 축소 (420px → 스크롤 거의 없음) */
+      #teachersTbl{min-width:420px}
+      /* 과목 칸 최대 너비 제한 */
+      #teachersTbl td:nth-child(7){max-width:100px}
+      /* 반응도 바 폭 축소 */
+      .rbar-track{width:36px}
+    }
   </style>
 </head>
 <body>
@@ -676,7 +694,7 @@ function buildRow(t, i) {
       <td class="small">${phone}</td>
     </tr>
     <tr class="expand-row" id="exp-${rid}">
-      <td colspan="12"><div class="expand-inner" id="ei-${rid}"></div></td>
+      <td colspan="99"><div class="expand-inner" id="ei-${rid}"></div></td>
     </tr>`;
 }
 
