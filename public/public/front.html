@@ -1445,8 +1445,10 @@ async function loadSchoolCsvForCharts(){
     if(dsRes.ok){
       window.__digitalSchoolsMap = await dsRes.json();
       console.log('[front] digital_schools loaded:', Object.keys(window.__digitalSchoolsMap).length, 'schools');
-      // 방문테이블이 이미 렌더링된 경우 배지 업데이트
+      // 방문테이블 배지 업데이트
       if(typeof refreshAiBadgesInTable==='function') refreshAiBadgesInTable();
+      // 등급 테이블 배지 업데이트 (buildSchoolGradePanel 재실행)
+      if(window.__lastVisits && typeof buildSchoolGradePanel==='function') buildSchoolGradePanel(window.__lastVisits);
     }
   }catch(e){ console.warn('[front] digital_schools.json load failed', e); }
 }
@@ -1569,7 +1571,7 @@ function buildSchoolGradePanel(visits){
         ? `/schoolinfo.html?school=${encodeURIComponent(s.name)}&staff=${encodeURIComponent(staffCode)}${codeParam}`
         : `/schoolinfo.html?school=${encodeURIComponent(s.name)}${codeParam}`;
       html += `<tr style="background:${bg};border-bottom:1px solid #f0f4ff">
-        <td style="padding:4px 8px"><a href="${schoolLink}" style="color:#1d4ed8;text-decoration:none;font-weight:600">${s.name}</a></td>
+        <td style="padding:4px 8px"><a href="${schoolLink}" style="color:#1d4ed8;text-decoration:none;font-weight:600">${s.name}</a>${getAiDigitalBadge(s.name)}</td>
         <td style="padding:4px 6px;text-align:center"><span style="font-weight:800;color:${fc};font-size:13px">${ic}${grade}</span></td>
         <td style="padding:4px 6px;text-align:right;color:#445">${copies}</td>
         <td style="padding:4px 6px;color:#445;font-size:11px">${subjLabel}</td>
