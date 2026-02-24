@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CMASS - 교사 DB 조회</title>
+  <style>
+    :root{
+      --bg:#f0f2f8; --card:#fff; --muted:#7080a0;
+      --b1:#12325a; --b2:#1e3c72; --acc:#5b7cf8;
+      --good:#22c55e; --normal:#f59e0b; --bad:#ef4444;
+      --border:#e2eaf8; --row-hover:#f4f8ff;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:#071a2e;min-height:100vh}
+    a{color:inherit;text-decoration:none}
+
+    /* ── 헤더 ── */
+    .page-header{background:linear-gradient(120deg,var(--b1) 0%,var(--b2) 100%);color:#fff;padding:20px 24px 16px;display:flex;align-items:center;gap:14px}
+    .page-header h1{font-size:22px;font-weight:800;letter-spacing:-.3px}
+    .page-header .subtitle{font-size:13px;opacity:.75;margin-top:3px}
+
+    /* ── 레이아웃 ── */
+    .layout{display:grid;grid-template-columns:280px 1fr;gap:0;min-height:calc(100vh - 64px)}
+    @media(max-width:860px){.layout{grid-template-columns:1fr}}
+
+    /* ── 필터 사이드바 ── */
+    .sidebar{background:#fff;border-right:1px solid var(--border);padding:18px 16px;overflow-y:auto;position:sticky;top:0;max-height:calc(100vh - 64px)}
+    @media(max-width:860px){.sidebar{position:static;max-height:none;border-right:none;border-bottom:1px solid var(--border)}}
+    .sidebar-section{margin-bottom:20px}
+    .sidebar-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.6px;text-transform:uppercase;margin-bottom:8px}
+    .filter-input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px}
+    .filter-input:focus{outline:none;border-color:var(--acc)}
+    .filter-select{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:#fff;cursor:pointer}
+    .chip-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+    .chip{padding:5px 11px;border-radius:14px;border:1.5px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:#f8faff;color:#445;transition:all .15s;user-select:none}
+    .chip:hover{border-color:var(--acc);color:var(--b1)}
+    .chip.on{background:var(--b1);color:#fff;border-color:var(--b1)}
+    .range-row{display:flex;gap:6px;align-items:center}
+    .range-row input{flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px}
+    .range-row span{font-size:12px;color:var(--muted)}
+    .sidebar-actions{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+    .btn{padding:10px 18px;border-radius:8px;border:none;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+    .btn-primary{background:linear-gradient(90deg,var(--b1),var(--b2));color:#fff}
+    .btn-primary:hover{opacity:.9}
+    .btn-secondary{background:#f0f3f9;color:var(--b1)}
+    .btn-secondary:hover{background:#e5eaf8}
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+    .btn-full{width:100%}
+
+    /* ── 메인 콘텐츠 ── */
+    .main{padding:18px;overflow-x:hidden}
+
+    /* ── 통계 카드 ── */
+    .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+    @media(max-width:860px){.stats-row{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:480px){.stats-row{grid-template-columns:1fr 1fr}}
+    .stat-card{background:var(--card);border-radius:12px;padding:14px 16px;box-shadow:0 2px 12px rgba(10,20,60,0.06);border:1px solid var(--border)}
+    .stat-icon{font-size:22px;margin-bottom:6px}
+    .stat-val{font-size:24px;font-weight:800;color:var(--b1);line-height:1}
+    .stat-lbl{font-size:11px;color:var(--muted);margin-top:4px}
+    .stat-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+    /* ── 교육청 탭 ── */
+    .office-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+    .office-tab{padding:6px 14px;border-radius:18px;border:1.5px solid var(--border);background:#fff;color:#445;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+    .office-tab:hover{background:#eef2ff;border-color:#b0c5ea}
+    .office-tab.active{background:var(--b1);color:#fff;border-color:var(--b1)}
+    .office-cnt{display:inline-block;background:rgba(255,255,255,.2);border-radius:9px;padding:0 6px;font-size:11px;margin-left:3px}
+    .office-tab:not(.active) .office-cnt{background:#e8ecf8;color:#556}
+
+    /* ── 결과 헤더 ── */
+    .results-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap}
+    .results-count{font-size:15px;font-weight:700;color:var(--b1)}
+    .ts-label{font-size:11px;color:var(--muted)}
+
+    /* ── 테이블 ── */
+    .table-card{background:var(--card);border-radius:12px;box-shadow:0 2px 14px rgba(10,20,60,0.07);border:1px solid var(--border);overflow:hidden}
+    .tbl-wrap{overflow-x:auto;scrollbar-width:thin}
+    .tbl-wrap::-webkit-scrollbar{height:6px}
+    .tbl-wrap::-webkit-scrollbar-thumb{background:#c8d8f0;border-radius:3px}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    thead th{background:linear-gradient(180deg,#f5f9ff,#ecf3ff);padding:10px 11px;text-align:left;font-size:11.5px;font-weight:700;color:var(--b1);border-bottom:2px solid #d4e0f5;white-space:nowrap;position:sticky;top:0;z-index:5;cursor:pointer;user-select:none}
+    thead th:hover{background:#e6efff}
+    .sort-ic{opacity:.35;margin-left:3px;font-size:10px}
+    th.sorted .sort-ic{opacity:1}
+    tbody td{padding:9px 11px;border-bottom:1px solid #eef3ff;vertical-align:middle}
+    tbody tr:last-child td{border-bottom:none}
+    tbody tr.data-row:hover td{background:var(--row-hover)}
+    tbody tr.data-row{cursor:default}
+    /* 확장 행 */
+    .expand-row td{padding:0;background:#f7fbff}
+    .expand-inner{padding:14px 16px 16px;display:none}
+    .expand-inner.open{display:block}
+
+    /* 확장 토글 */
+    .expand-btn{width:24px;height:24px;border-radius:6px;border:1.5px solid var(--border);background:#f0f4ff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:12px;transition:all .15s;flex-shrink:0}
+    .expand-btn:hover{background:#e0e8ff}
+    .expand-btn.open{background:var(--b1);color:#fff;border-color:var(--b1)}
+
+    /* 셀 요소 */
+    .tname{font-weight:700;color:var(--b1);cursor:pointer}
+    .tname:hover{text-decoration:underline}
+    .school-lnk{color:var(--b2);font-weight:600}
+    .school-lnk:hover{text-decoration:underline}
+    .visit-badge{background:#e6efff;color:var(--b1);padding:2px 8px;border-radius:9px;font-size:12px;font-weight:700}
+    .subj-tags{display:flex;flex-wrap:wrap;gap:3px}
+    .subj-tag{background:#f0f5ff;color:var(--b1);padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600}
+    .off-badge{padding:2px 8px;border-radius:9px;font-size:11px;font-weight:700;white-space:nowrap;display:inline-block}
+    .off-seoul{background:#fff3cd;color:#7d5800}
+    .off-gg{background:#d4edda;color:#155724}
+    .off-ic{background:#cce5ff;color:#004085}
+    .off-etc{background:#f0f2f6;color:#556}
+
+    /* 반응도 */
+    .rbar{display:flex;align-items:center;gap:5px}
+    .rbar-track{height:6px;background:#e8eef8;border-radius:3px;overflow:hidden;width:60px;flex-shrink:0}
+    .rbar-fill{height:100%;border-radius:3px}
+    .rbar-g{background:var(--good)} .rbar-n{background:var(--normal)} .rbar-b{background:var(--bad)} .rbar-e{background:#ccc}
+    .rpct{font-size:12px;font-weight:700;white-space:nowrap}
+
+    /* ── 미팅 썸네일 카드 ── */
+    .meeting-thumbnails{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+    .mtcard{background:#fff;border:1.5px solid #dde7f8;border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+    .mtcard:hover{border-color:var(--acc);box-shadow:0 4px 16px rgba(91,124,248,.12)}
+    .mt-date{font-size:12px;color:var(--muted);margin-bottom:5px;display:flex;justify-content:space-between}
+    .mt-staff{font-size:12px;color:#334;font-weight:600}
+    .mt-favor{font-size:11px;padding:1px 7px;border-radius:8px;font-weight:700}
+    .mf-good{background:#dcfce7;color:#15803d}
+    .mf-normal{background:#fef9c3;color:#b45309}
+    .mf-bad{background:#fee2e2;color:#b91c1c}
+    .mf-none{background:#f3f4f6;color:#666}
+    .mt-subjs{display:flex;flex-wrap:wrap;gap:3px;margin:6px 0 5px}
+    .mt-conv{font-size:12px;color:#445;line-height:1.55;word-break:break-all;opacity:.85}
+    .mt-acts{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px}
+    .mt-act{font-size:10px;background:#f0f0f8;color:#556;padding:1px 6px;border-radius:6px}
+    .see-more{font-size:12px;color:var(--acc);font-weight:700;cursor:pointer;margin-top:10px;text-align:center}
+    .see-more:hover{text-decoration:underline}
+
+    /* ── 모달 ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+    .modal-overlay.open{display:flex}
+    .modal{background:#fff;border-radius:16px;width:100%;max-width:740px;box-shadow:0 24px 80px rgba(0,0,0,.22);animation:slideUp .22s ease}
+    @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
+    .modal-head{background:linear-gradient(120deg,var(--b1),var(--b2));color:#fff;padding:20px 22px 16px;border-radius:16px 16px 0 0;position:relative}
+    .modal-close{position:absolute;top:14px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+    .modal-close:hover{background:rgba(255,255,255,.3)}
+    .modal-body{padding:18px 22px 24px;max-height:70vh;overflow-y:auto}
+    .modal-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-bottom:16px}
+    @media(max-width:500px){.modal-info-grid{grid-template-columns:1fr}}
+    .info-item .lbl{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:2px}
+    .info-item .val{font-size:13px;font-weight:600;color:#1a2a4a}
+    .modal-section-title{font-size:13px;font-weight:700;color:var(--b1);margin:16px 0 10px;border-bottom:2px solid #e8f0ff;padding-bottom:5px}
+    .meeting-timeline{display:flex;flex-direction:column;gap:12px}
+    .timeline-item{background:#f8faff;border:1.5px solid #dde8f8;border-radius:11px;padding:14px 16px;cursor:default}
+    .tl-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+    .tl-date{font-size:13px;font-weight:700;color:var(--b1)}
+    .tl-staff{font-size:12px;color:var(--muted)}
+    .tl-conv{font-size:13px;color:#334;line-height:1.6;word-break:break-all}
+    .tl-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+
+    /* ── 빈/오류 상태 ── */
+    .empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
+    .error-box{background:#fff0f0;color:#c00;padding:14px 16px;border-radius:10px;border:1.5px solid #fcc;font-size:13px}
+    .loading-pulse{text-align:center;padding:50px;color:var(--muted);font-size:14px}
+
+    .small{font-size:12px;color:var(--muted)}
+    .nowrap{white-space:nowrap}
+
+    /* ── 모바일 필터 토글 ── */
+    #filterToggleBtn{display:none;padding:7px 14px;border-radius:8px;border:1.5px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.12);color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:auto}
+    @media(max-width:860px){
+      #filterToggleBtn{display:inline-flex;align-items:center;gap:5px}
+      .sidebar{display:none;border-bottom:1.5px solid var(--border)}
+      .sidebar.mobile-open{display:block}
+      /* 테이블 카드: 가로 스크롤 허용 */
+      .table-card{overflow-x:auto}
+      /* 테이블 최소 너비 고정 → 열이 찌그러지지 않고 가로 스크롤 트리거 */
+      #teachersTbl{min-width:820px}
+      /* 부드러운 터치 스크롤 */
+      .tbl-wrap{-webkit-overflow-scrolling:touch}
+      .office-tabs{-webkit-overflow-scrolling:touch}
+      /* 통계 카드 overflow 방지 */
+      .stats-row{overflow-x:hidden}
+      /* 교육청 탭 가로 스크롤 */
+      .office-tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}
+      .office-tab{white-space:nowrap}
+      /* 헤더 배너 모바일 최적화 */
+      .page-header{padding:14px 16px 12px;gap:8px}
+      .page-header h1{font-size:17px}
+      .page-header .subtitle{font-size:12px}
+      /* 결과 헤더 */
+      .results-header{flex-direction:column;align-items:flex-start;gap:4px}
+      /* 확장 패널 */
+      .modal{width:calc(100vw - 8px);max-width:none}
+      .modal-body{max-height:80vh}
+      .meeting-thumbnails{grid-template-columns:1fr}
+      /* 통계 카드 텍스트 크기 */
+      .stat-val{font-size:22px}
+      .stat-lbl{font-size:10px}
+    }
+    @media(max-width:480px){
+      .main{padding:10px 8px}
+      thead th{padding:7px 6px;font-size:10.5px}
+      tbody td{padding:7px 6px;font-size:12px}
+      .stat-val{font-size:20px}
+      /* 과목 태그 소형화 */
+      .subj-tag{font-size:10px;padding:1px 5px}
+      /* 교육청 배지 소형화 */
+      .off-badge{font-size:10px;padding:1px 5px}
+      /* 반응도 바 소형화 */
+      .rbar-track{width:45px}
+      .rpct{font-size:11px}
+      /* 방문 배지 소형화 */
+      .visit-badge{font-size:11px;padding:1px 6px}
+    }
+    @media(max-width:400px){
+      .page-header h1{font-size:15px}
+      .stat-card{padding:10px 12px}
+      .stat-val{font-size:18px}
+      .stat-icon{font-size:18px;margin-bottom:4px}
+      /* 아주 작은 화면에서 통계 카드 2열 유지 */
+      .stats-row{grid-template-columns:1fr 1fr;gap:8px}
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── 로딩 오버레이 ── -->
+<div id="teachersLoadingOverlay" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,0.6);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:20px;padding:40px 60px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,0.35);min-width:280px">
+    <div style="font-size:44px;margin-bottom:14px">⏳</div>
+    <div style="font-size:20px;font-weight:800;color:#12325a;line-height:1.3">교사 DB 불러오는 중...</div>
+    <div style="font-size:13px;color:#7080a0;margin-top:10px">전체 데이터를 로딩합니다. 잠시만 기다려 주세요.</div>
+  </div>
+</div>
+
+<!-- ── 페이지 헤더 ── -->
+<div class="page-header">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%">
+    <button onclick="goBackToHome()" style="padding:7px 14px;border-radius:8px;border:1.5px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.12);color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">← 홈</button>
+    <div>
+      <h1>📚 교사 DB 조회</h1>
+      <div class="subtitle">미팅 기록 기반 · 필터링 · 반응도 분석</div>
+    </div>
+    <div id="staffBanner" style="display:none;background:rgba(255,255,255,0.18);padding:5px 14px;border-radius:20px;font-size:13px;font-weight:700;"></div>
+    <button id="filterToggleBtn" onclick="toggleMobileFilter()">🔍 필터</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- ════ 사이드바 필터 ════ -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">검색</div>
+      <input type="text" id="searchQuery" class="filter-input" placeholder="교사명, 학교명..." onkeydown="if(event.key==='Enter')applyFilters()">
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">반응도</div>
+      <div class="chip-group" id="favorChips">
+        <span class="chip on" data-favor="all" onclick="toggleFavor(this)">전체</span>
+        <span class="chip" data-favor="좋음" onclick="toggleFavor(this)">😊 좋음</span>
+        <span class="chip" data-favor="보통" onclick="toggleFavor(this)">😐 보통</span>
+        <span class="chip" data-favor="나쁨" onclick="toggleFavor(this)">😞 나쁨</span>
+        <span class="chip" data-favor="none" onclick="toggleFavor(this)">기록없음</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">과목</div>
+      <div class="chip-group" id="subjectChips">
+        <span class="chip on" data-subj="all" onclick="toggleSubject(this)">전체</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">방문 횟수 (최소)</div>
+      <input type="number" id="visitMin" class="filter-input" placeholder="예: 2" min="1" style="width:100%">
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">최근 방문일 (이후)</div>
+      <input type="date" id="lastVisitFrom" class="filter-input">
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">담당자</div>
+      <select id="staffFilter" class="filter-select">
+        <option value="">전체</option>
+      </select>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">설립구분</div>
+      <div class="chip-group" id="establChips">
+        <span class="chip on" data-establ="all" onclick="toggleEstab(this)">전체</span>
+        <span class="chip" data-establ="공립" onclick="toggleEstab(this)">🏫 공립</span>
+        <span class="chip" data-establ="사립" onclick="toggleEstab(this)">🏢 사립</span>
+        <span class="chip" data-establ="국립" onclick="toggleEstab(this)">🏛️ 국립</span>
+      </div>
+    </div>
+
+    <div class="sidebar-actions">
+      <button class="btn btn-primary btn-full" id="loadAllBtn" onclick="loadAllTeachers()">📋 전체 조회</button>
+      <button class="btn btn-secondary btn-full" id="applyBtn" onclick="applyFilters()">🔍 필터 적용</button>
+      <button class="btn btn-secondary btn-full" onclick="resetFilters()">↺ 초기화</button>
+    </div>
+  </aside>
+
+  <!-- ════ 메인 콘텐츠 ════ -->
+  <main class="main" id="mainArea">
+    <div class="loading-pulse">📋 전체 조회 버튼을 눌러 데이터를 불러오세요.</div>
+  </main>
+</div>
+
+<!-- ════ 교사 상세 모달 ════ -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modalBox">
+    <div class="modal-head" id="modalHead">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div style="font-size:18px;font-weight:800" id="modalTitle"></div>
+      <div style="font-size:13px;opacity:.8;margin-top:4px" id="modalSub"></div>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const BACKEND = 'https://cmass-sales-backend-918981476485.asia-northeast3.run.app';
+
+// ── 모바일 필터 사이드바 토글 ────────────────────────────────────────────────
+function toggleMobileFilter(){
+  const sb = document.querySelector('.sidebar');
+  const btn = document.getElementById('filterToggleBtn');
+  if(!sb) return;
+  const open = sb.classList.toggle('mobile-open');
+  if(btn) btn.textContent = open ? '✕ 닫기' : '🔍 필터';
+}
+
+// ── 상태 ──────────────────────────────────────────────────────────────────────
+let allTeachers = [];
+let displayTeachers = [];
+let currentOffice = '';
+let currentSort = { key: 'visitCount', dir: -1 };
+let allSubjectSet = new Set();
+let allStaffSet = new Set();
+let selectedSubjects = new Set(['all']);
+let selectedFavors = new Set(['all']);
+let selectedEstab = 'all';
+let schoolEstaMap = {}; // 학교명 → 설립구분
+let schoolRegionMap = {}; // 학교명 → 지역
+let isLoading = false; // 중복 로딩 방지
+
+// ── 로딩 ──────────────────────────────────────────────────────────────────────
+function setLoading(on) {
+  isLoading = on;
+  const lb = document.getElementById('loadAllBtn');
+  const ab = document.getElementById('applyBtn');
+  lb.disabled = ab.disabled = on;
+  lb.textContent = on ? '⏳ 로딩 중...' : '📋 전체 조회';
+  const ov = document.getElementById('teachersLoadingOverlay');
+  if(ov) ov.style.display = on ? 'flex' : 'none';
+}
+
+async function loadAllTeachers() {
+  if (isLoading) return; // 중복 호출 방지
+  setLoading(true); // isLoading = true 설정 (재진입 차단)
+  // 로딩 중 표시 (초기 안내 텍스트 교체)
+  const mainArea = document.getElementById('mainArea');
+  if (mainArea) mainArea.innerHTML = '<div class="loading-pulse" id="loadingMsg">⏳ 데이터 불러오는 중...</div>';
+  try {
+    // CSV에서 학교 설립구분 정보 로딩
+    loadSchoolEstablishments();
+    const res = await fetch(`${BACKEND}/api/teachers?limit=2000`);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || '조회 오류');
+    allTeachers = data.teachers || [];
+    // 학교 설립구분 정보 enrichment (CSV 맵이 이미 로딩된 경우)
+    allTeachers.forEach(t => {
+      if(!t.establishment) t.establishment = schoolEstaMap[t.school] || '';
+      if(!t.region) t.region = schoolRegionMap[t.school] || '';
+    });
+    currentOffice = '';
+    buildSidebarOptions();
+    buildOfficeTabs(allTeachers);
+    renderStats(data.stats || {});
+    // URL ?staff= 자동 필터 적용 — 렌더링 전에 설정해서 한 번만 렌더링
+    if (window.__autoStaffFilter) {
+      const sel = document.getElementById('staffFilter');
+      if (sel) sel.value = window.__autoStaffFilter;
+    }
+    // 로딩 메시지 제거 후 렌더링
+    const lm = document.getElementById('loadingMsg');
+    if (lm) lm.remove();
+    applyFilters();
+  } catch (err) { showError(err.message); }
+  finally { setLoading(false); }
+}
+
+// ── 학교 설립구분/지역 CSV 로딩 ────────────────────────────────────────────
+async function loadSchoolEstablishments(){
+  try{
+    const res = await fetch('/sales_staff.csv', {cache:'force-cache'});
+    if(!res.ok) return;
+    const text = await res.text();
+    const lines = text.replace(/^\uFEFF/,'').split('\n');
+    if(lines.length < 2) return;
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,''));
+    const iName = headers.indexOf('학교명');
+    const iEsta = headers.indexOf('설립구분');
+    const iReg  = headers.indexOf('지역');
+    if(iName < 0) return;
+    schoolEstaMap = {};
+    schoolRegionMap = {};
+    for(let i = 1; i < lines.length; i++){
+      const cols = lines[i].split(',');
+      const name = (cols[iName]||'').trim().replace(/^"|"$/g,'');
+      const esta = iEsta >= 0 ? (cols[iEsta]||'').trim() : '';
+      const reg  = iReg  >= 0 ? (cols[iReg ]||'').trim().replace(/^"|"$/g,'') : '';
+      if(name && esta) schoolEstaMap[name] = esta;
+      if(name && reg)  schoolRegionMap[name] = reg;
+    }
+    console.log('[teachers] School CSV loaded:', Object.keys(schoolEstaMap).length);
+    // 이미 allTeachers가 로딩된 경우 필드 보강
+    if(allTeachers.length) {
+      allTeachers.forEach(t => {
+        if(!t.establishment) t.establishment = schoolEstaMap[t.school] || '';
+        if(!t.region) t.region = schoolRegionMap[t.school] || '';
+      });
+    }
+  }catch(e){ console.warn('[teachers] CSV load failed', e); }
+}
+
+// ── 설립구분 칩 토글 ─────────────────────────────────────────────────────────
+function toggleEstab(el){
+  selectedEstab = el.dataset.establ || 'all';
+  document.querySelectorAll('.chip[data-establ]').forEach(c => c.classList.toggle('on', c.dataset.establ === selectedEstab));
+  applyFilters();
+}
+
+function applyFilters(){
+  if (!allTeachers.length) {
+    if (!isLoading) loadAllTeachers(); // 데이터 없고 로딩 중이 아눉0 때만
+    return;
+  }
+  displayTeachers = computeFiltered();
+  renderResults();
+}
+
+function computeFiltered() {
+  const q = document.getElementById('searchQuery').value.trim().toLowerCase();
+  const visitMin = parseInt(document.getElementById('visitMin').value) || 0;
+  const lastFrom = document.getElementById('lastVisitFrom').value || '';
+  const staffF = document.getElementById('staffFilter').value;
+
+  return allTeachers.filter(t => {
+    // 교육청 탭
+    if (currentOffice && (t.educationOffice || '기타') !== currentOffice) return false;
+    // 텍스트 검색
+    if (q && !t.teacher.toLowerCase().includes(q) && !t.school.toLowerCase().includes(q)) return false;
+    // 반응도
+    if (!selectedFavors.has('all')) {
+      const hasFavor = (() => {
+        if (selectedFavors.has('none') && t.reactionTotal === 0) return true;
+        if (selectedFavors.has('좋음') && t.reactions.good > 0) return true;
+        if (selectedFavors.has('보통') && t.reactions.normal > 0) return true;
+        if (selectedFavors.has('나쁨') && t.reactions.bad > 0) return true;
+        return false;
+      })();
+      if (!hasFavor) return false;
+    }
+    // 과목
+    if (!selectedSubjects.has('all')) {
+      const teacherSubjs = new Set(t.subjects || []);
+      if (![...selectedSubjects].some(s => teacherSubjs.has(s))) return false;
+    }
+    // 방문 횟수
+    if (visitMin > 0 && t.visitCount < visitMin) return false;
+    // 최근 방문일
+    if (lastFrom && t.lastVisit < lastFrom) return false;
+    // 담당자
+    if (staffF && !(t.staffLabels || []).includes(staffF) && t.staffLabel !== staffF) return false;
+    // 설립구분
+    if (selectedEstab && selectedEstab !== 'all') {
+      const esta = t.establishment || (schoolEstaMap[t.school] || '');
+      if (esta !== selectedEstab) return false;
+    }
+    return true;
+  });
+}
+
+function resetFilters() {
+  document.getElementById('searchQuery').value = '';
+  document.getElementById('visitMin').value = '';
+  document.getElementById('lastVisitFrom').value = '';
+  document.getElementById('staffFilter').value = '';
+  selectedFavors = new Set(['all']);
+  selectedSubjects = new Set(['all']);
+  selectedEstab = 'all';
+  document.querySelectorAll('.chip[data-favor]').forEach(c => c.classList.toggle('on', c.dataset.favor === 'all'));
+  document.querySelectorAll('.chip[data-subj]').forEach(c => c.classList.toggle('on', c.dataset.subj === 'all'));
+  document.querySelectorAll('.chip[data-establ]').forEach(c => c.classList.toggle('on', c.dataset.establ === 'all'));
+  currentOffice = '';
+  document.querySelectorAll('.office-tab').forEach(b => b.classList.toggle('active', b.dataset.office === ''));
+  applyFilters();
+}
+
+// ── 사이드바 옵션 빌드 ────────────────────────────────────────────────────────
+function buildSidebarOptions() {
+  allSubjectSet = new Set();
+  allStaffSet = new Set();
+  for (const t of allTeachers) {
+    (t.subjects || []).forEach(s => { if (s) allSubjectSet.add(s); });
+    (t.staffLabels || []).forEach(s => { if (s) allStaffSet.add(s); });
+    if (t.staffLabel) allStaffSet.add(t.staffLabel);
+  }
+
+  // 과목 칩
+  const schipsEl = document.getElementById('subjectChips');
+  schipsEl.innerHTML = `<span class="chip on" data-subj="all" onclick="toggleSubject(this)">전체</span>`;
+  const sortedSubjs = [...allSubjectSet].sort();
+  for (const s of sortedSubjs) {
+    const c = document.createElement('span');
+    c.className = 'chip';
+    c.dataset.subj = s;
+    c.textContent = s;
+    c.onclick = function() { toggleSubject(this); };
+    schipsEl.appendChild(c);
+  }
+
+  // 담당자 select
+  const sel = document.getElementById('staffFilter');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">전체</option>';
+  [...allStaffSet].sort().forEach(s => {
+    const o = document.createElement('option');
+    o.value = s; o.textContent = s;
+    if (s === cur) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+// ── 교육청 탭 ─────────────────────────────────────────────────────────────────
+function buildOfficeTabs(teachers) {
+  const cnt = {};
+  for (const t of teachers) { const o = t.educationOffice || '기타'; cnt[o] = (cnt[o] || 0) + 1; }
+  const existing = document.getElementById('officeTabs');
+  if (existing) existing.remove();
+  const wrap = document.createElement('div');
+  wrap.className = 'office-tabs'; wrap.id = 'officeTabs';
+  // 전체 탭
+  wrap.innerHTML = `<button class="office-tab active" data-office="" onclick="filterOffice(this)">전체 <span class="office-cnt">${teachers.length}</span></button>`;
+  Object.keys(cnt).sort((a,b) => cnt[b]-cnt[a]).forEach(office => {
+    const icon = office === '서울시교육청' ? '🏙️' : office === '경기도교육청' ? '🌿' : office === '인천교육청' ? '⚓' : '📍';
+    const btn = document.createElement('button');
+    btn.className = 'office-tab'; btn.dataset.office = office;
+    btn.onclick = function() { filterOffice(this); };
+    btn.innerHTML = `${icon} ${escH(office)} <span class="office-cnt">${cnt[office]}</span>`;
+    wrap.appendChild(btn);
+  });
+  const mainArea = document.getElementById('mainArea');
+  mainArea.insertBefore(wrap, mainArea.firstChild);
+}
+
+function filterOffice(btn) {
+  document.querySelectorAll('.office-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentOffice = btn.dataset.office;
+  applyFilters();
+}
+
+// ── 통계 카드 ─────────────────────────────────────────────────────────────────
+function renderStats(stats) {
+  const existing = document.getElementById('statsRow');
+  if (existing) existing.remove();
+  const topSubj = (stats.topSubjects || [])[0];
+  const cards = [
+    { icon:'👥', val: (stats.teacherCount || 0).toLocaleString(), lbl:'총 교사 수', sub:'' },
+    { icon:'📅', val: (stats.totalVisits || 0).toLocaleString(), lbl:'총 방문 횟수', sub:'' },
+    { icon:'😊', val: stats.avgGoodRate != null ? stats.avgGoodRate + '%' : '-', lbl:'평균 좋음 반응도', sub:`좋음 ${stats.reactions?.good||0}·보통 ${stats.reactions?.normal||0}·나쁨 ${stats.reactions?.bad||0}` },
+    { icon:'📖', val: topSubj ? escH(topSubj.subject) : '-', lbl:'최다 과목', sub: topSubj ? `${topSubj.count}건` : '' },
+  ];
+  const row = document.createElement('div');
+  row.className = 'stats-row'; row.id = 'statsRow';
+  row.innerHTML = cards.map(c => `
+    <div class="stat-card">
+      <div class="stat-icon">${c.icon}</div>
+      <div class="stat-val">${c.val}</div>
+      <div class="stat-lbl">${c.lbl}</div>
+      ${c.sub ? `<div class="stat-sub">${c.sub}</div>` : ''}
+    </div>`).join('');
+  const mainArea = document.getElementById('mainArea');
+  // office tabs가 있으면 그 아래, 없으면 첫 번째에
+  const tabs = document.getElementById('officeTabs');
+  if (tabs) tabs.after(row);
+  else mainArea.insertBefore(row, mainArea.firstChild);
+}
+
+// ── 결과 렌더 ─────────────────────────────────────────────────────────────────
+function renderResults() {
+  const existing = document.getElementById('tableCard');
+  if (existing) existing.remove();
+
+  const sorted = sortList([...displayTeachers]);
+
+  const offLabel = currentOffice ? ` · ${escH(currentOffice)}` : '';
+  const card = document.createElement('div');
+  card.id = 'tableCard';
+
+  if (sorted.length === 0) {
+    card.innerHTML = `<div class="empty-state"><div style="font-size:42px;margin-bottom:12px;opacity:.4">🔍</div><div>조건에 맞는 교사가 없습니다</div></div>`;
+    document.getElementById('mainArea').appendChild(card);
+    return;
+  }
+
+  card.className = 'table-card';
+  card.innerHTML = `
+    <div style="padding:14px 16px 10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div class="results-count">📊 ${sorted.length.toLocaleString()}명${offLabel}</div>
+      <div class="ts-label">업데이트: ${new Date().toLocaleString('ko-KR')}</div>
+    </div>
+    <div class="tbl-wrap">
+      <table id="teachersTbl">
+        <thead><tr>
+          <th style="width:28px"></th>
+          <th data-col="teacher"         onclick="sortBy('teacher')">교사명 <span class="sort-ic">▲▼</span></th>
+          <th data-col="school"          onclick="sortBy('school')">학교명 <span class="sort-ic">▲▼</span></th>
+          <th data-col="region"           onclick="sortBy('region')">지역 <span class="sort-ic">▲▼</span></th>
+          <th data-col="establishment"   onclick="sortBy('establishment')">설립 <span class="sort-ic">▲▼</span></th>
+          <th data-col="educationOffice" onclick="sortBy('educationOffice')">교육청 <span class="sort-ic">▲▼</span></th>
+          <th data-col="subjects">과목</th>
+          <th data-col="visitCount"      onclick="sortBy('visitCount')">방문 <span class="sort-ic">▲▼</span></th>
+          <th data-col="reactions"       onclick="sortBy('goodRate')">반응도 <span class="sort-ic">▲▼</span></th>
+          <th data-col="lastVisit"       onclick="sortBy('lastVisit')">최근 방문 <span class="sort-ic">▲▼</span></th>
+          <th data-col="staffLabel">담당자</th>
+          <th data-col="phone">연락처</th>
+        </tr></thead>
+        <tbody id="teachersTbody">
+          ${sorted.map((t, i) => buildRow(t, i)).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  document.getElementById('mainArea').appendChild(card);
+  updateSortIcons();
+}
+
+function buildRow(t, i) {
+  const subjHtml = (t.subjects || []).length
+    ? `<div class="subj-tags">${(t.subjects||[]).map(s => `<span class="subj-tag">${escH(s)}</span>`).join('')}</div>`
+    : '<span class="small">-</span>';
+  const phone = t.phone ? `<a href="tel:${escH(t.phone)}" style="color:var(--b2)">${escH(t.phone)}</a>` : '-';
+  const rid = 'r' + i;
+  // JSON.stringify 결과의 " 를 HTML 엔티티로 이스케이프 → onclick 속성 파싱 오류 방지
+  const safeTeacher = JSON.stringify(t.teacher || '').replace(/"/g, '&quot;');
+  const safeSchool  = JSON.stringify(t.school  || '').replace(/"/g, '&quot;');
+  // 현재 URL의 staff 파라미터를 schoolinfo 링크에 전달
+  const _staffQ = new URLSearchParams(window.location.search).get('staff') || (window.__autoStaffFilter || '');
+  const _staffParam = _staffQ ? `&staff=${encodeURIComponent(_staffQ)}` : '';
+  const schoolInfoHref = `schoolinfo?code=${encodeURIComponent(t.schoolCode||'')}${_staffParam}&school=${encodeURIComponent(t.school||'')}`;
+  return `
+    <tr class="data-row" id="row-${rid}">
+      <td><button class="expand-btn" id="ebtn-${rid}" onclick="toggleExpand('${rid}',${safeTeacher},${safeSchool})" title="미팅 기록 보기">▶</button></td>
+      <td><span class="tname" data-teacher="${escH(t.teacher)}" data-school="${escH(t.school)}" onclick="openModalByKey(this)">${escH(t.teacher)}</span></td>
+      <td><a class="school-lnk" href="${schoolInfoHref}" target="_blank">${escH(t.school)}</a></td>
+      <td class="small nowrap">${escH(t.region||'-')}</td>
+      <td class="small">${escH(t.establishment || schoolEstaMap[t.school] || '-')}</td>
+      <td>${offBadge(t.educationOffice)}</td>
+      <td>${subjHtml}</td>
+      <td><span class="visit-badge">${t.visitCount}회</span></td>
+      <td>${reactionCell(t)}</td>
+      <td class="small nowrap">${fmtDate(t.lastVisit)}</td>
+      <td class="small">${escH(t.staffLabel||t.staff||'-')}</td>
+      <td class="small">${phone}</td>
+    </tr>
+    <tr class="expand-row" id="exp-${rid}">
+      <td colspan="12"><div class="expand-inner" id="ei-${rid}"></div></td>
+    </tr>`;
+}
+
+// ── 행 확장 (미팅 썸네일) ─────────────────────────────────────────────────────
+async function toggleExpand(rid, teacher, school) {
+  const btn = document.getElementById('ebtn-' + rid);
+  const inner = document.getElementById('ei-' + rid);
+  const isOpen = inner.classList.contains('open');
+  if (isOpen) {
+    inner.classList.remove('open');
+    btn.classList.remove('open');
+    btn.textContent = '▶';
+    return;
+  }
+  btn.classList.add('open');
+  btn.textContent = '▼';
+  inner.classList.add('open');
+
+  // recentMeetings 가 이미 있으면 사용
+  const tObj = allTeachers.find(t => t.teacher === teacher && t.school === school);
+  const meetings = tObj?.recentMeetings || [];
+  renderMeetingThumbnails(inner, meetings, teacher, school);
+}
+
+function renderMeetingThumbnails(container, meetings, teacher, school) {
+  if (!meetings.length) {
+    container.innerHTML = '<div class="small" style="padding:6px 0;color:var(--muted)">미팅 기록이 없습니다.</div>';
+    return;
+  }
+  const cards = meetings.map(m => buildMtCard(m)).join('');
+  container.innerHTML = `
+    <div class="meeting-thumbnails">${cards}</div>
+    <div class="see-more" data-teacher="${escH(teacher)}" data-school="${escH(school)}" onclick="openModalByKey(this)">
+      📋 전체 미팅 기록 보기 →
+    </div>`;
+}
+
+function buildMtCard(m) {
+  const fav = m.favor || '';
+  const fCls = fav.includes('좋') ? 'mf-good' : fav.includes('나') ? 'mf-bad' : fav ? 'mf-normal' : 'mf-none';
+  const fIcon = fav.includes('좋') ? '😊' : fav.includes('나') ? '😞' : fav ? '😐' : '–';
+  const subjs = (m.subjects||[]).map(s => `<span class="subj-tag">${escH(s)}</span>`).join('');
+  const acts = (m.activities||[]).slice(0,4).map(a => `<span class="mt-act">${escH(a)}</span>`).join('');
+  const conv = m.conversation ? m.conversation.substring(0, 80) + (m.conversation.length > 80 ? '…' : '') : '';
+  return `<div class="mtcard">
+    <div class="mt-date">
+      <span>📅 ${fmtDate(m.visitDate)} ${m.visitStart ? m.visitStart+'~'+m.visitEnd : ''}</span>
+      <span class="mt-favor ${fCls}">${fIcon} ${fav||'-'}</span>
+    </div>
+    <div class="mt-staff">👤 ${escH(m.staffLabel||'-')}</div>
+    <div class="mt-subjs">${subjs}</div>
+    ${conv ? `<div class="mt-conv">${escH(conv)}</div>` : ''}
+    ${acts ? `<div class="mt-acts">${acts}</div>` : ''}
+  </div>`;
+}
+
+// ── 교사 상세 모달 ────────────────────────────────────────────────────────────
+function openModalByKey(el) {
+  const tname = el.dataset.teacher;
+  const school = el.dataset.school;
+  const tObj = allTeachers.find(t => t.teacher === tname && t.school === school) || { teacher: tname, school };
+  openModal(tObj);
+}
+
+async function openModal(teacher) {
+  const t = typeof teacher === 'string' ? JSON.parse(teacher) : teacher;
+  document.getElementById('modalTitle').textContent = `${t.teacher} 선생님`;
+  document.getElementById('modalSub').textContent = `${t.school}${t.educationOffice ? ' · ' + t.educationOffice : ''}`;
+  document.getElementById('modalBody').innerHTML = '<div class="loading-pulse">불러오는 중...</div>';
+  document.getElementById('modalOverlay').classList.add('open');
+
+  // 기본 정보 렌더
+  const infoHtml = `
+    <div class="modal-info-grid">
+      <div class="info-item"><div class="lbl">학교명</div><div class="val">${escH(t.school)}</div></div>
+      <div class="info-item"><div class="lbl">교육청</div><div class="val">${escH(t.educationOffice||'-')}</div></div>
+      <div class="info-item"><div class="lbl">학교코드</div><div class="val">${escH(t.schoolCode||'-')}</div></div>
+      <div class="info-item"><div class="lbl">연락처</div><div class="val">${t.phone ? `<a href="tel:${escH(t.phone)}" style="color:var(--b2)">${escH(t.phone)}</a>` : '-'}</div></div>
+      <div class="info-item"><div class="lbl">총 방문</div><div class="val">${t.visitCount}회 (${fmtDate(t.firstVisit)} ~ ${fmtDate(t.lastVisit)})</div></div>
+      <div class="info-item"><div class="lbl">반응도</div><div class="val">${reactionSmall(t)}</div></div>
+      <div class="info-item"><div class="lbl">담당자</div><div class="val">${escH((t.staffLabels||[t.staffLabel||t.staff]).filter(Boolean).join(', ')||'-')}</div></div>
+      <div class="info-item"><div class="lbl">지역</div><div class="val">${escH(t.region||'-')}</div></div>
+    </div>`;
+
+  // 전체 미팅 API 호출
+  try {
+    const res = await fetch(`${BACKEND}/api/teacher_meetings?teacher=${encodeURIComponent(t.teacher)}&school=${encodeURIComponent(t.school)}`);
+    const data = await res.json();
+    const meetings = data.meetings || [];
+    const tlHtml = meetings.length
+      ? `<div class="meeting-timeline">${meetings.map(m => buildTimelineItem(m)).join('')}</div>`
+      : '<div class="small" style="padding:10px 0">미팅 기록이 없습니다.</div>';
+    document.getElementById('modalBody').innerHTML = infoHtml +
+      `<div class="modal-section-title">📋 미팅 기록 (${meetings.length}건)</div>` + tlHtml;
+  } catch(e) {
+    document.getElementById('modalBody').innerHTML = infoHtml + `<div class="error-box">미팅 기록 로드 실패: ${escH(e.message)}</div>`;
+  }
+}
+
+function buildTimelineItem(m) {
+  const fav = m.favor || '';
+  const fCls = fav.includes('좋') ? 'mf-good' : fav.includes('나') ? 'mf-bad' : fav ? 'mf-normal' : 'mf-none';
+  const fIcon = fav.includes('좋') ? '😊' : fav.includes('나') ? '😞' : fav ? '😐' : '–';
+  const subjs = (m.subjects||[]).map(s => `<span class="subj-tag">${escH(s)}</span>`).join('');
+  const acts = (m.activities||[]).map(a => `<span class="mt-act">${escH(a)}</span>`).join('');
+  const mats = (m.materials||[]).map(a => `<span class="mt-act" style="background:#f0fff4;color:#166534">${escH(a)}</span>`).join('');
+  const time = m.visitStart ? `${m.visitStart}~${m.visitEnd||''} ${m.duration ? '('+m.duration+'분)' : ''}` : '';
+  return `<div class="timeline-item">
+    <div class="tl-head">
+      <div>
+        <span class="tl-date">📅 ${fmtDate(m.visitDate)} ${time}</span>
+        <span class="tl-staff" style="margin-left:10px">👤 ${escH(m.staffLabel||'-')}</span>
+      </div>
+      <span class="mt-favor ${fCls}">${fIcon} ${fav||'-'}</span>
+    </div>
+    <div class="tl-meta">${subjs}${acts}${mats}</div>
+    ${m.conversation ? `<div class="tl-conv" style="margin-top:8px">${escH(m.conversation)}</div>` : ''}
+    ${m.issue ? `<div class="tl-conv" style="margin-top:5px;color:#b45309">🔖 ${escH(m.issue)}</div>` : ''}
+  </div>`;
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modalOverlay')) return;
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+// ── 필터 칩 토글 ─────────────────────────────────────────────────────────────
+function toggleFavor(chip) {
+  const val = chip.dataset.favor;
+  if (val === 'all') {
+    selectedFavors = new Set(['all']);
+  } else {
+    selectedFavors.delete('all');
+    if (selectedFavors.has(val)) selectedFavors.delete(val);
+    else selectedFavors.add(val);
+    if (selectedFavors.size === 0) selectedFavors.add('all');
+  }
+  document.querySelectorAll('.chip[data-favor]').forEach(c => {
+    c.classList.toggle('on', selectedFavors.has(c.dataset.favor));
+  });
+  if (allTeachers.length) applyFilters();
+}
+
+function toggleSubject(chip) {
+  const val = chip.dataset.subj;
+  if (val === 'all') {
+    selectedSubjects = new Set(['all']);
+  } else {
+    selectedSubjects.delete('all');
+    if (selectedSubjects.has(val)) selectedSubjects.delete(val);
+    else selectedSubjects.add(val);
+    if (selectedSubjects.size === 0) selectedSubjects.add('all');
+  }
+  document.querySelectorAll('.chip[data-subj]').forEach(c => {
+    c.classList.toggle('on', selectedSubjects.has(c.dataset.subj));
+  });
+  if (allTeachers.length) applyFilters();
+}
+
+// ── 정렬 ─────────────────────────────────────────────────────────────────────
+function sortBy(col) {
+  const defaultDesc = ['visitCount', 'goodRate', 'lastVisit'];
+  currentSort = { key: col, dir: currentSort.key === col ? currentSort.dir * -1 : (defaultDesc.includes(col) ? -1 : 1) };
+  renderResults();
+}
+
+function sortList(list) {
+  const { key, dir } = currentSort;
+  return list.sort((a, b) => {
+    let av = key === 'goodRate' ? (a.goodRate ?? -1) : (a[key] ?? '');
+    let bv = key === 'goodRate' ? (b.goodRate ?? -1) : (b[key] ?? '');
+    if (typeof av === 'number') return (av - bv) * dir;
+    return String(av).localeCompare(String(bv), 'ko') * dir;
+  });
+}
+
+function updateSortIcons() {
+  document.querySelectorAll('#teachersTbl thead th').forEach(th => {
+    th.classList.remove('sorted');
+    const c = th.dataset.col;
+    if (c === currentSort.key || (c === 'reactions' && currentSort.key === 'goodRate')) {
+      th.classList.add('sorted');
+      const ic = th.querySelector('.sort-ic');
+      if (ic) ic.textContent = currentSort.dir === 1 ? '▲' : '▼';
+    }
+  });
+}
+
+// ── UI 헬퍼 ──────────────────────────────────────────────────────────────────
+function reactionCell(t) {
+  const r = t.reactions || { good:0, normal:0, bad:0 };
+  const tot = t.reactionTotal || (r.good + r.normal + r.bad);
+  if (!tot) return `<div class="rbar"><div class="rbar-track"><div class="rbar-fill rbar-e" style="width:100%"></div></div><span class="rpct small">-</span></div>`;
+  const gp = Math.round(r.good / tot * 100);
+  const cls = gp >= 60 ? 'rbar-g' : gp >= 30 ? 'rbar-n' : 'rbar-b';
+  const col = gp >= 60 ? 'var(--good)' : gp >= 30 ? 'var(--normal)' : 'var(--bad)';
+  const em = gp >= 70 ? '😊' : gp >= 40 ? '😐' : '😞';
+  return `<div>
+    <div class="rbar"><div class="rbar-track"><div class="rbar-fill ${cls}" style="width:${gp}%"></div></div>
+    <span class="rpct" style="color:${col}">${em} ${gp}%</span></div>
+    <div class="small" style="margin-top:2px">😊${r.good} 😐${r.normal} 😞${r.bad}</div>
+  </div>`;
+}
+
+function reactionSmall(t) {
+  const r = t.reactions || {good:0,normal:0,bad:0};
+  const tot = t.reactionTotal||(r.good+r.normal+r.bad);
+  if(!tot) return '-';
+  const gp = Math.round(r.good/tot*100);
+  const em = gp>=70?'😊':gp>=40?'😐':'😞';
+  return `${em} ${gp}% (😊${r.good} 😐${r.normal} 😞${r.bad})`;
+}
+
+function offBadge(office) {
+  const cls = office==='서울시교육청'?'off-seoul':office==='경기도교육청'?'off-gg':office==='인천교육청'?'off-ic':'off-etc';
+  return `<span class="off-badge ${cls}">${escH(office||'-')}</span>`;
+}
+
+function showError(msg) {
+  document.getElementById('mainArea').innerHTML = `<div class="error-box">⚠️ ${escH(msg)}</div>`;
+}
+
+function fmtDate(s) {
+  if (!s) return '-';
+  try { return new Date(s).toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit'}); } catch { return s; }
+}
+
+function escH(t) {
+  if (!t) return '';
+  const d = document.createElement('div'); d.textContent = t; return d.innerHTML;
+}
+
+// ── 홈으로 뒤로가기 ─────────────────────────────────────────────────────────
+function goBackToHome() {
+  // URL ?staff= 우선, 없으면 sessionStorage 저장값 사용
+  const sc = new URLSearchParams(window.location.search).get('staff')
+    || (function(){ try{ return sessionStorage.getItem('cmass_staff_code'); }catch(e){ return ''; } })()
+    || '';
+  window.location.href = '/front' + (sc ? '?staff=' + encodeURIComponent(sc) : '');
+}
+
+// ── 초기화 ───────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', function() {
+  const p = new URLSearchParams(window.location.search);
+
+  // staff 파라미터: 코드 또는 이름으로 자동 필터
+  const rawStaff = (p.get('staff') || '').trim();
+  // 숫자 코드이면 sessionStorage에 저장 (뒤로가기용)
+  if (rawStaff) {
+    window.__rawStaff = rawStaff;
+    try{ sessionStorage.setItem('cmass_staff_code', rawStaff); }catch(e){}
+  }
+  if (rawStaff) {
+    const codeMap = {'99781203':'임준호','89250686':'조영환','51322012':'이경일','42238747':'송훈재'};
+    const validNames = {'임준호':'임준호','조영환':'조영환','이경일':'이경일','송훈재':'송훈재'};
+    const staffName = codeMap[rawStaff] || validNames[rawStaff] || rawStaff;
+    // 배너 표시
+    const banner = document.getElementById('staffBanner');
+    if (banner) { banner.textContent = '👤 ' + staffName; banner.style.display = 'block'; }
+    // 데이터 로드 후 필터 적용을 위해 전역 변수에 저장
+    window.__autoStaffFilter = staffName;
+    loadAllTeachers();
+    return; // 아래 q 처리와 중복 방지
+  }
+
+  const q = p.get('q') || p.get('teacher') || p.get('school') || '';
+  if (q) {
+    document.getElementById('searchQuery').value = q;
+    loadAllTeachers();
+  } else {
+    // 파라미터 없어도 자동 로드
+    loadAllTeachers();
+  }
+});
+</script>
+</body>
+</html>

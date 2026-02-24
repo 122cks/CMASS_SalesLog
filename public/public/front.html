@@ -39,9 +39,9 @@
     .container{max-width:1100px;margin:0 auto}
     h1{text-align:center;color:var(--brand-1);margin:6px 0 14px 0;font-size:28px}
     .hero{background:var(--card-bg);border-radius:14px;padding:18px 20px;box-shadow:0 12px 40px rgba(10,20,60,0.06);margin-bottom:14px}
-    .btn-row{display:flex;gap:12px;align-items:center;justify-content:center;margin:14px 0}
-    .big-btn{padding:12px 18px;border-radius:12px;border:none;background:linear-gradient(90deg,var(--brand-1),var(--brand-2));color:#fff;font-weight:800;font-size:15px;cursor:pointer}
-    .alt-btn{padding:10px 14px;border-radius:12px;border:1px solid #e1e7f6;background:var(--card-bg);color:var(--brand-1);font-weight:800;cursor:pointer}
+    .btn-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;margin:14px 0}
+    .big-btn{padding:12px 20px;border-radius:12px;border:none;background:linear-gradient(90deg,var(--brand-1),var(--brand-2));color:#fff;font-weight:800;font-size:15px;cursor:pointer;white-space:nowrap}
+    .alt-btn{padding:9px 12px;border-radius:12px;border:1px solid #e1e7f6;background:var(--card-bg);color:var(--brand-1);font-weight:800;cursor:pointer;white-space:nowrap;font-size:13px}
     .card{background:var(--card-bg);border-radius:12px;padding:14px;margin-top:12px;box-shadow:0 10px 30px rgba(10,20,60,0.04)}
     /* stats grid: responsive auto-fit */
     .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:12px}
@@ -89,9 +89,20 @@
       body{padding:12px}
       h1{font-size:20px}
       .hero{padding:12px}
-      .big-btn{padding:10px 12px;font-size:14px}
+      .big-btn{padding:10px 14px;font-size:14px}
       canvas{height:180px !important}
       .card{padding:12px}
+    }
+    /* btn-row: 600px 이하 2열 그리드 */
+    @media (max-width:600px){
+      .btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+      .btn-row .big-btn{grid-column:1/-1;font-size:14px;padding:11px 10px}
+      .btn-row .alt-btn{font-size:12px;padding:9px 6px;text-align:center;border-radius:10px}
+    }
+    /* btn-row: 400px 이하 단일열 */
+    @media (max-width:400px){
+      .btn-row{grid-template-columns:1fr}
+      .btn-row .big-btn,.btn-row .alt-btn{grid-column:unset}
     }
 
     /* Mobile-specific dashboard tweaks: compact buttons, horizontal scroll for button bars,
@@ -121,7 +132,7 @@
 
     /* NPS gauge / breakdown styles (match nps_preview) */
     .gauge-wrap{display:flex;flex-direction:column;align-items:center;margin:20px 0}
-    canvas#gauge{max-width:100%;height:220px;display:block;box-sizing:border-box}
+    canvas#npsChart{max-width:100%;height:220px;display:block;box-sizing:border-box}
     .nps-score{margin-top:8px;text-align:center}
     .nps-score .val{font-size:34px;font-weight:800;color:var(--brand-1)}
     .nps-sub{color:#607489;font-size:13px;margin-top:6px}
@@ -278,6 +289,7 @@
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
   <!-- Leaflet map for per-user geocode distribution -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="" crossorigin="" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
@@ -362,8 +374,10 @@
         <div class="btn-row">
           <button id="goInput" class="big-btn" onclick="try{ if(typeof front_goInput==='function'){ front_goInput(); } else { alert('입력 페이지 이동이 비활성화되어 있습니다.'); } }catch(e){}">영업일지 입력</button>
           <button class="alt-btn" onclick="try{ const qs = window.location.search || ''; window.location.href = '/schoolinfo.html' + qs; }catch(e){ window.location.href = '/schoolinfo.html'; }">🏫 학교정보조회</button>
+          <button class="alt-btn" onclick="(function(){ var sc=new URLSearchParams(window.location.search).get('staff')||(function(){try{return sessionStorage.getItem('cmass_staff_code');}catch(e){return '';}})()||''; window.location.href='/teachers'+(sc?'?staff='+encodeURIComponent(sc):''); })()">👩‍🏫 교사DB조회</button>
           <!-- 방문현황 리포트 버튼: 현재 staff 슬러그로 바로 이동 -->
           <button class="alt-btn" onclick="(function(){ var sc = new URLSearchParams(window.location.search).get('staff'); window.location.href = '/schoolreport.html' + (sc ? '?staff=' + encodeURIComponent(sc) : ''); })()">📊 방문현황리포트</button>
+          <button class="alt-btn" onclick="(function(){ var sc=new URLSearchParams(window.location.search).get('staff')||(function(){try{return sessionStorage.getItem('cmass_staff_code');}catch(e){return '';}})()||''; window.location.href='/adoption.html'+(sc?'?staff='+encodeURIComponent(sc):''); })()" title="2026학년도 교과서 채택 점유율 현황">📚 지역별실적표</button>
           <button id="btnForceRefresh" class="alt-btn" title="서비스워커 강제 업데이트 / 페이지 새로고침" onclick="try{ if(typeof front_forceRefresh==='function'){ front_forceRefresh(); } else if(typeof forceServiceWorkerUpdate==='function'){ forceServiceWorkerUpdate(); } else { alert('새로고침 기능을 사용할 수 없습니다.'); } }catch(e){}">새로고침(최신)</button>
           
         </div>
@@ -557,7 +571,7 @@
                             <div style="display:flex;align-items:center;gap:12px;">
                               <div style="flex:1 1 320px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px">
                                 <div style="height:140px;display:flex;align-items:center;justify-content:center;width:100%">
-                                  <canvas id="gauge" aria-label="반응 NPS 차트" style="max-height:100%;max-width:100%"></canvas>
+                                  <canvas id="npsChart" aria-label="반응 NPS 차트" style="max-height:100%;max-width:100%"></canvas>
                                 </div>
                                 <div class="nps-score" style="text-align:center;margin-top:8px">
                                   <div id="npsScore" class="val" style="font-size:34px;font-weight:800;color:#07243a">-</div>
@@ -571,56 +585,64 @@
                           <!-- 반응 분포 카드 제거됨 -->
                         </div>
 
-                        <div style="flex:1 1 220px;min-width:180px;border:1px solid #eef2ff;border-radius:8px;padding:8px;background:#fff">
-                          <div class="chart-title">시간대별 방문 분포</div>
-                            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-                            <div style="flex:1 1 300px;min-width:240px;display:flex;align-items:center;justify-content:center">
-                              <canvas id="timeDistChart" aria-label="시간대별 방문 분포 차트" style="max-height:100%;max-width:100%"></canvas>
-                            </div>
-                            <div id="timeLegend" style="flex:0 0 160px;max-height:220px;overflow:auto;padding-left:8px;border-left:1px solid #f6f9ff;font-size:13px"></div>
-                          </div>
-                        </div>
+
 
                       </div>
                       
-                      <!-- 학교별 방문 TOP 10 -->
-                      <div style="margin-top:10px;border:1px solid #eef2ff;border-radius:8px;padding:8px;background:#fff">
-                        <div class="chart-title">학교별 방문 TOP 10</div>
-                        <div style="height:280px;display:flex;align-items:center;justify-content:center">
-                          <canvas id="topSchoolsChart" aria-label="학교별 방문 TOP 10 차트" style="width:100%;height:100%"></canvas>
+                      <!-- 차트 2열 그리드 (설립구분 / 학교급 / 학생수 / 과목별) -->
+                      <div style="margin-top:10px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+
+                        <!-- 설립구분별 방문 현황 -->
+                        <div style="border:1px solid #eef2ff;border-radius:8px;padding:8px;background:#fff">
+                          <div class="chart-title">설립구분별 방문 현황 (공립 / 사립 / 국립)</div>
+                          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:200px">
+                            <div style="flex:1 1 auto;display:flex;align-items:center;justify-content:center">
+                              <canvas id="establChart" aria-label="설립구분별 방문 분포 차트" style="max-height:200px;max-width:100%"></canvas>
+                            </div>
+                            <div id="establLegend" style="flex:0 0 130px;max-height:200px;overflow:auto;padding-left:8px;border-left:1px solid #f6f9ff;font-size:12px"></div>
+                          </div>
                         </div>
-                      </div>
-					  
-                      <!-- 선생님별 방문 TOP 10 -->
-                      <div style="margin-top:10px;border:1px solid #eef2ff;border-radius:8px;padding:8px;background:#fff">
-                        <div class="chart-title">선생님별 방문 현황 TOP 10</div>
-                        <div style="height:280px;display:flex;align-items:center;justify-content:center">
-                          <canvas id="topTeachersChart" aria-label="선생님별 방문 TOP 10 차트" style="width:100%;height:100%"></canvas>
+
+                        <!-- 학교급별 방문 분포 -->
+                        <div style="border:1px solid #eef2ff;border-radius:8px;padding:8px;background:#fff">
+                          <div class="chart-title">학교급별 방문 분포 (초 · 중 · 고)</div>
+                          <div style="height:240px;display:flex;align-items:center;justify-content:center">
+                            <canvas id="schoolLevelChart" aria-label="학교급별 방문 분포 차트" style="width:100%;height:100%"></canvas>
+                          </div>
                         </div>
+
+                        <!-- 학생수 구간별 학교 분포 -->
+                        <div style="border:1px solid #eef2ff;border-radius:8px;padding:8px;background:#fff">
+                          <div class="chart-title">학생수 구간별 방문 학교 분포</div>
+                          <div style="height:220px;display:flex;align-items:center;justify-content:center">
+                            <canvas id="studDistChart" aria-label="학생수 구간별 학교 분포 차트" style="width:100%;height:100%"></canvas>
+                          </div>
+                        </div>
+
+                        <!-- 과목별 반응 분석 -->
+                        <div style="border:1px solid #eef2ff;border-radius:8px;padding:8px;background:#fff">
+                          <div class="chart-title">과목별 반응 분석</div>
+                          <div style="height:280px;display:flex;align-items:center;justify-content:center">
+                            <canvas id="subjectReactionChart" aria-label="과목별 반응 분석 차트" style="width:100%;height:100%"></canvas>
+                          </div>
+                        </div>
+
+                      </div><!-- /차트 2열 그리드 -->
+
+                      <!-- 지역별 S/A/B/C 등급 테이블 -->
+                      <div style="margin-top:10px;border:1px solid #eef2ff;border-radius:8px;padding:8px;background:#fff">
+                        <div class="chart-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+                          <span>📊 지역별 학교 등급 (S / A / B / C)</span>
+                          <span style="font-size:11px;color:#a0a8c0;font-weight:400">서울=구별 · 경기=시별 · 방문횟수 60% + 학생수 40%</span>
+                        </div>
+                        <div id="schoolGradePanel" style="margin-top:8px;overflow-x:auto"></div>
                       </div>
 
-                      <!-- 주간 방문 패턴 (요일별) -->
+                      <!-- 방문 학교 지역 분포 지도 -->
                       <div style="margin-top:10px;border:1px solid #eef2ff;border-radius:8px;padding:8px;background:#fff">
-                        <div class="chart-title">주간 방문 패턴 (요일별)</div>
-                        <div style="height:220px;display:flex;align-items:center;justify-content:center">
-                          <canvas id="weekdayChart" aria-label="요일별 방문 패턴 차트" style="width:100%;height:100%"></canvas>
-                        </div>
-                      </div>
-
-                      <!-- 과목별 반응 분석 -->
-                      <div style="margin-top:10px;border:1px solid #eef2ff;border-radius:8px;padding:8px;background:#fff">
-                        <div class="chart-title">과목별 반응 분석</div>
-                        <div style="height:280px;display:flex;align-items:center;justify-content:center">
-                          <canvas id="subjectReactionChart" aria-label="과목별 반응 분석 차트" style="width:100%;height:100%"></canvas>
-                        </div>
-                      </div>
-
-                      <!-- Monthly trend line chart -->
-                      <div style="margin-top:10px;border:1px solid #eef2ff;border-radius:8px;padding:8px;background:#fff">
-                        <div class="chart-title">월별 방문 추이</div>
-                        <div style="height:240px;display:flex;align-items:center;justify-content:center">
-                          <canvas id="monthlyTrendChart" aria-label="월별 방문추이 차트" style="width:100%;height:100%"></canvas>
-                        </div>
+                        <div class="chart-title">📍 방문 학교 지역 분포 지도</div>
+                        <div id="visitHeatmap" style="height:360px;border-radius:8px;overflow:hidden"></div>
+                        <div id="heatmapStatus" style="font-size:11px;color:#888;margin-top:4px;text-align:right"></div>
                       </div>
                       <div id="__backend_status" class="small" style="margin-top:6px;color:#a33"></div>
                     </div>
@@ -890,7 +912,9 @@ async function loadPersonalVisits(){
         // split date for stacked display: "YYYY-" on first line and "MM-DD" on second
         const dateYear = date ? escapeHtml(String(date).substring(0,4) + '-') : '';
         const dateMd = date ? escapeHtml(String(date).substring(5)) : '';
-        const school = escapeHtml(e.school || '');
+        const schoolRaw = (e.school || '').toString().trim();
+        const school = escapeHtml(schoolRaw);
+        const aiBadge = getAiDigitalBadge(schoolRaw);
         const region = escapeHtml(e.region || '');
         const time = (e.visitStart||'') + (e.visitEnd ? (' ~ ' + e.visitEnd) : '');
         const staffLabel = escapeHtml(e.staffLabel || e.staff || '');
@@ -941,7 +965,7 @@ async function loadPersonalVisits(){
         html += '<tr>' +
           `<td class="visit-date-cell"><span class="visit-date-year">${dateYear}</span><span class="visit-date-md">${dateMd}</span></td>` +
           `<td>${region}</td>` +
-          `<td>${school}</td>` +
+          `<td>${school}${aiBadge}</td>` +
           `<td>${time}</td>` +
           `<td>${duration}</td>` +
           `<td>${escapeHtml(subjects)}</td>` +
@@ -961,6 +985,20 @@ async function loadPersonalVisits(){
 
 // Helper: escape HTML for simple cell rendering
 function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+// Helper: AI 디지털 선도/중점/연구학교 배지 생성
+function getAiDigitalBadge(schoolName){
+  const dm = window.__digitalSchoolsMap || {};
+  const entry = dm[schoolName];
+  if(!entry || !(entry.tags||[]).length) return '';
+  const colors = {'AI중점학교':'#7c3aed','AI디지털선도학교':'#0284c7','AI디지털연구학교':'#059669'};
+  const labels = {'AI중점학교':'🟣중점','AI디지털선도학교':'💡선도','AI디지털연구학교':'🔬연구'};
+  return entry.tags.map(t=>{
+    const c=colors[t], lb=labels[t];
+    if(!c||!lb) return '';
+    return `<span style="display:inline-block;margin-left:3px;font-size:10px;font-weight:700;background:${c}18;color:${c};border:1px solid ${c}50;border-radius:8px;padding:0 5px;vertical-align:middle;white-space:nowrap;line-height:1.4">${lb}</span>`;
+  }).join('');
+}
 
 // Toggle long note text: show preview by default, expand/collapse on button click
 // openNoteModal(id) will display the full note text in a modal. The modal element is
@@ -1004,7 +1042,27 @@ function openNoteModal(id){
 }
 
 // Chart helpers: aggregate visits and render/update charts
-let __timeDistChart = null, __topSchoolsChart = null, __topTeachersChart = null, __weekdayChart = null, __subjectReactionChart = null, __monthlyTrendChart = null;
+// chartjs-plugin-datalabels 등록 (전역)
+try { if(window.ChartDataLabels) Chart.register(ChartDataLabels); } catch(e) {}
+
+// datalabels 공통 옵션: 5% 미만 슬라이스 숨김
+const DATALABELS_OPTS = {
+  display: ctx => {
+    const d = ctx.dataset.data; const t = d.reduce((s,v)=>s+(Number(v)||0),0);
+    return t > 0 && (Number(ctx.dataset.data[ctx.dataIndex])||0)/t > 0.04;
+  },
+  color: '#fff',
+  font: { weight: '700', size: 11 },
+  formatter: (value, ctx) => {
+    const total = ctx.dataset.data.reduce((s,v) => s + (Number(v)||0), 0);
+    if (!total) return '';
+    const pct = Math.round((Number(value)||0) / total * 100);
+    return pct > 4 ? pct + '%' : '';
+  }
+};
+
+let __establChart = null, __schoolLevelChart = null, __studDistChart = null, __subjectReactionChart = null;
+let __npsChart = null;
 function buildCharts(visits){
   try{
     const palette = ['#4e79a7','#f28e2b','#e15759','#76b7b2','#59a14f','#edc949','#af7aa1','#ff9da7','#9c755f','#bab0ac'];
@@ -1021,145 +1079,122 @@ function buildCharts(visits){
       }catch(e){ return (ctx.label || '') + ': ' + (ctx.raw||ctx.parsed||0); }
     }
 
-    // 1. 시간대별 방문 분포
-    const timeDistMap = new Map([['오전 (06-12시)', 0], ['오후 (12-18시)', 0], ['저녁 (18-24시)', 0], ['새벽 (00-06시)', 0]]);
-    visits.forEach(v => {
-      const time = (v.visitTime || '').toString().trim();
-      if (!time) return;
-      const hour = parseInt(time.split(':')[0]) || 0;
-      if (hour >= 6 && hour < 12) timeDistMap.set('오전 (06-12시)', (timeDistMap.get('오전 (06-12시)') || 0) + 1);
-      else if (hour >= 12 && hour < 18) timeDistMap.set('오후 (12-18시)', (timeDistMap.get('오후 (12-18시)') || 0) + 1);
-      else if (hour >= 18 && hour < 24) timeDistMap.set('저녁 (18-24시)', (timeDistMap.get('저녁 (18-24시)') || 0) + 1);
-      else timeDistMap.set('새벽 (00-06시)', (timeDistMap.get('새벽 (00-06시)') || 0) + 1);
-    });
-    const timeLabels = Array.from(timeDistMap.keys());
-    const timeData = Array.from(timeDistMap.values());
-    
-    const tdCtx = document.getElementById('timeDistChart');
-    if (tdCtx) {
-      const tdOpts = {
-        plugins: { legend: { display: false }, tooltip: { enabled: true, callbacks: { label: labelWithCountAndPercent } } },
-        maintainAspectRatio: false,
-        aspectRatio: 1.6
-      };
-      if (__timeDistChart) {
-        __timeDistChart.data.labels = timeLabels;
-        __timeDistChart.data.datasets[0].data = timeData;
-        __timeDistChart.update();
-      } else {
-        __timeDistChart = new Chart(tdCtx, {
-          type: 'doughnut',
-          data: { labels: timeLabels, datasets: [{ data: timeData, backgroundColor: palette }] },
-          options: tdOpts
-        });
+    // 2. 설립구분별 방문 현황 (공립/사립/국립)
+    try {
+      const csvMap = window.__schoolCsvMap || {};
+      const establTmp = {};
+      visits.forEach(v => {
+        const school = (v.schoolName || v.school || '').toString().trim();
+        const info = csvMap[school];
+        const esta = (info && info.establishment) ? info.establishment : '기타';
+        establTmp[esta] = (establTmp[esta] || 0) + 1;
+      });
+      const establOrder = ['공립', '사립', '국립', '기타'];
+      const establKeys = establOrder.filter(k => (establTmp[k] || 0) > 0);
+      const establVals = establKeys.map(k => establTmp[k] || 0);
+      const establColors = { '공립': '#4e79a7', '사립': '#f28e2b', '국립': '#59a14f', '기타': '#bab0ac' };
+      const eCtx = document.getElementById('establChart');
+      if (eCtx) {
+        if (__establChart) {
+          __establChart.data.labels = establKeys;
+          __establChart.data.datasets[0].data = establVals;
+          __establChart.data.datasets[0].backgroundColor = establKeys.map(k => establColors[k] || '#bab0ac');
+          __establChart.update();
+        } else {
+          __establChart = new Chart(eCtx, {
+            type: 'doughnut',
+            data: { labels: establKeys, datasets: [{ data: establVals, backgroundColor: establKeys.map(k => establColors[k] || '#bab0ac') }] },
+            options: { plugins: { legend: { display: false }, tooltip: { enabled: true, callbacks: { label: labelWithCountAndPercent } }, datalabels: DATALABELS_OPTS }, maintainAspectRatio: false }
+          });
+        }
+        const eLegend = document.getElementById('establLegend');
+        if (eLegend) {
+          const tot = establVals.reduce((s, v) => s + v, 0);
+          eLegend.innerHTML = establKeys.map((k, i) => {
+            const cnt = establVals[i];
+            const pct = tot ? ((cnt / tot) * 100).toFixed(1) : '0.0';
+            return `<div style="padding:4px 0;border-bottom:1px solid #f6f9ff"><span style="display:inline-block;width:12px;height:12px;background:${establColors[k] || '#bab0ac'};margin-right:6px;border-radius:2px"></span>${k}: ${cnt}건 (${pct}%)</div>`;
+          }).join('');
+        }
       }
-      // 범례 렌더링
-      const timeLegend = document.getElementById('timeLegend');
-      if (timeLegend) {
-        const total = timeData.reduce((s, v) => s + v, 0);
-        timeLegend.innerHTML = timeLabels.map((label, i) => {
-          const count = timeData[i];
-          const pct = total ? ((count / total) * 100).toFixed(1) : '0.0';
-          return `<div style="padding:4px 0;border-bottom:1px solid #f6f9ff"><span style="display:inline-block;width:12px;height:12px;background:${palette[i]};margin-right:6px;border-radius:2px"></span>${label}: ${count}건 (${pct}%)</div>`;
-        }).join('');
+    } catch(e) { console.warn('establChart error', e); }
+
+    // 3. 학교급별 방문 분포 (초/중/고)
+    try {
+      const csvMap2 = window.__schoolCsvMap || {};
+      const levelTmp = { '초등학교': 0, '중학교': 0, '고등학교': 0, '기타': 0 };
+      visits.forEach(v => {
+        const school = (v.schoolName || v.school || '').toString().trim();
+        const info = csvMap2[school];
+        const lv = (info && info.level) ? info.level : '';
+        if (lv.includes('초등')) levelTmp['초등학교']++;
+        else if (lv.includes('중학') || lv.includes('중등')) levelTmp['중학교']++;
+        else if (lv.includes('고등')) levelTmp['고등학교']++;
+        else if (lv) levelTmp['기타']++;
+        else {
+          const sName = (v.schoolName || v.school || '').toString();
+          if (sName.includes('초등') || sName.endsWith('초')) levelTmp['초등학교']++;
+          else if (sName.includes('중학') || sName.endsWith('중')) levelTmp['중학교']++;
+          else if (sName.includes('고등') || sName.endsWith('고')) levelTmp['고등학교']++;
+          else levelTmp['기타']++;
+        }
+      });
+      const lvKeys = ['초등학교', '중학교', '고등학교', '기타'].filter(k => levelTmp[k] > 0);
+      const lvVals = lvKeys.map(k => levelTmp[k]);
+      const lvColors = { '초등학교': '#59a14f', '중학교': '#4e79a7', '고등학교': '#f28e2b', '기타': '#bab0ac' };
+      const lvCtx = document.getElementById('schoolLevelChart');
+      if (lvCtx) {
+        if (__schoolLevelChart) {
+          __schoolLevelChart.data.labels = lvKeys;
+          __schoolLevelChart.data.datasets[0].data = lvVals;
+          __schoolLevelChart.update();
+        } else {
+          __schoolLevelChart = new Chart(lvCtx, {
+            type: 'doughnut',
+            data: { labels: lvKeys, datasets: [{ data: lvVals, backgroundColor: lvKeys.map(k => lvColors[k] || '#bab0ac') }] },
+            options: { plugins: { legend: { display: true, position: 'right' }, tooltip: { enabled: true, callbacks: { label: labelWithCountAndPercent } }, datalabels: DATALABELS_OPTS }, maintainAspectRatio: false }
+          });
+        }
       }
-    }
+    } catch(e) { console.warn('schoolLevelChart error', e); }
 
-    // 2. 학교별 방문 TOP 10
-    const schoolCounts = new Map();
-    visits.forEach(v => {
-      const school = (v.schoolName || v.school || '').toString().trim();
-      if (!school) return;
-      schoolCounts.set(school, (schoolCounts.get(school) || 0) + 1);
-    });
-    const topSchools = Array.from(schoolCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    const schoolLabels = topSchools.map(e => e[0]);
-    const schoolData = topSchools.map(e => e[1]);
-
-    const tsCtx = document.getElementById('topSchoolsChart');
-    if (tsCtx) {
-      const tsOpts = {
-        indexAxis: 'y',
-        plugins: { legend: { display: false }, tooltip: { enabled: true } },
-        maintainAspectRatio: false,
-        scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
-      };
-      if (__topSchoolsChart) {
-        __topSchoolsChart.data.labels = schoolLabels;
-        __topSchoolsChart.data.datasets[0].data = schoolData;
-        __topSchoolsChart.update();
-      } else {
-        __topSchoolsChart = new Chart(tsCtx, {
-          type: 'bar',
-          data: { labels: schoolLabels, datasets: [{ label: '방문횟수', data: schoolData, backgroundColor: '#4e79a7' }] },
-          options: tsOpts
-        });
+    // 4. 학생수 구간별 방문 학교 분포
+    try {
+      const csvMap3 = window.__schoolCsvMap || {};
+      const buckets = { '300명 미만': 0, '300~599명': 0, '600~999명': 0, '1000명 이상': 0, '정보없음': 0 };
+      const seenSchools = new Set();
+      visits.forEach(v => {
+        const school = (v.schoolName || v.school || '').toString().trim();
+        if (!school || seenSchools.has(school)) return;
+        seenSchools.add(school);
+        const info = csvMap3[school];
+        const stu = info ? (Number(info.students) || 0) : 0;
+        if (!stu) buckets['정보없음']++;
+        else if (stu < 300) buckets['300명 미만']++;
+        else if (stu < 600) buckets['300~599명']++;
+        else if (stu < 1000) buckets['600~999명']++;
+        else buckets['1000명 이상']++;
+      });
+      const bkKeys = ['300명 미만', '300~599명', '600~999명', '1000명 이상', '정보없음'].filter(k => buckets[k] > 0);
+      const bkVals = bkKeys.map(k => buckets[k]);
+      const sdCtx = document.getElementById('studDistChart');
+      if (sdCtx) {
+        if (__studDistChart) {
+          __studDistChart.data.labels = bkKeys;
+          __studDistChart.data.datasets[0].data = bkVals;
+          __studDistChart.update();
+        } else {
+          __studDistChart = new Chart(sdCtx, {
+            type: 'doughnut',
+            data: { labels: bkKeys, datasets: [{ data: bkVals, backgroundColor: ['#e15759','#f28e2b','#4e79a7','#59a14f','#bab0ac'] }] },
+            options: { plugins: { legend: { display: true, position: 'right' }, tooltip: { enabled: true, callbacks: { label: labelWithCountAndPercent } }, datalabels: DATALABELS_OPTS }, maintainAspectRatio: false }
+          });
+        }
       }
-    }
-
-    // 3. 선생님별 방문 TOP 10
-    const teacherCounts = new Map();
-    visits.forEach(v => {
-      const teacher = (v.teacherName || v.teacher || '').toString().trim();
-      if (!teacher) return;
-      teacherCounts.set(teacher, (teacherCounts.get(teacher) || 0) + 1);
-    });
-    const topTeachers = Array.from(teacherCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    const teacherLabels = topTeachers.map(e => e[0]);
-    const teacherData = topTeachers.map(e => e[1]);
-
-    const ttCtx = document.getElementById('topTeachersChart');
-    if (ttCtx) {
-      const ttOpts = {
-        indexAxis: 'y',
-        plugins: { legend: { display: false }, tooltip: { enabled: true } },
-        maintainAspectRatio: false,
-        scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
-      };
-      if (__topTeachersChart) {
-        __topTeachersChart.data.labels = teacherLabels;
-        __topTeachersChart.data.datasets[0].data = teacherData;
-        __topTeachersChart.update();
-      } else {
-        __topTeachersChart = new Chart(ttCtx, {
-          type: 'bar',
-          data: { labels: teacherLabels, datasets: [{ label: '방문횟수', data: teacherData, backgroundColor: '#f28e2b' }] },
-          options: ttOpts
-        });
-      }
-    }
-
-    // 4. 요일별 방문 패턴
-    const weekdayMap = new Map([['월', 0], ['화', 0], ['수', 0], ['목', 0], ['금', 0], ['토', 0], ['일', 0]]);
-    visits.forEach(v => {
-      const date = v._dateNorm || v.visitDate || '';
-      if (!date) return;
-      const d = new Date(date);
-      const weekday = ['일', '월', '화', '수', '목', '금', '토'][d.getDay()];
-      weekdayMap.set(weekday, (weekdayMap.get(weekday) || 0) + 1);
-    });
-    const weekdayLabels = ['월', '화', '수', '목', '금', '토', '일'];
-    const weekdayData = weekdayLabels.map(day => weekdayMap.get(day) || 0);
-
-    const wdCtx = document.getElementById('weekdayChart');
-    if (wdCtx) {
-      const wdOpts = {
-        plugins: { legend: { display: false }, tooltip: { enabled: true } },
-        maintainAspectRatio: false,
-        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-      };
-      if (__weekdayChart) {
-        __weekdayChart.data.labels = weekdayLabels;
-        __weekdayChart.data.datasets[0].data = weekdayData;
-        __weekdayChart.update();
-      } else {
-        __weekdayChart = new Chart(wdCtx, {
-          type: 'bar',
-          data: { labels: weekdayLabels, datasets: [{ label: '방문횟수', data: weekdayData, backgroundColor: palette }] },
-          options: wdOpts
-        });
-      }
-    }
+      // S/A/B/C 등급 테이블 생성
+      window.__lastVisits = visits;
+      buildSchoolGradePanel(visits);
+    } catch(e) { console.warn('studDistChart error', e); }
 
     // 5. 과목별 반응 분석
     const subjectReactionMap = new Map();
@@ -1216,38 +1251,317 @@ function buildCharts(visits){
       }
     }
 
-    // Monthly visits (월별) - aggregate by YYYY-MM and render line chart
-    try{
-      const monthMap = new Map();
-      visits.forEach(v => {
-        const dNorm = (v._dateNorm || '').toString().trim();
-        if (!dNorm) return;
-        const month = dNorm.substring(0,7); // YYYY-MM
-        monthMap.set(month, (monthMap.get(month)||0) + 1);
-      });
-      const monthEntries = Array.from(monthMap.entries()).sort((a,b)=> a[0].localeCompare(b[0]));
-      const monthLabels = monthEntries.map(e=> e[0]);
-      const monthCounts = monthEntries.map(e=> e[1]);
-      const mCtx = document.getElementById('monthlyTrendChart');
-      if (mCtx){
-        const mOpts = { plugins:{ legend:{ display:false }, tooltip:{ enabled:true } }, maintainAspectRatio:false };
-        if (__monthlyTrendChart){
-          __monthlyTrendChart.data.labels = monthLabels;
-          __monthlyTrendChart.data.datasets[0].data = monthCounts;
-          __monthlyTrendChart.update();
-        } else {
-          __monthlyTrendChart = new Chart(mCtx, {
-            type: 'line',
-            data: { labels: monthLabels, datasets: [{ label: '월별 미팅건수', data: monthCounts, borderColor: '#59a14f', backgroundColor: 'rgba(89,161,79,0.08)', tension: 0.2, fill: true, pointRadius:3 }] },
-            options: Object.assign({}, mOpts, { scales: { x: { type: 'category', ticks: { autoSkip: true, maxRotation: 0 } }, y: { beginAtZero:true, ticks:{ precision:0 } } } })
-          });
-        }
-      }
-    }catch(e){ console.warn('monthly visits chart render failed', e); }
+    // 지역 히트맵 지도 업데이트
+    buildVisitHeatmap(visits).catch(function(e){ console.warn('heatmap error', e); });
 
     // 기존 과목/지역 보조 리스트는 제거하고, 의미 있는 핵심 차트만 유지
 
   }catch(e){ console.warn('buildCharts error', e); }
+}
+
+// ── 방문 학교 위치 지도 (Leaflet + NEIS API) ────────────────────────────────
+const __neisCoordCache = {};  // schoolName → {lat, lon}
+
+// 지역명 → NEIS 시도교육청코드 매핑 (동명이교 방지)
+const __atptMap = {
+  '서울':  'B10', '부산':  'C10', '대구':  'D10', '인천':  'E10',
+  '광주':  'F10', '대전':  'G10', '울산':  'H10', '세종':  'I10',
+  '경기':  'J10', '강원':  'K10', '충북':  'M10', '충남':  'N10',
+  '전북':  'P10', '전남':  'Q10', '경북':  'R10', '경남':  'S10', '제주': 'T10'
+};
+function regionToAtpt(region) {
+  if (!region) return '';
+  for (const [key, code] of Object.entries(__atptMap)) {
+    if (region.includes(key)) return code;
+  }
+  return '';
+}
+
+async function fetchNeisCoords(schoolName, region) {
+  const cacheKey = schoolName + '|' + (region || '');
+  if (__neisCoordCache[cacheKey] !== undefined) return __neisCoordCache[cacheKey];
+  try {
+    const cached = sessionStorage.getItem('neis2_' + cacheKey);
+    if (cached) { const c = JSON.parse(cached); __neisCoordCache[cacheKey] = c; return c; }
+  } catch(e) {}
+  try {
+    const atpt = regionToAtpt(region);
+    let url = 'https://open.neis.go.kr/hub/schoolInfo?Type=json&pIndex=1&pSize=5&SCHUL_NM=' + encodeURIComponent(schoolName);
+    if (atpt) url += '&ATPT_OFCDC_SC_CODE=' + atpt;
+    const res = await fetch(url, { cache: 'force-cache' });
+    const json = await res.json();
+    const rows = json && json.schoolInfo && json.schoolInfo[1] && json.schoolInfo[1].row;
+    if (rows && rows.length) {
+      // 1) 지역이 있으면 atpt 코드로 필터된 결과에서 정확 이름 매칭
+      // 2) 지역 없으면 첫 번째 결과 사용
+      const exact = rows.find(function(r){ return (r.SCHUL_NM||'').trim() === schoolName.trim(); }) || rows[0];
+      const la = parseFloat(exact.LA_CRDN || exact.la_crdn || '');
+      const lo = parseFloat(exact.LO_CRDN || exact.lo_crdn || '');
+      if (!isNaN(la) && !isNaN(lo) && la > 30 && lo > 120) {
+        const coords = { lat: la, lon: lo, addr: exact.ORG_RDNMA || '' };
+        __neisCoordCache[cacheKey] = coords;
+        try { sessionStorage.setItem('neis2_' + cacheKey, JSON.stringify(coords)); } catch(e) {}
+        return coords;
+      }
+    }
+  } catch(e) { console.warn('[NEIS]', schoolName, e); }
+  __neisCoordCache[cacheKey] = null;
+  return null;
+}
+
+let __visitMap = null;
+async function buildVisitHeatmap(visits) {
+  const mapEl = document.getElementById('visitHeatmap');
+  if (!mapEl || !window.L) return;
+  const schoolCount = {};
+  visits.forEach(function(v) {
+    const school = String(v.schoolName || v.school || '').trim();
+    if (school) schoolCount[school] = (schoolCount[school] || 0) + 1;
+  });
+  const schools = Object.keys(schoolCount);
+  if (!schools.length) return;
+  if (!__visitMap) {
+    __visitMap = L.map('visitHeatmap', { zoomControl: true }).setView([36.5, 127.5], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '\u00a9 <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 18
+    }).addTo(__visitMap);
+    setTimeout(function() { __visitMap.invalidateSize(); }, 200);
+  } else {
+    __visitMap.eachLayer(function(l) { if (!(l instanceof L.TileLayer)) __visitMap.removeLayer(l); });
+  }
+  const statusEl = document.getElementById('heatmapStatus');
+  if (statusEl) statusEl.textContent = 'NEIS API\ub85c ' + schools.length + '\uac1c \ud559\uad50 \uc704\uce58\ub97c \uc870\ud68c \uc911...';
+  const maxCount = Math.max.apply(null, Object.values(schoolCount));
+  const BATCH = 15;
+  let placed = 0;
+  for (let i = 0; i < schools.length; i += BATCH) {
+    const batch = schools.slice(i, i + BATCH);
+    await Promise.all(batch.map(async function(school) {
+      const schoolRegion = (window.__schoolCsvMap && window.__schoolCsvMap[school]) ? window.__schoolCsvMap[school].region : '';
+      const coords = await fetchNeisCoords(school, schoolRegion);
+      if (!coords) return;
+      placed++;
+      const count = schoolCount[school];
+      const ratio = count / maxCount;
+      const radius = 5 + Math.round(ratio * 22);
+      const color = ratio >= 0.7 ? '#e74c3c' : ratio >= 0.35 ? '#f39c12' : '#3498db';
+      const tip = '<b>' + school + '</b><br>\ubc29\ubb38 <b>' + count + '</b>\uac74' + (coords.addr ? '<br><small>' + coords.addr + '</small>' : '');
+      L.circleMarker([coords.lat, coords.lon], {
+        radius: radius, color: '#fff', weight: 1.2, fillColor: color, fillOpacity: 0.72
+      }).bindTooltip(tip, { direction: 'top' }).addTo(__visitMap);
+    }));
+  }
+  if (statusEl) statusEl.textContent = placed ? placed + '\uac1c \ud559\uad50 \uc704\uce58 \ud45c\uc2dc\ub428' : '\uc704\uce58 \ub370\uc774\ud130 \uc5c6\uc74c';
+}
+
+// ── CSV 학교 데이터 로딩 (설립구분, 학생수, 지역, 학교급, 담당자코드) ─────────
+async function loadSchoolCsvForCharts(){
+  try{
+    const res = await fetch('/sales_staff.csv', {cache:'force-cache'});
+    if(!res.ok) return;
+    const text = await res.text();
+    const lines = text.replace(/^\uFEFF/,'').split('\n');
+    if(lines.length < 2) return;
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,''));
+    const idx = h => headers.indexOf(h);
+    const iName = idx('학교명'), iCode = idx('정보공시 학교코드'),
+          iEsta = idx('설립구분'), iLevel = idx('학교급코드'),
+          iStu  = idx('학생수(계)'), iReg = idx('지역'),
+          iMgr  = Math.max(idx('본사담당자코드'), idx('staff'));
+    const map = {};
+    const codeToName = {};
+    const levelName = { '2':'초등학교', '3':'중학교', '4':'고등학교', '5':'특수학교' };
+    for(let i = 1; i < lines.length; i++){
+      const cols = lines[i].split(',');
+      const name = (cols[iName]||'').trim().replace(/^"|"$/g,'');
+      const code = (cols[iCode]||'').trim();
+      if(!name) continue;
+      map[name] = {
+        code,
+        establishment: (cols[iEsta]||'').trim(),
+        level: levelName[(cols[iLevel]||'').trim()] || '',
+        students: Number((cols[iStu]||'').trim().replace(/,/g,'')) || 0,
+        region: (cols[iReg]||'').trim().replace(/^"|"$/g,''),
+        managerCode: iMgr >= 0 ? (cols[iMgr]||'').trim() : ''
+      };
+      if(code) codeToName[code] = name;
+    }
+    window.__schoolCsvMap = map;
+    window.__codeToNameMap = codeToName;
+    console.log('[front] School CSV loaded:', Object.keys(map).length, 'schools');
+  }catch(e){ console.warn('[front] CSV load failed', e); }
+
+  // ── 주문 CSV 로딩 (등급 계산용) ──────────────────────────────────────────
+  try{
+    const res2 = await fetch('/orderv2.csv', {cache:'force-cache'});
+    if(!res2.ok){ window.__ordersMap = {}; return; }
+    const text2 = await res2.text();
+    const lines2 = text2.replace(/^\uFEFF/,'').split('\n');
+    if(lines2.length < 2){ window.__ordersMap = {}; return; }
+    const h2 = lines2[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+    const ix = k => h2.indexOf(k);
+    const iSCode = Math.max(ix('정보공시학교코드'), ix('정보공시 학교코드'), ix('학교코드'));
+    const iSubj  = ix('과목명'), iBook = ix('교지명') >= 0 ? ix('교지명') : ix('교재명');
+    const iCopy  = ix('부수');
+    const iYear  = Math.max(ix('학년도'), ix('연도'));
+    const ordMap = {}; // {schoolCode: [{subject,bookName,copies}]}
+    for(let i = 1; i < lines2.length; i++){
+      const cols = lines2[i].split(',');
+      const code = (cols[iSCode]||'').trim();
+      if(!code) continue;
+      // 2026 주문현황만 반영
+      if(iYear >= 0){ const yr = (cols[iYear]||'').trim(); if(yr && yr !== '2026') continue; }
+      if(!ordMap[code]) ordMap[code] = [];
+      ordMap[code].push({
+        subject: (cols[iSubj]||'').trim(),
+        bookName: (cols[iBook]||'').trim(),
+        copies: Number((cols[iCopy]||'0').trim()) || 0
+      });
+    }
+    window.__ordersMap = ordMap;  // keyed by schoolCode
+    console.log('[front] Orders CSV loaded:', Object.keys(ordMap).length, 'schools with orders');
+    // 별도 스케줄: 방문데이터가 이미 로드된 경우 등급테이블 재렌더
+    if(window.__lastVisits) setTimeout(()=>buildSchoolGradePanel(window.__lastVisits), 0);
+  }catch(e){ console.warn('[front] Orders CSV load failed', e); window.__ordersMap = {}; }
+  // ── AI 디지털선도/중점학교 데이터 로딩 (방문 테이블 배지 표시용) ──────────────────────────
+  try{
+    const dsRes = await fetch('/digital_schools.json', {cache:'force-cache'});
+    if(dsRes.ok){
+      window.__digitalSchoolsMap = await dsRes.json();
+      console.log('[front] digital_schools loaded:', Object.keys(window.__digitalSchoolsMap).length, 'schools');
+    }
+  }catch(e){ console.warn('[front] digital_schools.json load failed', e); }
+}
+
+// ── S/A/B/C 지역별 학교 등급 테이블 ─────────────────────────────────────────
+function buildSchoolGradePanel(visits){
+  const panel = document.getElementById('schoolGradePanel');
+  if(!panel) return;
+
+  const csvMap      = window.__schoolCsvMap  || {};
+  const ordersMap   = window.__ordersMap     || {}; // {schoolCode: [{subject,bookName,copies}]}
+  const codeToName  = window.__codeToNameMap || {};
+  const staffCode   = new URLSearchParams(window.location.search).get('staff') || '';
+
+  // ── 가중치
+  const SUBJ_W = {'정보':5,'진로':4,'보건':3,'미술':2,'체육':1};
+  const TEXTBOOK_BONUS = 0.3; // 교과서 주문 시 +30%
+
+  // ── 지역 → 지구(district) 추출 함수
+  function getDistrict(region){
+    if(!region) return '기타';
+    if(region.includes('서울')){ const m=region.match(/([가-힣]+구)/); return '서울 '+(m?m[1]:'기타'); }
+    if(region.includes('인천')){ const m=region.match(/([가-힣]+구)/); return '인천 '+(m?m[1]:'기타'); }
+    if(region.includes('경기')){ const m=region.match(/([가-힣]+(시|군))/); return '경기 '+(m?m[1]:'기타'); }
+    const m=region.match(/([가-힣]+(시|도|군))/);
+    return m ? m[1] : (region||'기타');
+  }
+
+  // ── 담당자별 학교 필터링
+  const allNames = Object.keys(csvMap).filter(name => {
+    if(!staffCode) return true;
+    return (csvMap[name].managerCode || '') === staffCode;
+  });
+
+  if(!allNames.length){
+    panel.innerHTML = '<div style="color:#aaa;font-size:13px;padding:12px 0">학교 데이터가 없습니다.</div>'; return;
+  }
+
+  // ── 학교별 점수 계산 (주문 기반)
+  const schools = allNames.map(name => {
+    const info = csvMap[name] || {};
+    const code = info.code || '';
+    const orders = ordersMap[code] || [];
+    let ordScore = 0;
+    const subjScore = {};
+    orders.forEach(o => {
+      const w = SUBJ_W[o.subject] || 0;
+      if(!w) return;
+      const bonus = (o.bookName||'').includes('교과서') ? 1 + TEXTBOOK_BONUS : 1.0;
+      const pts = w * (Number(o.copies)||1) * bonus;
+      ordScore += pts;
+      subjScore[o.subject] = (subjScore[o.subject]||0) + pts;
+    });
+    const topSubjs = Object.entries(subjScore).sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]);
+    const district = getDistrict(info.region||'');
+    const totalCopies = orders.reduce((s,o)=>s+Number(o.copies||0),0);
+    const stuScore = info.students || 0;
+    const schoolCode = info.code || '';
+    return { name, code: schoolCode, ordScore, stuScore, topSubjs, district, totalCopies };
+  });
+
+  // ── 지역별 그룹핑 → 지역 내 상대 등급 (주문가중점 60% + 학생수 40%)
+  const districtGroups = {};
+  schools.forEach(s => {
+    if(!districtGroups[s.district]) districtGroups[s.district] = [];
+    districtGroups[s.district].push(s);
+  });
+  const gradeMap = {};
+  Object.values(districtGroups).forEach(list => {
+    const maxOrd = Math.max(...list.map(s=>s.ordScore), 1);
+    const maxStu = Math.max(...list.map(s=>s.stuScore), 1);
+    list.forEach(s => {
+      s.score = (s.ordScore/maxOrd)*0.6 + (s.stuScore/maxStu)*0.4;
+    });
+    list.sort((a,b) => b.score - a.score);
+    const n = list.length;
+    list.forEach((s,i) => {
+      const pct = i / n;
+      gradeMap[s.name] = pct<0.10?'S':pct<0.30?'A':pct<0.65?'B':'C';
+    });
+  });
+
+  // ── 렌더링
+  const gradeColor = {S:'#5b21b6',A:'#1d4ed8',B:'#059669',C:'#d97706'};
+  const gradeBg    = {S:'#f5f3ff',A:'#eff6ff',B:'#ecfdf5',C:'#fffbeb'};
+  const gradeIcon  = {S:'⭐',A:'🔵',B:'🟢',C:'🟡'};
+
+  const districtsSorted = Object.entries(districtGroups).sort((a,b) => {
+    const best = list => { const gs=list.map(x=>gradeMap[x.name]); if(gs.includes('S'))return 0; if(gs.includes('A'))return 1; if(gs.includes('B'))return 2; return 3; };
+    return best(a[1]) - best(b[1]);
+  });
+
+  let html = '<div style="font-size:11px;color:#8898aa;margin-bottom:8px">※ 등급 기준: 주문가중점(60%, 정보5·진로4·보건3·미술2·체육1, 교과서+30%) + 학생수(40%) · 서울/인천=구별, 경기=시별 지역 내 상대등급</div>';;
+  html += '<div style="display:flex;flex-wrap:wrap;gap:10px;">';
+
+  for(const [district, list] of districtsSorted){
+    const listSorted = [...list].sort((a,b) => {
+      const gOrder = {S:1,A:2,B:3,C:4};
+      return (gOrder[gradeMap[a.name]] || 9) - (gOrder[gradeMap[b.name]] || 9) || b.score - a.score;
+    });
+    html += `<div style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;min-width:210px;flex:1 1 210px;max-width:340px">
+      <div style="background:#f1f5f9;padding:7px 12px;font-weight:700;font-size:13px;border-bottom:1px solid #e5e7eb;color:#12325a">${district} <span style="font-size:11px;color:#8898aa;font-weight:400">(${list.length}개교)</span></div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:#f8faff">
+          <th style="padding:4px 8px;text-align:left;color:#556;font-weight:600;border-bottom:1px solid #e5e7eb">학교명</th>
+          <th style="padding:4px 6px;text-align:center;color:#556;font-weight:600;border-bottom:1px solid #e5e7eb">등급</th>
+          <th style="padding:4px 6px;text-align:right;color:#556;font-weight:600;border-bottom:1px solid #e5e7eb">주문부수</th>
+          <th style="padding:4px 6px;text-align:left;color:#556;font-weight:600;border-bottom:1px solid #e5e7eb">주요과목</th>
+        </tr></thead>
+        <tbody>`;
+    listSorted.forEach(s => {
+      const grade = gradeMap[s.name] || 'C';
+      const bg = gradeBg[grade]||'#fff';
+      const fc = gradeColor[grade]||'#444';
+      const ic = gradeIcon[grade]||'';
+      const subjLabel = s.topSubjs.length ? s.topSubjs.join('·') : '-';
+      const copies = s.totalCopies > 0 ? s.totalCopies.toLocaleString()+'부' : '-';
+      const codeParam = s.code ? `&code=${encodeURIComponent(s.code)}` : '';
+      const schoolLink = staffCode
+        ? `/schoolinfo.html?school=${encodeURIComponent(s.name)}&staff=${encodeURIComponent(staffCode)}${codeParam}`
+        : `/schoolinfo.html?school=${encodeURIComponent(s.name)}${codeParam}`;
+      html += `<tr style="background:${bg};border-bottom:1px solid #f0f4ff">
+        <td style="padding:4px 8px"><a href="${schoolLink}" style="color:#1d4ed8;text-decoration:none;font-weight:600">${s.name}</a></td>
+        <td style="padding:4px 6px;text-align:center"><span style="font-weight:800;color:${fc};font-size:13px">${ic}${grade}</span></td>
+        <td style="padding:4px 6px;text-align:right;color:#445">${copies}</td>
+        <td style="padding:4px 6px;color:#445;font-size:11px">${subjLabel}</td>
+      </tr>`;
+    });
+    html += '</tbody></table></div>';
+  }
+  html += '</div>';
+  panel.innerHTML = html;
 }
 
 
@@ -1255,6 +1569,13 @@ function buildCharts(visits){
 function closeNoteModal(){ try{ const o = document.getElementById('__cmass_note_modal_overlay'); if (o) o.style.display='none'; }catch(e){} }
 
 window.addEventListener('DOMContentLoaded', function(){ try{ if (typeof loadPersonalVisits === 'function') loadPersonalVisits(); }catch(e){};
+  // staff 코드 sessionStorage 저장 (페이지 이동 시 유지용)
+  try{
+    const _sc = new URLSearchParams(window.location.search).get('staff') || '';
+    if(_sc) sessionStorage.setItem('cmass_staff_code', _sc);
+  }catch(e){}
+  // 학교 CSV 데이터 미리 로딩 (설립구분, 학생수, 학교급, 지역)
+  try{ loadSchoolCsvForCharts(); }catch(e){}
   // wire filter buttons
   try{ const btn = document.getElementById('filterApply'); if (btn) btn.addEventListener('click', ()=>{ try{ loadPersonalVisits(); }catch(e){} }); }catch(e){}
   try{ const clearBtn = document.getElementById('filterClear'); if (clearBtn) clearBtn.addEventListener('click', ()=>{ try{ ['filterStart','filterEnd','filterStaffInput','filterSchoolInput','filterRegionInput','subjectFilter'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; }); loadPersonalVisits(); }catch(e){} }); }catch(e){}
@@ -1289,33 +1610,33 @@ function computeNps_local(visits){
   return {promoters,passives,detractors,total,pPct,paPct,dPct,nps};
 }
 
-function ensureGaugeCanvasSize(){
-  const cnv = document.getElementById('gauge'); if(!cnv) return;
-  const w = Math.round(480 * 0.7); const h = Math.round(240 * 0.7); const dpr = window.devicePixelRatio || 1;
-  try{ cnv.style.setProperty('width', w + 'px', 'important'); }catch(e){ cnv.style.width = w + 'px'; }
-  try{ cnv.style.setProperty('height', h + 'px', 'important'); }catch(e){ cnv.style.height = h + 'px'; }
-  cnv.width = Math.round(w * dpr); cnv.height = Math.round(h * dpr);
-}
-
-function drawGauge_local(b){
-  ensureGaugeCanvasSize();
-  const cnv = document.getElementById('gauge'); if(!cnv) return;
-  const ctx = cnv.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  ctx.clearRect(0,0,cnv.width,cnv.height);
-  const cssW = parseInt(getComputedStyle(cnv).width,10) || 480;
-  const cssH = parseInt(getComputedStyle(cnv).height,10) || 240;
-  const centerX = cssW/2; const centerY = cssH; const radius = Math.min(cssW, cssH*2)*0.4;
-  const cols = ['#2ecc71','#f1c40f','#e74c3c'];
-  const angles = [ { start: Math.PI, end: Math.PI + Math.PI/3 }, { start: Math.PI + Math.PI/3, end: Math.PI + 2*Math.PI/3 }, { start: Math.PI + 2*Math.PI/3, end: Math.PI*2 } ];
-  for(let i=0;i<3;i++){ ctx.beginPath(); ctx.arc(centerX*dpr, centerY*dpr, radius*dpr, angles[i].start, angles[i].end); ctx.lineWidth = Math.round(radius*0.2*dpr); ctx.strokeStyle = cols[i]; ctx.stroke(); }
-  const v = Math.max(-100, Math.min(100, Number(b.nps)||0));
-  const angle = (v/100)*Math.PI/2 + Math.PI;
-  const needleLen = radius*0.8*dpr;
-  const tipX = centerX*dpr + Math.cos(angle)*needleLen;
-  const tipY = centerY*dpr + Math.sin(angle)*needleLen;
-  ctx.beginPath(); ctx.moveTo(centerX*dpr, centerY*dpr); ctx.lineTo(tipX, tipY); ctx.lineWidth = Math.round(radius*0.05*dpr); ctx.strokeStyle = '#07243a'; ctx.stroke();
-  ctx.beginPath(); ctx.arc(centerX*dpr, centerY*dpr, Math.round(radius*0.1*dpr),0,Math.PI*2); ctx.fillStyle='#07243a'; ctx.fill(); ctx.beginPath(); ctx.arc(centerX*dpr, centerY*dpr, Math.round(radius*0.05*dpr),0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
+function drawNpsDoughnut(b){
+  const ctx = document.getElementById('npsChart');
+  if (!ctx) return;
+  const data = [b.promoters, b.passives, b.detractors];
+  const labels = [`반응좋음 ${b.pPct}%`, `반응보통 ${b.paPct}%`, `반응나쁨 ${b.dPct}%`];
+  if (__npsChart) {
+    __npsChart.data.labels = labels;
+    __npsChart.data.datasets[0].data = data;
+    __npsChart.update();
+    return;
+  }
+  __npsChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: ['#2ecc71','#f1c40f','#e74c3c'], borderWidth: 2 }]
+    },
+    options: {
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: true, callbacks: { label: function(c){ return c.label + ': ' + c.raw + '건'; } } },
+        datalabels: DATALABELS_OPTS
+      },
+      cutout: '60%',
+      maintainAspectRatio: false
+    }
+  });
 }
 
 function renderNpsBreakdown_local(b){
@@ -1371,7 +1692,7 @@ async function refreshNps_onFront(useMock=false, mockData=null){
   if(!useMock) visits = await fetchVisits_local(staff);
   if(!visits) visits = mockData || NPS_MOCK;
   const b = computeNps_local(visits);
-  drawGauge_local(b);
+  drawNpsDoughnut(b);
   renderNpsBreakdown_local(b);
   const npsEl = document.getElementById('npsScore'); if(npsEl) npsEl.textContent = (b.nps>0? '+'+b.nps: b.nps);
 }
@@ -1581,7 +1902,6 @@ function toggleAiSummaryExpand(){
 
 // init on front
 try{ preventFocusScroll && preventFocusScroll(); }catch(e){}
-ensureGaugeCanvasSize();
 // Try to use real data; fallback to test data for visualization
 refreshNps_onFront(false, NPS_TEST_DATA);
 // Load AI summary if staff parameter present

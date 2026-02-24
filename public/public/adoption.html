@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>교과서 채택 점유율 - CMASS</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <style>
+    :root{
+      --bg:#f4f6f9;--card:#fff;--muted:#6b7280;
+      --navy:#1a3560;--accent:#3b6fd4;--border:#e2e8f0;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);color:#1e293b;line-height:1.5}
+    a{text-decoration:none}
+    .page{max-width:1200px;margin:0 auto;padding:14px 16px}
+    /* nav */
+    .top-nav{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+    .back-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--navy);font-weight:600;font-size:13px;cursor:pointer;transition:background .12s}
+    .back-btn:hover{background:#f0f4ff}
+    /* header */
+    .page-header{margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+    .page-header h1{font-size:clamp(17px,3.5vw,24px);font-weight:800;color:var(--navy)}
+    .page-header .sub{font-size:12px;color:var(--muted);margin-top:3px}
+    .page-header .note{font-size:11px;color:#94a3b8;margin-top:2px}
+    /* staff banner */
+    .staff-banner{display:none;align-items:center;gap:10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:9px 14px;margin-bottom:14px;font-size:13px;color:#1e40af}
+    .staff-banner.on{display:flex}
+    .staff-badge{background:#1e40af;color:#fff;border-radius:6px;padding:2px 8px;font-weight:700;font-size:12px}
+    .staff-sido-list{color:#374151;font-size:12px}
+    /* KPI */
+    .kpi-band{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+    .kpi{background:var(--card);border-radius:10px;padding:12px 14px;border:1px solid var(--border)}
+    .kpi-label{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px}
+    .kpi-value{font-size:19px;font-weight:800;color:var(--navy);line-height:1.1}
+    .kpi-sub{font-size:10px;color:#94a3b8;margin-top:2px}
+    /* tabs */
+    .tabs-wrap{display:flex;gap:2px;border-bottom:2px solid var(--border);margin-bottom:14px}
+    .tab-btn{padding:8px 18px;border:none;background:transparent;font-weight:600;font-size:13px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;transition:color .15s,border-color .15s;white-space:nowrap}
+    .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:700}
+    .tab-btn:hover{color:var(--navy)}
+    /* card */
+    .card{background:var(--card);border-radius:10px;padding:16px;margin-bottom:12px;border:1px solid var(--border)}
+    .card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+    .card-title{font-size:14px;font-weight:700;color:var(--navy)}
+    .badge{font-size:10px;background:#eff6ff;color:#1e40af;padding:2px 8px;border-radius:6px;font-weight:700}
+    .badge-green{background:#f0fdf4;color:#166534}
+    .badge-amber{background:#fffbeb;color:#92400e}
+    /* 2-col */
+    .chart-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+    .chart-wrap{position:relative;width:100%}
+    /* TOP3 */
+    /* horiz bar rank */
+    .hbar-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+    .hbar-row{display:grid;grid-template-columns:22px 1fr 80px 50px;align-items:center;gap:8px;padding:4px 2px;border-radius:6px;transition:background .1s}
+    .hbar-row:hover{background:#f8faff}
+    .hbar-rank{font-size:11px;font-weight:700;color:var(--muted);text-align:center}
+    .hbar-rank.gold{color:#d97706}
+    .hbar-rank.silver{color:#64748b}
+    .hbar-rank.bronze{color:#b45309}
+    .hbar-info{min-width:0}
+    .hbar-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .hbar-bar-wrap{height:6px;background:#e8edf8;border-radius:3px;overflow:hidden;margin-top:3px}
+    .hbar-bar{height:100%;border-radius:3px;transition:width .5s}
+    .hbar-qty{font-size:11px;color:var(--muted);text-align:right;line-height:1.5}
+    .hbar-pct{font-size:12px;font-weight:700;color:var(--navy);text-align:right}
+    /* table */
+    .tbl-wrap{overflow:auto;max-height:400px;border-radius:6px;border:1px solid var(--border)}
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    thead th{position:sticky;top:0;z-index:2;background:#f8fafc;color:var(--navy);font-weight:700;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none}
+    thead th:hover{background:#eff4ff}
+    tbody tr:hover{background:#f8faff}
+    tbody td{padding:6px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+    .medal{display:inline-block;font-size:11px;font-weight:700;min-width:18px;text-align:center}
+    /* inbar */
+    .inbar-wrap{display:flex;align-items:center;gap:6px}
+    .inbar{height:7px;border-radius:3px;min-width:2px}
+    .inbar-pct{font-size:11px;font-weight:700;color:var(--navy);min-width:38px;text-align:right}
+    /* filter */
+    .filter-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .filter-row select{padding:5px 8px;border-radius:6px;border:1px solid var(--border);font-size:12px;background:#fff;cursor:pointer;color:#1e293b;outline:none}
+    .filter-row select:focus{border-color:var(--accent)}
+    /* pill */
+    .pill{display:inline-block;padding:2px 6px;border-radius:5px;font-size:10px;font-weight:700;white-space:nowrap}
+    /* region grid */
+    .region-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+    .region-card{background:#fafbff;border-radius:8px;padding:12px;border:1px solid var(--border)}
+    .region-card.hl{border-color:#3b6fd4;background:#f0f5ff}
+    .region-hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+    .region-sido{font-size:13px;font-weight:700;color:var(--navy)}
+    .region-meta{font-size:10px;color:var(--muted)}
+    /* donut legend */
+    .donut-legend{display:flex;flex-direction:column;gap:5px;justify-content:center}
+    .dl-row{display:grid;grid-template-columns:10px 1fr 38px;align-items:center;gap:6px}
+    .dl-dot{width:10px;height:10px;border-radius:50%}
+    .dl-name{font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .dl-pct{font-size:11px;font-weight:700;color:var(--navy);text-align:right}
+    /* tab content */
+    .tab-content{display:none}
+    .tab-content.active{display:block}
+    /* loading */
+    #loadingOverlay{position:fixed;inset:0;background:rgba(244,246,249,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:12px;font-size:14px;font-weight:600;color:var(--navy)}
+    .spinner{width:36px;height:36px;border:3px solid #d1d9f0;border-top-color:var(--accent);border-radius:50%;animation:spin .75s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    /* responsive */
+    @media(max-width:900px){
+      .kpi-band{grid-template-columns:repeat(2,1fr)}
+      .chart-2col{grid-template-columns:1fr}
+    }
+    @media(max-width:580px){
+      .page{padding:10px}
+      .kpi-band{gap:6px}
+      .kpi-value{font-size:16px}
+      .tab-btn{padding:7px 10px;font-size:12px}
+    .sp-compare-tbl{width:100%;border-collapse:collapse;font-size:11px}
+    .sp-compare-tbl th,.sp-compare-tbl td{padding:5px 6px;border-bottom:1px solid #f1f5f9;white-space:nowrap}
+    .sp-compare-tbl th{background:#f8fafc;font-weight:700;text-align:center}
+    .sp-compare-tbl td:first-child{max-width:90px;overflow:hidden;text-overflow:ellipsis}
+    .sp-school-card{background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:6px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+    .grade-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:800;line-height:1.6}
+    .grade-S{background:#fef08a;color:#713f12}
+    .grade-A{background:#dbeafe;color:#1e40af}
+    .grade-B{background:#f0fdf4;color:#166534}
+    .grade-C{background:#f1f5f9;color:#64748b}
+    .priority-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .priority-card{background:#fff;border-radius:10px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.09);border-left:4px solid #3b82f6}
+    .priority-card.high{border-left-color:#ef4444}
+    .priority-card.mid{border-left-color:#f59e0b}
+    .priority-card.low{border-left-color:#22c55e}
+    /* 모달 */
+    #spModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:flex-start;justify-content:center;padding:20px 12px;overflow-y:auto}
+    #spModal.on{display:flex}
+    #spModalBox{background:#fff;border-radius:14px;padding:20px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+    #spModalClose{float:right;background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1;padding:0 4px}
+      .region-grid{grid-template-columns:1fr}
+      .hbar-row{grid-template-columns:18px 1fr 60px 42px}
+    }
+  </style>
+</head>
+<body>
+<div id="loadingOverlay"><div class="spinner"></div>데이터 로딩 중&hellip;</div>
+<div class="page">
+  <div class="top-nav">
+    <a class="back-btn" href="javascript:history.back()">&#8592; 뒤로</a>
+    <a class="back-btn" id="homeLink" href="/front.html">&#127968; 홈</a>
+  </div>
+  <div class="page-header">
+    <h1>교과서 채택 점유율 현황</h1>
+    <p class="sub">2026학년도 고등학교 교과서 채택 분석 &mdash; 과목별 &middot; 교과군별 &middot; 지역별</p>
+    <p class="note">&#10033; 점유율 = 채택부수 &divide; 전국 고1코호트(약 1,233,094명) &times; 100 &nbsp;|&nbsp; 출처: 주문데이터 + 학교정보</p>
+  </div>
+  <!-- staff banner -->
+  <div class="staff-banner" id="staffBanner">
+    <span class="staff-badge" id="staffNameBadge"></span>
+    <span>담당 지역&nbsp;</span>
+    <span class="staff-sido-list" id="staffSidoList"></span>
+    <a href="?" style="margin-left:auto;font-size:11px;color:#6b7280">&#10005; 전체보기</a>
+  </div>
+  <!-- KPI -->
+  <div class="kpi-band" id="kpiRow"></div>
+  <!-- Tabs -->
+  <div class="tabs-wrap">
+    <button class="tab-btn active" id="tabBtnNW" onclick="switchTab('nationwide')">전국</button>
+    <button class="tab-btn" id="tabBtnSU" onclick="switchTab('sudogwon')">수도권</button>
+    <button class="tab-btn" id="tabBtnRG" onclick="switchTab('regional')">지역별</button>
+    <button class="tab-btn" id="tabBtnSP" onclick="switchTab('salepriority')" style="color:#dc2626">🎯 영업우선순위</button>
+  </div>
+
+  <!-- 전국 -->
+  <div class="tab-content active" id="tab-nationwide">
+    <div class="chart-2col">
+      <div class="card" style="margin-bottom:0">
+        <div class="card-hd"><span class="card-title">교과군별 비율</span><span class="badge">전국</span></div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div class="chart-wrap" style="height:190px;min-width:170px;width:190px;flex-shrink:0"><canvas id="chartDonutNW"></canvas></div>
+          <div class="donut-legend" id="legendDonutNW" style="flex:1;min-width:110px"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <div class="card-hd"><span class="card-title">교과군별 채택 부수</span><span class="badge">상위 12개</span></div>
+        <div class="chart-wrap" style="height:215px"><canvas id="chartKgNW"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-title">과목별 전국 채택 순위</span>
+        <div class="filter-row">
+          <select id="kgFilterNW" onchange="renderNWRanking()"><option value="">전체 교과군</option></select>
+          <select id="topNSel" onchange="renderNWRanking()">
+            <option value="20">상위 20</option><option value="30">상위 30</option><option value="999">전체</option>
+          </select>
+        </div>
+      </div>
+      <div id="nwRankingList" class="hbar-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-title">전국 과목 상세표</span>
+        <div class="filter-row">
+          <select id="kgFilterNWTbl" onchange="renderNWTable()"><option value="">전체</option></select>
+          <select id="sortNWTbl" onchange="renderNWTable()">
+            <option value="qty">부수 &darr;</option><option value="pct">점유율 &darr;</option><option value="subject">과목명</option>
+          </select>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr>
+          <th style="width:36px">순위</th><th>과목명</th><th>교과군</th>
+          <th style="text-align:right" onclick="setSortNW('qty')">채택 부수 &#8597;</th>
+          <th style="text-align:right" onclick="setSortNW('pct')">점유율 &#8597;</th>
+          <th style="min-width:130px">점유율 바</th>
+        </tr></thead>
+        <tbody id="tbodyNW"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- 수도권 -->
+  <div class="tab-content" id="tab-sudogwon">
+    <div class="chart-2col">
+      <div class="card" style="margin-bottom:0">
+        <div class="card-hd"><span class="card-title">교과군별 비율</span><span class="badge badge-green">수도권</span></div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div class="chart-wrap" style="height:190px;min-width:170px;width:190px;flex-shrink:0"><canvas id="chartDonutSU"></canvas></div>
+          <div class="donut-legend" id="legendDonutSU" style="flex:1;min-width:110px"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <div class="card-hd"><span class="card-title">수도권 vs 전국 교과군 비교</span></div>
+        <div class="chart-wrap" style="height:215px"><canvas id="chartKgCompare"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-title">수도권 과목별 채택 순위</span>
+        <div class="filter-row">
+          <select id="kgFilterSU" onchange="renderSURanking()"><option value="">전체 교과군</option></select>
+          <select id="topNSelSU" onchange="renderSURanking()">
+            <option value="20">상위 20</option><option value="30">상위 30</option><option value="999">전체</option>
+          </select>
+        </div>
+      </div>
+      <div id="suRankingList" class="hbar-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-title">수도권 &harr; 전국 점유율 비교 (상위 20)</span>
+        <span class="badge badge-amber">점유율 %</span>
+      </div>
+      <div class="chart-wrap" style="height:380px"><canvas id="chartSUvsNW"></canvas></div>
+    </div>
+  </div>
+
+  <!-- 지역별 -->
+  <div class="tab-content" id="tab-regional">
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-title">시도별 채택 현황</span>
+        <div class="filter-row">
+          <select id="kgSelReg" onchange="renderRegChart()"><option value="__all__">전체 합계</option></select>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:300px"><canvas id="chartReg"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-title">시도별 과목 상세</span>
+        <div class="filter-row">
+          <select id="sidoSel" onchange="renderSidoDetail()"><option value="">시도 선택</option></select>
+          <select id="kgFilterSido" onchange="renderSidoDetail()"><option value="">전체 교과군</option></select>
+        </div>
+      </div>
+      <div id="sidoDetailArea"><p style="color:var(--muted);font-size:13px;padding:8px">시도를 선택하면 상세 정보가 표시됩니다.</p></div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><span class="card-title">전 시도 채택 현황 요약</span><span class="badge">상위 5개 과목</span></div>
+      <div class="region-grid" id="regionGrid"></div>
+    </div>
+    <!-- 담당 지역 분석 (staff 있을 때만 표시) -->
+    <div class="card" id="staffRegionCard" style="display:none">
+      <div class="card-hd"><span class="card-title">📍 담당 지역별 핵심 과목 점유율</span><span class="badge">전국 평균 대비</span></div>
+      <div id="staffRegionMatrix"></div>
+    </div>
+    <div class="card" id="staffActionCard" style="display:none">
+      <div class="card-hd"><span class="card-title">🎯 지역별 영업 우선순위</span><span class="badge">개선 기회 분석</span></div>
+      <div id="staffActionArea"></div>
+    </div>
+  </div>
+
+  <!-- ── 영업우선순위 탭 ───────────────────────────── -->
+  <div class="tab-content" id="tab-salepriority">
+    <!-- 섹션1: 전국/수도권/지방 대비 과목 점유율 비교 -->
+    <div class="card" id="spCompareCard">
+      <div class="card-hd">
+        <span class="card-title">📊 핵심 과목 점유율 비교</span>
+        <span class="badge" id="spCompareBadge">담당 구 합산 vs 전국/수도권/지방</span>
+      </div>
+      <div style="overflow-x:auto"><table class="sp-compare-tbl" id="spCompareTable"><tbody></tbody></table></div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px">셀 색상: 🟢 전국 초과 &nbsp;|&nbsp; 🔴 전국 미달 &nbsp;|&nbsp; 숫자는 점유율(%)</div>
+    </div>
+    <!-- 섹션2: 구별 영업 우선지수 카드 -->
+    <div class="card" id="spPriorityCard">
+      <div class="card-hd">
+        <span class="card-title">🏆 구별 영업 우선지수</span>
+        <span class="badge">미채택 고급 학교 + 정보 점유율 기준</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">우선지수 = 미채택 학교 (S×3 + A×2 + B×1) + 전략과목(정보·진로·운동과 건강·미술·체육) 전국 미달 과목별 가중합 반영 &nbsp;|&nbsp; 카드 클릭 → 해당 구 학교 목록 팝업</div>
+      <div class="priority-grid" id="spPriorityArea"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 학교 목록 모달 -->
+<div id="spModal" onclick="if(event.target===this)closeSchoolModal()">
+  <div id="spModalBox">
+    <button id="spModalClose" onclick="closeSchoolModal()">✕</button>
+    <div id="spModalTitle" style="font-weight:700;font-size:15px;margin-bottom:12px"></div>
+    <div id="spModalFilter" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <select id="spModalOrderFilter" onchange="refreshModalList()">
+        <option value="all">전체 학교</option>
+        <option value="no">미채택만</option>
+        <option value="yes">채택 학교</option>
+      </select>
+      <select id="spModalSubjFilter" onchange="refreshModalList()"><option value="">과목 무관</option></select>
+    </div>
+    <div id="spModalBody"></div>
+  </div>
+</div>
+
+<script>
+Chart.register(ChartDataLabels);
+
+// ── Staff 매핑 ─────────────────────────────────────────────────
+// 슬러그 → 숫자 코드 변환
+const STAFF_CODE_MAP_SLUG = {
+  'limjunho':'99781203','choyounghwan':'89250686','leekyungil':'51322012',
+  'songhoonjae':'51322012',
+  'lim':'99781203','cho':'89250686','lee':'51322012','song':'51322012'
+};
+const STAFF_NAME_MAP = {'99781203':'임준호','89250686':'조영환','51322012':'이경일'};
+// 기존 시도 단위 차트 호환용 (getRegional/renderKPI/renderTop3 등에서 사용)
+const STAFF_SIDO_MAP_STATIC = {
+  '99781203':['서울특별시','경기도'],
+  '89250686':['서울특별시','경기도','인천광역시'],
+  '51322012':['서울특별시','경기도','인천광역시']
+};
+
+function resolveStaffCode(raw){
+  if(!raw) return null;
+  const s = raw.trim();
+  // 숫자 8자리 코드 직접
+  if(/^\d{6,}$/.test(s)) return s;
+  const key = s.toLowerCase().replace(/\s+/g,'');
+  // 슬러그 → 코드
+  if(STAFF_CODE_MAP_SLUG[key]) return STAFF_CODE_MAP_SLUG[key];
+  // 한글 이름 → 코드
+  for(const [code,name] of Object.entries(STAFF_NAME_MAP)){
+    if(s.includes(name)) return code;
+  }
+  return null;
+}
+
+// URL에서 staff 파라미터 읽기
+const _qp = new URLSearchParams(location.search);
+const _rawStaff = _qp.get('staff') || sessionStorage.getItem('cmass_staff_code') || '';
+const STAFF_CODE = resolveStaffCode(_rawStaff);           // e.g. "99781203" or null
+const STAFF_NAME = STAFF_CODE ? (STAFF_NAME_MAP[STAFF_CODE] || STAFF_CODE) : null;
+const STAFF_SIDOS = STAFF_CODE ? (STAFF_SIDO_MAP_STATIC[STAFF_CODE] || null) : null;
+let STAFF_REGIONS = null;  // init()에서 G.staff_regions[STAFF_CODE] 로 설정 (구 단위)
+
+// 홈링크에 staff 파라미터 유지
+if(_rawStaff){
+  const hl = document.getElementById('homeLink');
+  if(hl) hl.href = '/front.html?staff=' + encodeURIComponent(_rawStaff);
+}
+
+// ── 색상 ──────────────────────────────────────────────────────
+const KG_COLORS={
+  '체육':'#22c55e','정보':'#3b82f6','예술(미술)':'#f59e0b',
+  '사회(역사/도덕)':'#8b5cf6','교양':'#ec4899','수학':'#0ea5e9',
+  '과학':'#14b8a6','한문':'#f97316','기술⋅가정':'#84cc16',
+  '경영·금융':'#d946ef','정보·통신':'#a78bfa','전기·전자':'#fb923c',
+  '전문공통':'#94a3b8','기타':'#60a5fa'
+};
+function kgC(kg){return KG_COLORS[kg]||'#94a3b8';}
+function h2r(h,a){const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return `rgba(${r},${g},${b},${a})`;}
+function fN(n){return Number(n||0).toLocaleString('ko-KR');}
+function fP(p){return Number(p||0).toFixed(2)+'%';}
+function shortSido(s){return s.replace(/특별자치도교육청|특별자치시교육청|광역시교육청|특별시교육청|도교육청|교육청/g,'').replace(/특별자치도|특별자치시|특별시|광역시/g,'').trim();}
+function animCount(el,target,suffix,dur=600){
+  const start=performance.now();
+  (function step(now){const t=Math.min((now-start)/dur,1);el.textContent=Math.round(target*t).toLocaleString('ko-KR')+suffix;if(t<1)requestAnimationFrame(step);})(start);
+}
+
+let G=null;
+const tabInits={};
+
+function switchTab(name){
+  ['nationwide','sudogwon','regional','salepriority'].forEach((n,i)=>{
+    document.querySelectorAll('.tab-btn')[i].classList.toggle('active',n===name);
+    document.getElementById('tab-'+n).classList.toggle('active',n===name);
+  });
+  if(!tabInits[name]){tabInits[name]=true;
+    if(name==='sudogwon'){renderKgCompareChart();renderSURanking();renderSUvsNWChart();}
+    if(name==='regional'){renderRegChart();renderSidoDetail();renderRegionGrid();}
+    if(name==='salepriority'){renderSalePriority();}
+  }
+}
+
+// ── staff banner ────────────────────────────────────────────
+function showStaffBanner(){
+  if(!STAFF_NAME) return;
+  const banner=document.getElementById('staffBanner');
+  document.getElementById('staffNameBadge').textContent=STAFF_NAME;
+  // 구 단위 담당 지역 표시
+  let regionLabel='';
+  if(STAFF_REGIONS && STAFF_REGIONS.length){
+    regionLabel = STAFF_REGIONS.length>5
+      ? STAFF_REGIONS.slice(0,5).join(' · ')+' 외 '+(STAFF_REGIONS.length-5)+'개 지역'
+      : STAFF_REGIONS.join(' · ');
+  } else if(STAFF_SIDOS){
+    regionLabel=(STAFF_SIDOS||[]).join(' · ');
+  }
+  document.getElementById('staffSidoList').textContent=regionLabel;
+  banner.classList.add('on');
+}
+
+// ── 지역별 데이터 필터 ──────────────────────────────────────
+function getRegional(){
+  if(!STAFF_SIDOS||!G) return G.regional;
+  return G.regional.filter(r=>STAFF_SIDOS.includes(r.sido));
+}
+function getKyogakgunRegional(){
+  if(!STAFF_SIDOS||!G) return G.kyogakgun.regional;
+  return G.kyogakgun.regional.filter(r=>STAFF_SIDOS.includes(r.sido));
+}
+
+// ── KPI ────────────────────────────────────────────────────
+function renderKPI(){
+  const tqNW=G.nationwide_shares.reduce((a,b)=>a+b.qty,0);
+  const tqSU=G.sudogwon_shares.reduce((a,b)=>a+b.qty,0);
+
+  let items;
+  if(STAFF_CODE){
+    // 구 단위 region_shares 에서 담당 구만 집계
+    const myRS = STAFF_REGIONS && G.region_shares
+      ? G.region_shares.filter(r=>STAFF_REGIONS.includes(r.region))
+      : [];
+    const tqRegional = myRS.reduce((a,r)=>a+r.subjects.reduce((b,s)=>b+s.qty,0),0);
+    const stuRegional = Math.round(myRS.reduce((a,r)=>a+(r.cohort_students||0),0));
+    items=[
+      {label:'담당 지역 학생수',raw:stuRegional,suf:'명'},
+      {label:'담당 지역 채택 부수',raw:tqRegional,suf:'부'},
+      {label:'전국 채택 총계',raw:tqNW,suf:'부'},
+      {label:'수도권 채택 총계',raw:tqSU,suf:'부'},
+    ];
+  } else {
+    const nw=G.students.nationwide,su=G.students.sudogwon;
+    items=[
+      {label:'전국 고등학생',raw:nw.g1+nw.g2+nw.g3,suf:'명'},
+      {label:'전국 채택 부수',raw:tqNW,suf:'부'},
+      {label:'수도권 학생',raw:su.g1+su.g2+su.g3,suf:'명'},
+      {label:'수도권 채택',raw:tqSU,suf:'부'},
+    ];
+  }
+  document.getElementById('kpiRow').innerHTML=items.map((it,i)=>`
+    <div class="kpi">
+      <div class="kpi-label">${it.label}</div>
+      <div class="kpi-value" id="kpi${i}">0${it.suf}</div>
+    </div>`).join('');
+  items.forEach((it,i)=>animCount(document.getElementById('kpi'+i),it.raw,it.suf));
+}
+
+// ── TOP3 ───────────────────────────────────────────────────
+// ── Donut ─────────────────────────────────────────────────
+function makeDonut(cid,lid,kgData){
+  const top=kgData.slice(0,10),labels=top.map(k=>k.kg),data=top.map(k=>k.pct),colors=labels.map(kgC);
+  new Chart(document.getElementById(cid).getContext('2d'),{type:'doughnut',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:1.5,borderColor:'#fff',hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',
+      plugins:{datalabels:{display:d=>d.dataset.data[d.dataIndex]>=1.5,formatter:v=>v.toFixed(1)+'%',color:'#fff',font:{weight:700,size:10}},
+        legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed.toFixed(2)}%`}}}
+    }});
+  document.getElementById(lid).innerHTML=top.map(k=>`
+    <div class="dl-row">
+      <div class="dl-dot" style="background:${kgC(k.kg)}"></div>
+      <span class="dl-name">${k.kg}</span>
+      <span class="dl-pct">${k.pct.toFixed(1)}%</span>
+    </div>`).join('');
+}
+
+// ── KG bar (전국) ───────────────────────────────────────────
+let chartKgNW_i=null;
+function renderKgNWChart(){
+  const data=G.kyogakgun.nationwide.slice(0,12);
+  const ctx=document.getElementById('chartKgNW').getContext('2d');
+  if(chartKgNW_i)chartKgNW_i.destroy();
+  chartKgNW_i=new Chart(ctx,{type:'bar',
+    data:{labels:data.map(k=>k.kg),datasets:[{label:'채택 부수',data:data.map(k=>k.qty),
+      backgroundColor:data.map(k=>h2r(kgC(k.kg),.75)),borderColor:data.map(k=>kgC(k.kg)),borderWidth:1,borderRadius:5}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        datalabels:{anchor:'end',align:'top',formatter:v=>fN(v),color:'#374151',font:{weight:600,size:9}},
+        tooltip:{callbacks:{label:c=>fN(c.raw)+'부'}}},
+      scales:{y:{beginAtZero:true,ticks:{callback:v=>fN(v),font:{size:10}},grid:{color:'#f1f5f9'}},
+        x:{ticks:{font:{size:10}},grid:{display:false}}}
+    }});
+}
+
+// ── NW Ranking ─────────────────────────────────────────────
+function renderNWRanking(){
+  const kg=document.getElementById('kgFilterNW').value;
+  const top=parseInt(document.getElementById('topNSel').value)||20;
+  let data=G.nationwide_shares.slice();
+  if(kg)data=data.filter(d=>d.kyogakgun===kg);
+  data=data.slice(0,top);
+  const max=data[0]?.qty||1;
+  document.getElementById('nwRankingList').innerHTML=data.map((d,i)=>`
+    <div class="hbar-row">
+      <div class="hbar-rank">${i+1}</div>
+      <div class="hbar-info">
+        <div class="hbar-name">${d.subject}</div>
+        <div class="hbar-bar-wrap"><div class="hbar-bar" style="width:${Math.round(d.qty/max*100)}%;background:${kgC(d.kyogakgun)}"></div></div>
+      </div>
+      <div class="hbar-qty">${fN(d.qty)}부<br><span class="pill" style="background:${kgC(d.kyogakgun)}22;color:${kgC(d.kyogakgun)}">${d.kyogakgun}</span></div>
+      <div class="hbar-pct">${fP(d.pct)}</div>
+    </div>`).join('');
+}
+
+let nwSortCol='qty';
+function setSortNW(col){nwSortCol=col;renderNWTable();}
+function renderNWTable(){
+  const kg=document.getElementById('kgFilterNWTbl').value;
+  const sort=document.getElementById('sortNWTbl').value||nwSortCol;
+  let data=G.nationwide_shares.slice();
+  if(kg)data=data.filter(d=>d.kyogakgun===kg);
+  if(sort==='subject')data.sort((a,b)=>a.subject.localeCompare(b.subject));
+  else if(sort==='pct')data.sort((a,b)=>b.pct-a.pct);
+  else data.sort((a,b)=>b.qty-a.qty);
+  const maxP=Math.max(...data.map(d=>d.pct),.01);
+  document.getElementById('tbodyNW').innerHTML=data.map((d,i)=>`
+    <tr>
+      <td style="text-align:center;color:var(--muted);font-size:11px">${i+1}</td>
+      <td><strong>${d.subject}</strong></td>
+      <td><span class="pill" style="background:${kgC(d.kyogakgun)}1a;color:${kgC(d.kyogakgun)}">${d.kyogakgun}</span></td>
+      <td style="text-align:right;font-weight:600">${fN(d.qty)}</td>
+      <td style="text-align:right;font-weight:700;color:var(--navy)">${fP(d.pct)}</td>
+      <td><div class="inbar-wrap">
+        <div style="flex:1;background:#e8edf8;border-radius:3px;height:7px;overflow:hidden">
+          <div class="inbar" style="width:${Math.round(d.pct/maxP*100)}%;background:${kgC(d.kyogakgun)}"></div>
+        </div>
+        <span class="inbar-pct">${fP(d.pct)}</span>
+      </div></td>
+    </tr>`).join('');
+}
+
+// ── SU Ranking ─────────────────────────────────────────────
+function renderSURanking(){
+  const kg=document.getElementById('kgFilterSU').value;
+  const top=parseInt(document.getElementById('topNSelSU').value)||20;
+  let data=G.sudogwon_shares.slice();
+  if(kg)data=data.filter(d=>d.kyogakgun===kg);
+  data=data.slice(0,top);
+  const max=data[0]?.qty||1;
+  document.getElementById('suRankingList').innerHTML=data.map((d,i)=>`
+    <div class="hbar-row">
+      <div class="hbar-rank">${i+1}</div>
+      <div class="hbar-info">
+        <div class="hbar-name">${d.subject}</div>
+        <div class="hbar-bar-wrap"><div class="hbar-bar" style="width:${Math.round(d.qty/max*100)}%;background:${kgC(d.kyogakgun)}"></div></div>
+      </div>
+      <div class="hbar-qty">${fN(d.qty)}부<br><span class="pill" style="background:${kgC(d.kyogakgun)}22;color:${kgC(d.kyogakgun)}">${d.kyogakgun}</span></div>
+      <div class="hbar-pct">${fP(d.pct)}</div>
+    </div>`).join('');
+}
+
+let chartKgComp_i=null;
+function renderKgCompareChart(){
+  const nwD=G.kyogakgun.nationwide.slice(0,10);
+  const suMap={};G.kyogakgun.sudogwon.forEach(k=>suMap[k.kg]=k.pct);
+  const labels=nwD.map(k=>k.kg),nwP=nwD.map(k=>k.pct),suP=nwD.map(k=>suMap[k.kg]||0);
+  const ctx=document.getElementById('chartKgCompare').getContext('2d');
+  if(chartKgComp_i)chartKgComp_i.destroy();
+  chartKgComp_i=new Chart(ctx,{type:'bar',
+    data:{labels,datasets:[
+      {label:'전국',data:nwP,backgroundColor:'rgba(59,111,212,.7)',borderRadius:4},
+      {label:'수도권',data:suP,backgroundColor:'rgba(16,185,129,.7)',borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:11}}},datalabels:{display:false},
+        tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw.toFixed(2)+'%'}}},
+      scales:{y:{beginAtZero:true,ticks:{callback:v=>v+'%',font:{size:10}}},x:{ticks:{font:{size:10}}}}}});
+}
+
+let chartSUvsNW_i=null;
+function renderSUvsNWChart(){
+  const top20=G.nationwide_shares.slice(0,20);
+  const suMap={};G.sudogwon_shares.forEach(d=>suMap[d.subject]=d.pct);
+  const labels=top20.map(d=>d.subject);
+  const nwP=top20.map(d=>d.pct),suP=top20.map(d=>suMap[d.subject]||0);
+  const ctx=document.getElementById('chartSUvsNW').getContext('2d');
+  if(chartSUvsNW_i)chartSUvsNW_i.destroy();
+  chartSUvsNW_i=new Chart(ctx,{type:'bar',
+    data:{labels,datasets:[
+      {label:'전국 점유율',data:nwP,backgroundColor:'rgba(59,111,212,.75)',borderRadius:3,barThickness:10},
+      {label:'수도권 점유율',data:suP,backgroundColor:'rgba(16,185,129,.75)',borderRadius:3,barThickness:10}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:11}}},
+        datalabels:{display:d=>d.dataset.data[d.dataIndex]>=0.5,anchor:'end',align:'right',
+          formatter:v=>v.toFixed(1)+'%',font:{size:9,weight:700},color:'#374151'},
+        tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw.toFixed(2)+'%'}}},
+      scales:{x:{beginAtZero:true,ticks:{callback:v=>v+'%',font:{size:10}}},y:{ticks:{font:{size:10}}}}}});
+}
+
+// ── Region Chart ───────────────────────────────────────────
+let chartReg_i=null;
+function renderRegChart(){
+  const kg=document.getElementById('kgSelReg').value;
+  const regional=getRegional();
+  const kgReg=getKyogakgunRegional();
+  let labels=[],vals=[],colors=[];
+  if(kg==='__all__'){
+    regional.forEach(r=>{
+      labels.push(shortSido(r.sido));
+      vals.push(r.subjects.reduce((a,b)=>a+b.qty,0));
+      const isHL=STAFF_SIDOS&&STAFF_SIDOS.includes(r.sido);
+      colors.push(isHL?'rgba(59,111,212,.85)':'rgba(59,111,212,.55)');
+    });
+  } else {
+    kgReg.forEach(r=>{
+      labels.push(shortSido(r.sido));
+      const f=r.kgs.find(k=>k.kg===kg);
+      vals.push(f?f.qty:0);
+      colors.push(h2r(kgC(kg),.75));
+    });
+  }
+  const ctx=document.getElementById('chartReg').getContext('2d');
+  if(chartReg_i)chartReg_i.destroy();
+  chartReg_i=new Chart(ctx,{type:'bar',
+    data:{labels,datasets:[{label:kg==='__all__'?'총 채택 부수':kg,data:vals,backgroundColor:colors,borderRadius:5}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        datalabels:{anchor:'end',align:'top',formatter:v=>fN(v),font:{weight:600,size:9},color:'#374151'},
+        tooltip:{callbacks:{label:c=>fN(c.raw)+'부'}}},
+      scales:{y:{beginAtZero:true,ticks:{callback:v=>fN(v),font:{size:10}},grid:{color:'#f1f5f9'}},
+        x:{ticks:{font:{size:10}},grid:{display:false}}}}});
+}
+
+function renderSidoDetail(){
+  const sido=document.getElementById('sidoSel').value;
+  const kg=document.getElementById('kgFilterSido').value;
+  const area=document.getElementById('sidoDetailArea');
+  if(!sido){area.innerHTML='<p style="color:var(--muted);font-size:13px;padding:8px">시도를 선택하세요.</p>';return;}
+  const r=G.regional.find(x=>x.sido===sido);
+  if(!r){area.innerHTML='<p>데이터 없음</p>';return;}
+  let subs=r.subjects.slice();
+  if(kg)subs=subs.filter(s=>s.kyogakgun===kg);
+  subs.sort((a,b)=>b.qty-a.qty);
+  const maxP=Math.max(...subs.map(d=>d.pct),.01);
+  area.innerHTML=`
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${sido} &nbsp;|&nbsp; 총학생: <strong>${fN(r.total_students)}명</strong> &nbsp;| 과목: <strong>${subs.length}개</strong></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th style="width:36px">순위</th><th>과목명</th><th>교과군</th>
+        <th style="text-align:right">채택 부수</th><th style="text-align:right">지역 점유율</th>
+        <th style="min-width:120px">점유율 바</th>
+      </tr></thead>
+      <tbody>${subs.map((d,i)=>`
+        <tr>
+          <td style="text-align:center;color:var(--muted);font-size:11px">${i+1}</td>
+          <td><strong>${d.subject}</strong></td>
+          <td><span class="pill" style="background:${kgC(d.kyogakgun)}1a;color:${kgC(d.kyogakgun)}">${d.kyogakgun}</span></td>
+          <td style="text-align:right;font-weight:600">${fN(d.qty)}</td>
+          <td style="text-align:right;font-weight:700;color:var(--navy)">${fP(d.pct)}</td>
+          <td><div class="inbar-wrap">
+            <div style="flex:1;background:#e8edf8;border-radius:3px;height:7px;overflow:hidden">
+              <div class="inbar" style="width:${Math.round(d.pct/maxP*100)}%;background:${kgC(d.kyogakgun)}"></div>
+            </div>
+            <span class="inbar-pct">${fP(d.pct)}</span>
+          </div></td>
+        </tr>`).join('')}
+      </tbody></table></div>`;
+}
+
+function renderRegionGrid(){
+  const grid=document.getElementById('regionGrid');
+  if(grid.dataset.built)return; grid.dataset.built='1';
+  const regional=getRegional();
+  grid.innerHTML=regional.map(r=>{
+    const t5=r.subjects.slice(0,5),maxP=Math.max(...t5.map(d=>d.pct),.01);
+    const tot=r.subjects.reduce((a,b)=>a+b.qty,0);
+    const isHL=STAFF_SIDOS&&STAFF_SIDOS.includes(r.sido);
+    return`<div class="region-card${isHL?' hl':''}">
+      <div class="region-hd"><span class="region-sido">${r.sido}${isHL?' <span style="font-size:10px;color:#3b6fd4">(담당)</span>':''}</span><span class="region-meta">${fN(r.total_students)}명 | ${fN(tot)}부</span></div>
+      ${t5.map((d,i)=>`
+        <div style="display:grid;grid-template-columns:16px 1fr 50px 42px;align-items:center;gap:5px;margin-bottom:5px">
+          <span style="font-size:10px;color:var(--muted);font-weight:700;text-align:center">${i+1}</span>
+          <span style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.subject}</span>
+          <div style="background:#e8edf8;border-radius:3px;height:6px;overflow:hidden">
+            <div style="height:100%;width:${Math.round(d.pct/maxP*100)}%;background:${kgC(d.kyogakgun)};border-radius:3px"></div>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:var(--navy);text-align:right">${fP(d.pct)}</span>
+        </div>`).join('')}
+    </div>`;}).join('');
+}
+
+// ── 담당 지역 과목 분석 ────────────────────────────────────
+let chartStaffSubject_i=null;
+function renderStaffSubjectChart(){
+  const subj=document.getElementById('subjectSelStaff').value;
+  if(!subj||!STAFF_SIDOS||!G)return;
+  const ctx=document.getElementById('chartStaffSubject').getContext('2d');
+  const data=STAFF_SIDOS.map(sido=>{
+    const r=G.regional.find(x=>x.sido===sido);
+    if(!r)return{sido,pct:0,qty:0};
+    const s=r.subjects.find(x=>x.subject===subj);
+    return{sido,pct:s?s.pct:0,qty:s?s.qty:0};
+  });
+  const nwEntry=G.nationwide_shares.find(x=>x.subject===subj);
+  const nwPct=nwEntry?nwEntry.pct:0;
+  const labels=data.map(x=>shortSido(x.sido));
+  if(chartStaffSubject_i)chartStaffSubject_i.destroy();
+  chartStaffSubject_i=new Chart(ctx,{type:'bar',
+    data:{labels,datasets:[
+      {label:'담당시도 점유율(%)',data:data.map(x=>x.pct),backgroundColor:'rgba(59,111,212,.75)',borderRadius:6,order:2},
+      {label:'전국 점유율('+nwPct.toFixed(2)+'%)',data:labels.map(()=>nwPct),type:'line',
+        borderColor:'#ef4444',borderWidth:2.5,borderDash:[6,4],pointRadius:0,fill:false,order:1}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:11}}},
+        datalabels:{anchor:'end',align:'top',
+          formatter:(v,c)=>c.dataset.type==='line'?'':v.toFixed(1)+'%',
+          font:{weight:700,size:10},color:'#374151'},
+        tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw.toFixed(2)+'%'}}},
+      scales:{y:{beginAtZero:true,ticks:{callback:v=>v+'%',font:{size:10}},grid:{color:'#f1f5f9'}},
+        x:{ticks:{font:{size:11}}}}}
+  });
+}
+
+function renderStaffInsights(){
+  if(!G||!G.region_shares)return;
+  const card=document.getElementById('staffInsightCard');
+  const area=document.getElementById('staffInsightArea');
+  if(!card||!area)return;
+  card.style.display='';
+
+  // ── 담당 구 필터 ──
+  const myRegions = STAFF_REGIONS
+    ? G.region_shares.filter(r=>STAFF_REGIONS.includes(r.region))
+    : G.region_shares;
+  if(!myRegions.length){
+    area.innerHTML='<div style="color:var(--muted);padding:12px">담당 구 데이터가 없습니다.</div>';
+    return;
+  }
+
+  const TARGET=['정보','진로와 직업','미술','체육 1','체육 2','스포츠 생활 1'];
+
+  // ── 전국 pct 기준 계산 ──
+  const nwStudents=G.region_shares.reduce((a,r)=>a+r.cohort_students,0)||1;
+  const nwSubjQty={};
+  G.region_shares.forEach(r=>r.subjects.forEach(s=>{
+    nwSubjQty[s.subject]=(nwSubjQty[s.subject]||0)+(s.qty||0);
+  }));
+  const nwPctMap={};
+  for(const [k,v] of Object.entries(nwSubjQty)){nwPctMap[k]=v/nwStudents*100;}
+
+  const INFO='정보';
+  const nwInfoPct=nwPctMap[INFO]||0;
+
+  // ── 구별 데이터 빌드 (정보 pct 낮은 순 정렬) ──
+  const districtShort=r=>r;  // 전체 지역명 표시 (예: 서울특별시 강서구)
+  const regionData=myRegions.map(r=>{
+    const infoS=r.subjects.find(x=>x.subject===INFO);
+    const infoPct=infoS?infoS.pct:0;
+    return{
+      region:r.region, cohort:r.cohort_students, infoPct,
+      subjects:TARGET.map(sub=>{
+        const s=r.subjects.find(x=>x.subject===sub);
+        return{sub,pct:s?s.pct:0,qty:s?s.qty:0,nwPct:nwPctMap[sub]||0};
+      })
+    };
+  }).sort((a,b)=>a.infoPct-b.infoPct);
+
+  // ── 과목 헤더 ──
+  const hdrCols=TARGET.map(s=>`<th style="font-size:10px;padding:4px 3px;white-space:nowrap;text-align:center">${s}</th>`).join('');
+
+  // ── 구별 행 ──
+  const rows=regionData.map(d=>{
+    const cells=d.subjects.map(s=>{
+      const diff=s.pct-s.nwPct;
+      const bg=diff>1?'#dcfce7':diff<-1?'#fee2e2':'#fef9c3';
+      const color=diff>1?'#166534':diff<-1?'#991b1b':'#78350f';
+      return `<td style="text-align:center;background:${bg};color:${color};font-size:11px;font-weight:700;padding:4px 3px">${s.pct.toFixed(1)}%</td>`;
+    }).join('');
+    const infoBorder=d.infoPct<nwInfoPct?'border-left:3px solid #ef4444':'border-left:3px solid #22c55e';
+    return `<tr style="${infoBorder}">
+      <td style="font-size:11px;padding:4px 6px;white-space:nowrap;font-weight:600">${districtShort(d.region)}</td>
+      <td style="text-align:right;font-size:10px;padding:4px 3px;color:var(--muted)">${fN(d.cohort)}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+
+  const totalCohort=myRegions.reduce((a,r)=>a+r.cohort_students,0);
+
+  const matrixHtml=`
+    <div style="overflow-x:auto;margin-top:8px">
+      <table style="border-collapse:collapse;width:100%;font-size:12px">
+        <thead><tr style="background:#f8fafc">
+          <th style="text-align:left;padding:4px 6px;font-size:11px">지역</th>
+          <th style="text-align:right;padding:4px 3px;font-size:10px">학생수</th>
+          ${hdrCols}
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div style="font-size:10px;color:var(--muted);margin-top:5px">
+        🔴 좌측 테두리: 정보 점유율 전국(${fP(nwInfoPct)}) 미달 지역 &nbsp;|&nbsp; 셀 배경: 🟢 전국 +1%p↑ &nbsp; 🟡 근접 &nbsp; 🔴 전국 -1%p↓
+      </div>
+    </div>`;
+
+  // ── 영업 우선순위 (정보 점유율 낮은 구 TOP 5) ──
+  const lowInfo=regionData.filter(d=>d.infoPct<nwInfoPct).slice(0,5);
+  const actionHtml=lowInfo.length?`
+    <div style="margin-top:16px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:#dc2626">🎯 정보 점유율 우선 공략 구 (전국 ${fP(nwInfoPct)} 미달)</div>
+      ${lowInfo.map((d,i)=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 12px;border-radius:8px;background:#fff;margin-bottom:5px;box-shadow:0 1px 3px rgba(0,0,0,.08);border-left:3px solid #ef4444">
+          <span style="font-weight:700;font-size:13px">${['①','②','③','④','⑤'][i]} ${districtShort(d.region)}</span>
+          <span style="font-size:11px;color:var(--muted)">${fN(d.cohort)}명</span>
+          <span style="font-size:12px;font-weight:700;color:#dc2626">정보 ${fP(d.infoPct)} <span style="font-weight:400;font-size:10px;color:var(--muted)">/ 전체평균 ${fP(nwInfoPct)}</span></span>
+        </div>`).join('')}
+    </div>`:'';
+
+  area.innerHTML=`
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">
+      담당 ${myRegions.length}개 구 · 코호트 합산 ${fN(totalCohort)}명 기준
+    </div>
+    ${matrixHtml}
+    ${actionHtml}`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// 영업 우선순위 탭 함수들
+// ══════════════════════════════════════════════════════════════
+
+const SP_WEIGHT={'정보':5,'진로와 직업':4,'운동과 건강':4,'미술':2,'체육 1':2,'체육 2':2};
+const SP_TARGETS=Object.keys(SP_WEIGHT);
+const GRADE_WEIGHT={S:3,A:2,B:1,C:0.5};
+const GRADE_COLOR={S:'grade-S',A:'grade-A',B:'grade-B',C:'grade-C'};
+
+function spMyRegions(){
+  if(!G||!G.region_detail)return[];
+  return STAFF_REGIONS
+    ? STAFF_REGIONS.filter(r=>G.region_detail[r])
+    : Object.keys(G.region_detail);
+}
+
+// 담당 구 합산 과목 pct 계산
+function spMyPctMap(){
+  const myR=spMyRegions();
+  const rs=G.region_shares||[];
+  const qtys={},cohort_total={};
+  SP_TARGETS.forEach(s=>{qtys[s]=0;});
+  let totalCohort=0;
+  myR.forEach(region=>{
+    const rd=rs.find(x=>x.region===region);
+    if(!rd)return;
+    totalCohort+=rd.cohort_students||0;
+    rd.subjects.forEach(s=>{
+      if(qtys[s.subject]!==undefined) qtys[s.subject]+=s.qty||0;
+    });
+  });
+  const myPct={};
+  SP_TARGETS.forEach(s=>{ myPct[s]=totalCohort>0?qtys[s]/totalCohort*100:0; });
+  return{myPct,totalCohort,myR};
+}
+
+// ── Section 1: 전국/수도권/지방 vs 내담당구 비교표 ──
+function renderSpCompareTable(){
+  const nwMap={},suMap={},jbMap={};
+  (G.nationwide_shares||[]).forEach(s=>nwMap[s.subject]=s.pct);
+  (G.sudogwon_shares||[]).forEach(s=>suMap[s.subject]=s.pct);
+  (G.jibang_shares||[]).forEach(s=>jbMap[s.subject]=s.pct);
+  const{myPct,myR}=spMyPctMap();
+  const myLabel=myR.length?`담당 ${myR.length}개 구`:'전국';
+
+  document.getElementById('spCompareBadge').textContent=myLabel+' vs 전국/수도권/지방';
+  const thead=`<thead><tr style="background:#f8fafc">
+    <th style="text-align:left">과목</th>
+    <th>전국</th><th>수도권</th><th>지방</th><th style="background:#eff6ff;border-radius:4px">${myLabel}</th>
+  </tr></thead>`;
+  const rows=SP_TARGETS.map(sub=>{
+    const nw=nwMap[sub]||0, su=suMap[sub]||0, jb=jbMap[sub]||0, my=myPct[sub]||0;
+    const myBg=my>=nw?'#dcfce7':'#fee2e2';
+    const myColor=my>=nw?'#166534':'#dc2626';
+    function cell(v,bg,color){return`<td style="text-align:center;background:${bg};color:${color};font-weight:700">${v.toFixed(2)}%</td>`;}
+    function stdCell(v,ref){
+      const bg=v>=ref?'#f0fdf4':'#fff7ed'; const color=v>=ref?'#166534':'#9a3412';
+      return`<td style="text-align:center;color:${color}">${v.toFixed(2)}%</td>`;
+    }
+    return`<tr>
+      <td style="font-weight:600"><span class="pill" style="background:#eff6ff;color:#1d4ed8;font-size:10px">${sub}</span></td>
+      ${stdCell(nw,nw)}${stdCell(su,nw)}${stdCell(jb,nw)}
+      ${cell(my,myBg,myColor)}
+    </tr>`;
+  }).join('');
+  document.getElementById('spCompareTable').innerHTML=thead+`<tbody>${rows}</tbody>`;
+}
+
+// ── Section 2: 구별 영업 우선지수 카드 ──
+function renderSpPriorityCards(){
+  const myR=spMyRegions();
+  // 전체 커버리지 기준 평균 pct 계산 (지역별 pct와 same denominator → 뻥튀기 방지)
+  const nwStudentsAll=(G.region_shares||[]).reduce((a,r)=>a+(r.cohort_students||0),0)||1;
+  const nwSubjQtyAll={};
+  (G.region_shares||[]).forEach(r=>r.subjects.forEach(s=>{
+    nwSubjQtyAll[s.subject]=(nwSubjQtyAll[s.subject]||0)+(s.qty||0);
+  }));
+  const nwPctAll={};
+  for(const[k,v]of Object.entries(nwSubjQtyAll)){nwPctAll[k]=v/nwStudentsAll*100;}
+  const nwInfoPct=nwPctAll['정보']||0;
+  const rs=G.region_shares||[];
+
+  const districts=myR.map(region=>{
+    const schools=(G.region_detail[region]||[]);
+    const hsSchools=schools.filter(s=>s.type&&s.type!=='');
+    // 미채택 학교 가중 점수
+    let noOrderScore=0;
+    hsSchools.forEach(s=>{
+      if(!s.has_order) noOrderScore+=(GRADE_WEIGHT[s.grade]||0.5);
+    });
+    const noOrderCount=hsSchools.filter(s=>!s.has_order).length;
+    const totalHS=hsSchools.length;
+    // 전략과목 전국 대비 미달 가중합
+    const rdEntry=rs.find(x=>x.region===region);
+    const cohort=rdEntry?rdEntry.cohort_students:0;
+    let spGapScore=0;
+    SP_TARGETS.forEach(sub=>{
+      const nwPct=nwPctAll[sub]||0;  // region_shares 전체 평균 (동일 분모)
+      const myP=rdEntry?(rdEntry.subjects.find(x=>x.subject===sub)||{pct:0}).pct:0;
+      spGapScore+=Math.max(0,nwPct-myP)*(SP_WEIGHT[sub]||1);
+    });
+    const infoPct=rdEntry?(rdEntry.subjects.find(x=>x.subject==='정보')||{pct:0}).pct:0;
+    // 우선지수 = 미채택가중점수 * 2 + 전략과목미달가중합 + cohort/500
+    const score=noOrderScore*2 + spGapScore + cohort/500;
+    return{region,score,noOrderCount,totalHS,infoPct,nwInfoPct,cohort};
+  }).sort((a,b)=>b.score-a.score);
+
+  const maxScore=Math.max(...districts.map(d=>d.score),.01);
+  const html=districts.map(d=>{
+    const pct=Math.round(d.score/maxScore*100);
+    const cls=pct>66?'high':pct>33?'mid':'low';
+    const dist=d.region;
+    const infoColor=d.infoPct<d.nwInfoPct?'#dc2626':'#16a34a';
+    return`<div class="priority-card ${cls}" style="cursor:pointer" onclick="openSchoolModal('${d.region}')">
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px">${dist}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
+        <span style="background:#fef2f2;color:#dc2626;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:700">미채택 ${d.noOrderCount}/${d.totalHS}교</span>
+        <span style="font-size:11px;color:${infoColor};font-weight:700">정보 ${fP(d.infoPct)}</span>
+        <span style="font-size:10px;color:var(--muted)">전체평균 ${fP(d.nwInfoPct)}</span>
+      </div>
+      <div style="height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${cls==='high'?'#ef4444':cls==='mid'?'#f59e0b':'#22c55e'};border-radius:3px"></div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:3px">
+        우선지수 ${Math.round(d.score)} · ${fN(d.cohort)}명 코호트
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('spPriorityArea').innerHTML=html||'<div style="color:var(--muted);padding:12px">담당 구 데이터 없음</div>';
+}
+
+// ── Section 3: 학교 목록 ──
+function renderSpSchoolList(){
+  const myR=spMyRegions();
+  const distSel=document.getElementById('spDistrictSel');
+  const orderFilter=document.getElementById('spOrderFilter');
+  const subjFilter=document.getElementById('spSubjFilter');
+  if(!distSel)return;
+  const selDist=distSel.value;
+  const selOrder=orderFilter?orderFilter.value:'all';
+  const selSubj=subjFilter?subjFilter.value:'';
+
+  let regions=selDist==='__all__'?myR:[selDist];
+  let allSchools=[];
+  regions.forEach(region=>{
+    (G.region_detail[region]||[]).forEach(s=>{
+      allSchools.push({...s,region});
+    });
+  });
+  // 필터
+  if(selOrder==='no') allSchools=allSchools.filter(s=>!s.has_order);
+  if(selOrder==='yes') allSchools=allSchools.filter(s=>s.has_order);
+  if(selSubj){
+    allSchools=allSchools.filter(s=>
+      s.has_order && s.ordered_subjects.some(x=>x.subject===selSubj)
+    );
+  }
+  // 정렬: 미채택 먼저, 그 안에서 등급순(S→C), 같은 등급이면 학생수 내림차순
+  const gradeOrd={S:0,A:1,B:2,C:3};
+  allSchools.sort((a,b)=>{
+    if(a.has_order!==b.has_order) return a.has_order?1:-1;
+    if(a.grade!==b.grade) return (gradeOrd[a.grade]||9)-(gradeOrd[b.grade]||9);
+    return b.students-a.students;
+  });
+
+  if(!allSchools.length){
+    document.getElementById('spSchoolArea').innerHTML='<div style="color:var(--muted);padding:12px">조건에 맞는 학교 없음</div>';
+    return;
+  }
+  const nwMap={};
+  (G.nationwide_shares||[]).forEach(s=>nwMap[s.subject]=s.pct);
+
+  const rows=allSchools.map(s=>{
+    const distShort=s.region;
+    const orderIcon=s.has_order?'<span style="color:#16a34a;font-weight:700">✔ 채택</span>':'<span style="color:#dc2626;font-weight:700">✖ 미채택</span>';
+    const subjHtml=s.has_order?s.ordered_subjects.slice(0,4).map(x=>{
+      const nwp=nwMap[x.subject]||0;
+      const color=x.pct>=nwp?'#166534':'#dc2626';
+      return`<span class="pill" style="background:#f1f5f9;color:${color};font-size:9px">${x.subject} ${x.pct.toFixed(1)}%</span>`;
+    }).join(' '):'<span style="color:#9ca3af;font-size:10px">채택 없음 → 신규 공략 대상</span>';
+    return`<div class="sp-school-card">
+      <div style="display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap">
+        <div style="flex:1;min-width:100px">
+          <div style="font-weight:700;font-size:13px">${s.name}
+            <span class="grade-badge ${GRADE_COLOR[s.grade]||'grade-C'}">${s.grade}급</span>
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${distShort} / ${s.type||'일반고'} / ${s.founded} / ${fN(s.students)}명</div>
+        </div>
+        <div style="text-align:right;font-size:11px">
+          <div>${orderIcon}</div>
+          <div style="margin-top:4px;max-width:220px;text-align:left">${subjHtml}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('spSchoolArea').innerHTML=
+    `<div style="font-size:11px;color:var(--muted);margin-bottom:8px">${allSchools.length}개 학교 표시 (미채택 ${allSchools.filter(s=>!s.has_order).length}교 포함)</div>`
+    +rows;
+}
+
+// ── 모달 함수 ──
+let _modalRegion = null;
+
+function openSchoolModal(region){
+  _modalRegion = region;
+  document.getElementById('spModalTitle').textContent = region + ' 학교 목록';
+  // 과목 필터 초기화
+  const subjSel = document.getElementById('spModalSubjFilter');
+  if(subjSel){
+    while(subjSel.options.length>1) subjSel.remove(1);
+    SP_TARGETS.forEach(sub=>{
+      const o=document.createElement('option');o.value=sub;o.textContent=sub;
+      subjSel.appendChild(o);
+    });
+  }
+  document.getElementById('spModalOrderFilter').value='all';
+  if(subjSel) subjSel.value='';
+  refreshModalList();
+  document.getElementById('spModal').classList.add('on');
+  document.body.style.overflow='hidden';
+}
+
+function closeSchoolModal(){
+  document.getElementById('spModal').classList.remove('on');
+  document.body.style.overflow='';
+}
+
+function refreshModalList(){
+  if(!_modalRegion||!G||!G.region_detail) return;
+  const nwMap={};
+  (G.nationwide_shares||[]).forEach(s=>nwMap[s.subject]=s.pct);
+  const selOrder = document.getElementById('spModalOrderFilter').value;
+  const selSubj = document.getElementById('spModalSubjFilter').value;
+
+  let schools = (G.region_detail[_modalRegion]||[]).map(s=>({...s,region:_modalRegion}));
+  if(selOrder==='no') schools=schools.filter(s=>!s.has_order);
+  if(selOrder==='yes') schools=schools.filter(s=>s.has_order);
+  if(selSubj) schools=schools.filter(s=>s.has_order&&s.ordered_subjects.some(x=>x.subject===selSubj));
+
+  // 학교별 영업 우선점수: 미채택(등급가중*1000+학생수) > 채택이지만 전략과목 누락(누락가중합*100+학생수)
+  function schoolScore(s){
+    const gw=GRADE_WEIGHT[s.grade]||0.5;
+    if(!s.has_order) return gw*1000+(s.students||0);
+    // 채택됐지만 전략과목 중 빠진 과목 있으면 점수 부여
+    const ordSubjs=(s.ordered_subjects||[]).map(x=>x.subject);
+    const missing=SP_TARGETS.filter(t=>!ordSubjs.includes(t));
+    return missing.reduce((acc,t)=>(acc+(SP_WEIGHT[t]||1)),0)*gw*100+(s.students||0);
+  }
+  schools.sort((a,b)=>schoolScore(b)-schoolScore(a));
+  if(!schools.length){
+    document.getElementById('spModalBody').innerHTML='<div style="color:var(--muted);padding:8px">조건에 맞는 학교 없음</div>';
+    return;
+  }
+  const rows=schools.map((s,idx)=>{
+    const orderIcon=s.has_order?'<span style="color:#16a34a;font-weight:700">✔ 채택</span>':'<span style="color:#dc2626;font-weight:700">✖ 미채택</span>';
+    const subjHtml=s.has_order?s.ordered_subjects.slice(0,4).map(x=>{
+      const nwp=nwMap[x.subject]||0;
+      const color=x.pct>=nwp?'#166534':'#dc2626';
+      return`<span class="pill" style="background:#f1f5f9;color:${color};font-size:9px">${x.subject} ${x.pct.toFixed(1)}%</span>`;
+    }).join(' '):'<span style="color:#9ca3af;font-size:10px">신규 공략 대상</span>';
+    return`<div class="sp-school-card">
+      <div style="display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap">
+        <div style="flex:1;min-width:100px">
+          <div style="font-weight:700;font-size:13px">${s.name}
+            <span class="grade-badge ${GRADE_COLOR[s.grade]||'grade-C'}">${s.grade}급</span>
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${s.type||'일반고'} / ${s.founded} / ${fN(s.students)}명</div>
+        </div>
+        <div style="text-align:right;font-size:11px">
+          <div>${orderIcon}</div>
+          <div style="margin-top:4px">${subjHtml}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('spModalBody').innerHTML=
+    `<div style="font-size:11px;color:var(--muted);margin-bottom:8px">${schools.length}개 학교 (미채택 ${schools.filter(s=>!s.has_order).length}교)</div>`+rows;
+}
+
+// ── 전체 초기화 ──
+function renderSalePriority(){
+  if(!G||!G.region_detail||!G.jibang_shares)return;
+  renderSpCompareTable();
+  renderSpPriorityCards();
+}
+
+// Esc 키로 모달 닫기
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeSchoolModal(); });
+
+function populateFilters(){
+  const kgl=G.kyogakgun.nationwide.map(k=>k.kg);
+  ['kgFilterNW','kgFilterNWTbl','kgFilterSU','kgFilterSido'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    kgl.forEach(kg=>{const o=document.createElement('option');o.value=kg;o.textContent=kg;el.appendChild(o);});
+  });
+  kgl.forEach(kg=>{const o=document.createElement('option');o.value=kg;o.textContent=kg;document.getElementById('kgSelReg').appendChild(o);});
+
+  // sido select: staff가 있으면 담당 시도만, 없으면 전체
+  const sidoRefList=getRegional();
+  sidoRefList.forEach(r=>{const o=document.createElement('option');o.value=r.sido;o.textContent=r.sido;document.getElementById('sidoSel').appendChild(o);});
+  if(sidoRefList.length)document.getElementById('sidoSel').value=sidoRefList[0].sido;
+
+}
+// (staffRegionCard 는 renderStaffInsights 내에서 직접 표시처리)
+
+async function init(){
+  try{
+    const paths=['/assets/adoption_data.json','/public/assets/adoption_data.json'];
+    let resp;
+    for(const p of paths){try{resp=await fetch(p);if(resp.ok)break;}catch(e){}}
+    if(!resp||!resp.ok)throw new Error('데이터를 불러올 수 없습니다 ('+resp?.status+')');
+    G=await resp.json();
+    // 구 단위 담당 지역 설정 (region_shares 필터용)
+    if(STAFF_CODE && G.staff_regions && G.staff_regions[STAFF_CODE]){
+      STAFF_REGIONS = G.staff_regions[STAFF_CODE];
+    }
+    document.getElementById('loadingOverlay').style.display='none';
+
+    showStaffBanner();
+    renderKPI();
+    populateFilters();
+    makeDonut('chartDonutNW','legendDonutNW',G.kyogakgun.nationwide);
+    makeDonut('chartDonutSU','legendDonutSU',G.kyogakgun.sudogwon);
+    renderKgNWChart();
+    renderNWRanking();
+    renderNWTable();
+
+    // staff가 있으면 영업우선순위 탭 우선
+    if(STAFF_CODE){
+      tabInits['sudogwon']=true; tabInits['nationwide']=true; tabInits['regional']=true;
+      renderKgCompareChart(); renderSURanking(); renderSUvsNWChart();
+      renderRegChart(); renderRegionGrid();
+      switchTab('salepriority');
+      renderStaffInsights();
+    }
+  }catch(e){
+    document.getElementById('loadingOverlay').innerHTML=
+      '<div style="color:#ef4444;font-size:14px">&#9888; '+e.message+'</div>'
+      +'<div style="font-size:11px;color:#6b7280;margin-top:6px">F12 콘솔에서 오류를 확인하세요.</div>';
+    console.error(e);
+  }
+}
+window.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
