@@ -177,9 +177,11 @@
       .table-card{overflow-x:auto}
       /* 테이블 최소 너비 고정 → 열이 찌그러지지 않고 가로 스크롤 트리거 */
       #teachersTbl{min-width:820px}
-      /* 부드러운 터치 스크롤 */
-      .tbl-wrap{-webkit-overflow-scrolling:touch}
-      .office-tabs{-webkit-overflow-scrolling:touch}
+      /* tbl-wrap 가로 스크롤 컨테이너 (핵심) */
+      .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+      /* table-card의 overflow:hidden이 스크롤을 막으므로 제거 */
+      .table-card{overflow:visible}
+      .office-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
       /* 통계 카드 overflow 방지 */
       .stats-row{overflow-x:hidden}
       /* 교육청 탭 가로 스크롤 */

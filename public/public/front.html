@@ -965,7 +965,7 @@ async function loadPersonalVisits(){
         html += '<tr>' +
           `<td class="visit-date-cell"><span class="visit-date-year">${dateYear}</span><span class="visit-date-md">${dateMd}</span></td>` +
           `<td>${region}</td>` +
-          `<td>${school}${aiBadge}</td>` +
+          `<td data-school="${schoolRaw.replace(/"/g,'&quot;')}">${school}${aiBadge}</td>` +
           `<td>${time}</td>` +
           `<td>${duration}</td>` +
           `<td>${escapeHtml(subjects)}</td>` +
@@ -986,6 +986,21 @@ async function loadPersonalVisits(){
 // Helper: escape HTML for simple cell rendering
 function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
+// AI 배지: 이미 렌더링된 테이블의 학교코럼을 갱신 (digital_schools 늪은 후 호출)
+function refreshAiBadgesInTable(){
+  if(!window.__digitalSchoolsMap) return;
+  const cont = document.getElementById('schoolVisitsTableContainer');
+  if(!cont) return;
+  cont.querySelectorAll('td[data-school]').forEach(td=>{
+    const sName = td.getAttribute('data-school')||'';
+    if(!sName) return;
+    // 기존 배지 제거 후 재삽입
+    td.querySelectorAll('span[data-ai-badge]').forEach(s=>s.remove());
+    const badge = getAiDigitalBadge(sName);
+    if(badge) td.insertAdjacentHTML('beforeend', badge);
+  });
+}
+
 // Helper: AI 디지털 선도/중점/연구학교 배지 생성
 function getAiDigitalBadge(schoolName){
   const dm = window.__digitalSchoolsMap || {};
@@ -996,7 +1011,7 @@ function getAiDigitalBadge(schoolName){
   return entry.tags.map(t=>{
     const c=colors[t], lb=labels[t];
     if(!c||!lb) return '';
-    return `<span style="display:inline-block;margin-left:3px;font-size:10px;font-weight:700;background:${c}18;color:${c};border:1px solid ${c}50;border-radius:8px;padding:0 5px;vertical-align:middle;white-space:nowrap;line-height:1.4">${lb}</span>`;
+    return `<span data-ai-badge="1" style="display:inline-block;margin-left:3px;font-size:10px;font-weight:700;background:${c}18;color:${c};border:1px solid ${c}50;border-radius:8px;padding:0 5px;vertical-align:middle;white-space:nowrap;line-height:1.4">${lb}</span>`;
   }).join('');
 }
 
@@ -1430,6 +1445,8 @@ async function loadSchoolCsvForCharts(){
     if(dsRes.ok){
       window.__digitalSchoolsMap = await dsRes.json();
       console.log('[front] digital_schools loaded:', Object.keys(window.__digitalSchoolsMap).length, 'schools');
+      // 방문테이블이 이미 렌더링된 경우 배지 업데이트
+      if(typeof refreshAiBadgesInTable==='function') refreshAiBadgesInTable();
     }
   }catch(e){ console.warn('[front] digital_schools.json load failed', e); }
 }

@@ -876,18 +876,33 @@ function spMyPctMap(){
 
 // ── Section 1: 전국/수도권/지방 vs 내담당구 비교표 ──
 function renderSpCompareTable(){
+  // region_shares 집계 → 담당구와 동일한 분모(coverage cohort) 기준으로 통일
+  const SUDOGWON=new Set(['서울특별시','인천광역시','경기도']);
+  const nwQty={};let nwC=0;
+  const suQty={};let suC=0;
+  const jbQty={};let jbC=0;
+  (G.region_shares||[]).forEach(r=>{
+    const isSu=SUDOGWON.has(r.sido||'');
+    nwC+=r.cohort_students||0;
+    if(isSu)suC+=r.cohort_students||0;else jbC+=r.cohort_students||0;
+    (r.subjects||[]).forEach(s=>{
+      nwQty[s.subject]=(nwQty[s.subject]||0)+(s.qty||0);
+      if(isSu)suQty[s.subject]=(suQty[s.subject]||0)+(s.qty||0);
+      else    jbQty[s.subject]=(jbQty[s.subject]||0)+(s.qty||0);
+    });
+  });
   const nwMap={},suMap={},jbMap={};
-  (G.nationwide_shares||[]).forEach(s=>nwMap[s.subject]=s.pct);
-  (G.sudogwon_shares||[]).forEach(s=>suMap[s.subject]=s.pct);
-  (G.jibang_shares||[]).forEach(s=>jbMap[s.subject]=s.pct);
+  for(const[k,v]of Object.entries(nwQty))nwMap[k]=v/(nwC||1)*100;
+  for(const[k,v]of Object.entries(suQty))suMap[k]=v/(suC||1)*100;
+  for(const[k,v]of Object.entries(jbQty))jbMap[k]=v/(jbC||1)*100;
   const{myPct,myR}=spMyPctMap();
   const myLabel=myR.length?`담당 ${myR.length}개 구`:'전국';
 
-  document.getElementById('spCompareBadge').textContent=myLabel+' vs 전국/수도권/지방';
+  document.getElementById('spCompareBadge').textContent=myLabel+' vs 전체평균/수도권/지방';
   const thead=`<thead><tr style="background:#f8fafc">
     <th style="text-align:left">과목</th>
-    <th>전국</th><th>수도권</th><th>지방</th><th style="background:#eff6ff;border-radius:4px">${myLabel}</th>
-  </tr></thead>`;
+    <th title="관내 coverage 학교 기준 전체평균">전체평균</th><th>수도권</th><th>지방</th><th style="background:#eff6ff;border-radius:4px">${myLabel}</th>
+  </tr></thead>\n<caption style="caption-side:bottom;font-size:10px;color:#888;text-align:right;padding-top:4px">※ 모든 % = coverage 학교 cohort 기준 (분모 통일)</caption>`;
   const rows=SP_TARGETS.map(sub=>{
     const nw=nwMap[sub]||0, su=suMap[sub]||0, jb=jbMap[sub]||0, my=myPct[sub]||0;
     const myBg=my>=nw?'#dcfce7':'#fee2e2';
